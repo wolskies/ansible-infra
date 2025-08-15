@@ -1,0 +1,166 @@
+---
+# Verify infrastructure discovery functionality
+- name: Verify infrastructure discovery
+  hosts: discovery_targets
+  gather_facts: true
+  tasks:
+    - name: Verify discovery output files exist
+      block:
+        - name: Check for generated inventory file
+          ansible.builtin.stat:
+            path: "{{ discovery_output_path }}/{{ discovery_inventory_name }}.yml"
+          register: inventory_file
+          delegate_to: localhost
+
+        - name: Verify inventory file exists
+          ansible.builtin.assert:
+            that:
+              - inventory_file.stat.exists
+            fail_msg: "Discovery inventory file not created"
+            success_msg: "Discovery inventory file verified"
+
+        - name: Check for host vars files
+          ansible.builtin.stat:
+            path: "{{ discovery_output_path }}/host_vars/{{ inventory_hostname }}.yml"
+          register: host_vars_file
+          delegate_to: localhost
+
+        - name: Verify host vars file exists
+          ansible.builtin.assert:
+            that:
+              - host_vars_file.stat.exists
+            fail_msg: "Host vars file not created"
+            success_msg: "Host vars file verified"
+
+    - name: Verify package discovery
+      block:
+        - name: Read generated host vars file
+          ansible.builtin.slurp:
+            src: "{{ discovery_output_path }}/host_vars/{{ inventory_hostname }}.yml"
+          register: host_vars_content
+          delegate_to: localhost
+
+        - name: Parse host vars content
+          ansible.builtin.set_fact:
+            discovered_vars: "{{ host_vars_content.content | b64decode | from_yaml }}"
+
+        - name: Verify discovered packages
+          ansible.builtin.assert:
+            that:
+              - discovered_vars.discovered_packages is defined
+              - discovered_vars.discovered_packages | length > 0
+            fail_msg: "No packages discovered"
+            success_msg: "Package discovery verified"
+
+        - name: Check for essential packages in discovery
+          ansible.builtin.assert:
+            that:
+              - "'git' in (discovered_vars.discovered_packages | map(attribute='name') | list)"
+              - "'curl' in (discovered_vars.discovered_packages | map(attribute='name') | list)"
+            fail_msg: "Essential test packages not discovered"
+            success_msg: "Essential packages discovered"
+
+    - name: Verify user discovery
+      block:
+        - name: Check for discovered users
+          ansible.builtin.assert:
+            that:
+              - discovered_vars.discovered_users is defined
+              - discovered_vars.discovered_users | length > 0
+            fail_msg: "No users discovered"
+            success_msg: "User discovery verified"
+
+        - name: Verify test user was discovered
+          ansible.builtin.assert:
+            that:
+              - "'discoverytest' in (discovered_vars.discovered_users | map(attribute='name') | list)"
+            fail_msg: "Test user not discovered"
+            success_msg: "Test user discovery verified"
+
+    - name: Verify service discovery
+      block:
+        - name: Check for discovered services
+          ansible.builtin.assert:
+            that:
+              - discovered_vars.discovered_services is defined
+            fail_msg: "Service discovery section missing"
+            success_msg: "Service discovery section verified"
+
+        - name: Verify test service discovery
+          ansible.builtin.debug:
+            msg: "Services discovered: {{ discovered_vars.discovered_services | length if discovered_vars.discovered_services is defined else 0 }}"
+
+    - name: Verify replication playbook generation
+      block:
+        - name: Check for replication playbook
+          ansible.builtin.stat:
+            path: "{{ discovery_output_path }}/playbooks/replicate-{{ inventory_hostname }}.yml"
+          register: replication_playbook
+          delegate_to: localhost
+
+        - name: Verify replication playbook exists
+          ansible.builtin.assert:
+            that:
+              - replication_playbook.stat.exists
+            fail_msg: "Replication playbook not created"
+            success_msg: "Replication playbook verified"
+
+        - name: Read replication playbook content
+          ansible.builtin.slurp:
+            src: "{{ discovery_output_path }}/playbooks/replicate-{{ inventory_hostname }}.yml"
+          register: replication_content
+          delegate_to: localhost
+
+        - name: Verify replication playbook has package tasks
+          ansible.builtin.assert:
+            that:
+              - "'package' in replication_content.content | b64decode"
+            fail_msg: "Replication playbook missing package tasks"
+            success_msg: "Replication playbook content verified"
+
+    - name: Verify vault template generation
+      block:
+        - name: Check for vault template
+          ansible.builtin.stat:
+            path: "{{ discovery_output_path }}/group_vars/all/vault-template.yml"
+          register: vault_template
+          delegate_to: localhost
+
+        - name: Verify vault template exists
+          ansible.builtin.assert:
+            that:
+              - vault_template.stat.exists
+            fail_msg: "Vault template not created"
+            success_msg: "Vault template verified"
+
+    - name: Verify discovery metadata
+      block:
+        - name: Check for discovery metadata
+          ansible.builtin.assert:
+            that:
+              - discovered_vars.discovery_metadata is defined
+              - discovered_vars.discovery_metadata.scan_date is defined
+              - discovered_vars.discovery_metadata.target_host is defined
+              - discovered_vars.discovery_metadata.os_family is defined
+            fail_msg: "Discovery metadata missing or incomplete"
+            success_msg: "Discovery metadata verified"
+
+        - name: Verify OS information captured
+          ansible.builtin.assert:
+            that:
+              - discovered_vars.discovery_metadata.os_family == ansible_os_family
+              - discovered_vars.discovery_metadata.distribution is defined
+            fail_msg: "OS information not properly captured"
+            success_msg: "OS information capture verified"
+
+    - name: Discovery verification summary
+      ansible.builtin.debug:
+        msg:
+          - "Infrastructure discovery verification completed"
+          - "Target: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Packages discovered: {{ discovered_vars.discovered_packages | length if discovered_vars.discovered_packages is defined else 0 }}"
+          - "Users discovered: {{ discovered_vars.discovered_users | length if discovered_vars.discovered_users is defined else 0 }}"
+          - "Services discovered: {{ discovered_vars.discovered_services | length if discovered_vars.discovered_services is defined else 0 }}"
+          - "Files generated: inventory, host_vars, replication playbook, vault template"
+          - "Discovery utility: VERIFIED"

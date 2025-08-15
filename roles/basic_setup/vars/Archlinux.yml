@@ -1,0 +1,42 @@
+---
+# Arch Linux specific packages
+packages_install:
+  - base-devel
+  - cargo
+  - kitty
+  - linux-headers
+  - git
+  - ttf-cascadia-code-nerd
+  - ttf-cascadia-mono-nerd
+  - ttf-firacode-nerd 
+  - ttf-hack-nerd
+  - ttf-jetbrains-mono-nerd
+  - zsh
+  - fastfetch
+  - uv
+  - firewalld
+  - eza
+  - fzf
+  - zoxide
+  - ansible-core
+  - ansible
+  - python
+  - python-pip
+  - python-requests
+  - python-lxml
+  - python-setuptools
+  - starship
+  - stow
+  - wget
+  - curl
+  - rsync
+  - unzip
+  - screen
+
+# AUR packages (requires AUR helper like yay or paru)
+packages_install_aur:
+  - klassy
+  
+packages_remove: []
+
+# Note: Services management handled by systemd

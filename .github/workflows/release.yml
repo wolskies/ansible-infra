@@ -1,0 +1,143 @@
+# GitHub Actions workflow for creating releases
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  COLLECTION_NAMESPACE: wolskinet
+  COLLECTION_NAME: infrastructure
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      discussions: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: |
+          pip install ansible
+
+      - name: Get version from tag or input
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "clean_version=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Update galaxy.yml version
+        run: |
+          sed -i "s/version: .*/version: ${{ steps.get_version.outputs.clean_version }}/" galaxy.yml
+
+      - name: Build collection
+        run: |
+          ansible-galaxy collection build . --force
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "## Changes in ${{ steps.get_version.outputs.version }}" > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            echo "### Commits since $LAST_TAG:" >> RELEASE_NOTES.md
+            git log $LAST_TAG..HEAD --oneline --no-merges | sed 's/^/- /' >> RELEASE_NOTES.md
+          else
+            echo "### Initial release" >> RELEASE_NOTES.md
+            git log --oneline --no-merges | head -10 | sed 's/^/- /' >> RELEASE_NOTES.md
+          fi
+          
+          echo "" >> RELEASE_NOTES.md
+          echo "### Collection Contents:" >> RELEASE_NOTES.md
+          echo "- **Roles**: basic_setup, docker_setup, system_update" >> RELEASE_NOTES.md
+          echo "- **Utilities**: Infrastructure discovery playbook" >> RELEASE_NOTES.md
+          echo "- **Documentation**: Comprehensive role and utility guides" >> RELEASE_NOTES.md
+          echo "- **Tests**: Complete Molecule test suite" >> RELEASE_NOTES.md
+          
+          echo "" >> RELEASE_NOTES.md
+          echo "### Installation:" >> RELEASE_NOTES.md
+          echo "\`\`\`bash" >> RELEASE_NOTES.md
+          echo "ansible-galaxy collection install $COLLECTION_NAMESPACE.$COLLECTION_NAME:${{ steps.get_version.outputs.clean_version }}" >> RELEASE_NOTES.md
+          echo "\`\`\`" >> RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: "wolskinet.infrastructure ${{ steps.get_version.outputs.version }}"
+          body_path: RELEASE_NOTES.md
+          files: |
+            ${{ env.COLLECTION_NAMESPACE }}-${{ env.COLLECTION_NAME }}-*.tar.gz
+          prerelease: ${{ inputs.prerelease || contains(steps.get_version.outputs.version, 'rc') || contains(steps.get_version.outputs.version, 'beta') || contains(steps.get_version.outputs.version, 'alpha') }}
+          generate_release_notes: false
+          discussion_category_name: Releases
+
+      - name: Publish to Ansible Galaxy
+        run: |
+          ansible-galaxy collection publish *.tar.gz --api-key=${{ secrets.GALAXY_API_KEY }}
+        env:
+          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
+
+      - name: Create release summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ steps.get_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Collection**: $COLLECTION_NAMESPACE.$COLLECTION_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ✅ Successfully released" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifact**: $(ls *.tar.gz)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "- Collection is available on Ansible Galaxy" >> $GITHUB_STEP_SUMMARY
+          echo "- Release notes have been generated" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub release has been created" >> $GITHUB_STEP_SUMMARY
+
+  notify-release:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: create-release
+    if: always()
+    steps:
+      - name: Notify success
+        if: needs.create-release.result == 'success'
+        run: |
+          echo "🎉 Release ${{ github.ref_name }} created successfully!"
+          echo "The collection is now available on Ansible Galaxy"
+
+      - name: Notify failure
+        if: needs.create-release.result == 'failure'
+        run: |
+          echo "❌ Release creation failed!"
+          echo "Check the logs for details"

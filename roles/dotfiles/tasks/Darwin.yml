@@ -1,0 +1,15 @@
+---
+- name: Check to see if basic packages are installed
+  community.general.homebrew:
+    name:
+      - git
+      - stow
+      - zoxide
+      - eza
+      - fzf
+      - starship
+    state: present
+  become: true
+  become_user: ed
+
+

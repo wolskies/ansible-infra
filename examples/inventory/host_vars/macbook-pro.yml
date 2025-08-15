@@ -1,0 +1,27 @@
+---
+# Host-specific variables for macbook-pro
+# macOS-specific configurations
+
+# Homebrew configuration
+homebrew_user: "{{ ansible_user }}"
+homebrew_group: "admin"
+
+# macOS-specific software
+macos_packages:
+  - xcode-select
+
+# System preferences (examples)
+macos_settings:
+  - domain: "com.apple.dock"
+    key: "autohide"
+    type: "bool"
+    value: true
+  - domain: "com.apple.finder"
+    key: "ShowPathbar"
+    type: "bool" 
+    value: true
+
+# Development tools specific to this Mac
+dev_tools:
+  - xcode
+  - homebrew

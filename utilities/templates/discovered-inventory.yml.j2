@@ -1,0 +1,58 @@
+# Generated Inventory File
+# Discovery Date: {{ ansible_date_time.iso8601 }}
+# Source Host: {{ inventory_hostname }}
+
+{% set groups_map = {} %}
+{% for host in play_hosts %}
+  {% set host_profile = hostvars[host].discovery_profile %}
+  {% set host_groups = [] %}
+  
+  {# Determine groups based on discovered characteristics #}
+  {% if host_profile.services.running | intersect(['ssh', 'sshd']) | length > 0 and not host_profile.desktop.has_gui %}
+    {% set _ = host_groups.append('servers') %}
+  {% endif %}
+  
+  {% if host_profile.docker.installed %}
+    {% set _ = host_groups.append('docker_hosts') %}
+  {% endif %}
+  
+  {% if host_profile.desktop.has_gui %}
+    {% set _ = host_groups.append('workstations') %}
+  {% endif %}
+  
+  {# OS-specific groups #}
+  {% set _ = host_groups.append(host_profile.system.distribution | lower + '_hosts') %}
+  
+  {# Add to groups map #}
+  {% for group in host_groups %}
+    {% if group not in groups_map %}
+      {% set _ = groups_map.update({group: []}) %}
+    {% endif %}
+    {% set _ = groups_map[group].append(host) %}
+  {% endfor %}
+{% endfor %}
+
+---
+{% for group_name, hosts in groups_map.items() %}
+{{ group_name }}:
+  hosts:
+{% for host in hosts %}
+    {{ host }}:
+      ansible_host: {{ hostvars[host].discovery_profile.network.default_ipv4.address | default('UPDATE_WITH_ACTUAL_IP') }}
+      # Discovered: {{ hostvars[host].discovery_profile.system.distribution }} {{ hostvars[host].discovery_profile.system.distribution_version }}
+{% endfor %}
+
+{% endfor %}
+
+# Additional group relationships
+{% if 'docker_hosts' in groups_map and 'servers' in groups_map %}
+all:
+  children:
+    infrastructure:
+      children:
+        servers:
+        docker_hosts:
+    endpoints:
+      children:
+        workstations:
+{% endif %}

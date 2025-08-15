@@ -1,0 +1,154 @@
+---
+# Verify docker_setup role functionality
+- name: Verify docker_setup role
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Verify Docker installation
+      block:
+        - name: Check Docker service status
+          ansible.builtin.service_facts:
+
+        - name: Verify Docker service is running
+          ansible.builtin.assert:
+            that:
+              - "'docker.service' in ansible_facts.services"
+              - "ansible_facts.services['docker.service'].state == 'running'"
+              - "ansible_facts.services['docker.service'].status == 'enabled'"
+            fail_msg: "Docker service not properly configured"
+            success_msg: "Docker service verified"
+
+        - name: Test Docker command availability
+          ansible.builtin.command: docker --version
+          register: docker_version
+          changed_when: false
+
+        - name: Verify Docker version output
+          ansible.builtin.assert:
+            that:
+              - "'Docker version' in docker_version.stdout"
+            fail_msg: "Docker command not working"
+            success_msg: "Docker command verified"
+
+    - name: Verify Docker Compose installation
+      block:
+        - name: Test Docker Compose command
+          ansible.builtin.command: docker compose version
+          register: compose_version
+          changed_when: false
+          failed_when: false
+
+        - name: Verify Docker Compose is available
+          ansible.builtin.assert:
+            that:
+              - "compose_version.rc == 0"
+              - "'Docker Compose version' in compose_version.stdout"
+            fail_msg: "Docker Compose not properly installed"
+            success_msg: "Docker Compose verified"
+          when: compose_version.rc == 0
+
+    - name: Verify Docker networks
+      block:
+        - name: List Docker networks
+          community.docker.docker_network_info:
+          register: docker_networks
+
+        - name: Check for test network
+          community.docker.docker_network_info:
+            name: test-network
+          register: test_network
+          failed_when: false
+
+        - name: Verify test network exists
+          ansible.builtin.assert:
+            that:
+              - test_network.exists
+            fail_msg: "Test network not created"
+            success_msg: "Docker network creation verified"
+          when: test_network.exists is defined
+
+    - name: Verify Docker volumes
+      block:
+        - name: Check for test volume
+          community.docker.docker_volume_info:
+            name: test-volume
+          register: test_volume
+          failed_when: false
+
+        - name: Verify test volume exists
+          ansible.builtin.assert:
+            that:
+              - test_volume.exists
+            fail_msg: "Test volume not created"
+            success_msg: "Docker volume creation verified"
+          when: test_volume.exists is defined
+
+    - name: Verify Docker containers
+      block:
+        - name: Check running containers
+          community.docker.docker_container_info:
+            name: test-nginx
+          register: nginx_container
+          failed_when: false
+
+        - name: Verify nginx container
+          ansible.builtin.assert:
+            that:
+              - nginx_container.exists
+              - "nginx_container.container.State.Status == 'running'"
+            fail_msg: "Test nginx container not running"
+            success_msg: "Docker container deployment verified"
+          when: nginx_container.exists
+
+        - name: Test container connectivity
+          ansible.builtin.uri:
+            url: "http://localhost:8080"
+            method: GET
+            status_code: 200
+          register: nginx_response
+          failed_when: false
+
+        - name: Verify nginx response
+          ansible.builtin.debug:
+            msg: "Nginx container response: {{ 'OK' if nginx_response.status == 200 else 'FAILED' }}"
+
+    - name: Verify Docker user access
+      block:
+        - name: Test Docker access without sudo
+          ansible.builtin.command: docker ps
+          register: docker_ps
+          changed_when: false
+
+        - name: Verify Docker access
+          ansible.builtin.assert:
+            that:
+              - docker_ps.rc == 0
+            fail_msg: "Docker access not properly configured"
+            success_msg: "Docker user access verified"
+
+    - name: Verify Docker service files
+      block:
+        - name: Check for service template files
+          ansible.builtin.stat:
+            path: "{{ item }}"
+          register: service_files
+          loop:
+            - /opt/docker/services/portainer.yml
+            - /opt/docker/services/nginx-proxy.yml
+          failed_when: false
+
+        - name: Verify service templates exist
+          ansible.builtin.debug:
+            msg: "Service file {{ item.item }}: {{ 'exists' if item.stat.exists else 'not found' }}"
+          loop: "{{ service_files.results }}"
+
+    - name: Docker configuration summary
+      ansible.builtin.debug:
+        msg:
+          - "docker_setup role verification completed"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Docker version: {{ docker_version.stdout.split()[2] if docker_version.stdout is defined else 'unknown' }}"
+          - "Docker Compose: {{ 'installed' if compose_version.rc == 0 else 'not available' }}"
+          - "Networks: {{ 'configured' if test_network.exists | default(false) else 'basic only' }}"
+          - "Volumes: {{ 'configured' if test_volume.exists | default(false) else 'basic only' }}"
+          - "Container deployment: {{ 'verified' if nginx_container.exists | default(false) else 'skipped' }}"

@@ -1,0 +1,32 @@
+---
+# Portainer Docker management interface
+version: '3.8'
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    environment:
+      - PUID=1000
+      - PGID=1000
+    networks:
+      - services
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: '0.25'
+
+volumes:
+  portainer_data:
+
+networks:
+  services:
+    external: true

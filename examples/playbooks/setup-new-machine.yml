@@ -1,0 +1,81 @@
+---
+- name: Setup new machine with base configuration
+  hosts: all
+  gather_facts: true
+  collections:
+    - wolskinet.infrastructure
+    - devsec.hardening
+    - community.general
+  
+  pre_tasks:
+    - name: Update package cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+      become: true
+      when: ansible_os_family == "Debian"
+      
+    - name: Update package cache (Arch)
+      community.general.pacman:
+        update_cache: true
+      become: true
+      when: ansible_distribution == "Archlinux"
+
+  roles:
+    # Security hardening for servers (skip for workstations/macOS)
+    - name: devsec.hardening.os_hardening
+      become: true
+      when: 
+        - ansible_os_family != 'Darwin'
+        - inventory_hostname in groups['servers'] | default([])
+        - security_hardening_enabled | default(false)
+      
+    # Basic setup for all machines
+    - name: wolskinet.infrastructure.basic_setup
+      become: true
+      
+    # System updates for all machines
+    - name: wolskinet.infrastructure.system_update
+      become: false
+
+  post_tasks:
+    # Enhanced role inclusion supporting both collection and local roles
+    - name: Install group-specific collection roles
+      ansible.builtin.include_role:
+        name: "{{ item.name if item is mapping else 'wolskinet.infrastructure.' + item }}"
+      loop: "{{ group_roles_install | default([]) }}"
+      when: 
+        - group_roles_install is defined
+        - (item.when | default(true)) if item is mapping else true
+      vars:
+        # Pass through any role-specific variables
+        role_vars: "{{ item.vars | default({}) if item is mapping else {} }}"
+        
+    # Install additional user-defined roles (from any collection)
+    - name: Install additional user roles
+      ansible.builtin.include_role:
+        name: "{{ item.name }}"
+        apply:
+          become: "{{ item.become | default(false) }}"
+      loop: "{{ additional_roles_install | default([]) }}"
+      when: 
+        - additional_roles_install is defined
+        - (item.when | default(true))
+      vars:
+        # Pass through any role-specific variables
+        role_vars: "{{ item.vars | default({}) }}"
+      
+    # Install dotfiles last (so it can override any configs)
+    - name: Install dotfiles
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.dotfiles
+      become: false
+      when: install_dotfiles | default(true)
+      
+    - name: Reboot if required (Linux only)
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+      become: true
+      when: 
+        - ansible_os_family != 'Darwin'
+        - reboot_required is defined 
+        - reboot_required

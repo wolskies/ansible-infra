@@ -1,0 +1,21 @@
+---
+# Configuration for workstation group
+# Roles to install on workstations
+group_roles_install:
+  - basic_setup
+  - dotfiles
+  - system_update
+
+# Workstation-specific packages (these supplement the base OS packages)
+workstation_packages:
+  - code
+  - discord
+  - firefox
+  - libreoffice
+
+# Development tools for workstations
+dev_packages:
+  - nodejs
+  - npm
+  - docker
+  - docker-compose

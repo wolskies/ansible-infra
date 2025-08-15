@@ -1,0 +1,16 @@
+---
+# Default system configuration
+config_system_locale: 'en_US.UTF-8'
+config_system_language: 'en_US.UTF-8'
+config_system_timezone: 'UTC'
+
+# Default user shell
+default_user_shell: '/usr/bin/zsh'
+
+# Security defaults
+enable_firewall: true
+disable_unnecessary_services: true
+
+# Ubuntu-specific defaults
+disable_snapd_stop_service: false
+disable_snapd_uninstall_snapd: false

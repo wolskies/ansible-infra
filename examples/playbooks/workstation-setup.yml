@@ -1,0 +1,57 @@
+---
+- name: Configure workstations with desktop environment
+  hosts: workstations
+  gather_facts: true
+  collections:
+    - wolskinet.infrastructure
+    
+  vars:
+    # Additional workstation packages
+    workstation_specific_packages:
+      Ubuntu:
+        - ubuntu-desktop-minimal
+        - firefox
+        - code
+        - gimp
+        - vlc
+      Debian:
+        - task-gnome-desktop
+        - firefox-esr
+        - code
+        - gimp
+        - vlc
+      Archlinux:
+        - gnome
+        - firefox
+        - code
+        - gimp
+        - vlc
+        
+  pre_tasks:
+    - name: Install workstation packages (Ubuntu/Debian)
+      ansible.builtin.apt:
+        name: "{{ workstation_specific_packages[ansible_distribution] }}"
+        state: present
+      become: true
+      when: ansible_os_family == "Debian"
+      
+    - name: Install workstation packages (Arch)
+      community.general.pacman:
+        name: "{{ workstation_specific_packages[ansible_distribution] }}"
+        state: present
+      become: true
+      when: ansible_distribution == "Archlinux"
+
+  roles:
+    - name: wolskinet.infrastructure.basic_setup
+    - name: wolskinet.infrastructure.dotfiles
+    - name: wolskinet.infrastructure.system_update
+
+  post_tasks:
+    - name: Enable desktop login manager (Linux)
+      ansible.builtin.systemd:
+        name: "{{ display_manager | default('gdm3') }}"
+        enabled: true
+        state: started
+      become: true
+      when: ansible_os_family != 'Darwin'

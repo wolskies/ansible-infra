@@ -1,0 +1,33 @@
+---
+# Example inventory structure for wolskinet.infrastructure collection
+
+workstations:
+  hosts:
+    desktop-ubuntu:
+      ansible_host: 192.168.1.10
+      # Host-specific vars like network interface names go in host_vars/
+    macbook-pro:
+      ansible_host: 192.168.1.11
+      # macOS specific host configurations
+    arch-workstation:
+      ansible_host: 192.168.1.12
+
+servers:
+  hosts:
+    ubuntu-server:
+      ansible_host: 192.168.1.20
+    debian-server:
+      ansible_host: 192.168.1.21
+      
+docker_hosts:
+  hosts:
+    ubuntu-server:
+      # Services to deploy are defined in group_vars/docker_hosts/
+    debian-server:
+
+development:
+  hosts:
+    dev-ubuntu:
+      ansible_host: 192.168.1.30
+    dev-arch:
+      ansible_host: 192.168.1.31

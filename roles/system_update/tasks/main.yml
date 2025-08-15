@@ -1,0 +1,27 @@
+---
+# tasks file for testrole
+- name: OS-specficic setup tasks
+  ansible.builtin.include_tasks: "update-{{ ansible_distribution }}.yml"
+ 
+- name: Update dotfiles
+  block: 
+    - name: Check if dotfiles have been installed
+      ansible.builtin.stat:
+        path: "{{ dotfiles_dest }}/.git"
+      register: dotfiles_repo_exists
+
+    - name: Install dotfiles if doesn't exists
+      ansible.builtin.include_role:
+        name: dotfiles
+      when: not dotfiles_repo_exists
+
+    - name: Update dotfiles
+      ansible.builtin.git:
+        repo: "{{ dotfiles_repo }}"
+        dest: "{{ dotfiles_dest }}"
+        update: true
+        force: "{{ force_dotfiles_update }}"
+        accept_hostkey: "{{ accept_hostkey }}"
+        key_file: "{{ ansible_env.HOME }}/.ssh/id_rsa"
+  become: true
+  become_user: "{{ ansible_user }}"

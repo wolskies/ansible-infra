@@ -1,0 +1,4 @@
+---
+- name: Common Tasks for Debian/Ubuntu flavors
+  ansible.builtin.include_tasks: "basic-debflavors.yml"
+

@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  author: Ed Wolski
+  description: Docker setup and container management role
+  company: wolskinet
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+
+  galaxy_tags:
+    - docker
+    - containers
+    - infrastructure
+    - devops
+
+dependencies: []

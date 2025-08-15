@@ -1,0 +1,13 @@
+---
+- name: Check to see if basic packages are installed
+  community.general.pacman:
+    name:
+      - git
+      - stow
+      - zoxide
+      - eza
+      - fzf
+      - starship
+    state: present
+  become: yes
+

@@ -1,0 +1,35 @@
+---
+# Debian 12/13 specific packages
+packages_install:
+  - apt-transport-https
+  - ca-certificates
+  - console-data
+  - locales-all
+  - dnsutils
+  - screen
+  - rsync
+  - wget
+  - curl
+  - git
+  - kitty
+  - zsh
+  - ufw
+  - fastfetch
+  - fonts-powerline
+  - unzip
+  - python3
+  - python3-pip
+  - python3-venv
+  - build-essential
+  - software-properties-common
+
+packages_remove:
+  - xinetd
+  - inetd
+  - tftp-server
+  - ypserv
+  - telnet-server
+  - rsh-server
+  - prelink
+
+# Note: Nerd fonts are typically installed via package manager or external repositories

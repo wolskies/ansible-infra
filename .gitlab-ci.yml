@@ -1,0 +1,261 @@
+# GitLab CI/CD Pipeline for wolskinet.infrastructure Ansible Collection
+# Supports self-hosted GitLab with GitHub sync
+
+stages:
+  - validate
+  - test-roles
+  - test-integration
+  - build
+  - sync-github
+
+variables:
+  COLLECTION_NAMESPACE: wolskinet
+  COLLECTION_NAME: infrastructure
+  COLLECTION_VERSION: 1.0.0
+  ANSIBLE_FORCE_COLOR: 'true'
+  ANSIBLE_HOST_KEY_CHECKING: 'false'
+  PY_COLORS: '1'
+
+# Cache for pip and ansible collections
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .pip-cache/
+    - .ansible-cache/
+
+.base-setup: &base-setup
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip docker.io
+    - pip3 install --cache-dir .pip-cache/ ansible molecule[docker] docker pytest-testinfra
+    - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
+    - docker --version
+    - ansible --version
+    - molecule --version
+
+# Validation Stage
+lint-collection:
+  stage: validate
+  image: python:3.11-slim
+  <<: *base-setup
+  script:
+    - echo "Linting Ansible collection files..."
+    - ansible-lint --version || pip3 install ansible-lint
+    - ansible-lint .
+    - echo "Checking YAML syntax..."
+    - find . -name "*.yml" -o -name "*.yaml" | xargs -I {} ansible-playbook --syntax-check {}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+validate-galaxy:
+  stage: validate
+  image: python:3.11-slim
+  <<: *base-setup
+  script:
+    - echo "Validating galaxy.yml..."
+    - ansible-galaxy collection build . --force
+    - ls -la *.tar.gz
+  artifacts:
+    paths:
+      - "*.tar.gz"
+    expire_in: 1 hour
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Role Testing Stage
+test-basic-setup:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing basic_setup role..."
+    - cd molecule/basic_setup
+    - molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-docker-setup:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing docker_setup role..."
+    - cd molecule/docker_setup
+    - molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-discovery-utility:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing infrastructure discovery utility..."
+    - cd molecule/discovery
+    - molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+# Integration Testing Stage
+test-collection-integration:
+  stage: test-integration
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Running full collection integration tests..."
+    - cd molecule/default
+    - molecule test
+  needs:
+    - test-basic-setup
+    - test-docker-setup
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+# Build Stage
+build-collection:
+  stage: build
+  image: python:3.11-slim
+  <<: *base-setup
+  script:
+    - echo "Building collection for release..."
+    - ansible-galaxy collection build . --force
+    - echo "Collection built successfully:"
+    - ls -la *.tar.gz
+  artifacts:
+    paths:
+      - "${COLLECTION_NAMESPACE}-${COLLECTION_NAME}-*.tar.gz"
+    expire_in: 1 week
+  needs:
+    - lint-collection
+    - validate-galaxy
+    - test-collection-integration
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+# GitHub Sync Stage
+sync-to-github:
+  stage: sync-github
+  image: alpine/git:latest
+  variables:
+    GIT_STRATEGY: clone
+    GIT_DEPTH: 0
+  before_script:
+    - apk add --no-cache git openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$GITHUB_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+  script:
+    - echo "Syncing repository to GitHub..."
+    - git remote add github git@github.com:${GITHUB_USERNAME}/${GITHUB_REPOSITORY}.git || true
+    - git fetch github || echo "GitHub remote not accessible, continuing..."
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        echo "Syncing main branch to GitHub..."
+        git push github HEAD:main --force-with-lease
+      elif [ -n "$CI_COMMIT_TAG" ]; then
+        echo "Syncing tag $CI_COMMIT_TAG to GitHub..."
+        git push github $CI_COMMIT_TAG
+      else
+        echo "Skipping sync for feature branch $CI_COMMIT_BRANCH"
+      fi
+    - echo "GitHub sync completed"
+  needs:
+    - build-collection
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: on_success
+    - if: $CI_COMMIT_TAG
+      when: on_success
+  variables:
+    # These should be set in GitLab CI/CD variables:
+    # GITHUB_SSH_PRIVATE_KEY - SSH private key for GitHub access
+    # GITHUB_USERNAME - GitHub username/organization
+    # GITHUB_REPOSITORY - GitHub repository name
+
+# Cleanup job for failed pipelines
+cleanup-on-failure:
+  stage: .post
+  image: alpine:latest
+  script:
+    - echo "Pipeline failed - cleaning up resources"
+    - echo "Check logs for test failures or infrastructure issues"
+  when: on_failure
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Security scanning (optional, requires GitLab Premium)
+ansible-security-scan:
+  stage: validate
+  image: python:3.11-slim
+  before_script:
+    - pip3 install ansible-lint bandit safety
+  script:
+    - echo "Running security scans..."
+    - ansible-lint --parseable-severity .
+    - find . -name "*.py" -exec bandit {} + || true
+    - safety check || true
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Performance testing (runs on schedule)
+performance-test:
+  stage: test-integration
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Running performance tests..."
+    - time molecule test -s default
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  allow_failure: true

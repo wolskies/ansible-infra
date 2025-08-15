@@ -1,0 +1,51 @@
+---
+# Prepare phase - set up test environment
+- name: Prepare test environment
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Update package cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+      
+    - name: Update package cache (Arch)
+      community.general.pacman:
+        update_cache: true
+      when: ansible_distribution == "Archlinux"
+      
+    - name: Install basic dependencies for testing
+      ansible.builtin.package:
+        name:
+          - curl
+          - wget
+          - ca-certificates
+        state: present
+      ignore_errors: true  # Some test images may not have all packages
+      
+    - name: Create test directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /opt/test
+        - /var/log/test
+        
+    - name: Ensure Python pip is available
+      ansible.builtin.package:
+        name: 
+          - python3-pip
+        state: present
+      when: ansible_os_family == "Debian"
+      ignore_errors: true
+
+    - name: Install Python Docker SDK for Docker tests
+      ansible.builtin.pip:
+        name:
+          - docker
+          - docker-compose
+        executable: pip3
+      when: inventory_hostname in groups['docker_hosts']
+      ignore_errors: true

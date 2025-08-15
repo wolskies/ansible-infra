@@ -1,0 +1,88 @@
+---
+# Configuration for servers group
+# Servers get security hardening + basic setup + system maintenance
+
+# Roles to install on all servers
+group_roles_install:
+  - basic_setup
+  - system_update
+
+# Security hardening configuration
+security_hardening_enabled: true
+
+# Enhanced security defaults for servers
+enable_firewall: true
+disable_unnecessary_services: true
+disable_snapd_stop_service: true  # Ubuntu servers typically don't need snap
+disable_snapd_uninstall_snapd: false  # Set to true if you want to completely remove snap
+
+# Server-specific SSH hardening
+ssh_server_hardening:
+  disable_root_login: true
+  disable_password_auth: true  # Use key-based auth only
+  max_auth_tries: 3
+  client_alive_interval: 300
+  client_alive_count_max: 2
+
+# System resource limits for servers
+system_limits:
+  - domain: "*"
+    type: soft
+    item: nofile
+    value: 65536
+  - domain: "*"
+    type: hard
+    item: nofile
+    value: 65536
+
+# Server monitoring and logging
+enable_system_monitoring: true
+log_retention_days: 30
+
+# Automatic security updates (servers should be up-to-date)
+enable_automatic_updates: true
+reboot_if_required: false  # Set to true for automatic reboots during maintenance windows
+
+# Network security
+fail2ban_enabled: true
+ufw_default_deny_incoming: true
+ufw_default_allow_outgoing: true
+
+# Required server packages (in addition to basic packages)
+server_packages:
+  Ubuntu:
+    - fail2ban
+    - unattended-upgrades
+    - logrotate
+    - rsyslog
+    - chrony
+  Debian:
+    - fail2ban
+    - unattended-upgrades
+    - logrotate
+    - rsyslog
+    - chrony
+  Archlinux:
+    - fail2ban
+    - logrotate
+    - rsyslog
+    - chrony
+
+# Service configurations
+systemd_services:
+  enable:
+    - ssh
+    - fail2ban
+    - rsyslog
+    - chrony
+  disable:
+    - avahi-daemon  # Not typically needed on servers
+    - cups  # Print services not needed on servers
+
+# File system security
+mount_options:
+  - device: "tmpfs"
+    path: "/tmp"
+    fstype: "tmpfs"
+    opts: "defaults,nodev,nosuid,noexec,size=1G"
+    state: "mounted"

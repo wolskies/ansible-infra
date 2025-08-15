@@ -1,0 +1,16 @@
+---
+- name: Common Tasks for Debian/Ubuntu flavors
+  ansible.builtin.include_tasks: "basic-debflavors.yml"
+
+- name: "Disable Snapd Service"
+  when: disable_snapd_stop_service | bool
+  ansible.builtin.service:
+    name: snapd
+    state: stopped
+    enabled: false
+
+- name: "Uninstall Snapd"
+  when: disable_snapd_uninstall_snapd | bool
+  ansible.builtin.apt:
+    pkg: snapd
+    state: absent

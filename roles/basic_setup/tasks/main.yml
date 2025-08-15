@@ -1,0 +1,153 @@
+---
+# tasks file for basic_setup
+# Tags: always, debug, validation, variables, os-setup, users, basic-setup
+
+- name: System validation and setup
+  block:
+    - name: Debug OS information
+      ansible.builtin.debug:
+        msg:
+          - "OS Family: {{ ansible_os_family }}"
+          - "Distribution: {{ ansible_distribution }}"
+          - "Distribution Version: {{ ansible_distribution_version }}"
+          - "Distribution Major Version: {{ ansible_distribution_major_version }}"
+      tags:
+        - always
+        - debug
+        - validation
+
+    - name: Validate supported OS versions
+      ansible.builtin.fail:
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported. Supported versions: Ubuntu 24+, Debian 12+, Arch Linux (latest), macOS (latest)"
+      when:
+        - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
+          (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
+      tags:
+        - always
+        - validation
+        - os-check
+
+  rescue:
+    - name: Handle validation errors
+      ansible.builtin.debug:
+        msg: "OS validation failed, but continuing with best-effort setup"
+      tags:
+        - always
+        - debug
+  
+  tags:
+    - always
+    - validation
+    - basic-setup
+
+- name: Load OS-specific configuration
+  block:
+    - name: Load OS-specific variables
+      ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+      when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux'] or ansible_os_family == 'Darwin'
+      tags:
+        - variables
+        - config
+        - os-vars
+
+    - name: Load OS family variables as fallback
+      ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+      when: ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux'] and ansible_os_family != 'Darwin'
+      tags:
+        - variables
+        - config
+        - os-vars
+        - fallback
+
+  rescue:
+    - name: Handle variable loading errors
+      ansible.builtin.debug:
+        msg: "Failed to load OS-specific variables, using defaults"
+      tags:
+        - debug
+        - variables
+        - error-handling
+
+  tags:
+    - always
+    - variables
+    - basic-setup
+
+- name: Execute OS-specific setup tasks
+  block:
+    - name: Include OS-specific setup tasks
+      ansible.builtin.include_tasks: "basic-{{ ansible_os_family }}.yml"
+      tags:
+        - os-setup
+        - packages
+        - security
+        - system-config
+
+  rescue:
+    - name: Handle OS setup errors
+      ansible.builtin.debug:
+        msg: "OS-specific setup encountered errors, check logs for details"
+      tags:
+        - debug
+        - error-handling
+
+  tags:
+    - always
+    - os-setup
+    - basic-setup
+
+- name: User management
+  block:
+    - name: Add users to system (Linux only)
+      become: true
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        shell: "{{ default_user_shell }}"
+        password: "{{ item.password }}"
+        state: present
+        create_home: true
+        groups: "{{ item.groups | default([]) }}"
+      loop: "{{ user_details | default([]) }}"
+      when: 
+        - user_details is defined
+        - ansible_os_family != 'Darwin'
+      tags:
+        - users
+        - user-creation
+        - security
+
+  rescue:
+    - name: Handle user creation errors
+      ansible.builtin.debug:
+        msg: "User creation failed for some users, check logs for details"
+      tags:
+        - debug
+        - users
+        - error-handling
+
+  when: 
+    - user_details is defined
+    - ansible_os_family != 'Darwin'
+  tags:
+    - users
+    - basic-setup
+
+- name: Configuration summary
+  block:
+    - name: Display setup completion
+      ansible.builtin.debug:
+        msg:
+          - "Basic setup completed for {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Users configured: {{ user_details | default([]) | length }}"
+          - "Shell: {{ default_user_shell | default('default') }}"
+      tags:
+        - always
+        - summary
+        - debug
+
+  tags:
+    - always
+    - summary
+    - basic-setup

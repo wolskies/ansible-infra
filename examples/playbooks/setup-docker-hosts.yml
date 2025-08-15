@@ -1,0 +1,112 @@
+---
+- name: Setup Docker hosts with container services
+  hosts: docker_hosts
+  gather_facts: true
+  collections:
+    - wolskinet.infrastructure
+    - devsec.hardening
+    - community.general
+    - community.docker
+  
+  pre_tasks:
+    - name: Update package cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      become: true
+      when: ansible_os_family == "Debian"
+      
+    - name: Update package cache (Arch)
+      community.general.pacman:
+        update_cache: true
+      become: true
+      when: ansible_distribution == "Archlinux"
+
+  roles:
+    # Security hardening for Docker hosts
+    - name: devsec.hardening.os_hardening
+      become: true
+      when: security_hardening_enabled | default(true)
+      
+    # Basic setup
+    - name: wolskinet.infrastructure.basic_setup
+      become: true
+      
+    # Docker installation and setup
+    - name: wolskinet.infrastructure.docker_setup
+      become: true
+      
+    # System updates
+    - name: wolskinet.infrastructure.system_update
+      become: false
+
+  tasks:
+    - name: Ensure Docker daemon is running
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+      become: true
+
+    - name: Verify Docker installation
+      ansible.builtin.command: docker --version
+      register: docker_version_output
+      changed_when: false
+
+    - name: Display Docker version
+      ansible.builtin.debug:
+        msg: "Docker installed: {{ docker_version_output.stdout }}"
+
+    - name: Verify Docker Compose installation
+      ansible.builtin.command: docker-compose --version
+      register: compose_version_output
+      changed_when: false
+
+    - name: Display Docker Compose version
+      ansible.builtin.debug:
+        msg: "Docker Compose installed: {{ compose_version_output.stdout }}"
+
+    - name: Test Docker functionality
+      community.docker.docker_container:
+        name: test-container
+        image: hello-world
+        state: started
+        auto_remove: true
+        detach: false
+      register: docker_test
+      become: true
+
+    - name: Display Docker test result
+      ansible.builtin.debug:
+        msg: "Docker test successful"
+      when: docker_test is succeeded
+
+  post_tasks:
+    # Install additional Docker-related roles
+    - name: Install additional Docker roles
+      ansible.builtin.include_role:
+        name: "{{ item.name }}"
+        apply:
+          become: "{{ item.become | default(true) }}"
+      loop: "{{ additional_docker_roles | default([]) }}"
+      when: 
+        - additional_docker_roles is defined
+        - (item.when | default(true))
+
+    - name: Display deployed services
+      ansible.builtin.debug:
+        msg: 
+          - "Docker services deployed on {{ inventory_hostname }}:"
+          - "{{ docker_services_deploy | default(['None']) }}"
+      when: docker_services_deploy is defined
+
+    - name: Check container status
+      ansible.builtin.command: docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      register: container_status
+      changed_when: false
+      become: true
+
+    - name: Display running containers
+      ansible.builtin.debug:
+        msg: "{{ container_status.stdout_lines }}"
+      when: container_status.stdout_lines | length > 1

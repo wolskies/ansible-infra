@@ -1,0 +1,93 @@
+---
+# Prepare test environment with discoverable configurations
+- name: Prepare discovery test environment
+  hosts: discovery_targets
+  gather_facts: true
+  tasks:
+    - name: Install test packages for discovery
+      ansible.builtin.package:
+        name: "{{ test_packages }}"
+        state: present
+
+    - name: Create test users for discovery
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        shell: "{{ item.shell }}"
+        create_home: true
+      loop: "{{ test_users }}"
+
+    - name: Create test directories for discovery
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /opt/test-app
+        - /var/log/test-app
+        - /etc/test-app
+
+    - name: Create test configuration files
+      ansible.builtin.copy:
+        content: |
+          # Test configuration file
+          test_setting=enabled
+          discovery_test=true
+          version=1.0.0
+        dest: /etc/test-app/config.conf
+        mode: '0644'
+
+    - name: Create test systemd service
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Test Discovery Service
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/bin/sleep infinity
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/test-discovery-service.service
+        mode: '0644'
+
+    - name: Enable test service
+      ansible.builtin.systemd:
+        name: test-discovery-service
+        enabled: true
+        daemon_reload: true
+
+    - name: Create test cron jobs
+      ansible.builtin.cron:
+        name: "Test discovery cron"
+        minute: "0"
+        hour: "2"
+        job: "/bin/echo 'Discovery test cron' >> /var/log/test-app/cron.log"
+
+    - name: Install Python packages for testing
+      ansible.builtin.pip:
+        name:
+          - requests
+          - pyyaml
+        state: present
+
+    - name: Create network configuration for discovery
+      ansible.builtin.copy:
+        content: |
+          # Test network interface
+          auto eth0
+          iface eth0 inet dhcp
+        dest: /etc/network/interfaces.d/test-discovery
+        mode: '0644'
+      when: ansible_os_family == 'Debian'
+
+    - name: Display preparation summary
+      ansible.builtin.debug:
+        msg:
+          - "Discovery test environment prepared"
+          - "Test packages installed: {{ test_packages | length }}"
+          - "Test users created: {{ test_users | length }}"
+          - "Test services configured: {{ test_services | length }}"

@@ -1,0 +1,72 @@
+---
+# Test scenario for infrastructure discovery utility
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../default/requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  - name: ubuntu-discovery
+    image: quay.io/ansible/ubuntu2404-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - discovery_targets
+    
+  - name: debian-discovery
+    image: quay.io/ansible/debian12-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - discovery_targets
+
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+      discovery_targets:
+        # Discovery configuration
+        discovery_output_path: "/tmp/discovery"
+        discovery_inventory_name: "discovered"
+        discovery_create_vault_template: true
+        discovery_create_replication_playbook: true
+        
+        # Test package installations for discovery
+        test_packages:
+          - git
+          - curl
+          - wget
+          - vim
+          - htop
+          
+        # Test user creation for discovery
+        test_users:
+          - name: discoverytest
+            uid: 1500
+            shell: /bin/bash
+            
+        # Test service configurations
+        test_services:
+          - name: test-discovery-service
+            enabled: true
+  playbook: prepare.yml
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+
+verifier:
+  name: ansible

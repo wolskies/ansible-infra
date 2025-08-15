@@ -1,0 +1,848 @@
+---
+# Infrastructure Discovery Playbook
+# Scans target machines and generates configuration files for replication
+# Tags: always, setup, discovery, packages, docker, users, security, network, 
+#       desktop, development, config-files, generation, summary
+
+- name: Discover infrastructure configuration
+  hosts: all
+  gather_facts: true
+  collections:
+    - wolskinet.infrastructure
+    - community.general
+    - community.docker
+  
+  vars:
+    discovery_output_dir: "./discovered-infrastructure"
+    generate_configs: true
+    include_sensitive: false  # Set to true to include user hashes (use vault!)
+    discovery_timeout: 300  # 5 minutes timeout for discovery tasks
+    
+  pre_tasks:
+    - name: Discovery environment setup
+      block:
+        - name: Create discovery output directory
+          ansible.builtin.file:
+            path: "{{ discovery_output_dir }}"
+            state: directory
+            mode: '0755'
+          delegate_to: localhost
+          run_once: true
+          tags:
+            - always
+            - setup
+            - directories
+
+        - name: Create discovery subdirectories
+          ansible.builtin.file:
+            path: "{{ discovery_output_dir }}/{{ item }}"
+            state: directory
+            mode: '0755'
+          loop:
+            - host_vars
+            - group_vars
+            - playbooks
+            - reports
+          delegate_to: localhost
+          run_once: true
+          tags:
+            - setup
+            - directories
+
+        - name: Display discovery target
+          ansible.builtin.debug:
+            msg:
+              - "=== Infrastructure Discovery Starting ==="
+              - "Target: {{ inventory_hostname }}"
+              - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+              - "Architecture: {{ ansible_architecture }}"
+              - "Python: {{ ansible_python_version }}"
+              - "Output: {{ discovery_output_dir }}"
+              - "Include sensitive: {{ include_sensitive }}"
+          tags:
+            - always
+            - setup
+            - debug
+
+      rescue:
+        - name: Handle discovery setup errors
+          ansible.builtin.debug:
+            msg: "Discovery setup failed, check permissions and paths"
+          tags:
+            - setup
+            - error-handling
+
+      tags:
+        - always
+        - setup
+
+  tasks:
+    # System Package Discovery
+    - name: System package discovery
+      block:
+        - name: Gather package facts
+          ansible.builtin.package_facts:
+            manager: auto
+          become: true
+          timeout: "{{ discovery_timeout }}"
+          tags:
+            - packages
+            - system-info
+            - discovery
+
+        - name: Gather service facts  
+          ansible.builtin.service_facts:
+          become: true
+          timeout: "{{ discovery_timeout }}"
+          tags:
+            - services
+            - system-info
+            - discovery
+
+        - name: Display package discovery progress
+          ansible.builtin.debug:
+            msg:
+              - "Package discovery completed"
+              - "Total packages found: {{ ansible_facts.packages.keys() | length }}"
+              - "Package manager: {{ ansible_pkg_mgr }}"
+          tags:
+            - packages
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle package discovery errors
+          ansible.builtin.debug:
+            msg: "Package discovery failed, continuing with partial data"
+          tags:
+            - packages
+            - error-handling
+
+      tags:
+        - packages
+        - discovery
+
+    # Docker Discovery
+    - name: Docker environment discovery
+      block:
+        - name: Check for Docker installation
+          ansible.builtin.stat:
+            path: /usr/bin/docker
+          register: docker_installed
+          tags:
+            - docker
+            - discovery
+            - check-installation
+
+        - name: Docker detailed information gathering
+          block:
+            - name: Get Docker version
+              ansible.builtin.command: docker --version
+              register: docker_version_output
+              changed_when: false
+              timeout: 30
+              tags:
+                - docker
+                - version
+                - commands
+
+            - name: Get Docker system information
+              community.docker.docker_host_info:
+              register: docker_host_info
+              become: true
+              timeout: 60
+              tags:
+                - docker
+                - system-info
+                - host-info
+
+            - name: List all Docker containers
+              community.docker.docker_container_info:
+              register: docker_containers
+              become: true
+              timeout: 60
+              tags:
+                - docker
+                - containers
+                - workloads
+
+            - name: List Docker networks
+              community.docker.docker_network_info:
+              register: docker_networks
+              become: true
+              timeout: 30
+              tags:
+                - docker
+                - networks
+                - networking
+
+            - name: List Docker volumes
+              community.docker.docker_volume_info:
+              register: docker_volumes
+              become: true
+              timeout: 30
+              tags:
+                - docker
+                - volumes
+                - storage
+
+            - name: Get Docker Compose information
+              ansible.builtin.command: docker-compose --version
+              register: docker_compose_version
+              changed_when: false
+              failed_when: false
+              timeout: 15
+              tags:
+                - docker
+                - compose
+                - version
+
+            - name: Display Docker discovery progress
+              ansible.builtin.debug:
+                msg:
+                  - "Docker discovery completed"
+                  - "Version: {{ docker_version_output.stdout | default('unknown') }}"
+                  - "Containers: {{ docker_containers.containers | default([]) | length }}"
+                  - "Networks: {{ docker_networks.networks | default([]) | length }}"
+                  - "Volumes: {{ docker_volumes.volumes | default([]) | length }}"
+                  - "Compose: {{ 'available' if docker_compose_version.rc == 0 else 'not available' }}"
+              tags:
+                - docker
+                - debug
+                - progress
+
+          when: docker_installed.stat.exists
+          rescue:
+            - name: Handle Docker discovery errors
+              ansible.builtin.debug:
+                msg: "Docker discovery encountered errors, Docker may be installed but not running"
+              tags:
+                - docker
+                - error-handling
+
+      tags:
+        - docker
+        - discovery
+
+    # User and Security Configuration Discovery
+    - name: User and security discovery
+      block:
+        - name: Get system users
+          ansible.builtin.getent:
+            database: passwd
+          become: true
+          timeout: 30
+          tags:
+            - users
+            - system-info
+            - discovery
+
+        - name: Get system groups
+          ansible.builtin.getent:
+            database: group
+          become: true
+          timeout: 30
+          tags:
+            - users
+            - groups
+            - system-info
+
+        - name: Check SSH configuration
+          ansible.builtin.slurp:
+            src: /etc/ssh/sshd_config
+          register: sshd_config
+          become: true
+          failed_when: false
+          tags:
+            - security
+            - ssh
+            - config-files
+
+        - name: Check sudo configuration
+          ansible.builtin.stat:
+            path: /etc/sudoers
+          register: sudoers_file
+          become: true
+          tags:
+            - security
+            - sudo
+            - permissions
+
+        - name: Check firewall status (UFW)
+          ansible.builtin.command: ufw status verbose
+          register: ufw_status
+          become: true
+          failed_when: false
+          changed_when: false
+          when: ansible_os_family == "Debian"
+          tags:
+            - security
+            - firewall
+            - ufw
+
+        - name: Check firewall status (firewalld)
+          ansible.builtin.command: firewall-cmd --state
+          register: firewalld_status
+          become: true
+          failed_when: false
+          changed_when: false
+          when: ansible_os_family == "RedHat" or ansible_distribution == "Archlinux"
+          tags:
+            - security
+            - firewall
+            - firewalld
+
+        - name: Check for fail2ban
+          ansible.builtin.service_facts:
+          register: security_services
+          become: true
+          tags:
+            - security
+            - services
+            - fail2ban
+
+        - name: Display security discovery progress
+          ansible.builtin.debug:
+            msg:
+              - "Security discovery completed"
+              - "Users found: {{ ansible_facts.getent_passwd.keys() | length }}"
+              - "SSH config: {{ 'found' if sshd_config.content is defined else 'not accessible' }}"
+              - "UFW status: {{ ufw_status.stdout.split('\n')[0] | default('not checked') if ansible_os_family == 'Debian' else 'not applicable' }}"
+              - "Firewalld: {{ firewalld_status.stdout | default('not checked') if (ansible_os_family == 'RedHat' or ansible_distribution == 'Archlinux') else 'not applicable' }}"
+          tags:
+            - security
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle security discovery errors
+          ansible.builtin.debug:
+            msg: "Security discovery encountered errors, continuing with available data"
+          tags:
+            - security
+            - error-handling
+
+      tags:
+        - users
+        - security
+        - discovery
+
+    # Desktop Environment Detection
+    - name: Desktop environment discovery
+      block:
+        - name: Check for desktop environment
+          ansible.builtin.command: echo $XDG_CURRENT_DESKTOP
+          register: desktop_environment
+          failed_when: false
+          changed_when: false
+          become: false
+          tags:
+            - desktop
+            - gui
+            - environment
+
+        - name: Check for X11 session
+          ansible.builtin.command: echo $DISPLAY
+          register: x11_display
+          failed_when: false
+          changed_when: false
+          become: false
+          tags:
+            - desktop
+            - x11
+            - display
+
+        - name: Check for Wayland session
+          ansible.builtin.command: echo $WAYLAND_DISPLAY
+          register: wayland_display
+          failed_when: false
+          changed_when: false
+          become: false
+          tags:
+            - desktop
+            - wayland
+            - display
+
+        - name: Check display manager services
+          ansible.builtin.service_facts:
+          become: true
+          tags:
+            - desktop
+            - services
+            - display-manager
+
+        - name: Identify common desktop environments
+          ansible.builtin.stat:
+            path: "{{ item }}"
+          register: desktop_files
+          loop:
+            - /usr/share/xsessions
+            - /usr/share/wayland-sessions
+            - /usr/bin/gnome-shell
+            - /usr/bin/plasma-desktop
+            - /usr/bin/xfce4-session
+            - /usr/bin/mate-session
+          tags:
+            - desktop
+            - detection
+            - files
+
+        - name: Display desktop discovery progress
+          ansible.builtin.debug:
+            msg:
+              - "Desktop discovery completed"
+              - "XDG Desktop: {{ desktop_environment.stdout | default('none') }}"
+              - "X11 Display: {{ x11_display.stdout | default('not set') }}"
+              - "Wayland Display: {{ wayland_display.stdout | default('not set') }}"
+              - "Has GUI: {{ (desktop_environment.stdout | default('')) != '' or (x11_display.stdout | default('')) != '' or (wayland_display.stdout | default('')) != '' }}"
+          tags:
+            - desktop
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle desktop discovery errors
+          ansible.builtin.debug:
+            msg: "Desktop environment discovery failed, assuming headless system"
+          tags:
+            - desktop
+            - error-handling
+
+      tags:
+        - desktop
+        - discovery
+
+    # Network Configuration Discovery
+    - name: Network configuration discovery
+      block:
+        - name: Get detailed network interfaces
+          ansible.builtin.setup:
+            filter: ansible_*
+          register: network_facts
+          tags:
+            - network
+            - interfaces
+            - facts
+
+        - name: Get routing information
+          ansible.builtin.command: ip route show
+          register: routing_table
+          changed_when: false
+          failed_when: false
+          become: true
+          tags:
+            - network
+            - routing
+            - ip-config
+
+        - name: Get default route
+          ansible.builtin.command: ip route show default
+          register: default_route
+          changed_when: false
+          failed_when: false
+          tags:
+            - network
+            - routing
+            - default-route
+
+        - name: Check DNS configuration
+          ansible.builtin.slurp:
+            src: /etc/resolv.conf
+          register: dns_config
+          failed_when: false
+          tags:
+            - network
+            - dns
+            - config-files
+
+        - name: Get network listening ports
+          ansible.builtin.command: ss -tuln
+          register: listening_ports
+          changed_when: false
+          failed_when: false
+          become: true
+          tags:
+            - network
+            - ports
+            - services
+
+        - name: Display network discovery progress
+          ansible.builtin.debug:
+            msg:
+              - "Network discovery completed"
+              - "Interfaces: {{ ansible_interfaces | default([]) | length }}"
+              - "Primary IP: {{ ansible_default_ipv4.address | default('unknown') }}"
+              - "Default gateway: {{ ansible_default_ipv4.gateway | default('unknown') }}"
+              - "DNS servers: {{ (dns_config.content | b64decode).split('\n') | select('match', '^nameserver') | list | length if dns_config.content is defined else 'unknown' }}"
+          tags:
+            - network
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle network discovery errors
+          ansible.builtin.debug:
+            msg: "Network discovery encountered errors, continuing with basic network facts"
+          tags:
+            - network
+            - error-handling
+
+      tags:
+        - network
+        - discovery
+
+    # Development Tools and Application Discovery
+    - name: Development environment discovery
+      block:
+        - name: Check for common development tools
+          ansible.builtin.stat:
+            path: "{{ item }}"
+          register: dev_tools
+          loop:
+            - /usr/bin/git
+            - /usr/bin/docker
+            - /usr/bin/python3
+            - /usr/bin/python
+            - /usr/bin/node
+            - /usr/bin/npm
+            - /usr/bin/yarn
+            - /usr/bin/code
+            - /usr/local/bin/code
+            - /Applications/Visual Studio Code.app  # macOS
+            - /usr/bin/vim
+            - /usr/bin/nvim
+            - /usr/bin/emacs
+            - /usr/bin/java
+            - /usr/bin/mvn
+            - /usr/bin/gradle
+            - /usr/bin/go
+            - /usr/bin/rust
+            - /usr/bin/cargo
+          tags:
+            - development
+            - tools
+            - discovery
+
+        - name: Check for package managers
+          ansible.builtin.stat:
+            path: "{{ item }}"
+          register: package_managers
+          loop:
+            - /usr/bin/pip
+            - /usr/bin/pip3
+            - /usr/bin/npm
+            - /usr/bin/yarn
+            - /usr/bin/gem
+            - /usr/bin/composer
+            - /opt/homebrew/bin/brew  # macOS ARM
+            - /usr/local/bin/brew     # macOS Intel
+          tags:
+            - development
+            - package-managers
+            - tools
+
+        - name: Check for IDE and editor configurations
+          ansible.builtin.stat:
+            path: "{{ ansible_env.HOME }}/{{ item }}"
+          register: ide_configs
+          become: false
+          loop:
+            - .vscode
+            - .vim
+            - .config/nvim
+            - .emacs.d
+            - .config/Code
+          tags:
+            - development
+            - config-files
+            - editors
+
+        - name: Display development tools progress
+          ansible.builtin.debug:
+            msg:
+              - "Development tools discovery completed"
+              - "Tools found: {{ dev_tools.results | selectattr('stat.exists') | list | length }}"
+              - "Package managers: {{ package_managers.results | selectattr('stat.exists') | list | length }}"
+              - "IDE configs: {{ ide_configs.results | selectattr('stat.exists') | list | length }}"
+          tags:
+            - development
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle development discovery errors
+          ansible.builtin.debug:
+            msg: "Development tools discovery failed, continuing with available data"
+          tags:
+            - development
+            - error-handling
+
+      tags:
+        - development
+        - discovery
+
+    # Configuration Files and Package Manager Discovery
+    - name: Configuration and package manager discovery
+      block:
+        - name: Check for dotfiles and shell configurations
+          ansible.builtin.stat:
+            path: "{{ ansible_env.HOME }}/{{ item }}"
+          register: config_files
+          become: false
+          loop:
+            - .dotfiles
+            - .config
+            - .bashrc
+            - .zshrc
+            - .profile
+            - .bash_profile
+            - .gitconfig
+            - .ssh/config
+          tags:
+            - config-files
+            - dotfiles
+            - shell-config
+
+        - name: Check for common application configs
+          ansible.builtin.stat:
+            path: "{{ ansible_env.HOME }}/{{ item }}"
+          register: app_configs
+          become: false
+          loop:
+            - .tmux.conf
+            - .screenrc
+            - .Xresources
+            - .xinitrc
+            - .config/i3
+            - .config/awesome
+            - .config/openbox
+          tags:
+            - config-files
+            - app-config
+            - window-managers
+
+        - name: macOS Homebrew discovery
+          block:
+            - name: Check for Homebrew installation paths
+              ansible.builtin.stat:
+                path: "{{ item }}"
+              register: homebrew_paths
+              loop:
+                - /opt/homebrew/bin/brew  # ARM Mac
+                - /usr/local/bin/brew     # Intel Mac
+              tags:
+                - homebrew
+                - macos
+                - package-managers
+
+            - name: Determine active Homebrew path
+              ansible.builtin.set_fact:
+                homebrew_path: "{{ item.item }}"
+              loop: "{{ homebrew_paths.results }}"
+              when: item.stat.exists
+              tags:
+                - homebrew
+                - macos
+                - variables
+
+            - name: Get Homebrew packages (formulae)
+              ansible.builtin.command: "{{ homebrew_path }} list --formulae"
+              register: homebrew_packages
+              changed_when: false
+              become: false
+              when: homebrew_path is defined
+              failed_when: false
+              timeout: 60
+              tags:
+                - homebrew
+                - packages
+                - formulae
+
+            - name: Get Homebrew casks
+              ansible.builtin.command: "{{ homebrew_path }} list --casks"
+              register: homebrew_casks
+              changed_when: false
+              become: false
+              when: homebrew_path is defined
+              failed_when: false
+              timeout: 60
+              tags:
+                - homebrew
+                - packages
+                - casks
+
+            - name: Get Homebrew services
+              ansible.builtin.command: "{{ homebrew_path }} services list"
+              register: homebrew_services
+              changed_when: false
+              become: false
+              when: homebrew_path is defined
+              failed_when: false
+              timeout: 30
+              tags:
+                - homebrew
+                - services
+                - macos
+
+          when: ansible_os_family == "Darwin"
+          rescue:
+            - name: Handle Homebrew discovery errors
+              ansible.builtin.debug:
+                msg: "Homebrew discovery failed, may not be installed or accessible"
+              tags:
+                - homebrew
+                - error-handling
+
+        - name: Display configuration discovery progress
+          ansible.builtin.debug:
+            msg:
+              - "Configuration discovery completed"
+              - "Config files found: {{ config_files.results | selectattr('stat.exists') | list | length }}"
+              - "App configs found: {{ app_configs.results | selectattr('stat.exists') | list | length }}"
+              - "Homebrew packages: {{ homebrew_packages.stdout_lines | default([]) | length if ansible_os_family == 'Darwin' else 'N/A' }}"
+              - "Homebrew casks: {{ homebrew_casks.stdout_lines | default([]) | length if ansible_os_family == 'Darwin' else 'N/A' }}"
+          tags:
+            - config-files
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle configuration discovery errors
+          ansible.builtin.debug:
+            msg: "Configuration discovery encountered errors, continuing with available data"
+          tags:
+            - config-files
+            - error-handling
+
+      tags:
+        - config-files
+        - discovery
+
+  post_tasks:
+    # Generate discovery data structure
+    - name: Build discovery profile
+      ansible.builtin.set_fact:
+        discovery_profile:
+          hostname: "{{ inventory_hostname }}"
+          system:
+            os_family: "{{ ansible_os_family }}"
+            distribution: "{{ ansible_distribution }}"
+            distribution_version: "{{ ansible_distribution_version }}"
+            architecture: "{{ ansible_architecture }}"
+            python_version: "{{ ansible_python_version }}"
+            total_memory: "{{ ansible_memtotal_mb }}"
+            cpu_cores: "{{ ansible_processor_vcpus }}"
+          network:
+            interfaces: "{{ ansible_interfaces }}"
+            default_ipv4: "{{ ansible_default_ipv4 | default({}) }}"
+            fqdn: "{{ ansible_fqdn }}"
+          packages:
+            installed: "{{ ansible_facts.packages | default({}) }}"
+            homebrew_formulae: "{{ homebrew_packages.stdout_lines | default([]) }}"
+            homebrew_casks: "{{ homebrew_casks.stdout_lines | default([]) }}"
+          services:
+            running: "{{ ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | list }}"
+            enabled: "{{ ansible_facts.services | dict2items | selectattr('value.status', 'equalto', 'enabled') | map(attribute='key') | list }}"
+          docker:
+            installed: "{{ docker_installed.stat.exists | default(false) }}"
+            version: "{{ docker_version_output.stdout | default('') }}"
+            containers: "{{ docker_containers.containers | default([]) | map(attribute='Config.Image') | list }}"
+            networks: "{{ docker_networks.networks | default([]) | map(attribute='Name') | list }}"
+            volumes: "{{ docker_volumes.volumes | default([]) | map(attribute='Name') | list }}"
+          desktop:
+            environment: "{{ desktop_environment.stdout | default('') }}"
+            has_gui: "{{ (desktop_environment.stdout | default('')) != '' }}"
+          security:
+            ufw_status: "{{ ufw_status.stdout | default('') }}"
+            firewalld_status: "{{ firewalld_status.stdout | default('') }}"
+            ssh_config: "{{ sshd_config.content | default('') | b64decode }}"
+          users:
+            system_users: "{{ ansible_facts.getent_passwd.keys() | list }}"
+            current_user: "{{ ansible_user }}"
+          development:
+            tools_installed: "{{ dev_tools.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+            dotfiles_repo: "{{ dotfiles_repo.stat.exists | default(false) }}"
+            shell_config: "{{ zsh_config.stat.exists | default(false) }}"
+
+    # Save discovery profile
+    - name: Save discovery profile to file
+      ansible.builtin.copy:
+        content: "{{ discovery_profile | to_nice_yaml }}"
+        dest: "{{ discovery_output_dir }}/{{ inventory_hostname }}-profile.yml"
+        mode: '0644'
+      delegate_to: localhost
+
+    # Generate configurations using template
+    - name: Generate Ansible configurations
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ discovery_output_dir }}/{{ item.dest }}"
+        mode: '0644'
+      loop:
+        - src: "../templates/discovered-inventory.yml.j2"
+          dest: "inventory.yml"
+        - src: "../templates/discovered-host-vars.yml.j2"  
+          dest: "host_vars/{{ inventory_hostname }}.yml"
+        - src: "../templates/package-replication.yml.j2"
+          dest: "host_vars/{{ inventory_hostname }}-packages.yml"
+        - src: "../templates/secrets-template.yml.j2"
+          dest: "{{ inventory_hostname }}-secrets-template.yml"
+      delegate_to: localhost
+
+    - name: Determine machine groups
+      ansible.builtin.set_fact:
+        suggested_groups:
+          - "{{ 'servers' if (discovery_profile.services.running | intersect(['ssh', 'sshd']) | length > 0 and not discovery_profile.desktop.has_gui) else '' }}"
+          - "{{ 'docker_hosts' if discovery_profile.docker.installed else '' }}"
+          - "{{ 'workstations' if discovery_profile.desktop.has_gui else '' }}"
+          - "{{ ansible_distribution | lower }}_hosts"
+        suggested_roles:
+          - basic_setup
+          - system_update
+          - "{{ 'docker_setup' if discovery_profile.docker.installed else '' }}"
+          - "{{ 'dotfiles' if discovery_profile.development.dotfiles_repo else '' }}"
+
+    - name: Generate group_vars configuration
+      ansible.builtin.template:
+        src: "../templates/discovered-group-vars.yml.j2"
+        dest: "{{ discovery_output_dir }}/group_vars/{{ item }}.yml"
+        mode: '0644'
+      loop: "{{ suggested_groups | select | list }}"
+      delegate_to: localhost
+
+    - name: Generate replication playbook
+      ansible.builtin.template:
+        src: "../templates/discovered-playbook.yml.j2"
+        dest: "{{ discovery_output_dir }}/replicate-{{ inventory_hostname }}.yml"
+        mode: '0644'
+      delegate_to: localhost
+
+    - name: Generate discovery report
+      ansible.builtin.template:
+        src: "../templates/discovery-report.md.j2"
+        dest: "{{ discovery_output_dir }}/DISCOVERY-REPORT.md"
+        mode: '0644'
+      delegate_to: localhost
+
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg:
+          - "Infrastructure discovery completed!"
+          - "Generated files in: {{ discovery_output_dir }}/"
+          - "- inventory.yml (update with your actual IPs)"
+          - "- host_vars/{{ inventory_hostname }}.yml (host configuration)" 
+          - "- host_vars/{{ inventory_hostname }}-packages.yml ({{ discovery_profile.packages.installed.keys() | length }} packages)"
+          - "- {{ inventory_hostname }}-secrets-template.yml (secrets template - POPULATE & ENCRYPT!)"
+          - "- group_vars/[detected-groups].yml (group configurations)"
+          - "- replicate-{{ inventory_hostname }}.yml (replication playbook)"
+          - "- DISCOVERY-REPORT.md (summary and recommendations)"
+          - ""
+          - "Package discovery summary:"
+          - "  - Total packages: {{ discovery_profile.packages.installed.keys() | length }}"
+          {% if discovery_profile.system.os_family == "Darwin" %}
+          - "  - Homebrew formulae: {{ discovery_profile.packages.homebrew_formulae | length }}"
+          - "  - Homebrew casks: {{ discovery_profile.packages.homebrew_casks | length }}"
+          {% endif %}
+          - ""
+          - "Suggested groups: {{ suggested_groups | select | list }}"
+          - "Suggested roles: {{ suggested_roles | select | list }}"

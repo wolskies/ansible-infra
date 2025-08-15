@@ -1,0 +1,164 @@
+---
+- name: Ensure Homebrew Is Installed
+  ansible.builtin.stat:
+    path: /opt/homebrew/bin/brew
+  register: homebrew_check
+
+# - name: Install Brew
+#   block:
+#   - name: Verify Brew installation status
+#     ansible.builtin.stat:
+#       path: /usr/local/bin/brew
+#     register: brew
+#   - name: Install Brew
+#     ansible.builtin.command: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#     when: not brew.stat.exists
+
+- name: Disable Homebrew analytics
+  command: brew analytics off
+
+- name: Close system preferences
+  command: killall "System Preferences" ; sleep 1
+  register: command_result
+  changed_when: command_result.rc != 0
+  ignore_errors: true
+  become_user: root
+
+- name: Setup OSX Firewall & Network security settings
+  block:
+
+  - name: Enable Firewall
+    command: defaults -currentHost write /Library/Preferences/com.apple.alf globalstate -bool true
+    become_user: root
+
+  - name: Enable Stealth Mode
+    block:
+    - name: Verify Stealth Mode Status
+      command: defaults -currentHost read /Library/Preferences/com.apple.alf stealthenabled
+      register: firewall_stealth_enabled
+      changed_when: firewall_stealth_enabled != 1
+    - name: Enable Stealth Mode
+      command: defaults write /Library/Preferences/com.apple.alf stealthenabled -bool true
+      when: firewall_stealth_enabled != 1
+      become_user: root
+
+  - name: Enable network whitelisting for Apple-signed apps
+    block:
+    - name: Verify network whitelist for Apple-signed apps
+      command: defaults -currentHost read /Library/Preferences/com.apple.alf allowsignedenabled
+      register: firewall_signed_apps
+      changed_when: firewall_signed_apps != 1
+    - name: Enable network whitelisting for Apple-signed apps
+      command: defaults -currentHost write /Library/Preferences/com.apple.alf allowsignedenabled -bool false
+      when: firewall_signed_apps != 1
+      become_user: root
+
+  - name: Disable Multicast Advertisements
+    command: defaults -currentHost write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool YES
+    become_user: root
+
+  - name: Disable captive portals
+    command: defaults -currentHost write /Library/Preferences/SystemConfiguration/com.apple.captive.control Active -bool false
+    become_user: root
+
+  - name: Disable print sharing
+    command: cupsctl --no-share-printers
+    become_user: root
+
+  - name: Disable Airdrop
+    command: defaults write com.apple.NetworkBrowser DisableAirDrop -bool true
+    become_user: root
+
+  - name: Disable iCloud drive
+    command: bash -c 'defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false'
+    become_user: root
+
+  - name: Disable Apple Push notifications
+    command: bash -c 'launchctl unload -w /System/Library/LaunchDaemons/com.apple.apsd.plist'
+    become_user: root
+
+  # - name: Disable Remote Login
+  #   block:
+  #   - name: Verify Remote Login status
+  #     command: bash -c "systemsetup -getremotelogin | awk '{print $3}'"
+  #     register: disable_remote_login
+  #     ignore_errors: True
+  #     changed_when: disable_remote_login.stdout == 'On'
+  #   - name: Disable Remote Login
+  #     command: bash -c "systemsetup -f -setremotelogin off"
+  #     when: disable_remote_login.stdout == 'On'
+  #     become_user: root
+
+  - name: Disable Remote Apple Events
+    block:
+    - name: Verify Remote Apple Events status
+      command: bash -c "systemsetup -getremoteappleevents | awk '{print $4}'"
+      register: remote_events
+    - name: Disable Remote Apple Events
+      command: systemsetup -setremoteappleevents off
+      when: remote_events.stdout == 'On'
+      become_user: root
+
+  - name: Disable Internet sharing
+    block:
+    - name: Determine if internet sharing has been configured
+      stat: path=/Library/Preferences/SystemConfiguration/com.apple.nat.plist
+      register: internet_sharing_config
+    - name: Verify Internet Sharing status
+      command: bash -c "defaults read /Library/Preferences/SystemConfiguration/com.apple.nat NAT | grep -c 'Enabled = 1'"
+      ignore_errors: True
+      register: internet_sharing
+      when: internet_sharing_config.stat.exists == True
+    - name: Disable Internet Sharing
+      command: bash -c "defaults write /Library/Preferences/SystemConfiguration/com.apple.nat NAT -dict-add Enabled -bool false"
+      when: internet_sharing_config.stat.exists == True and internet_sharing.stdout == '1' 
+      ignore_errors: True
+      become_user: root
+
+  - name: Disable Wake-on-LAN
+    block:
+    - name: Verify Wake-on-LAN status
+      command: bash -c "systemsetup getwakeonnetworkaccess | awk '{print $5}'"
+      register: wol_disabled
+    - name: Disable Wake-on-LAN
+      command: systemsetup -setwakeonnetworkaccess off
+      when: wol_disabled.stdout == 'On'
+      become_user: root
+      
+- name: Enable Automatic System Updates
+  block:
+  - name: Verify automatic system updates
+    command: softwareupdate --schedule | grep -i 'Automatic check is on'
+    register: software_updates_enabled
+  - name: Enable automatic system updates
+    command: softwareupdate --schedule on
+    when: software_updates_enabled != 0
+    become_user: root
+
+- name: Check to see if basic packages are installed
+  community.general.homebrew:
+    name: "{{ homebrew_packages }}"
+    state: present
+  become: true
+  become_user: "{{ ansible_user }}"
+
+- name: Check to see if basic casks are installed
+  community.general.homebrew_cask:
+    name: "{{ homebrew_casks }}"
+    state: present
+  become: true
+  become_user: "{{ ansible_user }}"
+
+- name: Update/Upgrade all Homebrew packages
+  community.general.homebrew:
+    update_homebrew: true
+    upgrade_all: true
+  become: true
+  become_user: "{{ ansible_user }}"
+
+- name: Upgrade all Homebrew casks
+  community.general.homebrew_cask:
+    upgrade_all: true
+  become: true
+  become_user: "{{ ansible_user }}"
+  

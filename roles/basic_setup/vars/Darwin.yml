@@ -1,0 +1,41 @@
+---
+# macOS specific packages via Homebrew
+homebrew_packages:
+  - bash
+  - btop
+  - stow
+  - gnupg
+  - git
+  - tree
+  - zsh
+  - fastfetch
+  - uv
+  - fzf
+  - zoxide
+  - eza
+  - zinit
+  - zsh-autosuggestions
+  - zsh-syntax-highlighting
+  - wget
+  - curl
+  - rsync
+  - unzip
+  - screen
+  - python@3.13
+  - starship
+  - ansible
+
+homebrew_casks:
+  - kitty
+  - iterm2
+  - librewolf
+  - vlc
+  - font-cascadia-code-nf
+  - font-cascadia-mono-nf
+  - font-jetbrains-mono-nerd-font
+  - font-fira-code-nerd-font
+  - font-hack-nerd-font
+
+# Homebrew taps needed for fonts
+homebrew_taps:
+  - homebrew/cask-fonts

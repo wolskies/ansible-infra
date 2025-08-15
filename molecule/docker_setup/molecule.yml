@@ -1,0 +1,83 @@
+---
+# Test scenario specifically for docker_setup role
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../default/requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  - name: ubuntu-docker
+    image: quay.io/ansible/ubuntu2404-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /var/lib/docker
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - docker_hosts
+    
+  - name: debian-docker
+    image: quay.io/ansible/debian12-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /var/lib/docker
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - docker_hosts
+
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+      docker_hosts:
+        # Docker configuration
+        docker_install_compose: true
+        docker_compose_version: "2.20.0"
+        docker_users: ["root"]
+        
+        # Test container deployment
+        docker_containers:
+          - name: test-nginx
+            image: nginx:alpine
+            state: started
+            ports:
+              - "8080:80"
+            networks:
+              - name: test-network
+            env:
+              NGINX_HOST: localhost
+              
+        # Test network creation
+        docker_networks:
+          - name: test-network
+            driver: bridge
+            
+        # Test volume creation
+        docker_volumes:
+          - name: test-volume
+            driver: local
+            
+        # Test service deployment
+        docker_services:
+          - name: portainer
+            enabled: true
+            compose_file: portainer.yml
+            environment:
+              PORTAINER_ADMIN_PASSWORD: "testpassword123"
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+
+verifier:
+  name: ansible

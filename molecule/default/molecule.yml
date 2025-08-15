@@ -1,0 +1,113 @@
+---
+role_name_check: 1
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+    force: true
+
+driver:
+  name: docker
+
+platforms:
+  - name: ubuntu-24-04
+    image: quay.io/ansible/ubuntu2404-test:latest
+    groups:
+      - servers
+      - docker_hosts
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    
+  - name: debian-12
+    image: quay.io/ansible/debian12-test:latest
+    groups:
+      - servers
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    
+  - name: archlinux-latest
+    image: quay.io/ansible/archlinux-test:latest
+    groups:
+      - workstations
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/usr/lib/systemd/systemd"
+
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        config_system_timezone: 'UTC'
+        config_system_locale: 'en_US.UTF-8'
+        # Test user details (no real passwords)
+        user_details:
+          - name: 'testuser'
+            uid: 1001
+            gid: 1001
+            password: '$6$test$test'  # Test password hash
+        # Disable services that require real credentials
+        enable_automatic_updates: false
+        security_hardening_enabled: false
+        # Test dotfiles repo
+        dotfiles_repository_url: 'https://github.com/test/dotfiles.git'
+      servers:
+        group_roles_install:
+          - basic_setup
+          - system_update
+        enable_firewall: false  # Don't enable firewall in tests
+      docker_hosts:
+        group_roles_install:
+          - basic_setup
+          - system_update
+          - docker_setup
+        docker_services_deploy:
+          - portainer
+        # Test Docker configuration
+        docker_users:
+          - root
+        docker_networks:
+          - name: "test-network"
+            driver: "bridge"
+      workstations:
+        group_roles_install:
+          - basic_setup
+          - system_update
+          - dotfiles
+        install_dotfiles: false  # Don't actually clone in tests
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+      bin_ansible_callbacks: true
+    connection:
+      pipelining: true
+
+verifier:
+  name: ansible
+  enabled: true
+
+scenario:
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy

@@ -1,0 +1,31 @@
+---
+# Test infrastructure discovery utility
+- name: Test infrastructure discovery
+  hosts: discovery_targets
+  gather_facts: true
+  collections:
+    - wolskinet.infrastructure
+  
+  tasks:
+    - name: Create discovery output directory
+      ansible.builtin.file:
+        path: "{{ discovery_output_path }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+
+    - name: Run infrastructure discovery playbook
+      ansible.builtin.include: ../../utilities/playbooks/discover-infrastructure.yml
+      vars:
+        discovery_target_hosts: discovery_targets
+        discovery_create_host_vars: true
+        discovery_create_group_vars: true
+        discovery_scan_packages: true
+        discovery_scan_services: true
+        discovery_scan_users: true
+        discovery_scan_network: true
+        discovery_scan_docker: false  # Docker not available in test containers
+
+    - name: Display discovery completion
+      ansible.builtin.debug:
+        msg: "Infrastructure discovery completed for {{ inventory_hostname }}"

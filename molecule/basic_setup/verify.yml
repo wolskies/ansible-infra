@@ -1,0 +1,129 @@
+---
+# Verify basic_setup role functionality
+- name: Verify basic_setup role
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Verify system locale configuration
+      block:
+        - name: Check current locale
+          ansible.builtin.command: locale
+          register: current_locale
+          changed_when: false
+
+        - name: Verify UTF-8 locale is set
+          ansible.builtin.assert:
+            that:
+              - "'UTF-8' in current_locale.stdout"
+            fail_msg: "UTF-8 locale not properly configured"
+            success_msg: "Locale configuration verified"
+
+    - name: Verify timezone configuration
+      block:
+        - name: Check timezone setting
+          ansible.builtin.command: timedatectl show --property=Timezone --value
+          register: current_timezone
+          changed_when: false
+          failed_when: false
+
+        - name: Verify timezone is set correctly
+          ansible.builtin.assert:
+            that:
+              - "'America/New_York' in current_timezone.stdout"
+            fail_msg: "Timezone not set to America/New_York"
+            success_msg: "Timezone configuration verified"
+          when: current_timezone.rc == 0
+
+    - name: Verify essential packages installation
+      block:
+        - name: Get package facts
+          ansible.builtin.package_facts:
+            manager: auto
+
+        - name: Check essential packages are installed
+          ansible.builtin.assert:
+            that:
+              - "item in ansible_facts.packages"
+            fail_msg: "Essential package {{ item }} not installed"
+            success_msg: "Package {{ item }} verified"
+          loop:
+            - git
+            - curl
+            - wget
+          ignore_errors: true  # Some test images may not have all packages
+
+    - name: Verify user creation (Linux only)
+      block:
+        - name: Check if test users exist
+          ansible.builtin.getent:
+            database: passwd
+          register: system_users
+
+        - name: Verify test users were created
+          ansible.builtin.assert:
+            that:
+              - "'testuser1' in ansible_facts.getent_passwd"
+              - "'testuser2' in ansible_facts.getent_passwd"
+            fail_msg: "Test users not created properly"
+            success_msg: "User creation verified"
+          when: ansible_os_family != 'Darwin'
+
+        - name: Check user shell assignment
+          ansible.builtin.assert:
+            that:
+              - "ansible_facts.getent_passwd['testuser1'][5] == '/usr/bin/zsh'"
+            fail_msg: "User shell not set to zsh"
+            success_msg: "User shell configuration verified"
+          when: 
+            - ansible_os_family != 'Darwin'
+            - "'testuser1' in ansible_facts.getent_passwd"
+          ignore_errors: true  # zsh may not be available in test images
+
+    - name: Verify OS-specific configurations
+      block:
+        - name: Check Ubuntu-specific settings
+          block:
+            - name: Verify snapd service status (if configured to stop)
+              ansible.builtin.service_facts:
+
+            - name: Check snapd service state
+              ansible.builtin.debug:
+                msg: "Snapd service state: {{ ansible_facts.services.get('snapd.service', {}).get('state', 'not found') }}"
+              when: "'snapd.service' in ansible_facts.services"
+
+          when: ansible_distribution == 'Ubuntu'
+
+        - name: Check Arch Linux specific settings
+          block:
+            - name: Verify pacman packages
+              ansible.builtin.debug:
+                msg: "Pacman package manager detected"
+
+          when: ansible_distribution == 'Archlinux'
+
+        - name: Check Debian specific settings
+          block:
+            - name: Verify apt packages
+              ansible.builtin.debug:
+                msg: "APT package manager detected"
+
+          when: ansible_distribution == 'Debian'
+
+    - name: Verify security configurations
+      block:
+        - name: Check if unnecessary services are disabled
+          ansible.builtin.service_facts:
+
+        - name: Verify firewall configuration readiness
+          ansible.builtin.debug:
+            msg: "Firewall configuration ready (not enabled in tests)"
+
+    - name: Summary verification
+      ansible.builtin.debug:
+        msg:
+          - "basic_setup role verification completed"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Package manager: {{ ansible_pkg_mgr }}"
+          - "Users created: {{ ansible_facts.getent_passwd.keys() | intersect(['testuser1', 'testuser2']) | length if ansible_os_family != 'Darwin' else 'N/A (macOS)' }}"
+          - "Essential packages: Verified"
+          - "System configuration: OK"

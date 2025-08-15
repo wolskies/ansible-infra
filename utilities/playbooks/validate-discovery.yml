@@ -1,0 +1,250 @@
+---
+# Validation Playbook for Discovery Results
+# Compares discovered configuration with current system state
+- name: Validate infrastructure discovery results
+  hosts: all
+  gather_facts: true
+  collections:
+    - wolskinet.infrastructure
+    - community.general
+    - community.docker
+  
+  vars:
+    discovery_output_dir: "./discovered-infrastructure"
+    validation_report_file: "{{ discovery_output_dir }}/validation-report.yml"
+    allow_differences: false  # Set to true to report but not fail on differences
+    
+  tasks:
+    - name: Load original discovery profile
+      ansible.builtin.include_vars:
+        file: "{{ discovery_output_dir }}/{{ inventory_hostname }}-profile.yml"
+        name: original_profile
+      delegate_to: localhost
+
+    - name: Display validation target
+      ansible.builtin.debug:
+        msg:
+          - "Validating discovery results for: {{ inventory_hostname }}"
+          - "Original discovery: {{ original_profile.system.distribution }} {{ original_profile.system.distribution_version }}"
+          - "Current system: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    # System Validation
+    - name: Validate system information
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == original_profile.system.distribution
+          - ansible_distribution_version == original_profile.system.distribution_version
+          - ansible_architecture == original_profile.system.architecture
+        fail_msg: "System characteristics have changed since discovery"
+        success_msg: "System characteristics match discovery"
+      register: system_validation
+
+    # Package Validation
+    - name: Gather current package facts
+      ansible.builtin.package_facts:
+        manager: auto
+      become: true
+
+    - name: Compare package installation
+      ansible.builtin.set_fact:
+        package_differences:
+          missing: "{{ original_profile.packages.installed.keys() | difference(ansible_facts.packages.keys()) }}"
+          added: "{{ ansible_facts.packages.keys() | difference(original_profile.packages.installed.keys()) }}"
+      register: package_comparison
+
+    - name: Report package differences
+      ansible.builtin.debug:
+        msg:
+          - "Package comparison for {{ inventory_hostname }}:"
+          - "Missing packages (from original): {{ package_differences.missing | length }}"
+          - "Added packages (since discovery): {{ package_differences.added | length }}"
+      when: package_differences.missing | length > 0 or package_differences.added | length > 0
+
+    # Service Validation
+    - name: Gather current service facts
+      ansible.builtin.service_facts:
+      become: true
+
+    - name: Compare service states
+      ansible.builtin.set_fact:
+        service_differences:
+          stopped_services: "{{ original_profile.services.running | difference(ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | list) }}"
+          new_services: "{{ ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | difference(original_profile.services.running) | list }}"
+
+    - name: Report service differences
+      ansible.builtin.debug:
+        msg:
+          - "Service comparison for {{ inventory_hostname }}:"
+          - "Services stopped since discovery: {{ service_differences.stopped_services }}"
+          - "New services since discovery: {{ service_differences.new_services }}"
+      when: service_differences.stopped_services | length > 0 or service_differences.new_services | length > 0
+
+    # Docker Validation (if applicable)
+    - name: Validate Docker configuration
+      block:
+        - name: Check Docker installation status
+          ansible.builtin.stat:
+            path: /usr/bin/docker
+          register: current_docker_status
+
+        - name: Validate Docker installation consistency
+          ansible.builtin.assert:
+            that:
+              - current_docker_status.stat.exists == original_profile.docker.installed
+            fail_msg: "Docker installation status has changed"
+            success_msg: "Docker installation status is consistent"
+
+        - name: Get current Docker containers
+          community.docker.docker_container_info:
+          register: current_containers
+          become: true
+          when: current_docker_status.stat.exists
+
+        - name: Compare Docker containers
+          ansible.builtin.set_fact:
+            docker_differences:
+              missing_containers: "{{ original_profile.docker.containers | difference(current_containers.containers | map(attribute='Config.Image') | list) }}"
+              new_containers: "{{ current_containers.containers | map(attribute='Config.Image') | difference(original_profile.docker.containers) | list }}"
+          when: 
+            - original_profile.docker.installed
+            - current_docker_status.stat.exists
+
+        - name: Report Docker differences
+          ansible.builtin.debug:
+            msg:
+              - "Docker comparison for {{ inventory_hostname }}:"
+              - "Missing containers: {{ docker_differences.missing_containers | default([]) }}"
+              - "New containers: {{ docker_differences.new_containers | default([]) }}"
+          when: 
+            - original_profile.docker.installed
+            - current_docker_status.stat.exists
+            - (docker_differences.missing_containers | default([])) | length > 0 or (docker_differences.new_containers | default([])) | length > 0
+
+      when: original_profile.docker.installed | default(false)
+
+    # Network Validation
+    - name: Compare network configuration
+      ansible.builtin.set_fact:
+        network_differences:
+          interface_changes: "{{ ansible_interfaces | symmetric_difference(original_profile.network.interfaces) }}"
+          ip_changed: "{{ (ansible_default_ipv4.address | default('')) != (original_profile.network.default_ipv4.address | default('')) }}"
+
+    - name: Report network differences
+      ansible.builtin.debug:
+        msg:
+          - "Network comparison for {{ inventory_hostname }}:"
+          - "Interface changes: {{ network_differences.interface_changes }}"
+          - "IP address changed: {{ network_differences.ip_changed }}"
+          - "Original IP: {{ original_profile.network.default_ipv4.address | default('unknown') }}"
+          - "Current IP: {{ ansible_default_ipv4.address | default('unknown') }}"
+      when: network_differences.interface_changes | length > 0 or network_differences.ip_changed
+
+    # User Validation
+    - name: Get current system users
+      ansible.builtin.getent:
+        database: passwd
+      become: true
+
+    - name: Compare user accounts
+      ansible.builtin.set_fact:
+        user_differences:
+          missing_users: "{{ original_profile.users.system_users | difference(ansible_facts.getent_passwd.keys()) }}"
+          new_users: "{{ ansible_facts.getent_passwd.keys() | difference(original_profile.users.system_users) }}"
+
+    - name: Report user differences
+      ansible.builtin.debug:
+        msg:
+          - "User comparison for {{ inventory_hostname }}:"
+          - "Missing users: {{ user_differences.missing_users }}"
+          - "New users: {{ user_differences.new_users }}"
+      when: user_differences.missing_users | length > 0 or user_differences.new_users | length > 0
+
+    # Configuration File Validation
+    - name: Check critical configuration files
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+      register: config_files_status
+      loop:
+        - path: "{{ ansible_env.HOME }}/.dotfiles"
+          name: "dotfiles_repository"
+          expected: "{{ original_profile.development.dotfiles_repo | default(false) }}"
+        - path: "{{ ansible_env.HOME }}/.zshrc"
+          name: "zsh_configuration"  
+          expected: "{{ original_profile.development.shell_config | default(false) }}"
+
+    - name: Report configuration file differences
+      ansible.builtin.debug:
+        msg:
+          - "Configuration file: {{ item.item.name }}"
+          - "Expected: {{ item.item.expected }}"
+          - "Found: {{ item.stat.exists }}"
+          - "Status: {{ 'OK' if item.stat.exists == item.item.expected else 'CHANGED' }}"
+      loop: "{{ config_files_status.results }}"
+      when: item.stat.exists != item.item.expected
+
+    # Generate validation summary
+    - name: Create validation summary
+      ansible.builtin.set_fact:
+        validation_summary:
+          hostname: "{{ inventory_hostname }}"
+          validation_date: "{{ ansible_date_time.iso8601 }}"
+          original_discovery_date: "{{ original_profile.hostname | default('unknown') }}"
+          system_match: "{{ system_validation is succeeded }}"
+          differences_found:
+            packages:
+              missing: "{{ package_differences.missing | default([]) }}"
+              added: "{{ package_differences.added | default([]) }}"
+            services:
+              stopped: "{{ service_differences.stopped_services | default([]) }}"
+              new: "{{ service_differences.new_services | default([]) }}"
+            docker:
+              missing_containers: "{{ docker_differences.missing_containers | default([]) }}"
+              new_containers: "{{ docker_differences.new_containers | default([]) }}"
+            network:
+              interface_changes: "{{ network_differences.interface_changes | default([]) }}"
+              ip_changed: "{{ network_differences.ip_changed | default(false) }}"
+            users:
+              missing: "{{ user_differences.missing_users | default([]) }}"
+              added: "{{ user_differences.new_users | default([]) }}"
+          recommendations: []
+
+    # Generate recommendations based on differences
+    - name: Generate recommendations
+      ansible.builtin.set_fact:
+        validation_summary: "{{ validation_summary | combine({'recommendations': validation_summary.recommendations + [item]}) }}"
+      loop:
+        - "{{ 'Re-run discovery to update configuration' if (package_differences.missing | default([])) | length > 5 else '' }}"
+        - "{{ 'Check for manual service changes' if (service_differences.stopped_services | default([])) | length > 0 else '' }}"
+        - "{{ 'Update inventory IP address' if network_differences.ip_changed | default(false) else '' }}"
+        - "{{ 'Review Docker container changes' if (docker_differences.missing_containers | default([])) | length > 0 else '' }}"
+        - "{{ 'Consider updating host_vars configuration' if (user_differences.new_users | default([])) | length > 0 else '' }}"
+      when: item | length > 0
+
+  post_tasks:
+    - name: Save validation report
+      ansible.builtin.copy:
+        content: "{{ validation_summary | to_nice_yaml }}"
+        dest: "{{ validation_report_file }}"
+        mode: '0644'
+      delegate_to: localhost
+
+    - name: Display validation results
+      ansible.builtin.debug:
+        msg:
+          - "Validation completed for {{ inventory_hostname }}"
+          - "System match: {{ validation_summary.system_match }}"
+          - "Differences found: {{ (validation_summary.differences_found.packages.missing | length + validation_summary.differences_found.packages.added | length + validation_summary.differences_found.services.stopped | length + validation_summary.differences_found.services.new | length) > 0 }}"
+          - "Recommendations: {{ validation_summary.recommendations | length }}"
+          - "Full report saved to: {{ validation_report_file }}"
+
+    - name: Fail if significant differences found
+      ansible.builtin.fail:
+        msg: 
+          - "Significant differences found between discovery and current state"
+          - "Review validation report: {{ validation_report_file }}"
+          - "Consider re-running discovery or updating configurations"
+      when:
+        - not allow_differences
+        - not validation_summary.system_match or 
+          (validation_summary.differences_found.packages.missing | length > 10) or
+          (validation_summary.differences_found.services.stopped | length > 3)

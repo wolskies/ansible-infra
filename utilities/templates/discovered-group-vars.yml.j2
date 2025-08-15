@@ -1,0 +1,176 @@
+# Group variables for {{ item }}
+# Generated from infrastructure discovery on {{ ansible_date_time.iso8601 }}
+
+---
+{% if item == 'servers' %}
+# Server Configuration
+# Servers get security hardening + basic setup + system maintenance
+
+group_roles_install:
+  - basic_setup
+  - system_update
+
+# Enhanced security for servers
+security_hardening_enabled: true
+enable_firewall: true
+disable_unnecessary_services: true
+
+# SSH hardening for servers
+ssh_server_hardening:
+  disable_root_login: true
+  disable_password_auth: true  # Use key-based auth only
+  max_auth_tries: 3
+
+# Automatic security updates
+enable_automatic_updates: true
+reboot_if_required: false  # Set to true for automatic reboots
+
+# Server-specific packages (detected from scanned machines)
+{% set server_hosts = play_hosts | selectattr('discovery_profile.services.running', 'intersect', ['ssh', 'sshd']) | selectattr('discovery_profile.desktop.has_gui', 'equalto', false) | list %}
+{% if server_hosts %}
+server_packages_detected:
+{% for host in server_hosts %}
+  {{ host }}:
+    distribution: "{{ hostvars[host].discovery_profile.system.distribution }}"
+    packages: {{ hostvars[host].discovery_profile.packages.installed.keys() | intersect(['fail2ban', 'ufw', 'firewalld', 'chrony', 'rsyslog']) | list }}
+{% endfor %}
+{% endif %}
+
+{% elif item == 'docker_hosts' %}
+# Docker Hosts Configuration
+# Docker hosts inherit server configuration and add Docker-specific setup
+
+group_roles_install:
+  - basic_setup
+  - system_update  
+  - docker_setup
+
+# Docker services detected across scanned machines
+{% set docker_hosts = play_hosts | selectattr('discovery_profile.docker.installed', 'equalto', true) | list %}
+{% if docker_hosts %}
+# Discovered Docker configurations
+discovered_docker_configs:
+{% for host in docker_hosts %}
+  {{ host }}:
+    containers: {{ hostvars[host].discovery_profile.docker.containers }}
+    networks: {{ hostvars[host].discovery_profile.docker.networks }}
+    volumes: {{ hostvars[host].discovery_profile.docker.volumes }}
+{% endfor %}
+
+# Suggested Docker services to deploy (based on discovered containers)
+{% set all_containers = [] %}
+{% for host in docker_hosts %}
+  {% for container in hostvars[host].discovery_profile.docker.containers %}
+    {% if container not in all_containers %}
+      {% set _ = all_containers.append(container) %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+docker_services_deploy:
+{% for container in all_containers %}
+  {% if 'portainer' in container.lower() %}
+  - portainer
+  {% elif 'nginx' in container.lower() or 'proxy' in container.lower() %}
+  - nginx-proxy
+  {% elif 'prometheus' in container.lower() or 'grafana' in container.lower() %}
+  - monitoring
+  {% else %}
+  - {{ container.split(':')[0] | regex_replace('.*/', '') }}  # Extract image name
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+# Docker configuration
+docker_users:
+  - "{{ ansible_user }}"
+
+# Security: Enable hardening but allow Docker requirements  
+security_hardening_enabled: true
+enable_firewall: true
+
+{% elif item == 'workstations' %}
+# Workstation Configuration  
+# Workstations get basic setup + dotfiles + desktop-specific configurations
+
+group_roles_install:
+  - basic_setup
+  - system_update
+  - dotfiles
+
+# Desktop environment detected
+{% set workstation_hosts = play_hosts | selectattr('discovery_profile.desktop.has_gui', 'equalto', true) | list %}
+{% if workstation_hosts %}
+discovered_desktop_environments:
+{% for host in workstation_hosts %}
+  {{ host }}: "{{ hostvars[host].discovery_profile.desktop.environment | default('unknown') }}"
+{% endfor %}
+{% endif %}
+
+# Development tools configuration
+install_dotfiles: true
+enable_firewall: false  # Workstations may need more open networking
+
+# Workstation-specific packages (detected development tools)
+{% if workstation_hosts %}
+development_tools_detected:
+{% for host in workstation_hosts %}
+  {{ host }}: {{ hostvars[host].discovery_profile.development.tools_installed | map('basename') | list }}
+{% endfor %}
+{% endif %}
+
+{% elif item.endswith('_hosts') %}
+# {{ item.split('_')[0] | title }} Distribution Specific Configuration
+
+{% set os_name = item.split('_')[0] %}
+{% set os_hosts = play_hosts | selectattr('discovery_profile.system.distribution', 'equalto', os_name | title) | list %}
+{% if os_hosts %}
+# Distribution: {{ os_name | title }}
+distribution_info:
+  name: "{{ os_name | title }}"
+  hosts: {{ os_hosts }}
+  
+# Common packages detected across {{ os_name | title }} machines
+{% set all_packages = [] %}
+{% for host in os_hosts %}
+  {% for pkg in hostvars[host].discovery_profile.packages.installed.keys() %}
+    {% if pkg not in all_packages %}
+      {% set _ = all_packages.append(pkg) %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+common_packages_detected:
+{% for pkg in all_packages | sort %}
+  - "{{ pkg }}"
+{% endfor %}
+
+# Package manager for this distribution
+package_manager: "{{ 'brew' if os_name == 'darwin' else 'pacman' if os_name == 'archlinux' else 'apt' if os_name in ['ubuntu', 'debian'] else 'unknown' }}"
+{% endif %}
+
+{% endif %}
+
+# Roles to consider adding (missing from collection)
+# Based on discovered configurations that don't match existing roles:
+missing_roles_suggested:
+{% set suggested_missing = [] %}
+{% for host in play_hosts %}
+  {% if hostvars[host].discovery_profile.services.running | intersect(['nginx', 'apache2', 'httpd']) %}
+    {% if 'web_server' not in suggested_missing %}
+      {% set _ = suggested_missing.append('web_server') %}
+    {% endif %}
+  {% endif %}
+  {% if hostvars[host].discovery_profile.services.running | intersect(['mysql', 'postgresql', 'mariadb']) %}
+    {% if 'database' not in suggested_missing %}
+      {% set _ = suggested_missing.append('database') %}
+    {% endif %}
+  {% endif %}
+  {% if hostvars[host].discovery_profile.packages.installed.keys() | intersect(['code', 'atom', 'sublime']) %}
+    {% if 'development_environment' not in suggested_missing %}
+      {% set _ = suggested_missing.append('development_environment') %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% for role in suggested_missing %}
+  - {{ role }}
+{% endfor %}

@@ -1,0 +1,141 @@
+# Host-specific variables for {{ inventory_hostname }}
+# Generated from infrastructure discovery on {{ ansible_date_time.iso8601 }}
+# OS: {{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}
+
+---
+# System Information
+ansible_user: "{{ discovery_profile.users.current_user }}"
+
+# Hardware Configuration  
+system_memory_mb: {{ discovery_profile.system.total_memory }}
+system_cpu_cores: {{ discovery_profile.system.cpu_cores }}
+system_architecture: "{{ discovery_profile.system.architecture }}"
+
+# Network Configuration
+{% if discovery_profile.network.default_ipv4.interface is defined %}
+primary_network_interface: "{{ discovery_profile.network.default_ipv4.interface }}"
+{% endif %}
+{% if discovery_profile.network.default_ipv4.address is defined %}
+primary_ip_address: "{{ discovery_profile.network.default_ipv4.address }}"
+{% endif %}
+
+# Hostname Configuration
+system_hostname: "{{ discovery_profile.hostname }}"
+{% if discovery_profile.network.fqdn != discovery_profile.hostname %}
+system_fqdn: "{{ discovery_profile.network.fqdn }}"
+{% endif %}
+
+{% if discovery_profile.desktop.has_gui %}
+# Desktop Environment (detected workstation)
+{% if discovery_profile.desktop.environment %}
+desktop_environment: "{{ discovery_profile.desktop.environment }}"
+{% endif %}
+
+# Display Manager Detection
+{% set display_managers = discovery_profile.services.running | intersect(['gdm', 'lightdm', 'sddm', 'xdm', 'kdm']) %}
+{% if display_managers %}
+display_manager: "{{ display_managers[0] }}"
+{% endif %}
+
+# Development Tools
+development_tools_detected:
+{% for tool in discovery_profile.development.tools_installed %}
+  - "{{ tool | basename }}"
+{% endfor %}
+{% endif %}
+
+{% if discovery_profile.docker.installed %}
+# Docker Configuration (detected Docker host)
+docker_detected: true
+docker_version_found: "{{ discovery_profile.docker.version }}"
+
+# Discovered Docker containers (for reference)
+discovered_containers:
+{% for container in discovery_profile.docker.containers %}
+  - "{{ container }}"
+{% endfor %}
+
+# Discovered Docker networks
+discovered_networks:
+{% for network in discovery_profile.docker.networks %}
+  - "{{ network }}"
+{% endfor %}
+
+# Discovered Docker volumes  
+discovered_volumes:
+{% for volume in discovery_profile.docker.volumes %}
+  - "{{ volume }}"
+{% endfor %}
+{% endif %}
+
+{% if discovery_profile.system.os_family == "Darwin" %}
+# macOS Configuration
+homebrew_detected: {{ discovery_profile.packages.homebrew_formulae | length > 0 }}
+
+{% if discovery_profile.packages.homebrew_formulae %}
+# Discovered Homebrew packages
+discovered_homebrew_packages:
+{% for package in discovery_profile.packages.homebrew_formulae %}
+  - "{{ package }}"
+{% endfor %}
+{% endif %}
+
+{% if discovery_profile.packages.homebrew_casks %}
+# Discovered Homebrew casks
+discovered_homebrew_casks:
+{% for cask in discovery_profile.packages.homebrew_casks %}
+  - "{{ cask }}"
+{% endfor %}
+{% endif %}
+{% endif %}
+
+# Security Configuration
+{% if discovery_profile.security.ufw_status %}
+firewall_detected:
+  type: "ufw"
+  status: "{{ discovery_profile.security.ufw_status | regex_replace('\\n.*', '') }}"
+{% elif discovery_profile.security.firewalld_status %}
+firewall_detected:
+  type: "firewalld"
+  status: "{{ discovery_profile.security.firewalld_status }}"
+{% endif %}
+
+# SSH Configuration (detected from sshd_config)
+{% if discovery_profile.security.ssh_config %}
+ssh_configuration_detected:
+  # TODO: Parse SSH config and extract key settings
+  # Current config available in discovery profile
+  config_detected: true
+{% endif %}
+
+# Package Manager Detection
+package_manager: "{{ 'brew' if discovery_profile.system.os_family == 'Darwin' else 'pacman' if discovery_profile.system.distribution == 'Archlinux' else 'apt' if discovery_profile.system.os_family == 'Debian' else 'unknown' }}"
+
+# Services Configuration
+critical_services_detected:
+{% for service in discovery_profile.services.running | intersect(['ssh', 'sshd', 'systemd-resolved', 'networkd', 'docker']) %}
+  - name: "{{ service }}"
+    status: "running"
+{% endfor %}
+
+# Configuration Management
+{% if discovery_profile.development.dotfiles_repo %}
+dotfiles_repository_detected: true
+dotfiles_location: "{{ ansible_env.HOME }}/.dotfiles"
+{% endif %}
+
+{% if discovery_profile.development.shell_config %}
+shell_configuration_detected: true
+shell_type: "zsh"
+{% endif %}
+
+# TODO Items for Manual Configuration
+# - Update ansible_host in inventory.yml with actual IP address
+# - Review and adjust firewall rules
+# - Configure vault variables for sensitive data
+# - Verify package lists and remove unnecessary items
+# - Test SSH key authentication
+{% if discovery_profile.docker.installed %}
+# - Review Docker container configurations
+# - Set up proper Docker service definitions
+{% endif %}

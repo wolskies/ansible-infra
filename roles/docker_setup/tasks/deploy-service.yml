@@ -1,0 +1,52 @@
+---
+# Deploy individual Docker service
+- name: "Check if service configuration exists for {{ service_name }}"
+  ansible.builtin.stat:
+    path: "{{ docker_compose_dir }}/{{ service_name }}/docker-compose.yml"
+  register: service_compose_file
+
+- name: "Create service directory for {{ service_name }}"
+  ansible.builtin.file:
+    path: "{{ docker_compose_dir }}/{{ service_name }}"
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: "Generate docker-compose.yml for {{ service_name }}"
+  ansible.builtin.template:
+    src: "services/{{ service_name }}.yml.j2"
+    dest: "{{ docker_compose_dir }}/{{ service_name }}/docker-compose.yml"
+    mode: '0644'
+  become: true
+  register: compose_template
+  failed_when: false  # Don't fail if template doesn't exist
+
+- name: "Use default service template for {{ service_name }}"
+  ansible.builtin.template:
+    src: "services/default-service.yml.j2"
+    dest: "{{ docker_compose_dir }}/{{ service_name }}/docker-compose.yml"
+    mode: '0644'
+  become: true
+  when: compose_template.failed | default(false)
+  vars:
+    service:
+      name: "{{ service_name }}"
+      image: "{{ service_name }}:latest"
+      ports: []
+      environment: {}
+      volumes: []
+      networks:
+        - services
+
+- name: "Deploy {{ service_name }} with Docker Compose"
+  community.docker.docker_compose:
+    project_src: "{{ docker_compose_dir }}/{{ service_name }}"
+    state: present
+    pull: true
+  become: true
+  register: service_deployment
+
+- name: "Display deployment result for {{ service_name }}"
+  ansible.builtin.debug:
+    msg: "{{ service_name }} deployment completed. Services: {{ service_deployment.services.keys() | list }}"
+  when: service_deployment.services is defined

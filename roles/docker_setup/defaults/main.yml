@@ -1,0 +1,54 @@
+---
+# Docker installation defaults
+docker_version: "latest"
+docker_compose_version: "v2.24.0"
+
+# Docker daemon configuration
+docker_daemon_config:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  storage-driver: "overlay2"
+
+# Users to add to docker group
+docker_users:
+  - "{{ ansible_user }}"
+
+# Docker services to deploy
+docker_services_deploy: []
+
+# Service directories
+docker_services_dir: "/opt/docker-services"
+docker_compose_dir: "{{ docker_services_dir }}/compose"
+
+# Docker registry authentication (use vault for credentials)
+docker_registries: []
+# Example:
+# docker_registries:
+#   - registry: "registry.hub.docker.com"
+#     username: "{{ vault_docker_username }}"
+#     password: "{{ vault_docker_password }}"
+
+# Container resource defaults
+docker_default_resources:
+  memory: "512m"
+  cpus: "0.5"
+  restart_policy: "unless-stopped"
+
+# Network configuration
+docker_networks:
+  - name: "services"
+    driver: "bridge"
+    enable_ipv6: false
+
+# Volume configuration
+docker_volumes: []
+# Example:
+# docker_volumes:
+#   - name: "postgres_data"
+#   - name: "redis_data"
+
+# Enable docker system cleanup
+docker_system_prune: true
+docker_prune_schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM

@@ -1,0 +1,34 @@
+---
+# Nginx Proxy Manager for reverse proxy
+version: '3.8'
+
+services:
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:81"
+    volumes:
+      - nginx_data:/data
+      - nginx_letsencrypt:/etc/letsencrypt
+    environment:
+      - PUID=1000
+      - PGID=1000
+    networks:
+      - services
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: '0.5'
+
+volumes:
+  nginx_data:
+  nginx_letsencrypt:
+
+networks:
+  services:
+    external: true

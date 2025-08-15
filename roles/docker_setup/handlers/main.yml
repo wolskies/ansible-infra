@@ -1,0 +1,14 @@
+---
+# Docker service handlers
+- name: restart docker
+  ansible.builtin.systemd:
+    name: docker
+    state: restarted
+    daemon_reload: true
+  become: true
+
+- name: reload docker
+  ansible.builtin.systemd:
+    name: docker
+    state: reloaded
+  become: true

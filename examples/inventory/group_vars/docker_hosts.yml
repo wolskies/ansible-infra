@@ -1,0 +1,86 @@
+---
+# Configuration for Docker hosts
+# Docker hosts inherit server configuration and add Docker-specific setup
+
+# Roles to install on Docker hosts (basic + docker)
+group_roles_install:
+  - basic_setup
+  - system_update
+  - docker_setup
+
+# Docker services to deploy
+docker_services_deploy:
+  - portainer
+  - nginx-proxy
+  - monitoring
+
+# Docker configuration
+docker_users:
+  - "{{ ansible_user }}"
+
+# Container resource limits
+docker_default_resources:
+  memory: "1g"
+  cpus: "1.0"
+  restart_policy: "unless-stopped"
+
+# Docker networks to create
+docker_networks:
+  - name: "services"
+    driver: "bridge"
+    enable_ipv6: false
+  - name: "monitoring"
+    driver: "bridge"
+    enable_ipv6: false
+
+# Docker volumes for persistent data
+docker_volumes:
+  - name: "portainer_data"
+  - name: "nginx_data"
+  - name: "prometheus_data"
+  - name: "grafana_data"
+
+# Example of additional roles from other collections
+additional_roles_install:
+  - name: "community.docker.docker_compose"
+    become: true
+    when: "{{ ansible_distribution == 'Ubuntu' }}"
+    vars:
+      docker_compose_version: "2.24.0"
+
+# Docker registry configuration (use vault for credentials)
+docker_registries:
+  - registry: "registry.hub.docker.com"
+    username: "{{ vault_docker_username | default('') }}"
+    password: "{{ vault_docker_password | default('') }}"
+
+# Service-specific configurations
+service_configs:
+  portainer:
+    admin_password: "{{ vault_portainer_password | default('admin') }}"
+  
+  nginx-proxy:
+    default_email: "{{ vault_email.notification_email | default('admin@example.com') }}"
+    
+  monitoring:
+    grafana_admin_password: "{{ vault_grafana_password | default('admin') }}"
+    prometheus_retention: "15d"
+
+# Security: Enable hardening but allow Docker-specific requirements
+security_hardening_enabled: true
+enable_firewall: true
+
+# Docker-specific firewall rules
+ufw_rules:
+  - rule: allow
+    port: "2376"
+    proto: tcp
+    comment: "Docker daemon API"
+  - rule: allow
+    port: "9000"
+    proto: tcp
+    comment: "Portainer"
+  - rule: allow
+    port: "80,443"
+    proto: tcp
+    comment: "Nginx Proxy"

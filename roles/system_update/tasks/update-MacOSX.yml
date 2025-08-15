@@ -1,0 +1,14 @@
+---
+- name: Update/Upgrade all Homebrew packages
+  community.general.homebrew:
+    update_homebrew: true
+    upgrade_all: true
+  become: true
+  become_user: ed
+
+- name: Upgrade all Homebrew casks
+  community.general.homebrew_cask:
+    upgrade_all: true
+  become: true
+  become_user: ed
+  

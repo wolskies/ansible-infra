@@ -1,0 +1,39 @@
+
+---
+- name: Run the equivalent of "pacman -Syu" as a separate step
+  community.general.pacman:
+    update_cache: true
+    upgrade: true
+  become: yes
+
+- name: Check to see if basic packages are installed
+  community.general.pacman:
+    name: "{{ packages_install }}"
+    state: present
+  become: yes
+
+- name: Clone paru
+  ansible.builtin.git:
+    repo: https://github.com/Morganamilo/paru.git
+    dest: ~/.local/src/paru
+    refspec: v2.0.4
+  register: paru_clone
+
+- name: Install paru
+  community.general.cargo:
+    directory: ~/.local/src/paru
+    name: paru
+  when: paru_clone.changed
+
+# - name: Check to see if basic packages are installed from AUR
+#   community.general.pacman:
+#     name: "{{ packages_install_aur }}"
+#     state: present
+
+- name: permit traffic in default zone for ssh service
+  ansible.posix.firewalld:
+    service: ssh
+    permanent: true
+    state: enabled
+  become: yes
+

@@ -1,0 +1,151 @@
+---
+# Verification phase - test that everything works as expected
+- name: Verify collection functionality
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Verify basic system configuration
+      block:
+        - name: Check that essential packages are installed
+          ansible.builtin.package_facts:
+            manager: auto
+
+        - name: Verify git is installed
+          ansible.builtin.assert:
+            that:
+              - "'git' in ansible_facts.packages"
+            fail_msg: "Git package not found"
+            success_msg: "Git package verified"
+
+        - name: Verify curl is installed  
+          ansible.builtin.assert:
+            that:
+              - "'curl' in ansible_facts.packages"
+            fail_msg: "Curl package not found"
+            success_msg: "Curl package verified"
+
+        - name: Check system locale setting
+          ansible.builtin.command: locale
+          register: locale_output
+          changed_when: false
+
+        - name: Verify locale includes UTF-8
+          ansible.builtin.assert:
+            that:
+              - "'UTF-8' in locale_output.stdout"
+            fail_msg: "UTF-8 locale not configured"
+            success_msg: "UTF-8 locale verified"
+
+    - name: Verify Docker installation (docker_hosts only)
+      block:
+        - name: Check Docker service status
+          ansible.builtin.service_facts:
+
+        - name: Verify Docker is installed and running
+          ansible.builtin.assert:
+            that:
+              - "'docker.service' in ansible_facts.services"
+              - "ansible_facts.services['docker.service'].state == 'running'"
+            fail_msg: "Docker service not running"
+            success_msg: "Docker service verified"
+
+        - name: Test Docker functionality
+          ansible.builtin.command: docker --version
+          register: docker_version
+          changed_when: false
+
+        - name: Verify Docker version output
+          ansible.builtin.assert:
+            that:
+              - "'Docker version' in docker_version.stdout"
+            fail_msg: "Docker version command failed"
+            success_msg: "Docker functionality verified"
+
+        - name: Check Docker Compose installation
+          ansible.builtin.command: docker-compose --version
+          register: compose_version
+          changed_when: false
+          failed_when: false
+
+        - name: Verify Docker networks were created
+          community.docker.docker_network_info:
+            name: test-network
+          register: test_network
+          failed_when: false
+
+        - name: Check if test network exists
+          ansible.builtin.debug:
+            msg: "Test network status: {{ 'exists' if test_network.exists else 'not found' }}"
+
+      when: inventory_hostname in groups['docker_hosts']
+
+    - name: Verify user management
+      block:
+        - name: Check if test user exists
+          ansible.builtin.getent:
+            database: passwd
+            key: testuser
+          register: test_user
+          failed_when: false
+
+        - name: Verify test user creation
+          ansible.builtin.debug:
+            msg: "Test user status: {{ 'exists' if test_user.msg is not defined else 'not found' }}"
+
+    - name: Verify file permissions and directories
+      block:
+        - name: Check basic directory structure
+          ansible.builtin.stat:
+            path: "{{ item }}"
+          register: directory_check
+          loop:
+            - /opt/test
+            - /var/log/test
+          failed_when: false
+
+        - name: Verify directories were created
+          ansible.builtin.assert:
+            that:
+              - item.stat.exists
+              - item.stat.isdir
+            fail_msg: "Directory {{ item.item }} not found or not a directory"
+            success_msg: "Directory {{ item.item }} verified"
+          loop: "{{ directory_check.results }}"
+
+    - name: Verify service states
+      block:
+        - name: Get service facts
+          ansible.builtin.service_facts:
+
+        - name: Check critical services are enabled (servers)
+          ansible.builtin.assert:
+            that:
+              - "ansible_facts.services['ssh.service'].status == 'enabled' or ansible_facts.services['sshd.service'].status == 'enabled'"
+            fail_msg: "SSH service not enabled"
+            success_msg: "SSH service verified"
+          when: 
+            - inventory_hostname in groups['servers']
+            - "'ssh.service' in ansible_facts.services or 'sshd.service' in ansible_facts.services"
+
+    - name: Test collection idempotency markers
+      block:
+        - name: Check for collection markers
+          ansible.builtin.stat:
+            path: /opt/test/.wolskinet_infrastructure_tested
+          register: marker_file
+
+        - name: Create test marker for idempotency
+          ansible.builtin.file:
+            path: /opt/test/.wolskinet_infrastructure_tested
+            state: touch
+            mode: '0644'
+          when: not marker_file.stat.exists
+
+    - name: Verification summary
+      ansible.builtin.debug:
+        msg:
+          - "Verification completed for {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Groups: {{ group_names }}"
+          - "Docker enabled: {{ 'yes' if inventory_hostname in groups['docker_hosts'] else 'no' }}"
+          - "All tests: PASSED"

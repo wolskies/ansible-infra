@@ -1,0 +1,49 @@
+---
+# Main test playbook - tests the complete collection workflow
+- name: Test wolskinet.infrastructure collection
+  hosts: all
+  gather_facts: true
+  collections:
+    - wolskinet.infrastructure
+    - community.general
+    - community.docker
+  
+  pre_tasks:
+    - name: Display test target information
+      ansible.builtin.debug:
+        msg:
+          - "Testing on: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Groups: {{ group_names }}"
+          - "Roles to test: {{ group_roles_install | default([]) }}"
+
+  roles:
+    # Test basic_setup role on all machines
+    - name: wolskinet.infrastructure.basic_setup
+      when: "'basic_setup' in (group_roles_install | default([]))"
+
+    # Test docker_setup role on docker_hosts
+    - name: wolskinet.infrastructure.docker_setup
+      when: 
+        - "'docker_setup' in (group_roles_install | default([]))"
+        - inventory_hostname in groups['docker_hosts']
+
+    # Test system_update role (but don't actually update dotfiles in CI)
+    - name: wolskinet.infrastructure.system_update
+      when: "'system_update' in (group_roles_install | default([]))"
+      vars:
+        force_dotfiles_update: false  # Don't clone in tests
+
+  post_tasks:
+    # Install group-specific roles
+    - name: Install group-specific roles
+      ansible.builtin.include_role:
+        name: "wolskinet.infrastructure.{{ item }}"
+      loop: "{{ group_roles_install | default([]) }}"
+      when: 
+        - group_roles_install is defined
+        - item not in ['basic_setup', 'docker_setup', 'system_update']  # Already tested above
+
+    - name: Test role installation completed
+      ansible.builtin.debug:
+        msg: "Role testing completed for {{ inventory_hostname }}"

@@ -1,0 +1,55 @@
+---
+# Plain variables that reference vault-encrypted secrets
+# This file is not encrypted and shows the structure
+
+# System configuration
+ansible_user: 'admin'
+config_system_locale: 'en_US.UTF-8'
+config_system_language: 'en_US.UTF-8'
+config_system_timezone: 'America/New_York'
+
+# User management - references encrypted passwords from vault.yml
+user_details:
+  - name: 'admin'
+    uid: 1000
+    gid: 1000
+    password: "{{ vault_user_passwords.admin | default('$6$EXAMPLE_REPLACE_WITH_REAL_HASH$') }}"
+  - name: 'service'
+    uid: 1001
+    gid: 1001
+    password: "{{ vault_user_passwords.service | default('$6$EXAMPLE_REPLACE_WITH_REAL_HASH$') }}"
+
+# Repository configuration - uses vault variables for private repos
+dotfiles_repository_url: "{{ vault_repositories.dotfiles | default('https://github.com/example/dotfiles.git') }}"
+
+# API configuration - references vault-encrypted tokens
+github_api_token: "{{ vault_api_keys.github_token | default('') }}"
+gitlab_api_token: "{{ vault_api_keys.gitlab_token | default('') }}"
+
+# Email configuration
+smtp_password: "{{ vault_email.smtp_password | default('') }}"
+notification_email: "{{ vault_email.notification_email | default('admin@example.com') }}"
+
+# Security hardening configurations (for devsec.hardening collection)
+os_users_without_password_ageing:
+  - 'admin'
+os_mnt_var_log_group: "root"
+
+# UFW firewall defaults
+ufw_manage_defaults: true
+ufw_enable_ipv6: false
+
+# SSH configuration
+network_ipv6_enable: false
+ssh_use_dns: true
+ssh_server_ports: ["22"]
+ssh_client_port: "22"
+ssh_allow_tcp_forwarding: "yes"
+ssh_allow_agent_forwarding: true
+ssh_x11_forwarding: false
+ssh_use_pam: true
+sshd_authenticationmethods: publickey
+
+# System tuning
+sysctl_overwrite:
+  net.ipv4.ip_forward: 1
