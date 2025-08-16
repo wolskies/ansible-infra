@@ -1,0 +1,52 @@
+---
+# Opinionated package set for Ubuntu workstations/development environments
+# These packages were removed from basic_setup to keep it minimal
+# Add these to your group_vars/all.yml or group_vars/workstations.yml if you want them
+
+# Additional development and productivity packages
+additional_packages_install:
+  # Terminal and shell enhancements
+  - kitty          # Modern terminal emulator
+  - zsh            # Advanced shell
+  - exa            # Modern ls replacement (eza not available on older Ubuntu)
+  - fzf            # Fuzzy finder
+  
+  # System monitoring and information
+  - neofetch       # System information tool
+  - htop           # Process viewer
+  - tree           # Directory tree viewer
+  
+  # Development tools
+  - ansible        # Infrastructure automation
+  - stow           # Symlink farm manager
+  - screen         # Terminal multiplexer
+  - tmux           # Modern terminal multiplexer
+  - nodejs         # JavaScript runtime
+  - npm            # Node package manager
+  
+  # Text editors and IDEs
+  - vim            # Enhanced vi editor
+  - neovim         # Modern vim
+  
+  # Fonts and appearance
+  - fonts-powerline     # Programming fonts with powerline symbols
+  - fonts-firacode      # Monospace font with ligatures
+  - fonts-noto          # Unicode font family
+
+# Packages to install via snap (if snap is enabled)
+snap_packages:
+  - code --classic      # Visual Studio Code
+  - discord             # Communication
+  - spotify             # Music streaming
+
+# Packages to install via external repositories
+external_packages:
+  - google-chrome-stable  # Requires adding Google's repository
+
+# Shell configuration
+default_user_shell: /bin/zsh
+
+# Additional configuration
+configure_zsh: true
+install_oh_my_zsh: true
+install_starship: true  # Install via curl script

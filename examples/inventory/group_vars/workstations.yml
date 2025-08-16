@@ -53,3 +53,21 @@ group_docker_users:
 
 # Shell configuration
 group_default_shell: "/bin/zsh"
+
+# Docker services for workstations (ADDITIVE to global services)
+group_docker_services:
+  - portainer     # Docker management for development
+
+# Workstation Docker configuration (lighter than servers)
+group_docker_daemon_config:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  storage-driver: "overlay2"
+
+# Docker networks for workstations
+group_docker_networks:
+  - name: "dev"
+    driver: "bridge"
+    enable_ipv6: false

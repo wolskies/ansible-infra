@@ -1,0 +1,41 @@
+---
+galaxy_info:
+  role_name: firewall
+  author: wolskinet.infrastructure
+  description: Manages firewall ports and services across different operating systems
+  company: WolskiNet Infrastructure Collection
+  license: MIT
+  min_ansible_version: "2.14"
+  
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+        - "22.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+    - name: MacOSX
+      versions:
+        - all
+
+  galaxy_tags:
+    - security
+    - firewall
+    - networking
+    - ufw
+    - firewalld
+    - iptables
+
+dependencies:
+  # This role assumes basic_setup has been run to install and enable the firewall
+  - role: wolskinet.infrastructure.basic_setup
+    when: firewall_require_basic_setup | default(false)
+
+collections:
+  - community.general
+  - ansible.posix

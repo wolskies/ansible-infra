@@ -386,12 +386,63 @@
 
 - name: Docker service deployment
   block:
-    - name: Deploy Docker services
+    - name: Load service registry for deployment planning
+      ansible.builtin.include_vars: services.yml
+      tags:
+        - services
+        - registry
+
+    - name: Merge Docker service lists from hierarchical variables
+      ansible.builtin.set_fact:
+        final_docker_services: >-
+          {{
+            (global_docker_services | default([])) +
+            (group_docker_services | default([])) +
+            (host_docker_services | default([])) +
+            (discovered_docker_services | default([])) +
+            (docker_services_deploy | default([]))
+            | unique
+          }}
+      tags:
+        - services
+        - variables
+
+    - name: Display Docker services deployment plan
+      ansible.builtin.debug:
+        msg:
+          - "=== Docker Services Deployment Plan ==="
+          - "Global services: {{ global_docker_services | default([]) }}"
+          - "Group services: {{ group_docker_services | default([]) }}"
+          - "Host services: {{ host_docker_services | default([]) }}"
+          - "Discovered services: {{ discovered_docker_services | default([]) }}"
+          - "Legacy services: {{ docker_services_deploy | default([]) }}"
+          - ""
+          - "Final merged services ({{ final_docker_services | length }}): {{ final_docker_services }}"
+      tags:
+        - services
+        - info
+        - variables
+
+    - name: Validate all services exist in registry
+      ansible.builtin.fail:
+        msg: "Service '{{ item }}' not found in registry. Available: {{ docker_service_registry.keys() | list }}"
+      loop: "{{ final_docker_services }}"
+      when: 
+        - final_docker_services | length > 0
+        - item not in docker_service_registry
+      tags:
+        - services
+        - validation
+
+    - name: Deploy Docker services from merged list
       ansible.builtin.include_tasks: deploy-service.yml
-      loop: "{{ docker_services_deploy }}"
+      loop: "{{ final_docker_services }}"
       loop_control:
         loop_var: service_name
-      when: docker_services_deploy | length > 0
+      when: final_docker_services | length > 0
+      vars:
+        # Pass service-specific variables if defined
+        service_vars: "{{ vars[service_name + '_config'] | default({}) }}"
       tags:
         - services
         - deployment
@@ -400,13 +451,18 @@
   rescue:
     - name: Handle service deployment errors
       ansible.builtin.debug:
-        msg: "Docker service deployment failed for some services"
+        msg: 
+          - "Docker service deployment failed for some services"
+          - "Check service registry and variable configuration"
+          - "Failed services may need manual intervention"
       tags:
         - debug
         - services
         - error-handling
 
-  when: docker_services_deploy is defined and docker_services_deploy | length > 0
+  when: 
+    - final_docker_services is defined and final_docker_services | length > 0
+    - docker_enable_services | default(true)
   tags:
     - services
     - docker-setup

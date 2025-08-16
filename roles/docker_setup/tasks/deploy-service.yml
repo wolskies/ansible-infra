@@ -1,52 +1,108 @@
 ---
-# Deploy individual Docker service
-- name: "Check if service configuration exists for {{ service_name }}"
-  ansible.builtin.stat:
-    path: "{{ docker_compose_dir }}/{{ service_name }}/docker-compose.yml"
-  register: service_compose_file
+# Deploy individual Docker service using service registry
+- name: Load service registry
+  ansible.builtin.include_vars: services.yml
+  tags:
+    - always
+    - docker-services
 
-- name: "Create service directory for {{ service_name }}"
-  ansible.builtin.file:
-    path: "{{ docker_compose_dir }}/{{ service_name }}"
-    state: directory
-    mode: '0755'
-  become: true
+- name: "Validate service {{ service_name }} configuration"
+  block:
+    - name: "Check if {{ service_name }} exists in service registry"
+      ansible.builtin.fail:
+        msg: "Service '{{ service_name }}' not found in registry. Available services: {{ docker_service_registry.keys() | list }}"
+      when: service_name not in docker_service_registry
 
-- name: "Generate docker-compose.yml for {{ service_name }}"
-  ansible.builtin.template:
-    src: "services/{{ service_name }}.yml.j2"
-    dest: "{{ docker_compose_dir }}/{{ service_name }}/docker-compose.yml"
-    mode: '0644'
-  become: true
-  register: compose_template
-  failed_when: false  # Don't fail if template doesn't exist
+    - name: "Display service deployment information"
+      ansible.builtin.debug:
+        msg:
+          - "=== Deploying Docker Service: {{ service_name }} ==="
+          - "Description: {{ docker_service_registry[service_name].description }}"
+          - "Category: {{ docker_service_registry[service_name].category }}"
+          - "Role: {{ docker_service_registry[service_name].role }}"
+          - "Dependencies: {{ docker_service_registry[service_name].dependencies | default([]) }}"
+      tags:
+        - info
+        - docker-services
 
-- name: "Use default service template for {{ service_name }}"
-  ansible.builtin.template:
-    src: "services/default-service.yml.j2"
-    dest: "{{ docker_compose_dir }}/{{ service_name }}/docker-compose.yml"
-    mode: '0644'
-  become: true
-  when: compose_template.failed | default(false)
-  vars:
-    service:
-      name: "{{ service_name }}"
-      image: "{{ service_name }}:latest"
-      ports: []
-      environment: {}
-      volumes: []
-      networks:
-        - services
+    - name: "Validate required variables for {{ service_name }}"
+      ansible.builtin.fail:
+        msg: "Required variable '{{ item }}' is not defined for service {{ service_name }}"
+      when: 
+        - docker_service_registry[service_name].required_vars is defined
+        - item not in vars or vars[item] is not defined or vars[item] == ""
+      loop: "{{ docker_service_registry[service_name].required_vars | default([]) }}"
+      tags:
+        - validation
+        - docker-services
 
-- name: "Deploy {{ service_name }} with Docker Compose"
-  community.docker.docker_compose:
-    project_src: "{{ docker_compose_dir }}/{{ service_name }}"
-    state: present
-    pull: true
-  become: true
-  register: service_deployment
+  tags:
+    - validation
+    - docker-services
 
-- name: "Display deployment result for {{ service_name }}"
-  ansible.builtin.debug:
-    msg: "{{ service_name }} deployment completed. Services: {{ service_deployment.services.keys() | list }}"
-  when: service_deployment.services is defined
+- name: "Deploy {{ service_name }} using dedicated role"
+  block:
+    - name: "Include {{ service_name }} service role"
+      ansible.builtin.include_role:
+        name: "{{ docker_service_registry[service_name].role }}"
+      vars:
+        # Pass service configuration from registry
+        service_config: "{{ docker_service_registry[service_name] }}"
+        # Merge any additional service-specific variables
+        service_vars: "{{ service_vars | default({}) }}"
+        # Apply default service settings
+        service_defaults: "{{ docker_service_defaults }}"
+      tags:
+        - deploy
+        - docker-services
+        - "{{ service_name }}"
+
+  rescue:
+    - name: "Handle {{ service_name }} deployment failure"
+      ansible.builtin.debug:
+        msg:
+          - "Failed to deploy {{ service_name }} using role {{ docker_service_registry[service_name].role }}"
+          - "Check that the role exists and all required variables are set"
+          - "Required variables: {{ docker_service_registry[service_name].required_vars | default('none') }}"
+      tags:
+        - error
+        - docker-services
+
+    - name: "Fallback: Use legacy deployment method for {{ service_name }}"
+      ansible.builtin.include_tasks: deploy-service-legacy.yml
+      when: docker_use_legacy_fallback | default(false)
+      tags:
+        - fallback
+        - docker-services
+
+  tags:
+    - deploy
+    - docker-services
+
+- name: "Post-deployment verification for {{ service_name }}"
+  block:
+    - name: "Verify {{ service_name }} service health"
+      community.docker.docker_container_info:
+        name: "{{ service_name }}"
+      register: service_info
+      failed_when: false
+      tags:
+        - health
+        - verification
+
+    - name: "Display {{ service_name }} deployment summary"
+      ansible.builtin.debug:
+        msg:
+          - "=== {{ service_name | title }} Deployment Summary ==="
+          - "Status: {{ 'Running' if service_info.container.State.Running | default(false) else 'Not Running' }}"
+          - "Health: {{ service_info.container.State.Health.Status | default('Unknown') if service_info.container.State.Health is defined else 'No healthcheck' }}"
+          - "Category: {{ docker_service_registry[service_name].category | title }}"
+          - "Ports: {{ docker_service_registry[service_name].ports | default(['None configured']) }}"
+      when: service_info.container is defined
+      tags:
+        - summary
+        - verification
+
+  tags:
+    - verification
+    - docker-services

@@ -1,0 +1,33 @@
+---
+# Firewall role handlers
+# Handles firewall service reloads across different systems
+
+- name: reload ufw
+  ansible.builtin.systemd:
+    name: ufw
+    state: reloaded
+  become: true
+  listen: "reload ufw"
+
+- name: reload firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: reloaded
+  become: true
+  listen: "reload firewalld"
+
+- name: restart firewall
+  ansible.builtin.service:
+    name: "{{ firewall_service_name }}"
+    state: restarted
+  become: true
+  vars:
+    firewall_service_name: >-
+      {%- if ansible_distribution in ['Ubuntu', 'Debian'] -%}
+      ufw
+      {%- elif ansible_distribution == 'Archlinux' -%}
+      firewalld
+      {%- else -%}
+      firewall
+      {%- endif -%}
+  listen: "restart firewall"

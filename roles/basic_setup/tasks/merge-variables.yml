@@ -7,18 +7,36 @@
   ansible.builtin.set_fact:
     final_packages_install: >-
       {{
+        (packages_install | default([])) +
         (global_packages_install | default([])) +
         (group_packages_install | default([])) +
         (host_packages_install | default([])) +
-        (discovered_packages_install | default([]))
       }}
     final_packages_remove: >-
       {{
+        (packages_remove | default([])) +
         (global_packages_remove | default([])) +
         (group_packages_remove | default([])) +
         (host_packages_remove | default([])) +
-        (discovered_packages_remove | default([]))
       }}
+
+- name: Merge macOS Homebrew package lists
+  ansible.builtin.set_fact:
+    final_homebrew_packages: >-
+      {{
+        (homebrew_packages | default([])) +
+        (global_homebrew_packages | default([])) +
+        (group_homebrew_packages | default([])) +
+        (host_homebrew_packages | default([])) +
+      }}
+    final_homebrew_casks: >-
+      {{
+        (homebrew_casks | default([])) +
+        (global_homebrew_casks | default([])) +
+        (group_homebrew_casks | default([])) +
+        (host_homebrew_casks | default([])) +
+      }}
+  when: ansible_os_family == 'Darwin'
 
 - name: Merge service configuration lists
   ansible.builtin.set_fact:
@@ -52,6 +70,12 @@
     final_packages_install: "{{ final_packages_install | difference(final_packages_remove) | unique }}"
     final_services_enable: "{{ final_services_enable | difference(final_services_disable) | unique }}"
     final_roles_install: "{{ final_roles_install | unique }}"
+
+- name: Remove duplicates from macOS Homebrew packages
+  ansible.builtin.set_fact:
+    final_homebrew_packages: "{{ final_homebrew_packages | unique }}"
+    final_homebrew_casks: "{{ final_homebrew_casks | unique }}"
+  when: ansible_os_family == 'Darwin'
 
 - name: Display merged configuration summary
   ansible.builtin.debug:

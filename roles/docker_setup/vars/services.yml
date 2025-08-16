@@ -1,0 +1,159 @@
+---
+# Docker Service Registry
+# Central registry of all available Docker services and their configurations
+
+docker_service_registry:
+  # GitLab - Self-hosted Git repository with CI/CD
+  gitlab:
+    role: "wolskinet.infrastructure.gitlab"
+    description: "GitLab CE/EE with Git, CI/CD, Container Registry, and Pages"
+    category: "development"
+    dependencies: []
+    networks: ["services"]
+    ports:
+      - "80:80"
+      - "443:443" 
+      - "2222:22"
+      - "5050:5050"
+    volumes:
+      - "config:/etc/gitlab"
+      - "data:/var/opt/gitlab"
+      - "logs:/var/log/gitlab"
+    required_vars:
+      - gitlab_hostname
+      - gitlab_domain
+      - gitlab_initial_root_password
+    optional_features:
+      - gitlab_registry_enabled
+      - gitlab_pages_enable
+      - gitlab_letsencrypt
+    
+  # Nextcloud - Self-hosted cloud storage and collaboration
+  nextcloud:
+    role: "wolskinet.infrastructure.nextcloud"
+    description: "Self-hosted cloud storage, file sharing, and collaboration platform"
+    category: "productivity"
+    dependencies: ["postgres", "redis"]
+    networks: ["services"]
+    ports:
+      - "8080:80"
+    volumes:
+      - "data:/var/www/html"
+      - "config:/var/www/html/config"
+    required_vars:
+      - nextcloud_domain
+      - nextcloud_admin_user
+      - nextcloud_admin_password
+    optional_features:
+      - nextcloud_database_type
+      - nextcloud_redis_enabled
+      - nextcloud_smtp_enabled
+    
+  # Jellyfin - Media server for movies, music, and TV shows
+  jellyfin:
+    role: "wolskinet.infrastructure.jellyfin"
+    description: "Open-source media server for streaming movies, music, and TV"
+    category: "media"
+    dependencies: []
+    networks: ["services"]
+    ports:
+      - "8096:8096"
+    volumes:
+      - "config:/config"
+      - "cache:/cache"
+      - "media:/media:ro"
+    required_vars:
+      - jellyfin_media_dirs
+    optional_features:
+      - jellyfin_hardware_acceleration
+      - jellyfin_external_access
+    
+  # Paperless-ngx - Document management system
+  paperless:
+    role: "wolskinet.infrastructure.paperless-ngx"
+    description: "Document management system with OCR and full-text search"
+    category: "productivity"
+    dependencies: ["postgres", "redis"]
+    networks: ["services"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - "data:/usr/src/paperless/data"
+      - "media:/usr/src/paperless/media"
+      - "export:/usr/src/paperless/export"
+      - "consume:/usr/src/paperless/consume"
+    required_vars:
+      - paperless_secret_key
+    optional_features:
+      - paperless_ocr_language
+      - paperless_smtp_enabled
+      - paperless_social_auth
+    
+  # Nginx Proxy Manager - Reverse proxy with SSL management
+  nginx_proxy_manager:
+    role: "wolskinet.infrastructure.nginx_proxy_manager"
+    description: "Web-based reverse proxy manager with automatic SSL certificates"
+    category: "infrastructure"
+    dependencies: []
+    networks: ["services"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    volumes:
+      - "data:/data"
+      - "letsencrypt:/etc/letsencrypt"
+    required_vars: []
+    optional_features:
+      - npm_default_email
+      - npm_disable_ipv6
+    
+  # Portainer - Docker management interface
+  portainer:
+    role: "wolskinet.infrastructure.portainer"
+    description: "Web-based Docker management interface"
+    category: "infrastructure"
+    dependencies: []
+    networks: ["services"]
+    ports:
+      - "9000:9000"
+    volumes:
+      - "data:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    required_vars: []
+    optional_features:
+      - portainer_admin_password
+      - portainer_hide_labels
+
+# Service categories for organization
+docker_service_categories:
+  infrastructure:
+    description: "Core infrastructure services (proxies, monitoring, management)"
+    icon: "🔧"
+  development:
+    description: "Development tools and CI/CD platforms"
+    icon: "💻"
+  productivity:
+    description: "Office and productivity applications"
+    icon: "📋"
+  media:
+    description: "Media streaming and entertainment services"
+    icon: "🎬"
+  communication:
+    description: "Chat, email, and communication platforms"
+    icon: "💬"
+  security:
+    description: "Security, VPN, and authentication services"
+    icon: "🔒"
+
+# Default service configuration
+docker_service_defaults:
+  restart_policy: "unless-stopped"
+  network_mode: "services"
+  log_driver: "json-file"
+  log_options:
+    max-size: "10m"
+    max-file: "3"
+  healthcheck_enabled: true
+  backup_enabled: true
+  monitoring_enabled: true

@@ -1,0 +1,70 @@
+---
+# Opinionated package set for macOS workstations/development environments
+# These packages were removed from basic_setup to keep it minimal
+# Add these to your group_vars/all.yml or group_vars/workstations.yml if you want them
+
+# Additional Homebrew packages
+additional_homebrew_packages:
+  # Terminal and shell enhancements
+  - kitty          # Modern terminal emulator
+  - zsh            # Advanced shell (already in macOS but good to have latest)
+  - starship       # Cross-shell prompt
+  - eza            # Modern ls replacement
+  - fzf            # Fuzzy finder
+  - zoxide         # Smart cd command
+  
+  # System monitoring and information
+  - fastfetch      # System information tool
+  - btop           # System monitor
+  - htop           # Process viewer
+  
+  # Development tools
+  - ansible        # Infrastructure automation
+  - stow           # Symlink farm manager
+  - tmux           # Terminal multiplexer
+  - node           # JavaScript runtime
+  - npm            # Node package manager
+  - yarn           # Alternative package manager
+  
+  # Text editors and development
+  - vim            # Enhanced vi editor
+  - neovim         # Modern vim
+  - gh             # GitHub CLI
+  - jq             # JSON processor
+
+# Additional Homebrew casks (GUI applications)
+additional_homebrew_casks:
+  - visual-studio-code    # Code editor
+  - discord               # Communication
+  - spotify               # Music streaming
+  - google-chrome         # Web browser
+  - firefox               # Alternative browser
+  - docker                # Container platform
+  - kitty                 # Terminal emulator
+  - rectangle             # Window management
+  - the-unarchiver        # Archive utility
+  - vlc                   # Media player
+
+# Additional Homebrew taps
+additional_homebrew_taps:
+  - homebrew/cask-fonts   # For programming fonts
+
+# Programming fonts
+additional_homebrew_fonts:
+  - font-fira-code-nerd-font
+  - font-meslo-lg-nerd-font
+  - font-hack-nerd-font
+
+# Shell configuration
+default_user_shell: /opt/homebrew/bin/zsh  # Homebrew zsh on Apple Silicon
+# default_user_shell: /usr/local/bin/zsh   # Homebrew zsh on Intel
+
+# Additional configuration
+configure_zsh: true
+install_oh_my_zsh: true
+configure_starship: true
+
+# macOS-specific optimizations
+macos_show_hidden_files: true
+macos_enable_full_keyboard_access: true
+macos_disable_startup_sound: true

@@ -141,52 +141,8 @@
     - users
     - basic-setup
 
-- name: Process discovered configurations
-  block:
-    - name: Install discovered packages
-      ansible.builtin.include_tasks: "process-discovered-packages.yml"
-      when:
-        - process_discovered_packages | default(true)
-        - discovered_packages is defined
-      tags:
-        - discovery-integration
-        - packages
-        - discovered-config
-
-    - name: Configure discovered repositories
-      ansible.builtin.include_tasks: "process-discovered-repositories.yml"
-      when:
-        - process_discovered_repositories | default(true)
-        - discovered_repositories is defined
-      tags:
-        - discovery-integration
-        - repositories
-        - discovered-config
-
-    - name: Configure discovered services
-      ansible.builtin.include_tasks: "process-discovered-services.yml"
-      when:
-        - process_discovered_services | default(false)
-        - configure_discovered_services | default(false)
-        - discovered_services is defined
-      tags:
-        - discovery-integration
-        - services
-        - discovered-config
-
-  rescue:
-    - name: Handle discovery processing errors
-      ansible.builtin.debug:
-        msg: "Discovery configuration processing encountered errors, check logs for details"
-      tags:
-        - debug
-        - discovery-integration
-        - error-handling
-
-  tags:
-    - discovery-integration
-    - discovered-config
-    - basic-setup
+# Discovery processing has been moved to extra_packages role
+# This ensures clean separation: basic_setup = essentials, extra_packages = everything else
 
 - name: Configuration summary
   block:
@@ -197,8 +153,7 @@
           - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
           - "Users configured: {{ user_details | default([]) | length }}"
           - "Shell: {{ default_user_shell | default('default') }}"
-          - "Discovery integration: {{ 'enabled' if discovered_packages is defined else 'not available' }}"
-          - "Packages processed: {{ discovered_packages.total | default(0) if discovered_packages is defined else 'none' }}"
+          - "Additional packages: Use extra_packages role for user-defined and discovered packages"
       tags:
         - always
         - summary

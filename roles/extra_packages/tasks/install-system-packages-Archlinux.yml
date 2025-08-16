@@ -1,0 +1,78 @@
+---
+# Install system packages on Arch Linux
+# Handles pacman and AUR package installation
+
+- name: Install system packages on Arch Linux
+  block:
+    - name: Update package database
+      community.general.pacman:
+        update_cache: true
+      become: true
+      when: update_package_cache | default(true)
+      tags:
+        - packages
+        - cache-update
+
+    - name: Install system packages via pacman
+      community.general.pacman:
+        name: "{{ final_system_packages }}"
+        state: present
+      become: true
+      when: 
+        - final_system_packages is defined
+        - final_system_packages | length > 0
+      register: pacman_install_result
+      tags:
+        - packages
+        - system-packages
+        - pacman
+
+    - name: Install AUR packages via paru
+      ansible.builtin.shell: |
+        paru -S --noconfirm {{ item }}
+      loop: "{{ final_aur_packages }}"
+      become: false
+      when: 
+        - install_aur_packages | default(true)
+        - final_aur_packages is defined
+        - final_aur_packages | length > 0
+        - paru_check.rc == 0
+      register: aur_install_result
+      tags:
+        - packages
+        - aur-packages
+        - paru
+
+    - name: Display system package installation results
+      ansible.builtin.debug:
+        msg:
+          - "System packages installation completed"
+          - "Pacman packages: {{ final_system_packages | length }}"
+          - "AUR packages: {{ final_aur_packages | default([]) | length if install_aur_packages else 'skipped' }}"
+          - "Pacman installation: {{ pacman_install_result.changed | default(false) }}"
+      tags:
+        - packages
+        - system-packages
+        - summary
+
+  rescue:
+    - name: Handle system package installation errors
+      ansible.builtin.debug:
+        msg: "Some system packages failed to install. Continuing with other package categories."
+      when: skip_failed_packages | default(true)
+      tags:
+        - packages
+        - error-handling
+
+    - name: Fail on package installation errors (if not skipping)
+      ansible.builtin.fail:
+        msg: "System package installation failed and skip_failed_packages is disabled"
+      when: not (skip_failed_packages | default(true))
+      tags:
+        - packages
+        - error-handling
+
+  tags:
+    - extra-packages
+    - system-packages
+    - archlinux

@@ -1,39 +1,228 @@
 
 ---
-- name: Run the equivalent of "pacman -Syu" as a separate step
-  community.general.pacman:
-    update_cache: true
-    upgrade: true
-  become: yes
+# Arch Linux basic setup and feature management
+# Tags: packages, updates, aur, firewall, optimization
 
-- name: Check to see if basic packages are installed
-  community.general.pacman:
-    name: "{{ packages_install }}"
-    state: present
-  become: yes
+- name: Package management
+  block:
+    - name: Update package cache and system
+      community.general.pacman:
+        update_cache: true
+        upgrade: true
+      become: true
+      tags:
+        - packages
+        - updates
 
-- name: Clone paru
-  ansible.builtin.git:
-    repo: https://github.com/Morganamilo/paru.git
-    dest: ~/.local/src/paru
-    refspec: v2.0.4
-  register: paru_clone
+    - name: Install merged package list
+      community.general.pacman:
+        name: "{{ final_packages_install }}"
+        state: present
+      become: true
+      when: 
+        - final_packages_install is defined
+        - final_packages_install | length > 0
+      tags:
+        - packages
+        - package-install
+        - merged-packages
 
-- name: Install paru
-  community.general.cargo:
-    directory: ~/.local/src/paru
-    name: paru
-  when: paru_clone.changed
+    - name: Remove unwanted packages
+      community.general.pacman:
+        name: "{{ final_packages_remove }}"
+        state: absent
+      become: true
+      when: 
+        - final_packages_remove is defined
+        - final_packages_remove | length > 0
+      tags:
+        - packages
+        - package-remove
+        - cleanup
 
-# - name: Check to see if basic packages are installed from AUR
-#   community.general.pacman:
-#     name: "{{ packages_install_aur }}"
-#     state: present
+  rescue:
+    - name: Handle package management errors
+      ansible.builtin.debug:
+        msg: "Package management encountered errors, check logs for details"
+      tags:
+        - debug
+        - packages
+        - error-handling
 
-- name: permit traffic in default zone for ssh service
-  ansible.posix.firewalld:
-    service: ssh
-    permanent: true
-    state: enabled
-  become: yes
+  tags:
+    - packages
+    - archlinux
+
+- name: AUR helper setup
+  block:
+    - name: Check if paru is installed
+      ansible.builtin.command: which paru
+      register: paru_check
+      failed_when: false
+      changed_when: false
+      tags:
+        - paru
+        - aur
+
+    - name: Clone paru repository
+      ansible.builtin.git:
+        repo: https://aur.archlinux.org/paru.git
+        dest: /tmp/paru
+        force: true
+      when: paru_check.rc != 0
+      tags:
+        - paru
+        - aur
+
+    - name: Build and install paru
+      ansible.builtin.shell: |
+        cd /tmp/paru
+        makepkg -si --noconfirm
+      when: paru_check.rc != 0
+      become: false
+      tags:
+        - paru
+        - aur
+
+    - name: Clean up paru build directory
+      ansible.builtin.file:
+        path: /tmp/paru
+        state: absent
+      when: paru_check.rc != 0
+      tags:
+        - paru
+        - aur
+
+  rescue:
+    - name: Handle paru installation failure
+      ansible.builtin.debug:
+        msg: "Failed to install paru AUR helper. Install manually if needed."
+      tags:
+        - paru
+        - aur
+        - error-handling
+
+  tags:
+    - archlinux
+    - paru
+    - aur
+
+- name: System optimization
+  block:
+    - name: Configure pacman for better performance
+      ansible.builtin.lineinfile:
+        path: /etc/pacman.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        backup: true
+      loop:
+        - regexp: '^#Color'
+          line: 'Color'
+        - regexp: '^#VerbosePkgLists'
+          line: 'VerbosePkgLists'
+        - regexp: '^#ParallelDownloads'
+          line: 'ParallelDownloads = 5'
+      become: true
+      tags:
+        - pacman
+        - optimization
+
+    - name: Enable systemd-resolved for DNS
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        state: started
+        enabled: true
+      become: true
+      when: archlinux_enable_systemd_resolved | default(true)
+      tags:
+        - dns
+        - systemd
+
+    - name: Configure reflector for mirror optimization
+      ansible.builtin.package:
+        name: reflector
+        state: present
+      become: true
+      when: archlinux_enable_reflector | default(true)
+      tags:
+        - mirrors
+        - reflector
+
+    - name: Setup reflector configuration
+      ansible.builtin.copy:
+        content: |
+          --save /etc/pacman.d/mirrorlist
+          --protocol https
+          --country US
+          --latest 20
+          --sort rate
+        dest: /etc/xdg/reflector/reflector.conf
+        mode: '0644'
+      become: true
+      when: archlinux_enable_reflector | default(true)
+      tags:
+        - mirrors
+        - reflector
+
+    - name: Enable reflector timer
+      ansible.builtin.systemd:
+        name: reflector.timer
+        state: started
+        enabled: true
+      become: true
+      when: archlinux_enable_reflector | default(true)
+      tags:
+        - mirrors
+        - reflector
+
+  tags:
+    - archlinux
+    - optimization
+
+- name: Basic firewall setup
+  block:
+    - name: Install firewalld
+      ansible.builtin.package:
+        name: firewalld
+        state: present
+      become: true
+      tags:
+        - firewall
+        - install
+
+    - name: Start and enable firewalld
+      ansible.builtin.systemd:
+        name: firewalld
+        state: started
+        enabled: true
+      become: true
+      tags:
+        - firewall
+        - enable
+
+    - name: Allow SSH through firewall
+      ansible.posix.firewalld:
+        service: ssh
+        permanent: true
+        state: enabled
+      become: true
+      tags:
+        - firewall
+        - ssh
+        - basic
+
+  rescue:
+    - name: Handle basic firewall setup errors
+      ansible.builtin.debug:
+        msg: "Basic firewall setup failed - SSH access may be blocked"
+      tags:
+        - debug
+        - firewall
+        - error-handling
+
+  when: install_firewall | default(true)
+  tags:
+    - firewall
+    - basic-security
+    - archlinux
 

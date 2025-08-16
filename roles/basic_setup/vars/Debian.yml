@@ -1,28 +1,35 @@
 ---
-# Debian 12/13 specific packages
+# Debian 12/13 essential packages only
+# Provides minimal, predictable foundation for Debian systems
+
+# Essential system packages
 packages_install:
+  # Core system foundations
   - apt-transport-https
   - ca-certificates
-  - console-data
   - locales-all
   - dnsutils
-  - screen
-  - rsync
-  - wget
-  - curl
+  
+  # Core utilities
   - git
-  - kitty
-  - zsh
-  - ufw
-  - fastfetch
-  - fonts-powerline
+  - curl
+  - wget
+  - rsync
   - unzip
+  
+  # System administration
+  - ufw
+  
+  # Build tools
+  - build-essential
+  - software-properties-common
+  
+  # Python essentials
   - python3
   - python3-pip
   - python3-venv
-  - build-essential
-  - software-properties-common
 
+# Packages to remove for security/cleanliness  
 packages_remove:
   - xinetd
   - inetd
@@ -31,5 +38,8 @@ packages_remove:
   - telnet-server
   - rsh-server
   - prelink
+
+# Debian-specific feature management
+debian_enable_non_free: false  # Keep non-free repos disabled by default
 
 # Note: Nerd fonts are typically installed via package manager or external repositories

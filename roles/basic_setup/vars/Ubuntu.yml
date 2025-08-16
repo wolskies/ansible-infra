@@ -1,29 +1,35 @@
 ---
-# Ubuntu 24+ specific packages
+# Ubuntu 24+ essential packages only
+# Provides minimal, predictable foundation for Ubuntu systems
+
+# Essential system packages
 packages_install:
+  # Core system foundations
   - apt-transport-https
   - ca-certificates
-  - console-data
   - locales-all
   - dnsutils
-  - screen
-  - rsync
-  - wget
-  - curl
+  
+  # Core utilities
   - git
-  - kitty
-  - zsh
-  - ufw
-  - fastfetch
-  - fonts-powerline
+  - curl
+  - wget
+  - rsync
   - unzip
+  
+  # System administration
+  - ufw
+  
+  # Build tools
+  - build-essential
+  - software-properties-common
+  
+  # Python essentials
   - python3
   - python3-pip
   - python3-venv
-  - build-essential
-  - software-properties-common
-  - snapd
 
+# Packages to remove for security/cleanliness
 packages_remove:
   - xinetd
   - inetd
@@ -32,5 +38,9 @@ packages_remove:
   - telnet-server
   - rsh-server
   - prelink
+
+# Ubuntu-specific feature management
+ubuntu_disable_snap: true  # Disable snap by default for consistency
+ubuntu_disable_cloud_init: false  # Keep cloud-init for cloud deployments
 
 # Note: Nerd fonts are typically installed via package manager or external repositories

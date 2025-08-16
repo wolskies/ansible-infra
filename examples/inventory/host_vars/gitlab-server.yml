@@ -1,0 +1,92 @@
+---
+# Host-specific variables for GitLab server
+# These are ADDITIVE to global and group variables
+
+# Host-specific Docker services
+host_docker_services:
+  - gitlab
+  - nginx_proxy_manager
+
+# GitLab configuration
+gitlab_hostname: "gitlab"
+gitlab_domain: "example.com"
+gitlab_initial_root_password: "{{ vault_gitlab_root_password }}"
+
+# GitLab SMTP configuration
+gitlab_smtp_enable: true
+gitlab_smtp_address: "smtp.example.com"
+gitlab_smtp_port: 587
+gitlab_smtp_user_name: "gitlab@example.com"
+gitlab_smtp_password: "{{ vault_gitlab_smtp_password }}"
+gitlab_smtp_domain: "example.com"
+gitlab_smtp_enable_starttls_auto: true
+
+# GitLab features
+gitlab_registry_enabled: true
+gitlab_registry_host: "registry.example.com"
+gitlab_registry_url: "https://registry.example.com"
+gitlab_pages_enable: true
+gitlab_pages_external_url: "https://pages.example.com"
+
+# GitLab ports configuration
+gitlab_web_listen_port: 8080
+gitlab_websecure_listen_port: 8443
+gitlab_shell_ssh_port: 2222
+gitlab_registry_port: 5050
+gitlab_pages_listen_port: 8090
+
+# SSL/Proxy configuration
+gitlab_nginx_proxy: true
+gitlab_letsencrypt: true
+gitlab_configure_firewall: true
+
+# Backup configuration
+gitlab_schedule_backups: true
+gitlab_backup_schedule: "0 3 * * *"  # Daily at 3 AM
+
+# Host-specific Docker networks
+host_docker_networks:
+  - name: "gitlab"
+    driver: "bridge"
+    enable_ipv6: false
+
+# Host-specific Docker volumes
+host_docker_volumes:
+  - name: "gitlab_config"
+  - name: "gitlab_data"
+  - name: "gitlab_logs"
+
+# Host-specific packages (for GitLab server)
+host_packages_install:
+  - nginx
+  - certbot
+  - python3-certbot-nginx
+  - fail2ban
+
+# Host-specific services
+host_services_enable:
+  - nginx
+  - fail2ban
+
+# Host firewall rules (for GitLab)
+host_firewall_rules:
+  - rule: allow
+    port: 80
+    proto: tcp
+    comment: "HTTP for Let's Encrypt and redirects"
+  - rule: allow
+    port: 443
+    proto: tcp
+    comment: "HTTPS for GitLab web interface"
+  - rule: allow
+    port: 2222
+    proto: tcp
+    comment: "GitLab SSH"
+  - rule: allow
+    port: 5050
+    proto: tcp
+    comment: "GitLab Container Registry"
+  - rule: allow
+    port: 8090
+    proto: tcp
+    comment: "GitLab Pages"

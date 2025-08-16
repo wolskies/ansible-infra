@@ -1,0 +1,60 @@
+---
+# Arch Linux firewalld management
+# Manages ports and services using firewalld
+
+- name: firewalld port management
+  block:
+    - name: Configure firewalld ports
+      ansible.posix.firewalld:
+        port: "{{ item.port }}/{{ item.protocol | default('tcp') }}"
+        permanent: true
+        state: enabled
+        zone: "{{ item.zone | default('public') }}"
+        source: "{{ item.source | default(omit) }}"
+      loop: "{{ firewall_ports }}"
+      become: true
+      when: firewall_ports is defined and firewall_ports | length > 0
+      notify: reload firewalld
+      tags:
+        - firewall
+        - firewalld
+        - ports
+
+    - name: Configure firewalld services
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        zone: "public"
+      loop: "{{ firewall_services }}"
+      become: true
+      when: firewall_services is defined and firewall_services | length > 0
+      notify: reload firewalld
+      tags:
+        - firewall
+        - firewalld
+        - services
+
+    - name: Configure firewalld logging
+      ansible.builtin.command: firewall-cmd --set-log-denied={{ 'all' if firewall_logging else 'off' }}
+      become: true
+      when: firewall_logging is defined
+      changed_when: true
+      tags:
+        - firewall
+        - firewalld
+        - logging
+
+  rescue:
+    - name: Handle firewalld configuration errors
+      ansible.builtin.debug:
+        msg: "firewalld configuration failed. Ensure firewalld is installed and running."
+      tags:
+        - debug
+        - firewall
+        - error-handling
+
+  tags:
+    - firewall
+    - archlinux
+    - firewalld

@@ -36,12 +36,31 @@ All roles support **Python 3.13** as the primary version, with fallbacks to syst
 ## Included Roles
 
 ### wolskinet.infrastructure.basic_setup
-Basic system setup including:
-- User management
-- Essential package installation (OS-specific)
-- System locale and timezone configuration  
-- Security hardening preparation
-- Foundation for all machine types
+**Minimal, essential foundation** for all machine types:
+- Essential packages only (git, curl, build tools, Python, package managers)
+- OS-specific feature management (snap removal, AUR helper, Homebrew setup)
+- User management and system optimization
+- Hierarchical variable integration with discovery system
+- Predictable starting point across all supported operating systems
+
+*For additional packages beyond essentials, use the extra_packages role*
+
+### wolskinet.infrastructure.extra_packages
+**Additional package management beyond basic_setup essentials**:
+- User-defined packages from inventory variables (group_vars, host_vars)
+- Discovery-found packages from infrastructure scanning
+- Category-based control (development, desktop, media packages)
+- Cross-platform language package support (pip, npm, AUR, Homebrew)
+- Repository management for additional package sources
+- Safe failure handling and fine-grained control
+
+### wolskinet.infrastructure.firewall
+**Cross-platform firewall port management**:
+- UFW management (Ubuntu/Debian) and firewalld (Arch Linux)
+- Centralized port configuration for service roles
+- Handler-based efficient firewall reloads
+- Integration with Docker service registry
+- Works with basic_setup's firewall installation
 
 ### wolskinet.infrastructure.docker_setup
 Docker infrastructure management:

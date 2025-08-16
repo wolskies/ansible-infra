@@ -8,33 +8,17 @@ config_system_timezone: 'UTC'
 default_user_shell: '/usr/bin/zsh'
 
 # Security defaults
-enable_firewall: true
+install_firewall: true  # Install and enable firewall with SSH access
 disable_unnecessary_services: true
 
-# Ubuntu-specific defaults
-disable_snapd_stop_service: false
-disable_snapd_uninstall_snapd: false
+# OS-specific feature management
+ubuntu_disable_snap: true  # Disable snap by default on Ubuntu
+ubuntu_disable_cloud_init: false  # Keep cloud-init enabled by default
+archlinux_enable_reflector: true  # Enable mirror optimization on Arch
+macos_install_xcode_tools: true  # Install Xcode CLI tools on macOS
 
-# Discovery integration defaults
-process_discovered_packages: false  # Disabled by default for safety
-process_discovered_repositories: false  # Disabled by default for safety
-process_discovered_services: false  # Manual review recommended
-
-# Package installation defaults (conservative defaults)
-install_system_packages: false  # Require explicit enabling
-install_development_packages: false  # Require explicit enabling
-install_desktop_packages: false  # Require explicit enabling
-install_media_packages: false  # Often large, manual review recommended
-
-# Repository configuration (conservative defaults)
-configure_additional_repositories: false  # Require explicit enabling
-setup_aur_helper: false  # Require explicit enabling
-setup_homebrew_taps: false  # Require explicit enabling
-
-# Service configuration
-configure_discovered_services: false  # Requires manual review
-backup_existing_configs: true
+# Note: Discovery integration and additional packages are now handled by extra_packages role
+# This role focuses only on essential system foundation
 
 # System modification safeguards
-enable_system_updates: false  # Don't auto-update by default
-configure_firewall: false  # Don't auto-configure firewall
+enable_system_updates: true  # Enable system updates by default for security

@@ -124,3 +124,28 @@ mount_options:
     fstype: "tmpfs"
     opts: "defaults,nodev,nosuid,noexec,size=1G"
     state: "mounted"
+
+# Docker services for servers (ADDITIVE to global services)
+group_docker_services:
+  - nginx_proxy_manager  # Reverse proxy management
+  - portainer            # Docker management interface
+
+# Docker network configuration for servers
+group_docker_networks:
+  - name: "web"
+    driver: "bridge"
+    enable_ipv6: false
+  - name: "services"
+    driver: "bridge" 
+    enable_ipv6: false
+
+# Server-specific Docker configuration
+group_docker_daemon_config:
+  log-driver: "journald"
+  log-opts:
+    max-size: "50m"
+    max-file: "5"
+  storage-driver: "overlay2"
+  
+# Enable Docker service deployment on servers
+group_enable_docker: true

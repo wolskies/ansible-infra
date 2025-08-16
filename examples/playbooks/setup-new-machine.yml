@@ -33,6 +33,10 @@
     - name: wolskinet.infrastructure.basic_setup
       become: true
       
+    # Additional packages (user-defined and discovered)
+    - name: wolskinet.infrastructure.extra_packages
+      become: true
+      
     # System updates for all machines
     - name: wolskinet.infrastructure.system_update
       become: false

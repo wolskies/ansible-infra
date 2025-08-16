@@ -1,25 +1,180 @@
 ## Ansible Role: Basic Setup
-Ansible role for configuring/onboarding new machine (server or workstation)
+
+Provides minimal, essential packages and OS-specific feature management for consistent system foundations across different operating systems.
 
 ## Description
-This Ansible role is meant for basic configuration of a new machine: users, packages, etc in the local environment.  It is intended to be used alongside additional roles to provide for hardening, and setup of basic services (dotfiles, shell, etc)
 
-## Installation
-To install this role, clone from this repository into the ansible roles folder.
+This role creates a **minimal, predictable starting point** for each supported OS by:
+
+- Installing only essential packages (git, curl, build tools, Python, package managers)
+- Managing OS-specific features (disabling snap on Ubuntu, installing paru on Arch, etc.)
+- Providing hierarchical variable integration with discovery system
+- Supporting user management and system optimization
+
+**Philosophy:** This role installs the bare minimum needed for a functional system. For additional packages (editors, development tools, GUI applications), see the opinionated package examples in `examples/inventory/group_vars/`.
+
+## Supported Operating Systems
+
+- **Ubuntu** 24+ (LTS recommended)
+- **Debian** 12+ (Bookworm and later)
+- **Arch Linux** (rolling release)
+- **macOS** (latest versions)
+
+## Essential Packages by OS
+
+### Ubuntu/Debian
+- `git`, `curl`, `wget`, `rsync`, `unzip`
+- `build-essential`, `python3`, `python3-pip`
+- `ufw` (firewall), `ca-certificates`
+
+### Arch Linux
+- `base-devel`, `git`, `curl`, `wget`, `rsync`, `unzip`
+- `python`, `python-pip`, `linux-headers`
+- `firewalld`, `pacman-contrib`
+- `paru` (AUR helper)
+
+### macOS
+- `git`, `curl`, `wget`, `rsync`, `unzip`
+- `python@3.13`, `homebrew/bundle`
+- Xcode Command Line Tools
+
+## OS-Specific Features
+
+### Ubuntu
+- **Snap Management:** Disables and removes snapd by default (`ubuntu_disable_snap: true`)
+- **Cloud-init:** Optional disabling (`ubuntu_disable_cloud_init: false`)
+- **Security Updates:** Configures unattended security updates
+
+### Arch Linux
+- **AUR Helper:** Installs paru for AUR package management
+- **Pacman Optimization:** Enables color, parallel downloads, verbose lists
+- **Mirror Management:** Sets up reflector for optimal mirrors
+- **systemd-resolved:** Enables modern DNS resolution
+
+### macOS
+- **Homebrew:** Installs and configures for both Intel and Apple Silicon
+- **Xcode Tools:** Installs command line tools and accepts license
+- **Security Settings:** Configurable Gatekeeper and update management
+- **System Optimization:** Keyboard access, Finder settings
+
+### Debian
+- **APT Optimization:** Configures for better performance
+- **Security Updates:** Unattended security updates only
+- **Repository Management:** Optional non-free repositories
 
 ## Usage
-This role is meant to be used alongside other roles in a playbook (see `new_machine.yml` in Playbooks):
 
-`ansible-playbook playbooks/new_machine.yml -i inventory/inventory.yaml -l aragorn --ask-become-pass --ask-vault-pass`
+### Basic Usage
+Include in your playbook after facts gathering and before other roles:
 
-### To-Do's
+```yaml
+- hosts: all
+  roles:
+    - wolskinet.infrastructure.basic_setup
+```
 
-- Sudo not available on bare-bones Debian install
+### With Hierarchical Variables
+The role integrates with the collection's hierarchical variable system:
 
-- SSH keys not loaded - any tasks requiring GitLab fail (e.g. load dotfiles)
+```yaml
+# group_vars/all.yml
+packages_install:
+  - htop
+  - vim
 
-- Create playbook for starship install
-    - check if starship is installed
-    - download installer & run
+# group_vars/servers.yml  
+packages_install:
+  - nginx
+  - certbot
 
-- Fastfetch not available on Debian 12... create installer?
+# host_vars/web-01.yml
+packages_install:
+  - redis-server
+```
+
+Final packages = essential + all + servers + host
+
+### Variable Examples
+
+```yaml
+# Minimal server configuration
+user_details:
+  - name: deploy
+    uid: 1001
+    shell: /bin/bash
+    groups: ["sudo", "docker"]
+
+# Feature management
+ubuntu_disable_snap: true
+archlinux_enable_reflector: true
+macos_install_xcode_tools: true
+```
+
+## Adding Opinionated Packages
+
+For fuller package sets (development tools, GUI applications, etc.), see:
+- `examples/inventory/group_vars/opinionated-packages-*.yml`
+- Copy and modify these files for your specific needs
+- Use `packages_install` variable to extend essential packages
+
+## Integration with Collection
+
+This role works with:
+- **Discovery System:** Processes `discovered_packages` from infrastructure discovery
+- **Docker Setup:** Prepares systems for Docker service deployment  
+- **Security Hardening:** Provides foundation for devsec.hardening role
+- **User Management:** Creates users with appropriate groups and shells
+
+## Tags
+
+- `basic-setup` - All tasks
+- `os-setup` - Package installation and OS configuration
+- `os-features` - OS-specific feature management  
+- `users` - User creation and management
+- `variables` - Variable loading and merging
+- `validation` - OS version and compatibility checks
+
+## Variables
+
+### Core Variables
+- `packages_install` - Additional packages to install
+- `packages_remove` - Packages to remove
+- `user_details` - Users to create
+- `default_user_shell` - Default shell for new users
+
+### OS Feature Variables
+- `ubuntu_disable_snap: true` - Remove snapd completely
+- `ubuntu_disable_cloud_init: false` - Disable cloud-init
+- `archlinux_enable_reflector: true` - Setup mirror optimization
+- `macos_install_xcode_tools: true` - Install Xcode CLI tools
+- `debian_enable_non_free: false` - Enable non-free repositories
+
+See `defaults/main.yml` and OS-specific variable files for complete lists.
+
+## Examples
+
+### Minimal Server
+```yaml
+- hosts: servers
+  vars:
+    ubuntu_disable_snap: true
+    user_details:
+      - name: admin
+        uid: 1000
+        shell: /bin/bash
+        groups: ["sudo"]
+  roles:
+    - wolskinet.infrastructure.basic_setup
+```
+
+### Development Workstation
+```yaml
+- hosts: workstations
+  vars_files:
+    - examples/inventory/group_vars/opinionated-packages-ubuntu.yml
+  vars:
+    default_user_shell: /bin/zsh
+    configure_zsh: true
+  roles:
+    - wolskinet.infrastructure.basic_setup
+```

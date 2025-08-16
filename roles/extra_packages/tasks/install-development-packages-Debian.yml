@@ -1,0 +1,42 @@
+---
+# Install development packages on Debian-based systems
+# Includes compilers, build tools, IDEs, and development utilities
+
+- name: Install development packages on Debian-based systems
+  block:
+    - name: Install development packages via APT
+      ansible.builtin.apt:
+        name: "{{ final_development_packages }}"
+        state: present
+        install_recommends: false
+      become: true
+      when: 
+        - final_development_packages is defined
+        - final_development_packages | length > 0
+      register: dev_apt_result
+      tags:
+        - development-packages
+        - apt
+
+    - name: Display development package installation results
+      ansible.builtin.debug:
+        msg:
+          - "Development packages installation completed"
+          - "Packages installed: {{ final_development_packages | length }}"
+          - "Installation successful: {{ dev_apt_result.changed | default(false) }}"
+      tags:
+        - development-packages
+        - summary
+
+  rescue:
+    - name: Handle development package installation errors
+      ansible.builtin.debug:
+        msg: "Some development packages failed to install. Continuing with other categories."
+      when: skip_failed_packages | default(true)
+      tags:
+        - development-packages
+        - error-handling
+
+  tags:
+    - extra-packages
+    - development-packages

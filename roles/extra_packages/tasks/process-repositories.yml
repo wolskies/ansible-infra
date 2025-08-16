@@ -1,0 +1,101 @@
+---
+# Process additional repositories from inventory configuration
+# Sets up package repositories needed for extra packages
+
+- name: Configure additional APT repositories
+  become: true
+  block:
+    - name: Check existing APT sources
+      ansible.builtin.shell: |
+        grep -h "^[^#]" /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null | grep -F "{{ item }}" || true
+      loop: "{{ additional_repositories.apt.sources | default([]) }}"
+      register: apt_source_check
+      changed_when: false
+      when:
+        - additional_repositories.apt.sources is defined
+        - additional_repositories.apt.sources | length > 0
+
+    - name: Add additional APT sources (only if not present)
+      ansible.builtin.apt_repository:
+        repo: "{{ item.item }}"
+        state: present
+        update_cache: true
+      loop: "{{ apt_source_check.results | default([]) }}"
+      when:
+        - additional_repositories.apt.sources is defined
+        - additional_repositories.apt.sources | length > 0
+        - apt_source_check is defined
+        - item.stdout == ""  # Source not found in existing files
+
+    - name: Add additional APT keys
+      ansible.builtin.apt_key:
+        url: "{{ item }}"
+        state: present
+      loop: "{{ additional_repositories.apt.keys | default([]) }}"
+      when:
+        - additional_repositories.apt.keys is defined
+        - additional_repositories.apt.keys | length > 0
+
+  when:
+    - ansible_os_family == 'Debian'
+    - additional_repositories.apt is defined
+  tags:
+    - repositories
+    - apt-repositories
+
+- name: Configure AUR helper (Arch Linux)
+  block:
+    - name: Verify paru AUR helper is available
+      ansible.builtin.command: which paru
+      register: paru_check
+      failed_when: false
+      changed_when: false
+
+    - name: AUR helper status
+      ansible.builtin.debug:
+        msg: "{{ 'paru is available for AUR packages' if paru_check.rc == 0 else 'paru not found - AUR packages will be skipped' }}"
+
+  when:
+    - ansible_distribution == 'Archlinux'
+    - additional_repositories.pacman is defined
+  tags:
+    - repositories
+    - aur-setup
+
+- name: Configure Homebrew taps (macOS)
+  community.general.homebrew_tap:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ additional_repositories.homebrew.taps | default([]) }}"
+  when:
+    - ansible_os_family == 'Darwin'
+    - additional_repositories.homebrew.taps is defined
+    - additional_repositories.homebrew.taps | length > 0
+  tags:
+    - repositories
+    - homebrew-taps
+
+- name: Configure Flatpak repositories
+  community.general.flatpak_remote:
+    name: "{{ item.name }}"
+    flatpakrepo_url: "{{ item.url }}"
+    state: present
+  loop: "{{ additional_repositories.flatpak.remotes | default([]) }}"
+  when:
+    - additional_repositories.flatpak.remotes is defined
+    - additional_repositories.flatpak.remotes | length > 0
+  tags:
+    - repositories
+    - flatpak-repositories
+
+- name: Display repository configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "Repository configuration completed:"
+      - "APT sources: {{ additional_repositories.apt.sources | default([]) | length if ansible_os_family == 'Debian' else 'N/A' }}"
+      - "AUR helper: {{ 'available' if (ansible_distribution == 'Archlinux' and paru_check.rc == 0) else 'N/A' }}"
+      - "Homebrew taps: {{ additional_repositories.homebrew.taps | default([]) | length if ansible_os_family == 'Darwin' else 'N/A' }}"
+      - "Flatpak remotes: {{ additional_repositories.flatpak.remotes | default([]) | length }}"
+  tags:
+    - repositories
+    - summary

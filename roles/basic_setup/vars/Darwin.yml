@@ -1,41 +1,28 @@
 ---
-# macOS specific packages via Homebrew
+# macOS essential packages via Homebrew only
+# Provides minimal, predictable foundation for macOS systems
+
+# Essential Homebrew packages
 homebrew_packages:
-  - bash
-  - btop
-  - stow
-  - gnupg
+  # Core utilities (not included in macOS by default)
   - git
-  - tree
-  - zsh
-  - fastfetch
-  - uv
-  - fzf
-  - zoxide
-  - eza
-  - zinit
-  - zsh-autosuggestions
-  - zsh-syntax-highlighting
-  - wget
   - curl
+  - wget
   - rsync
   - unzip
-  - screen
+  
+  # Development essentials
   - python@3.13
-  - starship
-  - ansible
+  
+  # Package management
+  - homebrew/bundle  # For Brewfile support
 
-homebrew_casks:
-  - kitty
-  - iterm2
-  - librewolf
-  - vlc
-  - font-cascadia-code-nf
-  - font-cascadia-mono-nf
-  - font-jetbrains-mono-nerd-font
-  - font-fira-code-nerd-font
-  - font-hack-nerd-font
+# Essential Homebrew casks
+homebrew_casks: []  # No essential GUI apps
 
-# Homebrew taps needed for fonts
-homebrew_taps:
-  - homebrew/cask-fonts
+# Essential Homebrew taps
+homebrew_taps: []  # No essential taps
+
+# macOS-specific feature management
+macos_install_xcode_tools: true  # Install Xcode command line tools
+macos_disable_gatekeeper: false  # Keep Gatekeeper enabled for security

@@ -1,42 +1,38 @@
 ---
-# Arch Linux specific packages
+# Arch Linux essential packages only
+# Provides minimal, predictable foundation for Arch systems
+
+# Essential system packages
 packages_install:
+  # Build tools and development essentials
   - base-devel
-  - cargo
-  - kitty
   - linux-headers
+  
+  # Core utilities
   - git
-  - ttf-cascadia-code-nerd
-  - ttf-cascadia-mono-nerd
-  - ttf-firacode-nerd 
-  - ttf-hack-nerd
-  - ttf-jetbrains-mono-nerd
-  - zsh
-  - fastfetch
-  - uv
-  - firewalld
-  - eza
-  - fzf
-  - zoxide
-  - ansible-core
-  - ansible
-  - python
-  - python-pip
-  - python-requests
-  - python-lxml
-  - python-setuptools
-  - starship
-  - stow
-  - wget
   - curl
+  - wget
   - rsync
   - unzip
-  - screen
-
-# AUR packages (requires AUR helper like yay or paru)
-packages_install_aur:
-  - klassy
   
-packages_remove: []
+  # System administration
+  - firewalld
+  
+  # Python essentials
+  - python
+  - python-pip
+  
+  # Package management
+  - pacman-contrib  # For paccache and other pacman utilities
+
+# Essential AUR packages (requires AUR helper)
+packages_install_aur:
+  - paru  # AUR helper itself
+
+# Packages to remove for security/cleanliness
+packages_remove:
+  - xinetd
+  - telnet
+  - rsh
 
 # Note: Services management handled by systemd

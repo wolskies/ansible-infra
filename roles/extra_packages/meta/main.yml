@@ -1,0 +1,41 @@
+---
+galaxy_info:
+  role_name: extra_packages
+  author: wolskinet.infrastructure
+  description: Manages additional packages beyond basic_setup essentials from user-defined and discovered sources
+  company: WolskiNet Infrastructure Collection
+  license: MIT
+  min_ansible_version: "2.14"
+  
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+        - "22.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+    - name: MacOSX
+      versions:
+        - all
+
+  galaxy_tags:
+    - packages
+    - discovery
+    - package-management
+    - development
+    - desktop
+    - productivity
+
+dependencies:
+  # This role assumes basic_setup has been run to provide the minimal foundation
+  - role: wolskinet.infrastructure.basic_setup
+    when: extra_packages_require_basic_setup | default(false)
+
+collections:
+  - community.general
+  - ansible.posix

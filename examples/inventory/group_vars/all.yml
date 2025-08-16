@@ -52,3 +52,27 @@ global_user_details:
     groups:
       - sudo
       - wheel
+
+# Docker configuration (global baseline)
+global_docker_services: []  # Base services (can be extended by groups/hosts)
+
+# Global Docker defaults
+global_docker_daemon_config:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  storage-driver: "overlay2"
+
+# Global Docker networks (available to all hosts)
+global_docker_networks:
+  - name: "services"
+    driver: "bridge"
+    enable_ipv6: false
+
+# Global Docker volumes (shared configurations)
+global_docker_volumes: []
+
+# Global Docker users (users to add to docker group)
+global_docker_users:
+  - "{{ global_ansible_user }}"
