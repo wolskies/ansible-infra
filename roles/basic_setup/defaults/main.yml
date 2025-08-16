@@ -14,3 +14,27 @@ disable_unnecessary_services: true
 # Ubuntu-specific defaults
 disable_snapd_stop_service: false
 disable_snapd_uninstall_snapd: false
+
+# Discovery integration defaults
+process_discovered_packages: false  # Disabled by default for safety
+process_discovered_repositories: false  # Disabled by default for safety
+process_discovered_services: false  # Manual review recommended
+
+# Package installation defaults (conservative defaults)
+install_system_packages: false  # Require explicit enabling
+install_development_packages: false  # Require explicit enabling
+install_desktop_packages: false  # Require explicit enabling
+install_media_packages: false  # Often large, manual review recommended
+
+# Repository configuration (conservative defaults)
+configure_additional_repositories: false  # Require explicit enabling
+setup_aur_helper: false  # Require explicit enabling
+setup_homebrew_taps: false  # Require explicit enabling
+
+# Service configuration
+configure_discovered_services: false  # Requires manual review
+backup_existing_configs: true
+
+# System modification safeguards
+enable_system_updates: false  # Don't auto-update by default
+configure_firewall: false  # Don't auto-configure firewall

@@ -1,0 +1,18 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for gitlab
+- name: Ensure nginx and certbot are installed
+
+- name: Ensure certbot-dns-cloudflare is installed and configured
+
+- name: Ensure LetsEncrypt certificate has been requested and is present
+
+- name: Ensure nginx is configured for reverse gitlab_pages_listen_proxy
+
+- name: Ensure firewall ports are configured for GitLab
+
+- name: (Optional) Ensure caddy is configured for reverse gitlab_pages_listen_proxy
+
+- name: Ensure Docker Compose template is in the GitLab folder
+
+- name: Ensure Gitlab is started

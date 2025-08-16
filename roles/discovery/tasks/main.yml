@@ -1,0 +1,137 @@
+---
+# Discovery Role Main Tasks
+# Orchestrates the complete infrastructure discovery process
+
+- name: Initialize discovery environment
+  block:
+    - name: Display discovery start message
+      ansible.builtin.debug:
+        msg:
+          - "=== Infrastructure Discovery Starting ==="
+          - "Target: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Output: {{ discovery.output_dir }}"
+
+    - name: Create discovery output directories
+      ansible.builtin.file:
+        path: "{{ discovery.output_dir }}/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - ""
+        - host_vars
+        - "host_vars/{{ inventory_hostname }}"
+        - group_vars
+        - playbooks
+        - documentation
+      delegate_to: localhost
+      run_once: true
+
+    - name: Validate supported OS
+      ansible.builtin.fail:
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported"
+      when:
+        - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 22) or
+          (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
+  tags:
+    - discovery
+    - setup
+
+# Phase 1: System Discovery
+- name: Discover system information
+  ansible.builtin.include_tasks: scan-system.yml
+  when: discovery_scan.packages or discovery_scan.services
+  tags:
+    - discovery
+    - system
+
+# Phase 2: Package Discovery  
+- name: Discover packages and repositories
+  ansible.builtin.include_tasks: scan-packages.yml
+  when: discovery_scan.packages or discovery_scan.repositories
+  tags:
+    - discovery
+    - packages
+
+# Phase 3: Service Discovery
+- name: Discover services and configurations
+  ansible.builtin.include_tasks: scan-services.yml
+  when: discovery_scan.services
+  tags:
+    - discovery
+    - services
+
+# Phase 4: Docker Discovery
+- name: Discover Docker environment
+  ansible.builtin.include_tasks: scan-docker.yml
+  when: discovery_scan.docker
+  tags:
+    - discovery
+    - docker
+
+# Phase 5: User Environment Discovery
+- name: Discover user environment
+  ansible.builtin.include_tasks: scan-users.yml
+  when: discovery_scan.users or discovery_scan.dotfiles
+  tags:
+    - discovery
+    - users
+
+# Phase 6: Desktop Environment Discovery
+- name: Discover desktop environment
+  ansible.builtin.include_tasks: scan-desktop.yml
+  when: discovery_scan.desktop
+  tags:
+    - discovery
+    - desktop
+
+# Phase 7: Security Configuration Discovery
+- name: Discover security configuration
+  ansible.builtin.include_tasks: scan-security.yml
+  when: discovery_scan.security
+  tags:
+    - discovery
+    - security
+
+# Phase 8: Data Processing and Classification
+- name: Process discovery data
+  ansible.builtin.include_tasks: process-data.yml
+  tags:
+    - discovery
+    - processing
+
+# Phase 9: Configuration Generation
+- name: Generate configuration files
+  ansible.builtin.include_tasks: generate-configs.yml
+  when: discovery.generate_configs
+  tags:
+    - discovery
+    - generation
+
+# Phase 10: Summary and Completion
+- name: Display discovery completion
+  block:
+    - name: Show discovery summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Infrastructure Discovery Completed ==="
+          - "Machine Type: {{ discovered_machine.type }}"
+          - "Packages: {{ discovered_packages.total | default(0) }}"
+          - "Services: {{ discovered_services.running | default([]) | length }}"
+          - "Docker: {{ 'Enabled' if discovered_docker.installed else 'Not installed' }}"
+          - "Generated files in: {{ discovery.output_dir }}"
+          - ""
+          - "Next steps:"
+          - "1. Review generated inventory and host_vars"
+          - "2. Configure vault variables for sensitive data"
+          - "3. Run: ansible-playbook -i {{ discovery.output_dir }}/inventory.yml {{ discovery.output_dir }}/playbooks/new_machine.yml"
+
+    - name: Create README for discovered configuration
+      ansible.builtin.template:
+        src: README.md.j2
+        dest: "{{ discovery.output_dir }}/README.md"
+        mode: '0644'
+      delegate_to: localhost
+  tags:
+    - discovery
+    - summary

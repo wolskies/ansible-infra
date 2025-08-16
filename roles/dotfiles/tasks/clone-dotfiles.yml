@@ -1,0 +1,35 @@
+---
+# Clone or update dotfiles repository
+- name: Clone dotfiles repository
+  ansible.builtin.git:
+    repo: "{{ dotfiles_repository_url }}"
+    dest: "{{ dotfiles_directory }}"
+    version: "{{ dotfiles_branch | default('main') }}"
+    update: true
+    clone: true
+    accept_hostkey: true
+    key_file: "{{ ansible_env.HOME }}/.ssh/id_rsa"
+  become: false
+  register: dotfiles_clone_result
+  when: not dotfiles_directory_stat.stat.exists
+
+- name: Update existing dotfiles repository
+  ansible.builtin.git:
+    repo: "{{ dotfiles_repository_url }}"
+    dest: "{{ dotfiles_directory }}"
+    version: "{{ dotfiles_branch | default('main') }}"
+    update: true
+    force: true  # Allow overwriting local changes for testing
+  become: false
+  register: dotfiles_update_result
+  when: dotfiles_directory_stat.stat.exists
+
+- name: Set dotfiles directory permissions
+  ansible.builtin.file:
+    path: "{{ dotfiles_directory }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+    recurse: true
+  become: true
+  when: dotfiles_clone_result.changed or dotfiles_update_result.changed

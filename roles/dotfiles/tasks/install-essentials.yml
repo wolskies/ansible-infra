@@ -1,0 +1,28 @@
+---
+# Install essential packages required for dotfiles management
+- name: Install essential packages for dotfiles
+  ansible.builtin.package:
+    name: "{{ dotfiles_essential_packages }}"
+    state: present
+  become: true
+  register: essentials_result
+  tags:
+    - packages
+    - essentials
+
+- name: Check if stow is available
+  ansible.builtin.command: which stow
+  register: stow_available
+  changed_when: false
+  failed_when: false
+  when: dotfiles_method == "stow"
+
+- name: Install stow via package manager if missing
+  ansible.builtin.package:
+    name: stow
+    state: present
+  become: true
+  when:
+    - dotfiles_method == "stow"
+    - stow_available.rc != 0
+  tags: packages

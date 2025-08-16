@@ -1,0 +1,48 @@
+---
+# Local test for discovery role (without collection namespace)
+- name: Test Discovery Role Locally
+  hosts: localhost
+  gather_facts: true
+  connection: local
+
+  vars:
+    discovery_output_dir: "./test-discovery-output"
+    target_hostname: "test-machine"
+
+  tasks:
+    - name: Clean up any previous test output
+      ansible.builtin.file:
+        path: "{{ discovery_output_dir }}"
+        state: absent
+
+    - name: Run discovery role directly
+      ansible.builtin.include_role:
+        name: roles/discovery
+      vars:
+        discovery:
+          output_dir: "{{ discovery_output_dir }}"
+          generate_configs: true
+          include_sensitive: false
+          timeout: 300
+        inventory_hostname: "{{ target_hostname }}"
+
+    - name: Display discovery results
+      ansible.builtin.debug:
+        msg:
+          - "=== Discovery Completed ==="
+          - "Output directory: {{ discovery_output_dir }}"
+          - "Machine type: {{ discovered_machine.type | default('unknown') }}"
+          - "OS: {{ discovered_system.os.distribution | default('unknown') }} {{ discovered_system.os.version | default('') }}"
+          - "Total packages: {{ discovered_packages.total | default(0) }}"
+          - "Services: {{ discovered_services.running | default([]) | length }}"
+          - "Docker: {{ discovered_docker.installed | default(false) }}"
+
+    - name: List generated files
+      ansible.builtin.find:
+        paths: "{{ discovery_output_dir }}"
+        recurse: yes
+      register: generated_files
+
+    - name: Show generated files
+      ansible.builtin.debug:
+        msg: "Generated: {{ generated_files.files | map(attribute='path') | list }}"

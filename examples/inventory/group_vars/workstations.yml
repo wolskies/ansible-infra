@@ -1,21 +1,55 @@
 ---
-# Configuration for workstation group
-# Roles to install on workstations
-group_roles_install:
-  - basic_setup
-  - dotfiles
-  - system_update
+# Workstation-specific variables
+# These are ADDITIVE to global variables
 
-# Workstation-specific packages (these supplement the base OS packages)
-workstation_packages:
-  - code
-  - discord
+# Additional packages for workstations
+group_packages_install:
+  # Desktop environment basics
   - firefox
+  - code
+  - gimp
   - libreoffice
-
-# Development tools for workstations
-dev_packages:
+  # Media tools
+  - vlc
+  - audacity
+  # Development tools
   - nodejs
-  - npm
+  - python3
   - docker
-  - docker-compose
+  # Shell enhancements (if available in system repos)
+  - zsh
+  - tmux
+
+# Packages to remove on workstations (security/cleanliness)
+group_packages_remove:
+  - games-common  # Remove games packages
+  - apache2       # Workstations shouldn't run web servers by default
+
+# Services for workstations
+group_services_enable:
+  - bluetooth
+  - NetworkManager
+  - pulseaudio
+
+group_services_disable:
+  - apache2
+  - nginx
+  - mysql
+
+# Workstation-specific roles
+group_roles_install:
+  - dotfiles
+  - desktop-setup
+
+# Desktop configuration
+group_desktop_environment: "auto-detect"  # or specific: kde, gnome, etc
+group_install_flatpak: true
+group_install_snap: false
+
+# Development configuration
+group_enable_docker: true
+group_docker_users:
+  - "{{ global_ansible_user }}"
+
+# Shell configuration
+group_default_shell: "/bin/zsh"

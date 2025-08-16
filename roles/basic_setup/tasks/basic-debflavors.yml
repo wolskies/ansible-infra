@@ -44,24 +44,28 @@
         - updates
         - cache
 
-    - name: Install essential packages
+    - name: Install merged package list
       ansible.builtin.package:
-        name: "{{ packages_install }}"
+        name: "{{ final_packages_install }}"
         state: present
       become: true
-      when: packages_install is defined
+      when: 
+        - final_packages_install is defined
+        - final_packages_install | length > 0
       tags:
         - packages
         - package-install
-        - essential
+        - merged-packages
 
     - name: Remove unwanted packages
       ansible.builtin.package:
-        name: "{{ packages_remove }}"
+        name: "{{ final_packages_remove }}"
         state: absent
         purge: true
       become: true
-      when: packages_remove is defined
+      when: 
+        - final_packages_remove is defined
+        - final_packages_remove | length > 0
       tags:
         - packages
         - package-remove

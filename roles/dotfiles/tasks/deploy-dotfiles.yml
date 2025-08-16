@@ -1,0 +1,74 @@
+---
+# Deploy dotfiles using the specified method
+- name: Deploy dotfiles using stow
+  block:
+    - name: Deploy dotfiles with stow
+      ansible.builtin.shell: "stow . --verbose=1 --no-folding"
+      args:
+        chdir: "{{ dotfiles_directory }}"
+      become: false
+      register: stow_result
+
+    - name: Display stow results
+      ansible.builtin.debug:
+        msg: "{{ stow_result.stdout_lines }}"
+      when: stow_result.stdout_lines is defined
+
+  rescue:
+    - name: Handle stow conflicts
+      ansible.builtin.debug:
+        msg:
+          - "Stow encountered conflicts. This is normal for existing dotfiles."
+          - "Conflicts: {{ stow_result.stderr_lines | default([]) }}"
+      when: stow_result is defined
+
+  when: dotfiles_method == "stow"
+
+- name: Deploy dotfiles using symlinks
+  block:
+    - name: Find dotfiles to symlink
+      ansible.builtin.find:
+        paths: "{{ dotfiles_directory }}"
+        patterns: ".*"
+        hidden: true
+        file_type: file
+        recurse: false
+      register: dotfiles_to_link
+
+    - name: Create symlinks for dotfiles
+      ansible.builtin.file:
+        src: "{{ item.path }}"
+        dest: "{{ ansible_env.HOME }}/{{ item.path | basename }}"
+        state: link
+        force: false
+      loop: "{{ dotfiles_to_link.files }}"
+      when: not (item.path | basename).startswith('.git')
+
+  when: dotfiles_method == "symlink"
+
+- name: Check for post-install scripts
+  ansible.builtin.find:
+    paths: "{{ dotfiles_directory }}"
+    patterns:
+      - "install.sh"
+      - "bootstrap.sh"
+      - "setup.sh"
+    file_type: file
+  register: install_scripts
+
+- name: Run post-install scripts
+  ansible.builtin.shell: "bash {{ item.path }}"
+  args:
+    chdir: "{{ dotfiles_directory }}"
+  loop: "{{ install_scripts.files }}"
+  become: false
+  when: 
+    - install_scripts.files | length > 0
+    - dotfiles_auto_install_dependencies | default(true)
+  register: script_results
+
+- name: Display post-install script results
+  ansible.builtin.debug:
+    msg: "Executed {{ item.item.path | basename }}: {{ item.stdout_lines | default(['No output']) }}"
+  loop: "{{ script_results.results | default([]) }}"
+  when: script_results is defined

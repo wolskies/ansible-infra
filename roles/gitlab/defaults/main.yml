@@ -1,0 +1,60 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for gitlab
+hostname: 'gitlab'
+domain: 'example.com'
+gitlab_smtp_enable: true
+gitlab_smtp_address: "smtp.example.com"
+gitlab_smtp_port: 587
+gitlab_smtp_user_name: "user@example.com"
+gitlab_smtp_password: "changeme"
+gitlab_smtp_domain: "smtp.example.com"
+gitlab_smtp_enable_starttls_auto: true
+gitlab_shell_ssh_port: 2222
+gitlab_registry_enabled: false
+gitlab_registry_host: "registry.example.com"
+gitlab_registry_port: 5050
+gitlab_registry_path: "/var/opt/gitlab/gitlab-rails/shared/registry"
+gitlab_nginx_listen_port: 80
+gitlab_nginx_listen_https: false
+gitlab_registry_url: 'https://registry.example.com'
+gitlab_listen_https: false
+gitlab_initial_root_password: "changemetoo"
+gitlab_pages_local_store_enabled: false
+gitlab_pages_local_store_path: "/var/opt/gitlab/gitlab-rails/shared/pages"
+gitlab_backup_path: "/var/opt/gitlab/backups"
+pages_external_url: "http://pages.example.com"
+gitlab_pages_enable: false
+gitlab_pages_listen_proxy: "localhost:8090"
+gitlab_web_listen_port: 80
+gitlab_websecure_listen_port: 443
+gitlab_pages_listen_port: 8090
+gitlab_volume_config: ./config
+gitlab_volume_logs: ./logs
+gitlab_volume_data: ./data
+gitlab_volume_secret: ./secret
+gitlab_firewall_ports:
+  - rule: allow
+    port: 80
+    proto: tcp
+    comment: 'Allow inbound HTTP traffic'
+  - rule: allow
+    port: 443
+    proto: tcp
+    comment: 'Allow inbound HTTPS traffic'
+  - rule: allow
+    port: 8080
+    proto: tcp
+    comment: 'Allow access to GitLab Web Interface'
+  # - rule: allow
+  #   port: 5050
+  #   proto: tcp
+  #   comment: 'Allow access to GitLab Repository'
+  - rule: allow
+    port: 22
+    proto: tcp
+    comment: 'Allow SSH access to GitLab'
+  # - rule: allow
+  #   port: 8090
+  #   proto: tcp
+  #   comment: 'Allow access to GitLab Pages'

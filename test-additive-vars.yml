@@ -1,0 +1,71 @@
+---
+# Test hierarchical additive variable system
+- name: Test Additive Variable Merging
+  hosts: localhost
+  gather_facts: true
+  connection: local
+
+  vars:
+    # Simulate variables from different levels
+    # Global level
+    global_packages_install:
+      - git
+      - curl
+      - wget
+    global_packages_remove:
+      - telnet
+    global_services_enable:
+      - ssh
+    
+    # Group level (simulating workstation)
+    group_packages_install:
+      - firefox
+      - code
+      - docker
+    group_packages_remove:
+      - apache2
+    group_services_enable:
+      - bluetooth
+    group_services_disable:
+      - apache2
+    
+    # Host level
+    host_packages_install:
+      - blender
+      - obs-studio
+    host_packages_remove:
+      - libreoffice
+    host_services_enable:
+      - steam
+    
+    # Discovered level (from discovery role)
+    discovered_packages_install:
+      - zsh
+      - tmux
+      - htop
+    discovered_services_enable:
+      - docker
+
+  tasks:
+    - name: Test variable merging
+      ansible.builtin.include_tasks: roles/basic_setup/tasks/merge-variables.yml
+
+    - name: Display final merged results
+      ansible.builtin.debug:
+        msg:
+          - "=== ADDITIVE VARIABLE TEST RESULTS ==="
+          - ""
+          - "PACKAGES TO INSTALL ({{ final_packages_install | length }} total):"
+          - "  Global: {{ global_packages_install | join(', ') }}"
+          - "  Group:  {{ group_packages_install | join(', ') }}"
+          - "  Host:   {{ host_packages_install | join(', ') }}"
+          - "  Discovered: {{ discovered_packages_install | join(', ') }}"
+          - "  FINAL MERGED: {{ final_packages_install | join(', ') }}"
+          - ""
+          - "PACKAGES TO REMOVE ({{ final_packages_remove | length }} total):"
+          - "  FINAL MERGED: {{ final_packages_remove | join(', ') }}"
+          - ""
+          - "SERVICES TO ENABLE ({{ final_services_enable | length }} total):"
+          - "  FINAL MERGED: {{ final_services_enable | join(', ') }}"
+          - ""
+          - "This demonstrates how variables from all levels are combined additively!"

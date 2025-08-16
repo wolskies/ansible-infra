@@ -14,17 +14,15 @@
         mode: '0755'
       delegate_to: localhost
 
-    - name: Run infrastructure discovery playbook
-      ansible.builtin.include: ../../utilities/playbooks/discover-infrastructure.yml
+    - name: Run infrastructure discovery role
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.discovery
       vars:
-        discovery_target_hosts: discovery_targets
-        discovery_create_host_vars: true
-        discovery_create_group_vars: true
-        discovery_scan_packages: true
-        discovery_scan_services: true
-        discovery_scan_users: true
-        discovery_scan_network: true
-        discovery_scan_docker: false  # Docker not available in test containers
+        discovery:
+          output_dir: "{{ discovery_output_path }}"
+          generate_configs: true
+          include_sensitive: false
+          timeout: 120
 
     - name: Display discovery completion
       ansible.builtin.debug:

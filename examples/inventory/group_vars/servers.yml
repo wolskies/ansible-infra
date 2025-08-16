@@ -1,11 +1,49 @@
 ---
-# Configuration for servers group
-# Servers get security hardening + basic setup + system maintenance
+# Server-specific variables
+# These are ADDITIVE to global variables
 
-# Roles to install on all servers
+# Additional packages for servers
+group_packages_install:
+  # Server essentials
+  - fail2ban
+  - unattended-upgrades
+  - logrotate
+  - rsyslog
+  - chrony
+  - nginx
+  - docker
+  - docker-compose
+  - ufw
+  # Monitoring
+  - htop
+  - iotop
+
+# Packages to remove on servers (minimize attack surface)
+group_packages_remove:
+  - games-common
+  - avahi-daemon     # Not needed on servers
+  - cups             # No printing on servers
+
+# Services for servers
+group_services_enable:
+  - ssh
+  - fail2ban
+  - rsyslog
+  - chrony
+  - ufw
+  - docker
+
+group_services_disable:
+  - avahi-daemon
+  - cups
+  - bluetooth
+
+# Server-specific roles
 group_roles_install:
   - basic_setup
   - system_update
+  - security_hardening
+  - docker_setup
 
 # Security hardening configuration
 security_hardening_enabled: true

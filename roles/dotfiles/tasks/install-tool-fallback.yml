@@ -1,0 +1,79 @@
+---
+# Install individual tools using fallback methods when system packages aren't available
+- name: Install {{ tool_config.name }} via fallback method
+  block:
+    - name: Install {{ tool_config.name }} via curl script
+      ansible.builtin.shell: "{{ tool_config.fallback_install }}"
+      when: 
+        - tool_config.fallback_install.startswith('curl')
+        - tool_config.fallback_install != "manual"
+      become: false
+
+    - name: Install {{ tool_config.name }} via git clone
+      block:
+        - name: Extract git URL for {{ tool_config.name }}
+          ansible.builtin.set_fact:
+            git_url: "{{ tool_config.fallback_install | regex_replace('^git\\+', '') }}"
+          when: tool_config.fallback_install.startswith('git+')
+
+        - name: Clone {{ tool_config.name }} repository
+          ansible.builtin.git:
+            repo: "{{ git_url }}"
+            dest: "{{ ansible_env.HOME }}/.{{ tool_config.name }}"
+            depth: 1
+          when: tool_config.fallback_install.startswith('git+')
+
+        - name: Install {{ tool_config.name }} from git
+          ansible.builtin.shell: |
+            cd "{{ ansible_env.HOME }}/.{{ tool_config.name }}"
+            if [ -f install ]; then
+              yes | ./install
+            elif [ -f install.sh ]; then
+              bash install.sh
+            fi
+          when: 
+            - tool_config.fallback_install.startswith('git+')
+            - tool_config.name == "fzf"  # Specific handling for fzf
+
+      when: tool_config.fallback_install.startswith('git+')
+
+    - name: Handle manual installation for {{ tool_config.name }}
+      ansible.builtin.debug:
+        msg: 
+          - "{{ tool_config.name }} requires manual installation"
+          - "System packages not available for {{ ansible_distribution }}"
+          - "Please install {{ tool_config.name }} manually or add it to your system repositories"
+      when: tool_config.fallback_install == "manual"
+
+    - name: Special handling for eza on Debian-based systems
+      block:
+        - name: Add eza GPG key
+          ansible.builtin.get_url:
+            url: https://raw.githubusercontent.com/eza-community/eza/main/deb.asc
+            dest: /etc/apt/trusted.gpg.d/gierens.asc
+            mode: '0644'
+            force: true
+          become: true
+
+        - name: Add eza repository
+          ansible.builtin.apt_repository:
+            repo: "deb [signed-by=/etc/apt/trusted.gpg.d/gierens.asc] http://deb.gierens.de stable main"
+            state: present
+          become: true
+
+        - name: Install eza from custom repository
+          ansible.builtin.package:
+            name: eza
+            state: present
+            update_cache: true
+          become: true
+
+      when:
+        - tool_config.name == "eza"
+        - tool_config.fallback_install == "manual"
+        - ansible_os_family == "Debian"
+
+  rescue:
+    - name: Handle {{ tool_config.name }} installation failure
+      ansible.builtin.debug:
+        msg: "Failed to install {{ tool_config.name }} via fallback method, continuing..."

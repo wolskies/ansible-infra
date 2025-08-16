@@ -718,6 +718,494 @@
         - config-files
         - discovery
 
+    # Repository and Package Source Discovery
+    - name: Repository and package source discovery
+      block:
+        - name: APT repository discovery (Debian/Ubuntu)
+          block:
+            - name: Check main APT sources
+              ansible.builtin.slurp:
+                src: /etc/apt/sources.list
+              register: apt_main_sources
+              become: true
+              failed_when: false
+              tags:
+                - repositories
+                - apt
+                - sources
+
+            - name: Find additional APT sources
+              ansible.builtin.find:
+                paths: ["/etc/apt/sources.list.d"]
+                patterns: "*.list"
+              register: apt_additional_sources
+              become: true
+              tags:
+                - repositories
+                - apt
+                - additional-sources
+
+            - name: Read additional APT source files
+              ansible.builtin.slurp:
+                src: "{{ item.path }}"
+              register: apt_source_contents
+              loop: "{{ apt_additional_sources.files }}"
+              become: true
+              failed_when: false
+              tags:
+                - repositories
+                - apt
+                - source-content
+
+            - name: Check for PPA keys
+              ansible.builtin.find:
+                paths: ["/etc/apt/trusted.gpg.d", "/usr/share/keyrings"]
+                patterns: "*.gpg"
+              register: apt_keys
+              become: true
+              tags:
+                - repositories
+                - apt
+                - keys
+
+          when: ansible_os_family == "Debian"
+          rescue:
+            - name: Handle APT repository discovery errors
+              ansible.builtin.debug:
+                msg: "APT repository discovery failed, continuing with available data"
+              tags:
+                - repositories
+                - error-handling
+
+        - name: AUR and pacman repository discovery (Arch Linux)
+          block:
+            - name: Check pacman configuration
+              ansible.builtin.slurp:
+                src: /etc/pacman.conf
+              register: pacman_config
+              become: true
+              failed_when: false
+              tags:
+                - repositories
+                - pacman
+                - arch
+
+            - name: Check for AUR helpers
+              ansible.builtin.stat:
+                path: "{{ item }}"
+              register: aur_helpers
+              loop:
+                - /usr/bin/yay
+                - /usr/bin/paru
+                - /usr/bin/pikaur
+                - /usr/bin/trizen
+              tags:
+                - repositories
+                - aur
+                - helpers
+
+            - name: Get AUR packages (if yay is available)
+              ansible.builtin.command: yay -Qm
+              register: aur_packages
+              become: false
+              changed_when: false
+              failed_when: false
+              when: aur_helpers.results | selectattr('item', 'equalto', '/usr/bin/yay') | selectattr('stat.exists') | list
+              tags:
+                - repositories
+                - aur
+                - packages
+
+            - name: Get pacman mirror list
+              ansible.builtin.slurp:
+                src: /etc/pacman.d/mirrorlist
+              register: pacman_mirrorlist
+              become: true
+              failed_when: false
+              tags:
+                - repositories
+                - pacman
+                - mirrors
+
+          when: ansible_distribution == "Archlinux"
+          rescue:
+            - name: Handle pacman repository discovery errors
+              ansible.builtin.debug:
+                msg: "Pacman repository discovery failed, continuing with available data"
+              tags:
+                - repositories
+                - error-handling
+
+        - name: Homebrew tap discovery (macOS)
+          block:
+            - name: Get Homebrew taps
+              ansible.builtin.command: "{{ homebrew_path }} tap"
+              register: homebrew_taps
+              changed_when: false
+              become: false
+              when: homebrew_path is defined
+              failed_when: false
+              timeout: 30
+              tags:
+                - repositories
+                - homebrew
+                - taps
+
+            - name: Get Homebrew tap info
+              ansible.builtin.command: "{{ homebrew_path }} tap-info {{ item }}"
+              register: homebrew_tap_info
+              loop: "{{ homebrew_taps.stdout_lines | default([]) }}"
+              changed_when: false
+              become: false
+              when: 
+                - homebrew_path is defined
+                - homebrew_taps.stdout_lines is defined
+              failed_when: false
+              timeout: 15
+              tags:
+                - repositories
+                - homebrew
+                - tap-info
+
+          when: ansible_os_family == "Darwin"
+          rescue:
+            - name: Handle Homebrew tap discovery errors
+              ansible.builtin.debug:
+                msg: "Homebrew tap discovery failed, continuing with available data"
+              tags:
+                - repositories
+                - error-handling
+
+        - name: Display repository discovery progress
+          ansible.builtin.debug:
+            msg:
+              - "Repository discovery completed"
+              - "APT sources: {{ (apt_additional_sources.files | default([])) | length if ansible_os_family == 'Debian' else 'N/A' }}"
+              - "AUR helper: {{ 'detected' if (aur_helpers.results | default([]) | selectattr('stat.exists') | list | length > 0) else 'not found' if ansible_distribution == 'Archlinux' else 'N/A' }}"
+              - "Homebrew taps: {{ homebrew_taps.stdout_lines | default([]) | length if ansible_os_family == 'Darwin' else 'N/A' }}"
+          tags:
+            - repositories
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle repository discovery errors
+          ansible.builtin.debug:
+            msg: "Repository discovery encountered errors, continuing with available data"
+          tags:
+            - repositories
+            - error-handling
+
+      tags:
+        - repositories
+        - discovery
+
+    # Service Configuration Discovery
+    - name: Service configuration discovery
+      block:
+        - name: Detect critical service configurations
+          ansible.builtin.stat:
+            path: "{{ item.path }}"
+          register: service_configs
+          become: true
+          loop:
+            - { path: "/etc/nginx/nginx.conf", service: "nginx", type: "web_server" }
+            - { path: "/etc/apache2/apache2.conf", service: "apache2", type: "web_server" }
+            - { path: "/etc/httpd/conf/httpd.conf", service: "httpd", type: "web_server" }
+            - { path: "/etc/mysql/mysql.conf.d", service: "mysql", type: "database" }
+            - { path: "/etc/postgresql", service: "postgresql", type: "database" }
+            - { path: "/etc/redis/redis.conf", service: "redis", type: "cache" }
+            - { path: "/etc/memcached.conf", service: "memcached", type: "cache" }
+            - { path: "/etc/fail2ban/jail.conf", service: "fail2ban", type: "security" }
+            - { path: "/etc/ufw/ufw.conf", service: "ufw", type: "firewall" }
+            - { path: "/etc/docker/daemon.json", service: "docker", type: "container" }
+          tags:
+            - service-configs
+            - critical-services
+            - discovery
+
+        - name: Read service configuration files
+          ansible.builtin.slurp:
+            src: "{{ item.item.path }}"
+          register: service_config_contents
+          loop: "{{ service_configs.results }}"
+          when: 
+            - item.stat.exists
+            - item.item.service in (discovery_profile.services.running | default([]))
+          become: true
+          failed_when: false
+          tags:
+            - service-configs
+            - config-content
+            - files
+
+        - name: Discover nginx sites (if nginx is running)
+          block:
+            - name: Find nginx site configurations
+              ansible.builtin.find:
+                paths: ["/etc/nginx/sites-enabled", "/etc/nginx/sites-available", "/etc/nginx/conf.d"]
+                patterns: ["*.conf", "*"]
+                file_type: file
+              register: nginx_sites
+              become: true
+              tags:
+                - nginx
+                - sites
+                - web-config
+
+            - name: Read nginx site configurations
+              ansible.builtin.slurp:
+                src: "{{ item.path }}"
+              register: nginx_site_contents
+              loop: "{{ nginx_sites.files[:5] }}"  # Limit to first 5 sites
+              become: true
+              failed_when: false
+              tags:
+                - nginx
+                - site-content
+                - config-files
+
+          when: "'nginx' in (discovery_profile.services.running | default([]))"
+          rescue:
+            - name: Handle nginx configuration discovery errors
+              ansible.builtin.debug:
+                msg: "Nginx configuration discovery failed"
+              tags:
+                - nginx
+                - error-handling
+
+        - name: Discover apache virtual hosts (if apache is running)
+          block:
+            - name: Find apache site configurations
+              ansible.builtin.find:
+                paths: ["/etc/apache2/sites-enabled", "/etc/apache2/sites-available", "/etc/httpd/conf.d"]
+                patterns: ["*.conf", "*.vhost"]
+                file_type: file
+              register: apache_sites
+              become: true
+              tags:
+                - apache
+                - vhosts
+                - web-config
+
+            - name: Read apache site configurations
+              ansible.builtin.slurp:
+                src: "{{ item.path }}"
+              register: apache_site_contents
+              loop: "{{ apache_sites.files[:5] }}"  # Limit to first 5 sites
+              become: true
+              failed_when: false
+              tags:
+                - apache
+                - vhost-content
+                - config-files
+
+          when: "'apache2' in (discovery_profile.services.running | default([])) or 'httpd' in (discovery_profile.services.running | default([]))"
+          rescue:
+            - name: Handle apache configuration discovery errors
+              ansible.builtin.debug:
+                msg: "Apache configuration discovery failed"
+              tags:
+                - apache
+                - error-handling
+
+        - name: Discover systemd service unit files
+          block:
+            - name: Find custom systemd services
+              ansible.builtin.find:
+                paths: ["/etc/systemd/system", "/usr/local/lib/systemd/system"]
+                patterns: "*.service"
+                file_type: file
+              register: custom_systemd_services
+              become: true
+              tags:
+                - systemd
+                - services
+                - unit-files
+
+            - name: Read custom systemd service files
+              ansible.builtin.slurp:
+                src: "{{ item.path }}"
+              register: systemd_service_contents
+              loop: "{{ custom_systemd_services.files[:10] }}"  # Limit to first 10 services
+              become: true
+              failed_when: false
+              tags:
+                - systemd
+                - service-content
+                - unit-files
+
+          when: ansible_service_mgr == "systemd"
+          rescue:
+            - name: Handle systemd service discovery errors
+              ansible.builtin.debug:
+                msg: "Systemd service discovery failed"
+              tags:
+                - systemd
+                - error-handling
+
+        - name: Display service configuration discovery progress
+          ansible.builtin.debug:
+            msg:
+              - "Service configuration discovery completed"
+              - "Service configs found: {{ service_configs.results | selectattr('stat.exists') | list | length }}"
+              - "Nginx sites: {{ nginx_sites.files | default([]) | length if 'nginx' in (discovery_profile.services.running | default([])) else 'N/A' }}"
+              - "Apache sites: {{ apache_sites.files | default([]) | length if ('apache2' in (discovery_profile.services.running | default([])) or 'httpd' in (discovery_profile.services.running | default([]))) else 'N/A' }}"
+              - "Custom systemd services: {{ custom_systemd_services.files | default([]) | length if ansible_service_mgr == 'systemd' else 'N/A' }}"
+          tags:
+            - service-configs
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle service configuration discovery errors
+          ansible.builtin.debug:
+            msg: "Service configuration discovery encountered errors, continuing with available data"
+          tags:
+            - service-configs
+            - error-handling
+
+      tags:
+        - service-configs
+        - discovery
+
+    # Enhanced Dotfiles Repository Discovery
+    - name: Enhanced dotfiles repository discovery
+      block:
+        - name: Get dotfiles repository information
+          block:
+            - name: Check if dotfiles is a git repository
+              ansible.builtin.stat:
+                path: "{{ ansible_env.HOME }}/.dotfiles/.git"
+              register: dotfiles_git_dir
+              become: false
+              tags:
+                - dotfiles
+                - git
+                - repository
+
+            - name: Get dotfiles repository URL
+              ansible.builtin.command: git -C {{ ansible_env.HOME }}/.dotfiles remote get-url origin
+              register: dotfiles_remote_url
+              become: false
+              changed_when: false
+              failed_when: false
+              when: dotfiles_git_dir.stat.exists
+              tags:
+                - dotfiles
+                - git
+                - remote-url
+
+            - name: Get dotfiles repository branch
+              ansible.builtin.command: git -C {{ ansible_env.HOME }}/.dotfiles branch --show-current
+              register: dotfiles_current_branch
+              become: false
+              changed_when: false
+              failed_when: false
+              when: dotfiles_git_dir.stat.exists
+              tags:
+                - dotfiles
+                - git
+                - branch
+
+            - name: Check for dotfiles management tools
+              ansible.builtin.stat:
+                path: "{{ ansible_env.HOME }}/.dotfiles/{{ item }}"
+              register: dotfiles_tools
+              become: false
+              loop:
+                - "Makefile"
+                - "install.sh"
+                - "bootstrap.sh"
+                - "setup.sh"
+                - "stow"
+                - ".stow-local-ignore"
+              tags:
+                - dotfiles
+                - management-tools
+                - setup
+
+          when: config_files.results | selectattr('item', 'equalto', '.dotfiles') | selectattr('stat.exists') | list
+          rescue:
+            - name: Handle dotfiles repository discovery errors
+              ansible.builtin.debug:
+                msg: "Dotfiles repository discovery failed"
+              tags:
+                - dotfiles
+                - error-handling
+
+        - name: Detect user's preferred shell
+          block:
+            - name: Get current user shell information
+              ansible.builtin.command: "getent passwd {{ ansible_user }}"
+              register: user_shell_info
+              changed_when: false
+              become: true
+              tags:
+                - shell
+                - user-info
+                - detection
+
+            - name: Parse preferred shell
+              ansible.builtin.set_fact:
+                preferred_shell: "{{ user_shell_info.stdout.split(':')[-1] | basename }}"
+              when: user_shell_info.stdout is defined
+              tags:
+                - shell
+                - parsing
+                - variables
+
+            - name: Check shell configuration files
+              ansible.builtin.stat:
+                path: "{{ ansible_env.HOME }}/{{ item }}"
+              register: shell_configs
+              become: false
+              loop:
+                - ".bashrc"
+                - ".bash_profile" 
+                - ".zshrc"
+                - ".zsh_profile"
+                - ".profile"
+                - ".config/fish/config.fish"
+              tags:
+                - shell
+                - config-files
+                - detection
+
+          rescue:
+            - name: Handle shell discovery errors
+              ansible.builtin.debug:
+                msg: "Shell discovery failed"
+              tags:
+                - shell
+                - error-handling
+
+        - name: Display enhanced dotfiles discovery progress
+          ansible.builtin.debug:
+            msg:
+              - "Enhanced dotfiles discovery completed"
+              - "Dotfiles repo URL: {{ dotfiles_remote_url.stdout | default('not a git repo') }}"
+              - "Current branch: {{ dotfiles_current_branch.stdout | default('unknown') }}"
+              - "Management tools: {{ dotfiles_tools.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+              - "Preferred shell: {{ preferred_shell | default('unknown') }}"
+              - "Shell configs found: {{ shell_configs.results | selectattr('stat.exists') | list | length }}"
+          tags:
+            - dotfiles
+            - debug
+            - progress
+
+      rescue:
+        - name: Handle enhanced dotfiles discovery errors
+          ansible.builtin.debug:
+            msg: "Enhanced dotfiles discovery encountered errors, continuing with available data"
+          tags:
+            - dotfiles
+            - error-handling
+
+      tags:
+        - dotfiles
+        - enhanced-discovery
+
   post_tasks:
     # Generate discovery data structure
     - name: Build discovery profile
@@ -740,6 +1228,7 @@
             installed: "{{ ansible_facts.packages | default({}) }}"
             homebrew_formulae: "{{ homebrew_packages.stdout_lines | default([]) }}"
             homebrew_casks: "{{ homebrew_casks.stdout_lines | default([]) }}"
+            aur_packages: "{{ aur_packages.stdout_lines | default([]) if ansible_distribution == 'Archlinux' else [] }}"
           services:
             running: "{{ ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | list }}"
             enabled: "{{ ansible_facts.services | dict2items | selectattr('value.status', 'equalto', 'enabled') | map(attribute='key') | list }}"
@@ -761,8 +1250,24 @@
             current_user: "{{ ansible_user }}"
           development:
             tools_installed: "{{ dev_tools.results | selectattr('stat.exists') | map(attribute='item') | list }}"
-            dotfiles_repo: "{{ dotfiles_repo.stat.exists | default(false) }}"
-            shell_config: "{{ zsh_config.stat.exists | default(false) }}"
+            dotfiles_repo: "{{ config_files.results | selectattr('item', 'equalto', '.dotfiles') | selectattr('stat.exists') | list | length > 0 }}"
+            dotfiles_repo_url: "{{ dotfiles_remote_url.stdout | default('') }}"
+            dotfiles_branch: "{{ dotfiles_current_branch.stdout | default('') }}"
+            dotfiles_tools: "{{ dotfiles_tools.results | default([]) | selectattr('stat.exists') | map(attribute='item') | list }}"
+            preferred_shell: "{{ preferred_shell | default('') }}"
+            shell_configs: "{{ shell_configs.results | default([]) | selectattr('stat.exists') | map(attribute='item') | list }}"
+          repositories:
+            apt_sources: "{{ apt_additional_sources.files | default([]) | map(attribute='path') | list if ansible_os_family == 'Debian' else [] }}"
+            apt_keys: "{{ apt_keys.files | default([]) | map(attribute='path') | list if ansible_os_family == 'Debian' else [] }}"
+            aur_helpers: "{{ aur_helpers.results | default([]) | selectattr('stat.exists') | map(attribute='item') | list if ansible_distribution == 'Archlinux' else [] }}"
+            homebrew_taps: "{{ homebrew_taps.stdout_lines | default([]) if ansible_os_family == 'Darwin' else [] }}"
+            pacman_config: "{{ pacman_config.content | default('') | b64decode if ansible_distribution == 'Archlinux' else '' }}"
+          service_configs:
+            detected_configs: "{{ service_configs.results | default([]) | selectattr('stat.exists') | map(attribute='item') | list }}"
+            nginx_sites: "{{ nginx_sites.files | default([]) | map(attribute='path') | list }}"
+            apache_sites: "{{ apache_sites.files | default([]) | map(attribute='path') | list }}"
+            systemd_services: "{{ custom_systemd_services.files | default([]) | map(attribute='path') | list }}"
+            service_files_content: "{{ service_config_contents.results | default([]) | selectattr('content', 'defined') | list }}"
 
     # Save discovery profile
     - name: Save discovery profile to file
@@ -781,10 +1286,12 @@
       loop:
         - src: "../templates/discovered-inventory.yml.j2"
           dest: "inventory.yml"
-        - src: "../templates/discovered-host-vars.yml.j2"  
+        - src: "../templates/discovered-host-vars-simple.yml.j2"  
           dest: "host_vars/{{ inventory_hostname }}.yml"
         - src: "../templates/package-replication.yml.j2"
           dest: "host_vars/{{ inventory_hostname }}-packages.yml"
+        - src: "../templates/service-config-replication.yml.j2"
+          dest: "host_vars/{{ inventory_hostname }}-services.yml"
         - src: "../templates/secrets-template.yml.j2"
           dest: "{{ inventory_hostname }}-secrets-template.yml"
       delegate_to: localhost
@@ -812,7 +1319,7 @@
 
     - name: Generate replication playbook
       ansible.builtin.template:
-        src: "../templates/discovered-playbook.yml.j2"
+        src: "../templates/discovered-playbook-simple.yml.j2"
         dest: "{{ discovery_output_dir }}/replicate-{{ inventory_hostname }}.yml"
         mode: '0644'
       delegate_to: localhost
@@ -829,20 +1336,26 @@
         msg:
           - "Infrastructure discovery completed!"
           - "Generated files in: {{ discovery_output_dir }}/"
-          - "- inventory.yml (update with your actual IPs)"
-          - "- host_vars/{{ inventory_hostname }}.yml (host configuration)" 
-          - "- host_vars/{{ inventory_hostname }}-packages.yml ({{ discovery_profile.packages.installed.keys() | length }} packages)"
-          - "- {{ inventory_hostname }}-secrets-template.yml (secrets template - POPULATE & ENCRYPT!)"
-          - "- group_vars/[detected-groups].yml (group configurations)"
-          - "- replicate-{{ inventory_hostname }}.yml (replication playbook)"
-          - "- DISCOVERY-REPORT.md (summary and recommendations)"
+          - "Ready for integration with your ~/Ansible/ structure:"
           - ""
-          - "Package discovery summary:"
+          - "Core files:"
+          - "- inventory.yml (matches your inventory format)"
+          - "- host_vars/{{ inventory_hostname }}.yml (compatible with your host_vars)"
+          - "- group_vars/[groups].yml (matches your group_vars pattern)"
+          - "- replicate-{{ inventory_hostname }}.yml (compatible with new_machine.yml)"
+          - ""
+          - "Reference files:"
+          - "- {{ inventory_hostname }}-packages.yml (package details)"
+          - "- {{ inventory_hostname }}-services.yml (service configurations)" 
+          - "- {{ inventory_hostname }}-secrets-template.yml (vault template)"
+          - "- DISCOVERY-REPORT.md (analysis and recommendations)"
+          - ""
+          - "Discovery Summary:"
           - "  - Total packages: {{ discovery_profile.packages.installed.keys() | length }}"
-          {% if discovery_profile.system.os_family == "Darwin" %}
-          - "  - Homebrew formulae: {{ discovery_profile.packages.homebrew_formulae | length }}"
-          - "  - Homebrew casks: {{ discovery_profile.packages.homebrew_casks | length }}"
-          {% endif %}
+          - "  - Service configs: {{ discovery_profile.service_configs.detected_configs | length }}"
+          - "  - Repository sources: {{ (discovery_profile.repositories.apt_sources | length) + (discovery_profile.repositories.homebrew_taps | length) + (discovery_profile.repositories.aur_helpers | length) }}"
+          - "  - Dotfiles detected: {{ 'Yes' if discovery_profile.development.dotfiles_repo else 'No' }}"
+          - "  - Preferred shell: {{ discovery_profile.development.preferred_shell | default('Not detected') }}"
           - ""
           - "Suggested groups: {{ suggested_groups | select | list }}"
           - "Suggested roles: {{ suggested_roles | select | list }}"

@@ -124,6 +124,47 @@ test-discovery-utility:
     max: 2
     when: runner_system_failure
 
+test-new-machine-playbook:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing new-machine setup playbook..."
+    - cd molecule/new-machine-playbook
+    - molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-hierarchical-variables:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing hierarchical variable system..."
+    - cd molecule/new-machine-playbook
+    - molecule test -s default --tags variables
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
 # Integration Testing Stage
 test-collection-integration:
   stage: test-integration
@@ -141,6 +182,8 @@ test-collection-integration:
   needs:
     - test-basic-setup
     - test-docker-setup
+    - test-discovery-utility
+    - test-new-machine-playbook
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -259,3 +302,76 @@ performance-test:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   allow_failure: true
+
+# Multi-OS Testing Matrix (scheduled runs)
+.os-matrix-test: &os-matrix-test
+  stage: test-integration
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $TEST_MATRIX == "true"
+  allow_failure: true
+
+test-ubuntu-discovery:
+  <<: *os-matrix-test
+  script:
+    - echo "Testing discovery on Ubuntu 24.04..."
+    - cd molecule/discovery
+    - molecule test
+  variables:
+    MOLECULE_PLATFORM: ubuntu2404
+
+test-debian-discovery:
+  <<: *os-matrix-test  
+  script:
+    - echo "Testing discovery on Debian 12..."
+    - cd molecule/discovery
+    - molecule test
+  variables:
+    MOLECULE_PLATFORM: debian12
+
+test-cross-os-compatibility:
+  <<: *os-matrix-test
+  script:
+    - echo "Testing cross-OS compatibility..."
+    - cd molecule/new-machine-playbook
+    - molecule test --parallel
+  variables:
+    MOLECULE_PARALLEL: "true"
+    
+# End-to-End Testing (full workflow)
+test-e2e-workflow:
+  stage: test-integration
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Running end-to-end workflow test..."
+    - echo "1. Discovery -> 2. Configuration Generation -> 3. New Machine Setup"
+    - cd molecule/new-machine-playbook
+    - molecule test --scenario-name default
+    - echo "Testing discovery-to-deployment pipeline..."
+    - cd ../discovery
+    - molecule converge
+    - molecule verify
+  needs:
+    - test-collection-integration
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $MR_LABELS =~ /.*e2e-test.*/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  artifacts:
+    paths:
+      - molecule/*/logs/
+      - /tmp/discovery-test*/
+    expire_in: 1 hour
+    when: always

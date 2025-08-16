@@ -1,0 +1,7 @@
+---
+all:
+  hosts:
+    altra:
+      ansible_host: 192.168.100.12
+      ansible_user: ed
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'

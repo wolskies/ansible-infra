@@ -1,0 +1,172 @@
+# Service Configuration Replication for {{ inventory_hostname }}
+# Generated from discovery on {{ ansible_date_time.iso8601 }}
+# Detected services with configurations: {{ discovery_profile.service_configs.detected_configs | length }}
+
+---
+# Detected Service Configurations
+{% if discovery_profile.service_configs.detected_configs %}
+service_configurations_detected:
+{% for config in discovery_profile.service_configs.detected_configs %}
+  - name: "{{ config.service }}"
+    type: "{{ config.type }}"
+    config_path: "{{ config.path }}"
+    active: {{ config.service in discovery_profile.services.running }}
+{% endfor %}
+{% endif %}
+
+{% if discovery_profile.service_configs.nginx_sites %}
+# Nginx Configuration Management
+nginx_configuration:
+  main_config: "/etc/nginx/nginx.conf"
+  sites_detected: {{ discovery_profile.service_configs.nginx_sites | length }}
+  site_configs:
+{% for site in discovery_profile.service_configs.nginx_sites %}
+    - path: "{{ site }}"
+      name: "{{ site | basename | regex_replace('\\.(conf|site)$', '') }}"
+      # TODO: Parse and extract server_name, listen ports, etc.
+{% endfor %}
+  
+  # Replication tasks for nginx
+  replication_tasks:
+    - name: "Install nginx"
+      package: "nginx"
+      state: "present"
+    - name: "Copy main nginx configuration"
+      template: "nginx.conf.j2"
+      dest: "/etc/nginx/nginx.conf"
+    - name: "Deploy site configurations"
+      template: "{{ '{{ item.name }}' }}.conf.j2"
+      dest: "/etc/nginx/sites-available/{{ '{{ item.name }}' }}.conf"
+      loop: "{{ '{{ nginx_sites }}' }}"
+    - name: "Enable sites"
+      file:
+        src: "/etc/nginx/sites-available/{{ '{{ item.name }}' }}.conf"
+        dest: "/etc/nginx/sites-enabled/{{ '{{ item.name }}' }}.conf"
+        state: "link"
+{% endif %}
+
+{% if discovery_profile.service_configs.apache_sites %}
+# Apache Configuration Management
+apache_configuration:
+  main_config: "/etc/apache2/apache2.conf"
+  sites_detected: {{ discovery_profile.service_configs.apache_sites | length }}
+  site_configs:
+{% for site in discovery_profile.service_configs.apache_sites %}
+    - path: "{{ site }}"
+      name: "{{ site | basename | regex_replace('\\.(conf|vhost)$', '') }}"
+      # TODO: Parse and extract VirtualHost settings
+{% endfor %}
+  
+  # Replication tasks for apache
+  replication_tasks:
+    - name: "Install apache2"
+      package: "apache2"
+      state: "present"
+    - name: "Deploy virtual host configurations"
+      template: "{{ '{{ item.name }}' }}.vhost.j2"
+      dest: "/etc/apache2/sites-available/{{ '{{ item.name }}' }}.conf"
+      loop: "{{ '{{ apache_sites }}' }}"
+    - name: "Enable sites"
+      command: "a2ensite {{ '{{ item.name }}' }}"
+      loop: "{{ '{{ apache_sites }}' }}"
+{% endif %}
+
+{% if discovery_profile.service_configs.systemd_services %}
+# Custom Systemd Services
+systemd_services_detected:
+{% for service in discovery_profile.service_configs.systemd_services %}
+  - name: "{{ service | basename | regex_replace('\\.service$', '') }}"
+    path: "{{ service }}"
+    active: {{ (service | basename) in discovery_profile.services.running }}
+    enabled: {{ (service | basename) in discovery_profile.services.enabled }}
+    # TODO: Parse service file and extract key settings
+{% endfor %}
+
+# Systemd service replication
+systemd_replication_tasks:
+  - name: "Deploy custom systemd service files"
+    template: "{{ '{{ item.name }}' }}.service.j2"
+    dest: "/etc/systemd/system/{{ '{{ item.name }}' }}.service"
+    loop: "{{ '{{ systemd_services_detected }}' }}"
+    notify: "reload systemd"
+  - name: "Enable and start custom services"
+    systemd:
+      name: "{{ '{{ item.name }}' }}"
+      enabled: "{{ '{{ item.enabled }}' }}"
+      state: "{{ 'started' if '{{ item.active }}' else 'stopped' }}"
+    loop: "{{ '{{ systemd_services_detected }}' }}"
+{% endif %}
+
+{% if discovery_profile.docker.installed %}
+# Docker Configuration
+docker_configuration:
+  daemon_config: "/etc/docker/daemon.json"
+  compose_detected: {{ 'docker-compose' in discovery_profile.development.tools_installed }}
+  
+  # Detected containers (for reference - not auto-deployed)
+  containers_reference:
+{% for container in discovery_profile.docker.containers %}
+    - image: "{{ container }}"
+      # TODO: Extract container configuration for replication
+{% endfor %}
+
+  # Docker networks detected
+  networks_detected:
+{% for network in discovery_profile.docker.networks %}
+    - "{{ network }}"
+{% endfor %}
+
+  # Docker volumes detected  
+  volumes_detected:
+{% for volume in discovery_profile.docker.volumes %}
+    - "{{ volume }}"
+{% endfor %}
+{% endif %}
+
+# Security Service Configurations
+{% if 'fail2ban' in discovery_profile.services.running %}
+security_services:
+  fail2ban:
+    enabled: true
+    config_path: "/etc/fail2ban/jail.conf"
+    # TODO: Parse jail.conf and extract custom rules
+{% endif %}
+
+{% if discovery_profile.security.ufw_status or discovery_profile.security.firewalld_status %}
+  firewall:
+{% if discovery_profile.security.ufw_status %}
+    type: "ufw"
+    status: "{{ discovery_profile.security.ufw_status.split('\n')[0] }}"
+    config_path: "/etc/ufw/ufw.conf"
+{% elif discovery_profile.security.firewalld_status %}
+    type: "firewalld" 
+    status: "{{ discovery_profile.security.firewalld_status }}"
+{% endif %}
+    # TODO: Extract firewall rules for replication
+{% endif %}
+
+# Service Configuration Replication Strategy
+replication_strategy:
+  priority_order:
+    - "Install base services (nginx, apache, docker, etc.)"
+    - "Deploy main configuration files"  
+    - "Deploy site/application specific configs"
+    - "Deploy custom systemd services"
+    - "Configure security services (fail2ban, firewall)"
+    - "Start and enable services"
+    - "Verify service health"
+
+  manual_tasks_required:
+    - "Review and customize configuration templates"
+    - "Update domain names and IP addresses in configs"
+    - "Configure SSL certificates"
+    - "Set up service-specific secrets and credentials"
+    - "Test service functionality after deployment"
+    - "Configure monitoring and logging"
+
+# Notes for Manual Configuration
+# 1. Service configuration files have been detected but content needs review
+# 2. Custom applications may require additional setup beyond configuration files
+# 3. Database services may need schema and data migration
+# 4. Web services may need SSL/TLS certificate configuration
+# 5. Always test services in a staging environment first

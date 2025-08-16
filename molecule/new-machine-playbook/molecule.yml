@@ -1,0 +1,111 @@
+---
+# Test scenario for the complete new-machine setup playbook
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../default/requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  # Ubuntu workstation simulation
+  - name: ubuntu-workstation
+    image: quay.io/ansible/ubuntu2404-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - workstations
+      - discovery_test_targets
+    
+  # Debian server simulation  
+  - name: debian-server
+    image: quay.io/ansible/debian12-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - servers
+      - discovery_test_targets
+
+  # Arch Linux workstation simulation (custom image needed)
+  - name: archlinux-workstation
+    image: quay.io/ansible/creator-base:latest  # Fallback image
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - workstations
+      - archlinux_hosts
+      - discovery_test_targets
+
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        # Disable security hardening in tests for speed
+        security_hardening_enabled: false
+        ssh_hardening_enabled: false
+        
+        # Test dotfiles repository (mock)
+        dotfiles_repository_url: "https://github.com/test/dotfiles.git"
+        install_dotfiles: false  # Skip actual installation in tests
+        
+        # Discovery configuration
+        discovery:
+          output_dir: "/tmp/discovery-test"
+          generate_configs: true
+          include_sensitive: false
+          timeout: 120
+          
+      workstations:
+        # Test workstation-specific configuration
+        machine_type: workstation
+        group_packages_install:
+          - git
+          - curl
+          - wget
+        group_roles_install:
+          - name: desktop-test
+            become: false
+            when: false  # Skip in tests
+            
+      servers:
+        # Test server-specific configuration  
+        machine_type: server
+        group_packages_install:
+          - git
+          - htop
+          - screen
+        group_services_enable:
+          - test-service
+          
+      discovery_test_targets:
+        # Mock discovery data for testing
+        discovered_machine_type: "{{ machine_type | default('workstation') }}"
+        test_discovery_packages:
+          - vim
+          - nano
+          - curl
+          
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+      gathering: smart
+      fact_caching: memory
+
+verifier:
+  name: ansible

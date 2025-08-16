@@ -1,0 +1,108 @@
+---
+# Desktop Environment Discovery
+# Detects desktop environments and GUI configurations
+
+- name: Discover desktop environment
+  block:
+    # Check for desktop environment variables
+    - name: Check for desktop environment variables
+      ansible.builtin.command: echo $XDG_CURRENT_DESKTOP
+      register: xdg_desktop
+      failed_when: false
+      changed_when: false
+      become: false
+
+    - name: Check for display variables
+      ansible.builtin.shell: |
+        echo "DISPLAY=${DISPLAY:-}"
+        echo "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}"
+        echo "XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-}"
+      register: display_vars
+      failed_when: false
+      changed_when: false
+      become: false
+
+    # Check for desktop environment files and directories
+    - name: Check for desktop environment indicators
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: desktop_indicators
+      loop:
+        - /usr/share/xsessions
+        - /usr/share/wayland-sessions
+        - /usr/bin/gnome-shell
+        - /usr/bin/plasma-desktop
+        - /usr/bin/xfce4-session
+        - /usr/bin/mate-session
+        - /usr/bin/i3
+        - /usr/bin/awesome
+        - /usr/bin/startx
+
+    # Check for display managers
+    - name: Check for display manager services
+      ansible.builtin.set_fact:
+        display_managers: "{{ ansible_facts.services.keys() | select('match', '(gdm|lightdm|sddm|xdm|kdm)') | list }}"
+
+    # Check window managers and desktop environments in packages
+    - name: Identify desktop packages
+      ansible.builtin.set_fact:
+        desktop_packages: "{{ ansible_facts.packages.keys() | intersect(package_categories.desktop_environment) | list }}"
+
+    # Check for X11 and Wayland
+    - name: Check graphics system
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: graphics_systems
+      loop:
+        - /usr/bin/X
+        - /usr/bin/Xorg
+        - /usr/bin/wayland
+
+- name: Determine desktop environment type
+  ansible.builtin.set_fact:
+    desktop_detected: >-
+      {{
+        ((xdg_desktop.stdout | default('')) | length > 0) or
+        ((display_vars.stdout | default('')) | regex_search('DISPLAY=:')) or
+        ((display_vars.stdout | default('')) | regex_search('WAYLAND_DISPLAY=')) or
+        ((desktop_indicators.results | default([])) | selectattr('stat.exists') | list | length > 0) or
+        ((display_managers | default([])) | length > 0) or
+        ((desktop_packages | default([])) | length > 0)
+      }}
+
+- name: Parse desktop environment details
+  ansible.builtin.set_fact:
+    desktop_environment_name: >-
+      {%- if 'KDE' in xdg_desktop.stdout -%}
+        kde
+      {%- elif 'GNOME' in xdg_desktop.stdout -%}
+        gnome
+      {%- elif 'XFCE' in xdg_desktop.stdout -%}
+        xfce
+      {%- elif 'MATE' in xdg_desktop.stdout -%}
+        mate
+      {%- elif 'i3' in desktop_packages -%}
+        i3
+      {%- elif 'awesome' in desktop_packages -%}
+        awesome
+      {%- elif (desktop_packages | default([])) | length > 0 -%}
+        {{ desktop_packages[0] }}
+      {%- else -%}
+        unknown
+      {%- endif %}
+
+- name: Store desktop discovery results (simplified for testing)
+  ansible.builtin.set_fact:
+    discovered_desktop:
+      has_gui: "{{ desktop_detected | default(false) }}"
+      environment: "{{ desktop_environment_name | default('unknown') }}"
+      display_manager:
+        detected: "{{ (display_managers | default([])) | length > 0 }}"
+        active: "{{ (display_managers | default([])) }}"
+      desktop_packages: "{{ desktop_packages | default([]) }}"
+      graphics:
+        x11_available: "{{ (graphics_systems.results | default([])) | selectattr('stat.exists', 'equalto', true) | selectattr('item', 'match', '.*X.*') | list | length > 0 }}"
+        wayland_available: false
+  tags:
+    - desktop
+    - gui

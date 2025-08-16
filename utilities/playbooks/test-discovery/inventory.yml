@@ -1,0 +1,26 @@
+# Auto-generated inventory for localhost
+# Generated from infrastructure discovery on 2025-08-16T13:11:11Z
+# Review and update with your actual IP addresses
+# Format compatible with existing ~/Ansible/inventory structure
+
+workstations:
+  hosts:
+    localhost:
+      ansible_host: UPDATE_WITH_ACTUAL_IP  # Was: 192.168.100.36
+
+docker_hosts:
+  hosts:
+    localhost:
+            # Discovered services for potential deployment
+      services_deploy:
+
+
+# Application-specific groups (add hosts to these as needed)
+
+
+
+
+
+# TODO: Review and update all ansible_host entries with actual IP addresses
+# TODO: Configure secrets in group_vars vault files
+# TODO: Verify services_deploy lists match your available Docker services

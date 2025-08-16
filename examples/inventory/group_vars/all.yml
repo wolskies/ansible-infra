@@ -1,0 +1,54 @@
+---
+# Global variables that apply to ALL machines
+# Prefix with "global_" to indicate scope
+
+# User configuration
+global_ansible_user: 'ed'
+
+# System configuration  
+global_config_system_locale: 'en_US.UTF-8'
+global_config_system_language: 'en_US.UTF-8'
+global_config_system_timezone: 'America/New_York'
+
+# Global packages - installed on every machine
+global_packages_install:
+  - git
+  - curl
+  - wget
+  - rsync
+  - unzip
+  - screen
+  - htop
+
+# Global packages to remove - banned on all machines  
+global_packages_remove:
+  - telnet
+  - rsh-client
+  - xinetd
+
+# Global services - enabled on every machine
+global_services_enable:
+  - ssh
+  - cron
+
+# Global services to disable - disabled on all machines
+global_services_disable:
+  - telnet
+  - rsh
+
+# Global roles - applied to every machine
+global_roles_install:
+  - basic_setup
+  - system_update
+
+# Security defaults
+global_enable_firewall: true
+global_disable_unnecessary_services: true
+
+# User details (passwords from vault)
+global_user_details:
+  - name: "{{ global_ansible_user }}"
+    shell: '/bin/bash'
+    groups:
+      - sudo
+      - wheel

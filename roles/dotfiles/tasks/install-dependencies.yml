@@ -1,0 +1,67 @@
+---
+# Install discovered dependencies using system packages when possible
+- name: Install tools via system package manager
+  block:
+    - name: Gather tools that can be installed via system packages
+      ansible.builtin.set_fact:
+        system_installable_tools: >-
+          {{
+            dotfiles_needed_tools | select('in', dotfiles_common_tools | selectattr('system_packages.' + ansible_distribution, 'defined') | selectattr('system_packages.' + ansible_distribution, '!=', []) | map(attribute='name') | list) | list
+          }}
+
+    - name: Create system package list for current OS
+      ansible.builtin.set_fact:
+        system_packages_to_install: >-
+          {{
+            dotfiles_common_tools | selectattr('name', 'in', system_installable_tools) | map(attribute='system_packages.' + ansible_distribution) | select('defined') | flatten | list
+          }}
+
+    - name: Install system packages
+      ansible.builtin.package:
+        name: "{{ system_packages_to_install }}"
+        state: present
+      become: true
+      when: system_packages_to_install | length > 0
+      register: system_install_result
+
+  rescue:
+    - name: Handle system package installation errors
+      ansible.builtin.debug:
+        msg: "Some system packages failed to install, will try fallback methods"
+
+- name: Install tools via fallback methods
+  ansible.builtin.include_tasks: install-tool-fallback.yml
+  vars:
+    tool_config: "{{ item }}"
+  loop: "{{ dotfiles_common_tools | selectattr('name', 'in', dotfiles_needed_tools) | list }}"
+  when:
+    - item.name not in (system_installable_tools | default([]))
+    - item.fallback_install is defined
+    - item.fallback_install != ""
+
+- name: Verify tool installation
+  ansible.builtin.shell: |
+    installed_tools=()
+    {% for tool in dotfiles_common_tools %}
+    {% for command in tool.commands %}
+    if command -v "{{ command }}" >/dev/null 2>&1; then
+      installed_tools+=("{{ tool.name }}")
+      break
+    fi
+    {% endfor %}
+    {% endfor %}
+    
+    printf '%s\n' "${installed_tools[@]}" | sort -u
+  register: post_install_check
+  changed_when: false
+
+- name: Set installation results
+  ansible.builtin.set_fact:
+    dotfiles_installed_tools: "{{ post_install_check.stdout_lines | default([]) | intersect(dotfiles_needed_tools) }}"
+    dotfiles_available_tools: "{{ post_install_check.stdout_lines | default([]) }}"
+
+- name: Display installation results
+  ansible.builtin.debug:
+    msg:
+      - "Successfully installed: {{ dotfiles_installed_tools | join(', ') if dotfiles_installed_tools else 'none' }}"
+      - "Still missing: {{ dotfiles_needed_tools | difference(dotfiles_installed_tools) | join(', ') if dotfiles_needed_tools | difference(dotfiles_installed_tools) else 'none' }}"

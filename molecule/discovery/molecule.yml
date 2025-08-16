@@ -10,24 +10,24 @@ driver:
 
 platforms:
   - name: ubuntu-discovery
-    image: quay.io/ansible/ubuntu2404-test:latest
-    pre_build_image: true
+    image: ubuntu:24.04
+    pre_build_image: false
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: "/sbin/init"
     groups:
       - discovery_targets
     
   - name: debian-discovery
-    image: quay.io/ansible/debian12-test:latest
-    pre_build_image: true
+    image: debian:12
+    pre_build_image: false
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: "/sbin/init"
     groups:
       - discovery_targets
 

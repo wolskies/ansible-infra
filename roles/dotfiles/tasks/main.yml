@@ -1,34 +1,60 @@
 #SPDX-License-Identifier: MIT-0
 ---
-- name: Include OS-specific install tasks
-  include_tasks: "{{ item }}"
-  with_first_found:
-    - files:
-        - "{{ ansible_distribution }}-{{ ansible_distribution_release }}.yml"
-        - "{{ ansible_distribution }}.yml"
-        - "{{ ansible_os_family }}.yml"
-      paths:
-        - "{{ role_path }}/tasks"
-        
+# Smart dotfiles role that discovers dependencies and uses system packages when possible
+
+- name: Validate dotfiles configuration
+  ansible.builtin.fail:
+    msg: "dotfiles_repository_url must be defined to use this role"
+  when: not dotfiles_repository_url or dotfiles_repository_url == ""
+  tags: dotfiles
+
+- name: Install essential packages
+  ansible.builtin.include_tasks: install-essentials.yml
+  tags: 
+    - dotfiles
+    - packages
+
 - name: Check if dotfiles directory exists
   ansible.builtin.stat:
-    path: /home/{{ ansible_user}}/.dotfiles
-  register: dotfiles_directory
+    path: "{{ dotfiles_directory }}"
+  register: dotfiles_directory_stat
+  tags: dotfiles
 
-- name: Install dotfiles
-  when: not dotfiles_directory.stat.exists
-  block: 
-    - name: Install dotfiles
-      ansible.builtin.git:
-        repo: "{{ dotfiles_repository_url | default('https://github.com/example/dotfiles.git') }}"
-        dest: "{{ ansible_env.HOME }}/.dotfiles"
-        update: true
-        clone: true
-        accept_hostkey: true
-        key_file: "{{ ansible_env.HOME }}/.ssh/id_rsa"
-    - name: Stow dotfiles
-      ansible.builtin.shell: "stow . --verbose 2 --no-folding"
-      args:
-        chdir: "{{ ansible_env.HOME }}/.dotfiles"
-  become: true
-  become_user: "{{ ansible_user }}"
+- name: Clone or update dotfiles repository
+  ansible.builtin.include_tasks: clone-dotfiles.yml
+  when: dotfiles_repository_url is defined and dotfiles_repository_url != ""
+  tags: dotfiles
+
+- name: Discover dotfiles dependencies
+  ansible.builtin.include_tasks: discover-dependencies.yml
+  when: 
+    - dotfiles_scan_for_dependencies | default(true)
+    - dotfiles_directory_stat.stat.exists
+  tags:
+    - dotfiles
+    - discovery
+
+- name: Install discovered dependencies
+  ansible.builtin.include_tasks: install-dependencies.yml
+  when: 
+    - dotfiles_auto_install_dependencies | default(true)
+    - dotfiles_needed_tools is defined
+  tags:
+    - dotfiles
+    - packages
+
+- name: Deploy dotfiles
+  ansible.builtin.include_tasks: deploy-dotfiles.yml
+  when: dotfiles_directory_stat.stat.exists
+  tags: dotfiles
+
+- name: Display dotfiles deployment summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Dotfiles Deployment Summary ==="
+      - "Repository: {{ dotfiles_repository_url }}"
+      - "Directory: {{ dotfiles_directory }}"
+      - "Method: {{ dotfiles_method }}"
+      - "Dependencies installed: {{ dotfiles_installed_tools | default([]) | length }}"
+      - "Tools available: {{ dotfiles_available_tools | default([]) | join(', ') }}"
+  tags: dotfiles

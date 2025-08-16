@@ -1,0 +1,154 @@
+---
+# Process discovered packages from discovery role
+- name: Install discovered system packages
+  become: true
+  ansible.builtin.package:
+    name: "{{ discovered_packages.system_packages | default([]) }}"
+    state: present
+  when:
+    - install_system_packages | default(true)
+    - discovered_packages.system_packages is defined
+    - discovered_packages.system_packages | length > 0
+  tags:
+    - packages
+    - system-packages
+    - discovered-packages
+
+- name: Install discovered development packages
+  become: true
+  ansible.builtin.package:
+    name: "{{ discovered_packages.development_packages | default([]) }}"
+    state: present
+  when:
+    - install_development_packages | default(true)
+    - discovered_packages.development_packages is defined
+    - discovered_packages.development_packages | length > 0
+  tags:
+    - packages
+    - development-packages
+    - discovered-packages
+
+- name: Install discovered desktop packages
+  become: true
+  ansible.builtin.package:
+    name: "{{ discovered_packages.desktop_packages | default([]) }}"
+    state: present
+  when:
+    - install_desktop_packages | default(true)
+    - discovered_packages.desktop_packages is defined
+    - discovered_packages.desktop_packages | length > 0
+    - discovered_desktop.has_gui | default(false)
+  tags:
+    - packages
+    - desktop-packages
+    - discovered-packages
+
+- name: Install discovered media packages (with confirmation)
+  become: true
+  ansible.builtin.package:
+    name: "{{ discovered_packages.media_packages | default([]) }}"
+    state: present
+  when:
+    - install_media_packages | default(false)
+    - discovered_packages.media_packages is defined
+    - discovered_packages.media_packages | length > 0
+  tags:
+    - packages
+    - media-packages
+    - discovered-packages
+
+# AUR packages for Arch Linux
+- name: Check if AUR packages are already installed
+  ansible.builtin.shell: |
+    pacman -Qi {{ item }} >/dev/null 2>&1
+  loop: "{{ discovered_packages.aur_packages | default([]) }}"
+  register: aur_package_check
+  failed_when: false
+  changed_when: false
+  when:
+    - ansible_distribution == 'Archlinux'
+    - discovered_packages.aur_packages is defined
+    - discovered_packages.aur_packages | length > 0
+  tags:
+    - packages
+    - aur-packages
+    - discovered-packages
+    - arch-linux
+
+- name: Install discovered AUR packages (only if not present)
+  become: false
+  ansible.builtin.shell: |
+    {{ discovered_repositories.pacman.aur_helpers[0] | default('yay') }} -S --noconfirm {{ item.item }}
+  loop: "{{ aur_package_check.results | default([]) }}"
+  when:
+    - ansible_distribution == 'Archlinux'
+    - discovered_packages.aur_packages is defined
+    - discovered_packages.aur_packages | length > 0
+    - discovered_repositories.pacman.aur_helpers is defined
+    - aur_package_check is defined
+    - item.rc != 0  # Package not installed
+  tags:
+    - packages
+    - aur-packages
+    - discovered-packages
+    - arch-linux
+
+# Python packages
+- name: Install discovered Python packages
+  ansible.builtin.pip:
+    name: "{{ discovered_packages.pip_packages | default([]) }}"
+    state: present
+    extra_args: --user
+  when:
+    - discovered_packages.pip_packages is defined
+    - discovered_packages.pip_packages | length > 0
+  tags:
+    - packages
+    - python-packages
+    - discovered-packages
+
+# NPM packages
+- name: Install discovered NPM packages
+  ansible.builtin.npm:
+    name: "{{ item }}"
+    global: true
+  loop: "{{ discovered_packages.npm_packages | default([]) }}"
+  when:
+    - discovered_packages.npm_packages is defined
+    - discovered_packages.npm_packages | length > 0
+  tags:
+    - packages
+    - npm-packages
+    - discovered-packages
+
+# Homebrew packages for macOS
+- name: Install discovered Homebrew packages
+  community.general.homebrew:
+    name: "{{ discovered_packages.homebrew_packages | default([]) }}"
+    state: present
+  when:
+    - ansible_os_family == 'Darwin'
+    - discovered_packages.homebrew_packages is defined
+    - discovered_packages.homebrew_packages | length > 0
+  tags:
+    - packages
+    - homebrew-packages
+    - discovered-packages
+    - macos
+
+- name: Display package installation summary
+  ansible.builtin.debug:
+    msg:
+      - "Package installation completed:"
+      - "System packages: {{ discovered_packages.system_packages | default([]) | length }}"
+      - "Development packages: {{ discovered_packages.development_packages | default([]) | length }}"
+      - "Desktop packages: {{ discovered_packages.desktop_packages | default([]) | length }}"
+      - "Media packages: {{ discovered_packages.media_packages | default([]) | length if install_media_packages else 'skipped' }}"
+      - "AUR packages: {{ discovered_packages.aur_packages | default([]) | length if ansible_distribution == 'Archlinux' else 'N/A' }}"
+      - "Python packages: {{ discovered_packages.pip_packages | default([]) | length }}"
+      - "NPM packages: {{ discovered_packages.npm_packages | default([]) | length }}"
+      - "Homebrew packages: {{ discovered_packages.homebrew_packages | default([]) | length if ansible_os_family == 'Darwin' else 'N/A' }}"
+  tags:
+    - packages
+    - discovered-packages
+    - summary

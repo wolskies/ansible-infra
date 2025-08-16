@@ -1,0 +1,52 @@
+# Service Configuration Replication for localhost
+# Generated from discovery on 2025-08-16T13:11:11Z
+# Detected services with configurations: 0
+
+---
+# Detected Service Configurations
+
+
+
+
+# Docker Configuration
+docker_configuration:
+  daemon_config: "/etc/docker/daemon.json"
+  compose_detected: False
+  
+  # Detected containers (for reference - not auto-deployed)
+  containers_reference:
+
+  # Docker networks detected
+  networks_detected:
+
+  # Docker volumes detected  
+  volumes_detected:
+
+# Security Service Configurations
+
+
+# Service Configuration Replication Strategy
+replication_strategy:
+  priority_order:
+    - "Install base services (nginx, apache, docker, etc.)"
+    - "Deploy main configuration files"  
+    - "Deploy site/application specific configs"
+    - "Deploy custom systemd services"
+    - "Configure security services (fail2ban, firewall)"
+    - "Start and enable services"
+    - "Verify service health"
+
+  manual_tasks_required:
+    - "Review and customize configuration templates"
+    - "Update domain names and IP addresses in configs"
+    - "Configure SSL certificates"
+    - "Set up service-specific secrets and credentials"
+    - "Test service functionality after deployment"
+    - "Configure monitoring and logging"
+
+# Notes for Manual Configuration
+# 1. Service configuration files have been detected but content needs review
+# 2. Custom applications may require additional setup beyond configuration files
+# 3. Database services may need schema and data migration
+# 4. Web services may need SSL/TLS certificate configuration
+# 5. Always test services in a staging environment first

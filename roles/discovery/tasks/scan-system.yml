@@ -1,0 +1,90 @@
+---
+# System Information Discovery
+# Gathers basic system facts and package information
+
+- name: Gather system facts
+  ansible.builtin.setup:
+    gather_subset:
+      - '!all'
+      - '!any'
+      - hardware
+      - network
+      - virtual
+      - platform
+  tags:
+    - system
+    - facts
+
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: auto
+  become: true
+  timeout: "{{ discovery.timeout }}"
+  tags:
+    - packages
+    - system
+
+- name: Gather service facts  
+  ansible.builtin.service_facts:
+  become: true
+  timeout: "{{ discovery.timeout }}"
+  tags:
+    - services
+    - system
+
+- name: Get network configuration
+  block:
+    - name: Get routing information
+      ansible.builtin.command: ip route show
+      register: routing_table
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: Get listening ports
+      ansible.builtin.command: ss -tuln
+      register: listening_ports
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: Read DNS configuration
+      ansible.builtin.slurp:
+        src: /etc/resolv.conf
+      register: dns_config
+      failed_when: false
+  rescue:
+    - name: Handle network discovery errors
+      ansible.builtin.debug:
+        msg: "Network discovery failed, continuing with basic facts"
+  tags:
+    - network
+    - system
+
+- name: Store system discovery results
+  ansible.builtin.set_fact:
+    discovered_system:
+      hostname: "{{ inventory_hostname }}"
+      os:
+        family: "{{ ansible_os_family }}"
+        distribution: "{{ ansible_distribution }}"
+        version: "{{ ansible_distribution_version }}"
+        major_version: "{{ ansible_distribution_major_version }}"
+        architecture: "{{ ansible_architecture }}"
+      hardware:
+        memory_mb: "{{ ansible_memtotal_mb }}"
+        cpu_cores: "{{ ansible_processor_vcpus }}"
+        virtualization: "{{ ansible_virtualization_type | default('physical') }}"
+      network:
+        interfaces: "{{ ansible_interfaces }}"
+        default_ipv4: "{{ ansible_default_ipv4 | default({}) }}"
+        fqdn: "{{ ansible_fqdn }}"
+        routing: "{{ routing_table.stdout_lines | default([]) }}"
+        listening_ports: "{{ listening_ports.stdout_lines | default([]) }}"
+        dns_servers: "{{ (dns_config.content | default('') | b64decode).split('\n') | select('match', '^nameserver') | list }}"
+      python:
+        version: "{{ ansible_python_version }}"
+        executable: "{{ ansible_python['executable'] }}"
+  tags:
+    - system
+    - facts

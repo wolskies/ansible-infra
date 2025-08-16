@@ -1,0 +1,117 @@
+---
+# Configuration File Generation
+# Generates inventory, host_vars, group_vars, and playbooks
+
+- name: Generate core configuration files
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ discovery.output_dir }}/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - src: "inventory.yml.j2"
+      dest: "inventory.yml"
+    - src: "group_vars_all.yml.j2"
+      dest: "group_vars/all.yml"
+  delegate_to: localhost
+  tags:
+    - generation
+    - core
+
+- name: Generate host-specific configuration files
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ discovery.output_dir }}/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - src: "host_discovered_packages.yml.j2"
+      dest: "host_vars/{{ inventory_hostname }}.yml"
+    - src: "vault_template.yml.j2"
+      dest: "host_vars/{{ inventory_hostname }}/vault.yml.template"
+  delegate_to: localhost
+  tags:
+    - generation
+    - host_vars
+
+- name: Generate group variable files
+  ansible.builtin.template:
+    src: "group_vars.yml.j2"
+    dest: "{{ discovery.output_dir }}/group_vars/{{ item }}.yml"
+    mode: '0644'
+  loop: "{{ applicable_groups }}"
+  delegate_to: localhost
+  tags:
+    - generation
+    - group_vars
+
+- name: Generate playbooks
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ discovery.output_dir }}/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - src: "new_machine.yml.j2"
+      dest: "playbooks/new_machine.yml"
+    - src: "discovery_playbook.yml.j2"
+      dest: "playbooks/discovery.yml"
+  delegate_to: localhost
+  tags:
+    - generation
+    - playbooks
+
+- name: Generate documentation
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ discovery.output_dir }}/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - src: "README.md.j2"
+      dest: "README.md"
+    - src: "SERVICES.md.j2"
+      dest: "documentation/DISCOVERED-SERVICES.md"
+    - src: "MANUAL_TASKS.md.j2"
+      dest: "documentation/MANUAL-TASKS.md"
+  delegate_to: localhost
+  tags:
+    - generation
+    - documentation
+
+- name: Create package installation scripts
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ discovery.output_dir }}/{{ item.dest }}"
+    mode: '0755'
+  loop:
+    - src: "install_packages.sh.j2"
+      dest: "scripts/install_packages.sh"
+  delegate_to: localhost
+  when: discovered_system.os.family in ["Debian", "Archlinux"]
+  tags:
+    - generation
+    - scripts
+
+- name: Display generation summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Configuration Files Generated ==="
+      - "Core files:"
+      - "  - inventory.yml"
+      - "  - group_vars/all.yml"
+      - "  - {{ applicable_groups | length }} group_vars files"
+      - ""
+      - "Host-specific files:"
+      - "  - host_vars/{{ inventory_hostname }}.yml"
+      - "  - host_vars/{{ inventory_hostname }}/packages.yml"
+      - "  - host_vars/{{ inventory_hostname }}/services.yml"
+      - "  - host_vars/{{ inventory_hostname }}/vault.yml.template"
+      - ""
+      - "Playbooks:"
+      - "  - playbooks/new_machine.yml"
+      - "  - playbooks/discovery.yml"
+      - ""
+      - "Documentation:"
+      - "  - README.md"
+      - "  - documentation/DISCOVERED-SERVICES.md"
+      - "  - documentation/MANUAL-TASKS.md"
+  tags:
+    - generation
+    - summary

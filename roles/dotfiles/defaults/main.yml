@@ -1,3 +1,63 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for dotfiles
+
+# Core dotfiles configuration
+dotfiles_repository_url: ""
+dotfiles_branch: "main"
+dotfiles_directory: "{{ ansible_env.HOME }}/.dotfiles"
+dotfiles_method: "stow"  # stow, symlink, copy
+
+# Dependency management
+dotfiles_auto_install_dependencies: true
+dotfiles_prefer_system_packages: true
+dotfiles_scan_for_dependencies: true
+
+# Common tools that dotfiles might reference
+# These will be checked and installed only if needed by the dotfiles
+dotfiles_common_tools:
+  # Shell enhancements
+  - name: "starship"
+    commands: ["starship"]
+    system_packages:
+      Archlinux: ["starship"]
+      Debian: []  # Will use fallback method
+      Darwin: ["starship"]
+    fallback_install: "curl -sS https://starship.rs/install.sh | sh -s -- --yes"
+  
+  - name: "zoxide"
+    commands: ["zoxide", "z"]
+    system_packages:
+      Archlinux: ["zoxide"]
+      Debian: ["zoxide"]
+      Darwin: ["zoxide"]
+    fallback_install: "curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash"
+  
+  - name: "eza"
+    commands: ["eza", "exa"]
+    system_packages:
+      Archlinux: ["eza"]
+      Debian: []  # Will use custom repo or fallback
+      Darwin: ["eza"]
+    fallback_install: "manual"  # Special handling needed
+  
+  - name: "fzf"
+    commands: ["fzf"]
+    system_packages:
+      Archlinux: ["fzf"]
+      Debian: ["fzf"]
+      Darwin: ["fzf"]
+    fallback_install: "git+https://github.com/junegunn/fzf.git"
+  
+  - name: "fastfetch"
+    commands: ["fastfetch"]
+    system_packages:
+      Archlinux: ["fastfetch"]
+      Debian: ["fastfetch"]
+      Darwin: []
+    fallback_install: "manual"
+
+# Essential packages always installed
+dotfiles_essential_packages:
+  - git
+  - stow

@@ -1,0 +1,23 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for paperless-ngx
+paperless_uid: 1000
+paperless_gid: 1000
+
+paperless_url: https://paperless.example.com
+paperless_allowed_hosts: localhost
+paperless_secret_key: makemealongsetofrandomcharacters
+paperless_time_zone: {{ America/New_York }}
+
+paperless_postgres_db: 'paperless'
+paperless_postgres_user: 'paperless'
+paperless_postgres_password: 'paperless'
+
+paperless_port_expose: 8000
+
+paperless_volume_redis: ./redisdata
+paperless_volume_postgres: ./pgdata
+paperless_volume_data: ./data
+paperless_volume_media: ./media
+paperless_volume_export: ./export
+paperless_volume_consume: ./consume
