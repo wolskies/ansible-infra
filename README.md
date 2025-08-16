@@ -47,8 +47,8 @@ All roles support **Python 3.13** as the primary version, with fallbacks to syst
 
 ### wolskinet.infrastructure.extra_packages
 **Additional package management beyond basic_setup essentials**:
-- User-defined packages from inventory variables (group_vars, host_vars)
-- Discovery-found packages from infrastructure scanning
+- Unified package variables (standard inventory hierarchy)
+- Discovery integration (populates same variables users define manually)
 - Category-based control (development, desktop, media packages)
 - Cross-platform language package support (pip, npm, AUR, Homebrew)
 - Repository management for additional package sources
@@ -149,26 +149,30 @@ user_details:
 # group_vars/servers.yml - Hardened servers
 group_roles_install:
   - basic_setup
+  - extra_packages
   - system_update
 security_hardening_enabled: true
-enable_firewall: true
+install_firewall: true
 
 # group_vars/docker_hosts.yml - Docker infrastructure  
 group_roles_install:
   - basic_setup
+  - extra_packages
   - system_update
   - docker_setup
 docker_services_deploy:
-  - portainer
-  - nginx-proxy
-  - monitoring
+  - gitlab
+  - nginx_proxy_manager
+  - nextcloud
 
 # group_vars/workstations.yml - Desktop machines
 group_roles_install:
   - basic_setup
+  - extra_packages
   - dotfiles
   - system_update
-install_dotfiles: true
+install_development_packages: true
+install_desktop_packages: true
 ```
 
 ### 3. Configure Host-Specific Variables
@@ -245,17 +249,15 @@ Define Docker services with custom configurations:
 ```yaml
 # group_vars/docker_hosts.yml
 docker_services_deploy:
-  - portainer
-  - nginx-proxy
-  - custom-app
+  - gitlab
+  - nginx_proxy_manager
+  - nextcloud
 
-# Custom service template at templates/services/custom-app.yml.j2
-service_configs:
-  custom-app:
-    image: "mycompany/app:latest"
-    environment:
-      DATABASE_URL: "{{ vault_database_url }}"
-      API_KEY: "{{ vault_api_key }}"
+# Service configurations are handled by individual service roles
+# See roles/gitlab/, roles/nextcloud/, etc. for service-specific variables
+gitlab_hostname: "gitlab.example.com"
+gitlab_initial_root_password: "{{ vault_gitlab_password }}"
+nextcloud_admin_password: "{{ vault_nextcloud_password }}"
 ```
 
 ## Role Details
@@ -265,9 +267,12 @@ service_configs:
 The `basic_setup` role handles fundamental system configuration:
 
 **Variables:**
-- `user_details`: List of users to create
-- `config_system_timezone`: System timezone
-- `config_system_locale`: System locale
+- `user_details`: List of users to create  
+- `config_system_timezone`: System timezone (default: UTC)
+- `config_system_locale`: System locale (default: en_US.UTF-8)
+- `install_firewall`: Install and enable firewall (default: true)
+- `ubuntu_disable_snap`: Disable snap on Ubuntu (default: true)
+- `default_user_shell`: Default shell for users (default: /usr/bin/zsh)
 
 **OS-Specific Packages:**
 - **Ubuntu 24+**: Includes snapd, python3.13, build-essential
@@ -294,6 +299,50 @@ Manages personal configuration files:
 - GNU Stow for symlink management
 - Shell configuration (zsh, oh-my-zsh, starship)
 - Cross-platform compatibility
+
+### Extra Packages Role
+
+Manages additional packages beyond the minimal set from basic_setup:
+
+**Features:**
+- Unified variable structure (standard Ansible inventory hierarchy)
+- Discovery integration (discovery populates same variables users define manually)
+- Category-based package management (system, development, desktop, media)
+- Language-specific packages (Python/pip, Node.js/npm, AUR, Homebrew)
+- Repository management (APT sources, Homebrew taps, Flatpak remotes)
+- Safe failure handling with fine-grained control
+
+**Key Variables:**
+- `system_packages`: Core system utilities beyond essentials
+- `development_packages`: Programming and development tools
+- `desktop_packages`: GUI applications and desktop tools
+- `python_packages`: Python packages via pip
+- `nodejs_packages`: Node.js packages via npm
+- `install_development_packages`: Enable/disable development packages (default: true)
+- `install_desktop_packages`: Enable/disable desktop packages (default: true)
+- `install_media_packages`: Enable/disable media packages (default: false)
+
+### Discovery Role
+
+Infrastructure discovery utility for scanning existing systems:
+
+**Features:**
+- Package discovery across multiple package managers (APT, pacman, Homebrew, AUR)
+- Service configuration detection (nginx, apache, systemd services)
+- Docker environment scanning (containers, networks, volumes)
+- User environment detection (dotfiles, shell configurations)
+- Generate inventory and host variables for replication
+
+**Key Variables:**
+- `discovery_scan.packages`: Enable package scanning (default: true)
+- `discovery_scan.services`: Enable service scanning (default: true)
+- `discovery_scan.docker`: Enable Docker scanning (default: true)
+- `discovery.output_dir`: Directory for generated configs (default: ./discovered-infrastructure)
+
+**Generated Output:**
+- Complete inventory structure (`inventory.yml`, `group_vars/`, `host_vars/`)
+- Machine-specific configurations with detected packages and services
+- Ready-to-use playbooks for infrastructure replication
 
 ## Advanced Configuration
 
@@ -374,11 +423,14 @@ The collection includes example playbooks in `examples/playbooks/`:
 ## Dependencies
 
 ### Required Collections
-- `devsec.hardening` (for security hardening)
 - `community.general` (for additional modules)
+- `community.docker` (for Docker management, optional)
+
+### Optional Collections
+- `devsec.hardening` (for security hardening)
 
 ### Python Requirements
-- Python 3.13 (preferred) or system Python
+- Python 3.11+ (system Python)
 - pip, venv support
 
 ## Contributing

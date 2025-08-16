@@ -22,32 +22,21 @@ All Docker services are registered in `roles/docker_setup/vars/services.yml` wit
 Docker services leverage the collection's hierarchical variable system:
 
 ```yaml
-# Global (all.yml) - Base services for all machines
-global_docker_services: []
-
-# Group (servers.yml/workstations.yml) - Role-specific services  
-group_docker_services:
+# In group_vars or host_vars - Services to deploy
+docker_services_deploy:
   - nginx_proxy_manager
-  - portainer
-
-# Host (hostname.yml) - Machine-specific services
-host_docker_services:
   - gitlab
   - nextcloud
-
-# Discovered - Services found during infrastructure discovery
-discovered_docker_services:
   - jellyfin
 
-# Final merged list (computed automatically)
-final_docker_services: [nginx_proxy_manager, portainer, gitlab, nextcloud, jellyfin]
+# Services are processed from docker_services_deploy variable
+# Each service must exist in the service registry (roles/docker_setup/vars/services.yml)
 ```
 
 ## Available Services
 
 ### Infrastructure Services 🔧
 - **nginx_proxy_manager**: Web-based reverse proxy with SSL management
-- **portainer**: Docker management interface
 
 ### Development Services 💻
 - **gitlab**: Git repository with CI/CD, Container Registry, and Pages
@@ -148,11 +137,10 @@ gitlab_letsencrypt: true
 
 ```yaml
 # host_vars/dev-workstation.yml
-host_docker_services:
-  - portainer
+host_docker_services: []
 
-group_enable_docker: true
-group_docker_users:
+# Docker is enabled automatically for hosts in docker_hosts group
+docker_users:
   - developer
 ```
 
