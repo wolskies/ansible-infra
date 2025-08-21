@@ -31,7 +31,7 @@
 
         - name: Find APT repository keys
           ansible.builtin.find:
-            paths: "{{ repository_detection.apt.keys_paths }}"
+            paths: "{{ discovery_repository_detection.apt.keys_paths }}"
             patterns: "*.gpg"
           register: apt_keys
           become: true
@@ -172,11 +172,11 @@
       third_party_packages: "{{ third_party_package_map.keys() | default([]) | list }}"
 
       # Categorize packages
-      essential: "{{ ansible_facts.packages.keys() | intersect(package_categories.essential) | list }}"
-      development: "{{ ansible_facts.packages.keys() | intersect(package_categories.development) | list }}"
-      server: "{{ ansible_facts.packages.keys() | intersect(package_categories.server) | list }}"
-      desktop: "{{ ansible_facts.packages.keys() | intersect(package_categories.desktop) | list }}"
-      desktop_environment: "{{ ansible_facts.packages.keys() | intersect(package_categories.desktop_environment) | list }}"
+      essential: "{{ ansible_facts.packages.keys() | intersect(discovery_package_categories.essential) | list }}"
+      development: "{{ ansible_facts.packages.keys() | intersect(discovery_package_categories.development) | list }}"
+      server: "{{ ansible_facts.packages.keys() | intersect(discovery_package_categories.server) | list }}"
+      desktop: "{{ ansible_facts.packages.keys() | intersect(discovery_package_categories.desktop) | list }}"
+      desktop_environment: "{{ ansible_facts.packages.keys() | intersect(discovery_package_categories.desktop_environment) | list }}"
 
       # Package manager specific
       homebrew_formulae: "{{ homebrew_packages.stdout_lines | default([]) }}"

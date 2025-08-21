@@ -10,8 +10,8 @@ global_config_system_locale: 'en_US.UTF-8'
 global_config_system_language: 'en_US.UTF-8'
 global_config_system_timezone: 'America/New_York'
 
-# Global packages - installed on every machine
-global_packages_install:
+# Global packages - installed on every machine (OS-specific)
+all_packages_install_Ubuntu:
   - git
   - curl
   - wget
@@ -20,24 +20,62 @@ global_packages_install:
   - screen
   - htop
 
-# Global packages to remove - banned on all machines  
-global_packages_remove:
+all_packages_install_Debian:
+  - git
+  - curl
+  - wget
+  - rsync
+  - unzip
+  - screen
+  - htop
+
+all_packages_install_Archlinux:
+  - git
+  - curl
+  - wget
+  - rsync
+  - unzip
+  - screen
+  - htop
+
+all_packages_install_Darwin:
+  - git
+  - curl
+  - wget
+  - rsync
+  - unzip
+  - screen
+  - htop
+
+# Global packages to remove - banned on all machines (OS-specific)
+all_packages_remove_Ubuntu:
   - telnet
   - rsh-client
   - xinetd
 
+all_packages_remove_Debian:
+  - telnet
+  - rsh-client
+  - xinetd
+
+all_packages_remove_Archlinux:
+  - telnet
+  - rsh-client
+
+all_packages_remove_Darwin: []
+
 # Global services - enabled on every machine
-global_services_enable:
+all_services_enable:
   - ssh
   - cron
 
 # Global services to disable - disabled on all machines
-global_services_disable:
+all_services_disable:
   - telnet
   - rsh
 
 # Global roles - applied to every machine
-global_roles_install:
+all_roles_install:
   - basic_setup
   - maintenance
 
@@ -54,25 +92,26 @@ global_user_details:
       - wheel
 
 # Docker configuration (global baseline)
-global_docker_services: []  # Base services (can be extended by groups/hosts)
+# Docker configuration - standard variable names
+docker_services_deploy: []  # Base services (can be extended by groups/hosts)
 
-# Global Docker defaults
-global_docker_daemon_config:
+# Docker daemon configuration
+docker_daemon_config:
   log-driver: "json-file"
   log-opts:
     max-size: "10m"
     max-file: "3"
   storage-driver: "overlay2"
 
-# Global Docker networks (available to all hosts)
-global_docker_networks:
+# Docker networks (available to all hosts)
+docker_networks:
   - name: "services"
     driver: "bridge"
     enable_ipv6: false
 
-# Global Docker volumes (shared configurations)
-global_docker_volumes: []
+# Docker volumes (shared configurations)
+docker_volumes: []
 
-# Global Docker users (users to add to docker group)
-global_docker_users:
+# Docker users (users to add to docker group)
+docker_users:
   - "{{ global_ansible_user }}"

@@ -49,30 +49,6 @@ shell_config_files_detected:
 {% endfor %}
 
 {% endif %}
-{% if discovered_services.web_servers.nginx.detected %}
-# Nginx Configuration
-nginx_detected: true
-nginx_sites_count: {{ discovered_services.web_servers.nginx.sites | length }}
-{% if discovered_services.web_servers.nginx.sites %}
-nginx_sites_paths:
-{% for site in discovered_services.web_servers.nginx.sites %}
-  - "{{ site }}"
-{% endfor %}
-{% endif %}
-
-{% endif %}
-{% if discovered_services.web_servers.apache.detected %}
-# Apache Configuration
-apache_detected: true
-apache_sites_count: {{ discovered_services.web_servers.apache.sites | length }}
-{% if discovered_services.web_servers.apache.sites %}
-apache_sites_paths:
-{% for site in discovered_services.web_servers.apache.sites %}
-  - "{{ site }}"
-{% endfor %}
-{% endif %}
-
-{% endif %}
 {% if discovered_repositories.apt.additional_sources %}
 # APT Repository Configuration
 apt_additional_sources: {{ discovered_repositories.apt.additional_sources | length }}

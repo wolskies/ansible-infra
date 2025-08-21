@@ -1,6 +1,6 @@
 ---
 # Generate role-specific variables based on discovery results
-# Integrates tightly with collection roles
+# Simplified to only use data that actually exists
 
 - name: Generate role-specific variables
   block:
@@ -10,17 +10,18 @@
           # Package management
           "host_packages_install_{{ ansible_distribution }}": >-
             {{ discovered_packages.standard_packages | default([]) | unique }}
-          # User management (if current user should be created)
+          
+          # User management
           user_details:
             - name: "{{ discovered_users.current_user.name }}"
               uid: "{{ discovered_users.current_user.uid }}"
               shell: "{{ discovered_users.current_user.shell }}"
-
+          
           # System configuration
           default_user_shell: "{{ discovered_users.shell_config.preferred_shell | default('/bin/bash') }}"
-
-          # Development tools detection
-          install_development_packages: "{{ 'development' in discovered_machine_characteristics | default([]) }}"
+          
+          # Simple feature detection
+          install_development_packages: "{{ (discovered_packages.development_packages | default([])) | length > 5 }}"
           install_media_packages: "{{ discovered_desktop.detected | default(false) }}"
 
     - name: Generate container_platform role variables
@@ -29,58 +30,39 @@
           # Docker configuration
           docker_users:
             - "{{ discovered_users.current_user.name }}"
-
+          
           # Container services (if detected)
           container_services: "{{ discovered_docker.services | default([]) }}"
-
+          
           # Networks (if detected)
           docker_networks: "{{ discovered_docker.networks | default([]) }}"
-
       when: discovered_docker.installed | default(false)
 
     - name: Generate dotfiles role variables
       ansible.builtin.set_fact:
         dotfiles_vars:
           # Repository method
-          dotfiles_source_type: "{{ discovered_dotfiles.suggested_dotfiles_source_type }}"
-          dotfiles_repository_url: "{{ discovered_dotfiles.repository_url }}"
+          dotfiles_source_type: "{{ discovered_dotfiles.suggested_dotfiles_source_type | default('none') }}"
+          dotfiles_repository_url: "{{ discovered_dotfiles.repository_url | default('') }}"
           dotfiles_branch: "{{ discovered_dotfiles.repository_branch | default('main') }}"
-          dotfiles_method: "{{ 'stow' if discovered_dotfiles.uses_stow else 'symlink' }}"
-
-          # Local files method (when no repo detected)
-          dotfiles_local_files: >-
-            {{
-              discovered_dotfiles.local_config_files
-              | map('regex_replace', '^(.*)$', {'src': current_user_home + '/\\1', 'dest': '\\1'})
-              | list
-              if discovered_dotfiles.suggested_dotfiles_source_type == 'local_files'
-              else []
-            }}
-
+          dotfiles_method: "{{ 'stow' if discovered_dotfiles.uses_stow | default(false) else 'symlink' }}"
+          
           # Backup configuration
           dotfiles_backup_existing: true
           dotfiles_backup_suffix: ".pre-ansible"
-
-      when: discovered_dotfiles.suggested_dotfiles_source_type != 'none'
+      when: 
+        - discovered_dotfiles is defined
+        - discovered_dotfiles.suggested_dotfiles_source_type | default('none') != 'none'
 
     - name: Generate system_tuning role variables
       ansible.builtin.set_fact:
         system_tuning_vars:
-          # Enable tuning based on detected machine characteristics
+          # Basic system tuning
           system_tuning_network_enabled: true
-          system_tuning_gaming_enabled: "{{ 'gaming' in discovered_machine_characteristics | default([]) }}"
-          system_tuning_gpu_enabled: "{{ discovered_hardware.gpu.nvidia_detected | default(false) }}"
-          system_tuning_gpu_nvidia_enabled: "{{ discovered_hardware.gpu.nvidia_detected | default(false) }}"
-          system_tuning_security_enabled: "{{ 'server' in discovered_machine_characteristics | default([]) }}"
-
-          # Service management based on discovery
-          system_tuning_services_enable: "{{ discovered_services.should_enable | default([]) }}"
-          system_tuning_services_disable: "{{ discovered_services.should_disable | default([]) }}"
-
+          
           # User groups for hardware access
           system_tuning_user_groups_add: >-
             {{
-              (['dialout'] if discovered_hardware.serial_devices | default(false) else []) +
               (['docker'] if discovered_docker.installed | default(false) else []) +
               (['audio'] if discovered_desktop.detected | default(false) else [])
             }}
@@ -88,29 +70,40 @@
     - name: Generate maintenance role variables
       ansible.builtin.set_fact:
         maintenance_vars:
-          # Update configuration
-          enable_automatic_updates: "{{ 'server' in discovered_machine_characteristics | default([]) }}"
-
-          # System maintenance
+          # Basic maintenance
           system_maintenance_enabled: true
           cleanup_old_packages: true
-
+          
+          # Enable automatic updates for servers (no GUI)
+          enable_automatic_updates: "{{ not discovered_desktop.detected | default(false) }}"
+          
           # Development environment maintenance
-          maintain_dev_tools: "{{ 'development' in discovered_machine_characteristics | default([]) }}"
+          maintain_dev_tools: "{{ (discovered_packages.development_packages | default([])) | length > 5 }}"
 
-    - name: Generate firewall role variables (for servers)
+    - name: Generate system_security role variables
       ansible.builtin.set_fact:
-        firewall_vars:
-          enable_firewall: "{{ 'server' in discovered_machine_characteristics | default([]) }}"
-
-          # Open ports based on detected services
+        system_security_vars:
+          # Enable security features for servers (no GUI)
+          enable_firewall: "{{ not discovered_desktop.detected | default(false) }}"
+          enable_fail2ban: "{{ (not discovered_desktop.detected | default(false)) and not discovered_services.security.fail2ban_detected | default(false) }}"
+          
+          # Use discovered firewall type or default based on OS
+          firewall_type: >-
+            {%- if discovered_services.security.firewall_type | default('none') != 'none' -%}
+              {{ discovered_services.security.firewall_type }}
+            {%- elif ansible_os_family == 'Debian' -%}
+              ufw
+            {%- elif ansible_os_family == 'RedHat' -%}
+              firewalld
+            {%- else -%}
+              iptables
+            {%- endif %}
+          
+          # Open ports (SSH by default if detected)
           firewall_allowed_ports: >-
             {{
-              (discovered_services.public_services | default([]) | map(attribute='port') | list) +
-              (['22'] if discovered_services.ssh_detected | default(false) else [])
+              (['22'] if discovered_services.security.ssh_detected | default(false) else [])
             }}
-
-      when: "'server' in discovered_machine_characteristics | default([])"
 
     - name: Combine all role variables
       ansible.builtin.set_fact:
@@ -121,10 +114,9 @@
             combine(dotfiles_vars | default({})) |
             combine(system_tuning_vars | default({})) |
             combine(maintenance_vars | default({})) |
-            combine(firewall_vars | default({}))
+            combine(system_security_vars | default({}))
           }}
 
   tags:
     - discovery
     - role-integration
-    - variable-generation

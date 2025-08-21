@@ -2,11 +2,40 @@
 # Server-specific variables
 # These are ADDITIVE to global variables
 
-# Additional packages for servers
-group_packages_install:
+# Additional packages for servers (OS-specific)
+group_packages_install_Ubuntu:
   # Server essentials
   - fail2ban
   - unattended-upgrades
+  - logrotate
+  - rsyslog
+  - chrony
+  - nginx
+  - docker.io
+  - docker-compose
+  - ufw
+  # Monitoring
+  - htop
+  - iotop
+
+group_packages_install_Debian:
+  # Server essentials
+  - fail2ban
+  - unattended-upgrades
+  - logrotate
+  - rsyslog
+  - chrony
+  - nginx
+  - docker.io
+  - docker-compose
+  - ufw
+  # Monitoring
+  - htop
+  - iotop
+
+group_packages_install_Archlinux:
+  # Server essentials
+  - fail2ban
   - logrotate
   - rsyslog
   - chrony
@@ -18,10 +47,18 @@ group_packages_install:
   - htop
   - iotop
 
-# Packages to remove on servers (minimize attack surface)
-group_packages_remove:
+# Packages to remove on servers (minimize attack surface, OS-specific)
+group_packages_remove_Ubuntu:
   - games-common
   - avahi-daemon     # Not needed on servers
+  - cups             # No printing on servers
+
+group_packages_remove_Debian:
+  - games-common
+  - avahi-daemon     # Not needed on servers
+  - cups             # No printing on servers
+
+group_packages_remove_Archlinux:
   - cups             # No printing on servers
 
 # Services for servers
@@ -125,12 +162,12 @@ mount_options:
     opts: "defaults,nodev,nosuid,noexec,size=1G"
     state: "mounted"
 
-# Docker services for servers (ADDITIVE to global services)
-group_docker_services:
+# Docker services for servers (will be merged with all-level services)
+group_docker_services_deploy:
   - nginx_proxy_manager  # Reverse proxy management
   - portainer            # Docker management interface
 
-# Docker network configuration for servers
+# Additional Docker networks for servers (will be merged with all-level networks)
 group_docker_networks:
   - name: "web"
     driver: "bridge"
@@ -139,13 +176,10 @@ group_docker_networks:
     driver: "bridge" 
     enable_ipv6: false
 
-# Server-specific Docker configuration
+# Server-specific Docker daemon configuration (overrides all-level config)
 group_docker_daemon_config:
   log-driver: "journald"
   log-opts:
     max-size: "50m"
     max-file: "5"
   storage-driver: "overlay2"
-  
-# Enable Docker service deployment on servers
-group_enable_docker: true

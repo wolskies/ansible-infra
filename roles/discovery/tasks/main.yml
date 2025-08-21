@@ -29,9 +29,9 @@
 
     - name: Validate supported OS
       ansible.builtin.fail:
-        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported"
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported. Supported: Ubuntu 24+, Debian 12+, Arch Linux, macOS"
       when:
-        - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 22) or
+        - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
           (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
   tags:
     - discovery
@@ -130,7 +130,7 @@
       ansible.builtin.debug:
         msg:
           - "=== Infrastructure Discovery Completed ==="
-          - "Machine Type: {{ discovered_machine.type }}"
+          - "Hostname: {{ discovered_machine.hostname }}"
           - "Packages: {{ discovered_packages.total | default(0) }}"
           - "Services: {{ discovered_services.running | default([]) | length }}"
           - "Docker: {{ 'Enabled' if discovered_docker.installed else 'Not installed' }}"

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The discovery playbook integrates directly with your standard Ansible directory structure, writing discovered configurations to the proper locations without overwriting your existing inventory.
+The discovery role is a neutral utility that captures the current state of existing machines without making organizational assumptions. It generates host-specific variables that you can then organize into your infrastructure as you see fit.
 
 ## Assumptions
 
@@ -26,9 +26,10 @@ ansible-playbook -i inventory/hosts.yml \
   --limit web-01 \
   collections/ansible_collections/wolskinet/infrastructure/utilities/playbooks/discover-infrastructure.yml
 
-# 3. Discovery writes directly to your Ansible structure:
-# ✓ inventory/host_vars/web-01.yml          ← Host variables  
-# ✓ playbooks/deploy-web-01.yml             ← Functional replication playbook
+# 3. Discovery creates a neutral output structure:
+# ✓ ./inventory/inventory.yml                ← Simple inventory with discovered host
+# ✓ ./inventory/host_vars/web-01/settings.yml ← All discovered configuration
+# ✓ ./inventory/playbooks/new_machine.yml    ← Template playbook (customize as needed)
 ```
 
 ### Use Case 2: Multiple Servers Discovery

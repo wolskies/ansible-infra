@@ -1,7 +1,8 @@
 ---
-# Firewall role handlers
-# Handles firewall service reloads across different systems
+# System Security role handlers
+# Handles security service reloads across different systems
 
+# Firewall handlers
 - name: reload ufw
   ansible.builtin.systemd:
     name: ufw
@@ -31,3 +32,18 @@
       firewall
       {%- endif -%}
   listen: "restart firewall"
+
+# Fail2ban handlers
+- name: restart fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+  become: true
+  listen: "restart fail2ban"
+
+- name: reload fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: reloaded
+  become: true
+  listen: "reload fail2ban"

@@ -1,17 +1,11 @@
 ---
-# Discovery Role Default Variables
-# Organized by purpose and scope
-
-# =============================================================================
-# DISCOVERY CONFIGURATION
-# =============================================================================
+# Discovery Role Default Variables - Simplified
 
 # Discovery output settings
 discovery:
   output_dir: "./inventory"
   generate_configs: true
-  include_sensitive: false  # Set to true to include user hashes (use vault!)
-  timeout: 300  # 5 minutes timeout for discovery tasks
+  timeout: 300
 
 # Discovery scope - what to scan
 discovery_scan:
@@ -19,63 +13,18 @@ discovery_scan:
   services: true
   docker: true
   users: true
-  network: true
   security: true
   repositories: true
   dotfiles: true
   desktop: true
 
-# =============================================================================
-# MACHINE CLASSIFICATION
-# =============================================================================
-
-# Machine type detection logic
-discovery_machine_classification:
-  server:
-    criteria:
-      - ssh_service_running: true
-      - has_gui: false
-    roles:
-      - basic_setup
-      - maintenance
-    security:
-      hardening_enabled: true
-      firewall_enabled: true
-
-  docker_host:
-    criteria:
-      - docker_installed: true
-    roles:
-      - basic_setup
-      - maintenance
-      - container_platform
-    packages:
-      - curl
-      - openssh-server
-      - ca-certificates
-
-  workstation:
-    criteria:
-      - has_gui: true
-    roles:
-      - basic_setup
-      - maintenance
-      - dotfiles
-    security:
-      firewall_enabled: false  # More flexible networking for workstations
-
-# =============================================================================
-# PACKAGE CATEGORIZATION
-# =============================================================================
-
-# Package categories for intelligent installation
+# Package categories for role integration
 discovery_package_categories:
   essential:
     - git
     - curl
     - wget
     - vim
-    - nano
     - htop
     - tree
     - unzip
@@ -100,7 +49,6 @@ discovery_package_categories:
     - cargo
     - docker
     - docker-compose
-    - code
     - git-lfs
 
   server:
@@ -110,16 +58,12 @@ discovery_package_categories:
     - chrony
     - rsyslog
     - logrotate
-    - cron
-    - systemd
     - nginx
     - apache2
     - mysql-server
     - postgresql
     - redis
-    - memcached
     - certbot
-    - haproxy
 
   desktop:
     - firefox
@@ -127,10 +71,6 @@ discovery_package_categories:
     - libreoffice
     - vlc
     - gimp
-    - inkscape
-    - blender
-    - obs-studio
-    - audacity
     - thunderbird
 
   desktop_environment:
@@ -145,91 +85,8 @@ discovery_package_categories:
     - xorg
     - wayland
 
-# =============================================================================
-# SERVICE DETECTION
-# =============================================================================
-
-# Critical services to detect and configure
-discovery_critical_services:
-  web_servers:
-    - name: nginx
-      config_paths:
-        - /etc/nginx/nginx.conf
-        - /etc/nginx/sites-enabled
-        - /etc/nginx/sites-available
-        - /etc/nginx/conf.d
-    - name: apache2
-      config_paths:
-        - /etc/apache2/apache2.conf
-        - /etc/apache2/sites-enabled
-        - /etc/apache2/sites-available
-    - name: httpd
-      config_paths:
-        - /etc/httpd/conf/httpd.conf
-        - /etc/httpd/conf.d
-
-  databases:
-    - name: mysql
-      config_paths:
-        - /etc/mysql/mysql.conf.d
-    - name: postgresql
-      config_paths:
-        - /etc/postgresql
-    - name: redis
-      config_paths:
-        - /etc/redis/redis.conf
-    - name: memcached
-      config_paths:
-        - /etc/memcached.conf
-
-  security:
-    - name: fail2ban
-      config_paths:
-        - /etc/fail2ban/jail.conf
-    - name: ufw
-      config_paths:
-        - /etc/ufw/ufw.conf
-
-  containers:
-    - name: docker
-      config_paths:
-        - /etc/docker/daemon.json
-
-# =============================================================================
-# REPOSITORY MANAGEMENT
-# =============================================================================
-
-# Repository detection patterns
-discovery_repository_detection:
-  apt:
-    main_sources: /etc/apt/sources.list
-    additional_sources: /etc/apt/sources.list.d
-    keys_paths:
-      - /etc/apt/trusted.gpg.d
-      - /usr/share/keyrings
-
-  pacman:
-    config: /etc/pacman.conf
-    mirrorlist: /etc/pacman.d/mirrorlist
-
-  aur_helpers:
-    - yay
-    - paru
-    - pikaur
-    - trizen
-
-  homebrew:
-    paths:
-      - /opt/homebrew/bin/brew  # ARM Mac
-      - /usr/local/bin/brew     # Intel Mac
-
-# =============================================================================
-# DOCKER CONFIGURATION
-# =============================================================================
-
 # Docker service mapping for common containers
 discovery_docker_service_mapping:
-  # Map container images to service names
   portainer: "portainer"
   "portainer/portainer-ce": "portainer"
   nginx: "nginx-proxy"
@@ -238,12 +95,6 @@ discovery_docker_service_mapping:
   "gitlab/gitlab-ce": "gitlab"
   nextcloud: "nextcloud"
   jellyfin: "jellyfin"
-  prometheus: "monitoring"
-  grafana: "monitoring"
-
-# =============================================================================
-# USER AND SHELL CONFIGURATION
-# =============================================================================
 
 # Shell detection and configuration
 discovery_shell_configuration:
@@ -251,7 +102,6 @@ discovery_shell_configuration:
     - /bin/bash
     - /bin/zsh
     - /usr/bin/fish
-    - /bin/dash
 
   config_files:
     bash:
@@ -278,33 +128,3 @@ discovery_dotfiles_detection:
     - setup.sh
     - stow
     - .stow-local-ignore
-
-# =============================================================================
-# OUTPUT GENERATION
-# =============================================================================
-
-# Template generation settings
-discovery_template_generation:
-  inventory_format: "yaml"  # yaml or ini
-  create_vault_templates: true
-  create_replication_playbooks: true
-  create_package_lists: true
-  create_service_configs: true
-
-# Files to generate
-discovery_generated_files:
-  core:
-    - inventory.yml
-    - group_vars/all.yml
-    - playbooks/new_machine.yml
-
-  host_specific:
-    - host_vars/{hostname}.yml
-    - host_vars/{hostname}/packages.yml
-    - host_vars/{hostname}/services.yml
-    - host_vars/{hostname}/vault.yml.template
-
-  documentation:
-    - README.md
-    - DISCOVERED-SERVICES.md
-    - MANUAL-TASKS.md

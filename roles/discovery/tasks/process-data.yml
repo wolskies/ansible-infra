@@ -1,180 +1,31 @@
 ---
-# Data Processing and Machine Classification
-# Processes discovery data and classifies the machine type
+# Data Processing - Simplified
+# Creates summary variables for role integration
 
-- name: Classify machine type
-  ansible.builtin.set_fact:
-    machine_type_scores:
-      server: >-
-        {{
-          (discovered_security.ssh.service_running | default(false) | ternary(2, 0)) +
-          (not discovered_desktop.has_gui | default(false) | ternary(3, 0)) +
-          (discovered_services.databases.mysql_detected | default(false) | ternary(1, 0)) +
-          (discovered_services.databases.postgresql_detected | default(false) | ternary(1, 0)) +
-          (discovered_services.web_servers.nginx.detected | default(false) | ternary(1, 0)) +
-          (discovered_services.web_servers.apache.detected | default(false) | ternary(1, 0))
-        }}
-      docker_host: >-
-        {{
-          (discovered_docker.installed | default(false) | ternary(5, 0)) +
-          (discovered_docker.containers.total | default(0) > 0 | ternary(2, 0)) +
-          (discovered_docker.service_enabled | default(false) | ternary(1, 0))
-        }}
-      workstation: >-
-        {{
-          (discovered_desktop.has_gui | default(false) | ternary(5, 0)) +
-          (discovered_users.dotfiles.detected | default(false) | ternary(1, 0)) +
-          ((discovered_packages.development_packages | default([])) | length > 5 | ternary(2, 0)) +
-          (('code' in (discovered_packages.all_packages | default([]))) | ternary(1, 0))
-        }}
-
-- name: Determine primary machine type
-  ansible.builtin.set_fact:
-    primary_machine_type: >-
-      {%- set max_score = [machine_type_scores.server | int, machine_type_scores.docker_host | int, machine_type_scores.workstation | int] | max -%}
-      {%- if machine_type_scores.workstation | int == max_score -%}
-        workstation
-      {%- elif machine_type_scores.docker_host | int == max_score -%}
-        docker_host
-      {%- elif machine_type_scores.server | int == max_score -%}
-        server
-      {%- else -%}
-        generic
-      {%- endif %}
-
-- name: Determine applicable groups
-  ansible.builtin.set_fact:
-    applicable_groups: >-
-      {{
-        (['workstations'] if discovered_desktop.has_gui else []) +
-        (['docker_hosts'] if discovered_docker.installed else []) +
-        (['infra'] if (discovered_security.ssh.service_running and not discovered_desktop.has_gui) else []) +
-        ([discovered_system.os.distribution | lower + '_hosts']) +
-        (['nginx_hosts'] if discovered_services.web_servers.nginx.detected else []) +
-        (['apache_hosts'] if discovered_services.web_servers.apache.detected else []) +
-        (['mysql_hosts'] if discovered_services.databases.mysql_detected else []) +
-        (['postgresql_hosts'] if discovered_services.databases.postgresql_detected else [])
-      }}
-
-- name: Determine recommended roles
-  ansible.builtin.set_fact:
-    recommended_roles: >-
-      {{
-        (['basic_setup'] if true else []) +
-        (['maintenance'] if true else []) +
-        (['container_platform'] if discovered_docker.installed else []) +
-        (['dotfiles'] if discovered_users.dotfiles.detected else []) +
-        (['desktop-' + discovered_desktop.environment] if discovered_desktop.has_gui and discovered_desktop.environment != 'unknown' else [])
-      }}
-
-- name: Create machine profile
+- name: Create machine summary
   ansible.builtin.set_fact:
     discovered_machine:
       hostname: "{{ discovered_system.hostname }}"
-      type: "{{ primary_machine_type }}"
-      groups: "{{ applicable_groups | unique }}"
-      roles: "{{ recommended_roles | unique }}"
+      type: >-
+        {%- if discovered_docker.installed | default(false) -%}
+          docker_host
+        {%- elif discovered_desktop.detected | default(false) -%}
+          workstation
+        {%- else -%}
+          server
+        {%- endif %}
+      discovered_at: "{{ ansible_date_time.iso8601 }}"
 
-      # Classification scores for debugging
-      classification_scores: "{{ machine_type_scores }}"
-
-      # Key characteristics
-      characteristics:
-        has_gui: "{{ discovered_desktop.has_gui }}"
-        has_docker: "{{ discovered_docker.installed }}"
-        has_web_server: "{{ discovered_services.web_servers.nginx.detected or discovered_services.web_servers.apache.detected }}"
-        has_database: "{{ discovered_services.databases.mysql_detected or discovered_services.databases.postgresql_detected }}"
-        is_secure: "{{ discovered_security.ssh.service_running and discovered_security.firewall.ufw.status != 'inactive' }}"
-
-      # Deployment recommendations
-      deployment:
-        security_hardening: "{{ not discovered_desktop.has_gui }}"
-        firewall_enable: "{{ not discovered_desktop.has_gui }}"
-        auto_updates: "{{ primary_machine_type == 'server' }}"
-
-- name: Organize packages by installation method
-  ansible.builtin.set_fact:
-    organized_packages:
-      # Standard package manager packages
-      package_manager:
-        essential: "{{ discovered_packages.essential }}"
-        development: "{{ discovered_packages.development }}"
-        server: "{{ discovered_packages.server }}"
-        desktop: "{{ discovered_packages.desktop if discovered_desktop.has_gui else [] }}"
-        desktop_environment: "{{ discovered_packages.desktop_environment if discovered_desktop.has_gui else [] }}"
-
-      # Special package managers
-      homebrew:
-        formulae: "{{ discovered_packages.homebrew_formulae }}"
-        casks: "{{ discovered_packages.homebrew_casks }}"
-        taps: "{{ discovered_repositories.homebrew.taps }}"
-
-      aur:
-        packages: "{{ discovered_packages.aur_packages }}"
-        helper: "{{ discovered_repositories.pacman.aur_helpers | first | default('') }}"
-
-      # Repository management
-      repositories:
-        apt_sources: "{{ discovered_repositories.apt.additional_sources }}"
-        pacman_config: "{{ discovered_repositories.pacman.config }}"
-
-- name: Create service deployment plan
-  ansible.builtin.set_fact:
-    service_deployment_plan:
-      # Web services
-      web_services: >-
-        {{
-          (['nginx'] if discovered_services.web_servers.nginx.detected else []) +
-          (['apache'] if discovered_services.web_servers.apache.detected else [])
-        }}
-
-      # Database services
-      database_services: >-
-        {{
-          (['mysql'] if discovered_services.databases.mysql_detected else []) +
-          (['postgresql'] if discovered_services.databases.postgresql_detected else []) +
-          (['redis'] if discovered_services.databases.redis_detected else [])
-        }}
-
-      # Security services
-      security_services: >-
-        {{
-          (['fail2ban'] if discovered_services.security.fail2ban_detected else []) +
-          (['ufw'] if discovered_security.firewall.ufw.status and 'active' in discovered_security.firewall.ufw.status else [])
-        }}
-
-      # Docker services
-      docker_services: "{{ discovered_docker.suggested_services | default([]) }}"
-
-      # Custom systemd services
-      custom_services: "{{ discovered_services.custom_systemd.services | map('basename') | map('regex_replace', '\\.service$', '') | list }}"
-
-- name: Create user configuration plan
-  ansible.builtin.set_fact:
-    user_configuration_plan:
-      shell_setup:
-        preferred_shell: "{{ discovered_users.shell_config.preferred_shell }}"
-        config_files: "{{ discovered_users.shell_config.config_files }}"
-
-      dotfiles_setup:
-        enabled: "{{ discovered_users.dotfiles.detected }}"
-        repository_url: "{{ discovered_users.dotfiles.repository_url }}"
-        branch: "{{ discovered_users.dotfiles.current_branch | default('main') }}"
-        management_tools: "{{ discovered_users.dotfiles.management_tools }}"
-
-      development_environment:
-        user_tools: "{{ discovered_users.development_environment.user_tools }}"
-        application_configs: "{{ discovered_users.application_configs.detected }}"
-
-- name: Display processing summary
+- name: Display discovery processing summary
   ansible.builtin.debug:
     msg:
-      - "=== Machine Classification Results ==="
-      - "Primary Type: {{ primary_machine_type }}"
-      - "Groups: {{ applicable_groups | join(', ') }}"
-      - "Recommended Roles: {{ recommended_roles | join(', ') }}"
-      - "Security Level: {{ 'High' if not discovered_desktop.has_gui else 'Standard' }}"
-      - "Services to Deploy: {{ (service_deployment_plan.web_services + service_deployment_plan.database_services + service_deployment_plan.docker_services) | length }}"
+      - "=== Discovery Processing Complete ==="
+      - "Hostname: {{ discovered_machine.hostname }}"
+      - "Machine Type: {{ discovered_machine.type }}"
+      - "GUI Detected: {{ discovered_desktop.detected | default(false) }}"
+      - "Docker Detected: {{ discovered_docker.installed | default(false) }}"
+      - "Packages Found: {{ discovered_packages.total | default(0) }}"
+      - "Services Running: {{ discovered_services.running | default([]) | length }}"
   tags:
     - processing
     - summary

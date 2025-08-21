@@ -1,0 +1,61 @@
+---
+# System Security role defaults
+# Firewall and fail2ban management (complements devsec.hardening collection)
+
+# Core security features (focused scope to avoid duplication with devsec.hardening)
+enable_firewall: true              # Enable firewall management
+enable_fail2ban: false             # Install and configure fail2ban
+
+# Firewall configuration
+firewall_type: "auto"              # auto, ufw, firewalld, iptables
+firewall_manage_ports: true        # Whether to manage firewall ports
+firewall_reset_to_defaults: false  # Reset firewall before applying rules
+firewall_default_policy: "deny"    # Default policy for incoming connections
+firewall_logging: false            # Enable firewall logging
+firewall_docker_integration: false # Let Docker manage its iptables rules
+
+# Simple port lists (strings)
+firewall_allowed_ports: []         # List of ports to allow (e.g., ["22", "80", "443"])
+firewall_allowed_services: []      # List of service names (e.g., ["ssh", "http", "https"])
+
+# Advanced port configuration
+firewall_custom_rules: []          # Complex rules with source restrictions
+# Example:
+# firewall_custom_rules:
+#   - port: 3306
+#     protocol: tcp
+#     source: "10.0.1.0/24"
+#     comment: "MySQL from app subnet"
+#   - port: 6379
+#     protocol: tcp
+#     source: "192.168.1.0/24"
+#     comment: "Redis from local network"
+
+# Fail2ban configuration
+fail2ban_services:
+  - name: sshd
+    enabled: true
+    maxretry: 5
+    bantime: 3600                  # 1 hour
+    findtime: 600                  # 10 minutes
+
+fail2ban_ignoreips:
+  - "127.0.0.1/8"
+  - "::1"
+
+# OS-specific tool preferences
+firewall_tool_preference:
+  Ubuntu: "ufw"
+  Debian: "ufw"
+  Archlinux: "firewalld"
+  Darwin: "macos_alf"              # macOS Application Layer Firewall
+
+# Integration with discovery role
+# These can be set by discovery role
+discovered_firewall_type: ""       # Detected firewall from discovery
+discovered_fail2ban: false         # Whether fail2ban is already installed
+
+# Integration with devsec.hardening collection
+# Recommendation: Use devsec.hardening.ssh_hardening for SSH security
+# Recommendation: Use devsec.hardening.os_hardening for OS-level security
+# This role focuses on firewall and fail2ban which are not covered by devsec.hardening

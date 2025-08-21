@@ -2,8 +2,8 @@
 # Workstation-specific variables
 # These are ADDITIVE to global variables
 
-# Additional packages for workstations
-group_packages_install:
+# Additional packages for workstations (OS-specific)
+group_packages_install_Ubuntu:
   # Desktop environment basics
   - firefox
   - code
@@ -15,15 +15,62 @@ group_packages_install:
   # Development tools
   - nodejs
   - python3
-  - docker
+  - docker.io
   # Shell enhancements (if available in system repos)
   - zsh
   - tmux
 
-# Packages to remove on workstations (security/cleanliness)
-group_packages_remove:
+group_packages_install_Debian:
+  # Desktop environment basics
+  - firefox-esr
+  - gimp
+  - libreoffice
+  # Media tools
+  - vlc
+  - audacity
+  # Development tools
+  - nodejs
+  - python3
+  - docker.io
+  # Shell enhancements
+  - zsh
+  - tmux
+
+group_packages_install_Archlinux:
+  # Desktop environment basics
+  - firefox
+  - gimp
+  - libreoffice-fresh
+  # Media tools
+  - vlc
+  - audacity
+  # Development tools
+  - nodejs
+  - python3
+  - docker
+  # Shell enhancements
+  - zsh
+  - tmux
+
+group_packages_install_Darwin:
+  # Development tools
+  - nodejs
+  - python3
+  - docker
+  # Shell enhancements
+  - zsh
+  - tmux
+
+# Packages to remove on workstations (security/cleanliness, OS-specific)
+group_packages_remove_Ubuntu:
   - games-common  # Remove games packages
-  - apache2       # Workstations shouldn't run web servers by default
+
+group_packages_remove_Debian:
+  - games-common  # Remove games packages
+
+group_packages_remove_Archlinux: []
+
+group_packages_remove_Darwin: []
 
 # Services for workstations
 group_services_enable:

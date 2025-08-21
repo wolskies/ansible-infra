@@ -1,138 +1,28 @@
 ---
-# Service Configuration Discovery
-# Discovers running services and their configurations
-
-- name: Discover service configurations
-  block:
-    # Check for critical service configuration files
-    - name: Create flattened service config list
-      ansible.builtin.set_fact:
-        service_config_list: |
-          {%- set configs = [] -%}
-          {%- for service in (critical_services.web_servers + critical_services.databases + critical_services.security + critical_services.containers) -%}
-            {%- for config_path in service.config_paths -%}
-              {%- set _ = configs.append({'service': service.name, 'path': config_path}) -%}
-            {%- endfor -%}
-          {%- endfor -%}
-          {{ configs }}
-
-    - name: Detect service configuration files
-      ansible.builtin.stat:
-        path: "{{ item.path }}"
-      register: service_config_files
-      become: true
-      loop: "{{ service_config_list }}"
-      loop_control:
-        label: "{{ item.service }}: {{ item.path }}"
-
-    # Discover web server configurations
-    - name: Discover web server sites
-      block:
-        - name: Find nginx site configurations
-          ansible.builtin.find:
-            paths: "{{ item.config_paths }}"
-            patterns: ["*.conf", "*"]
-            file_type: file
-          register: nginx_sites
-          become: true
-          when:
-            - item.name == "nginx"
-            - "'nginx' in ansible_facts.services"
-            - ansible_facts.services['nginx.service']['state'] == 'running'
-          loop: "{{ critical_services.web_servers }}"
-
-        - name: Find apache site configurations
-          ansible.builtin.find:
-            paths: "{{ item.config_paths }}"
-            patterns: ["*.conf", "*.vhost"]
-            file_type: file
-          register: apache_sites
-          become: true
-          when:
-            - item.name in ["apache2", "httpd"]
-            - item.name in ansible_facts.services or (item.name + '.service') in ansible_facts.services
-          loop: "{{ critical_services.web_servers }}"
-      rescue:
-        - name: Handle web server discovery errors
-          ansible.builtin.debug:
-            msg: "Web server configuration discovery failed"
-
-    # Discover systemd services
-    - name: Discover custom systemd services
-      block:
-        - name: Find custom systemd service files
-          ansible.builtin.find:
-            paths: ["/etc/systemd/system", "/usr/local/lib/systemd/system"]
-            patterns: "*.service"
-            file_type: file
-          register: custom_systemd_services
-          become: true
-
-        - name: Read systemd service files (first 10)
-          ansible.builtin.slurp:
-            src: "{{ item.path }}"
-          register: systemd_service_contents
-          loop: "{{ custom_systemd_services.files[:10] }}"
-          become: true
-          failed_when: false
-      when: ansible_service_mgr == "systemd"
-      rescue:
-        - name: Handle systemd discovery errors
-          ansible.builtin.debug:
-            msg: "Systemd service discovery failed"
-
-    # Read critical service configuration files
-    - name: Read service configuration files
-      ansible.builtin.slurp:
-        src: "{{ item.item.config_paths[0] }}"
-      register: service_config_contents
-      loop: "{{ service_config_files.results }}"
-      when:
-        - item.stat.exists
-        - item.item.name in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list)
-      become: true
-      failed_when: false
-  tags:
-    - services
-    - configuration
+# Service Discovery - Simplified
+# Only discovers running/enabled services and security-related services
 
 - name: Store service discovery results
   ansible.builtin.set_fact:
     discovered_services:
       running: "{{ ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | map('regex_replace', '\\.service$', '') | list }}"
       enabled: "{{ ansible_facts.services | dict2items | selectattr('value.status', 'equalto', 'enabled') | map(attribute='key') | map('regex_replace', '\\.service$', '') | list }}"
-
-      # Web servers
-      web_servers:
-        nginx:
-          detected: "{{ 'nginx' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-          running: "{{ ansible_facts.services.get('nginx.service', {}).get('state') == 'running' }}"
-          sites: "{{ nginx_sites.results | default([]) | selectattr('files', 'defined') | map(attribute='files') | flatten | map(attribute='path') | list }}"
-        apache:
-          detected: "{{ ('apache2' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list)) or ('httpd' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list)) }}"
-          running: "{{ (ansible_facts.services.get('apache2.service', {}).get('state') == 'running') or (ansible_facts.services.get('httpd.service', {}).get('state') == 'running') }}"
-          sites: "{{ apache_sites.results | default([]) | selectattr('files', 'defined') | map(attribute='files') | flatten | map(attribute='path') | list }}"
-
-      # Database servers
-      databases:
-        mysql_detected: "{{ 'mysql' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'mariadb' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-        postgresql_detected: "{{ 'postgresql' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-        redis_detected: "{{ 'redis' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-
-      # Security services
+      
+      # Security services (kept for system_security role)
       security:
+        ssh_detected: "{{ 'ssh' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'sshd' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
         fail2ban_detected: "{{ 'fail2ban' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-        firewall_detected: "{{ 'ufw' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'firewalld' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-
-      # Custom services
-      custom_systemd:
-        services: "{{ custom_systemd_services.files | default([]) | map(attribute='path') | list }}"
-        count: "{{ custom_systemd_services.files | default([]) | length }}"
-
-      # Configuration files
-      configurations:
-        detected: "{{ service_config_files.results | selectattr('stat.exists') | map(attribute='item') | list }}"
-        contents: "{{ service_config_contents.results | default([]) | selectattr('content', 'defined') | list }}"
+        firewall_detected: "{{ 'ufw' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'firewalld' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'iptables' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
+        firewall_type: >-
+          {%- if 'ufw' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) -%}
+            ufw
+          {%- elif 'firewalld' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) -%}
+            firewalld
+          {%- elif 'iptables' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) -%}
+            iptables
+          {%- else -%}
+            none
+          {%- endif %}
   tags:
     - services
-    - configuration
+    - discovery
