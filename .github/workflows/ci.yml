@@ -137,7 +137,7 @@ jobs:
 
       - name: Run Ansible security lint
         run: |
-          ansible-lint --parseable-severity . || true
+          ansible-lint . || true
 
       - name: Run Bandit security scan
         run: |

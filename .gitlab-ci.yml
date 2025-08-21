@@ -277,7 +277,7 @@ ansible-security-scan:
     - pip3 install ansible-lint bandit safety
   script:
     - echo "Running security scans..."
-    - ansible-lint --parseable-severity .
+    - ansible-lint .
     - find . -name "*.py" -exec bandit {} + || true
     - safety check || true
   allow_failure: true
