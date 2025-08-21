@@ -73,9 +73,10 @@
 
 - name: Ensure fastfetch is present
   ansible.builtin.apt:
-    deb: https://github.com/fastfetch-cli/fastfetch/releases/download/2.44.0/fastfetch-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}.deb
+    deb: >-
+      https://github.com/fastfetch-cli/fastfetch/releases/download/2.44.0/fastfetch-linux-{{
+        'amd64' if ansible_architecture == 'x86_64' else
+        'arm64' if ansible_architecture == 'aarch64' else ansible_architecture
+      }}.deb
     state: present
   become: true
-
-
-

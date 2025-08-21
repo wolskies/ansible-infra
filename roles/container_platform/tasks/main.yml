@@ -13,8 +13,6 @@
     - os-check
     - docker-setup
 
-
-
 - name: Wait for Docker daemon to be ready
   ansible.builtin.wait_for:
     path: /var/run/docker.sock
