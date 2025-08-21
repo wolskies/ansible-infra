@@ -29,7 +29,7 @@
 
     - name: Validate supported OS
       ansible.builtin.fail:
-        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} not supported. Need: Ubuntu 24+, Debian 12+, Arch Linux, macOS"
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} not supported. Need: Ubuntu 24+, Debian 12+, Arch, macOS"
       when:
         - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
           (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)

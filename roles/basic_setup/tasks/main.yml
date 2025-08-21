@@ -67,9 +67,6 @@
     - system-config
     - basic-setup
 
-
-
-
 - name: Add users to system (Linux only)
   become: true
   ansible.builtin.user:

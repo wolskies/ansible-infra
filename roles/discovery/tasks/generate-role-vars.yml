@@ -10,16 +10,16 @@
           # Package management
           "host_packages_install_{{ ansible_distribution }}": >-
             {{ discovered_packages.standard_packages | default([]) | unique }}
-          
+
           # User management
           user_details:
             - name: "{{ discovered_users.current_user.name }}"
               uid: "{{ discovered_users.current_user.uid }}"
               shell: "{{ discovered_users.current_user.shell }}"
-          
+
           # System configuration
           default_user_shell: "{{ discovered_users.shell_config.preferred_shell | default('/bin/bash') }}"
-          
+
           # Simple feature detection
           install_development_packages: "{{ (discovered_packages.development_packages | default([])) | length > 5 }}"
           install_media_packages: "{{ discovered_desktop.detected | default(false) }}"
@@ -30,10 +30,10 @@
           # Docker configuration
           docker_users:
             - "{{ discovered_users.current_user.name }}"
-          
+
           # Container services (if detected)
           container_services: "{{ discovered_docker.services | default([]) }}"
-          
+
           # Networks (if detected)
           docker_networks: "{{ discovered_docker.networks | default([]) }}"
       when: discovered_docker.installed | default(false)
@@ -46,11 +46,11 @@
           dotfiles_repository_url: "{{ discovered_dotfiles.repository_url | default('') }}"
           dotfiles_branch: "{{ discovered_dotfiles.repository_branch | default('main') }}"
           dotfiles_method: "{{ 'stow' if discovered_dotfiles.uses_stow | default(false) else 'symlink' }}"
-          
+
           # Backup configuration
           dotfiles_backup_existing: true
           dotfiles_backup_suffix: ".pre-ansible"
-      when: 
+      when:
         - discovered_dotfiles is defined
         - discovered_dotfiles.suggested_dotfiles_source_type | default('none') != 'none'
 
@@ -59,7 +59,7 @@
         system_tuning_vars:
           # Basic system tuning
           system_tuning_network_enabled: true
-          
+
           # User groups for hardware access
           system_tuning_user_groups_add: >-
             {{
@@ -73,10 +73,10 @@
           # Basic maintenance
           system_maintenance_enabled: true
           cleanup_old_packages: true
-          
+
           # Enable automatic updates for servers (no GUI)
           enable_automatic_updates: "{{ not discovered_desktop.detected | default(false) }}"
-          
+
           # Development environment maintenance
           maintain_dev_tools: "{{ (discovered_packages.development_packages | default([])) | length > 5 }}"
 
@@ -86,7 +86,7 @@
           # Enable security features for servers (no GUI)
           enable_firewall: "{{ not discovered_desktop.detected | default(false) }}"
           enable_fail2ban: "{{ (not discovered_desktop.detected | default(false)) and not discovered_services.security.fail2ban_detected | default(false) }}"
-          
+
           # Use discovered firewall type or default based on OS
           firewall_type: >-
             {%- if discovered_services.security.firewall_type | default('none') != 'none' -%}
@@ -98,7 +98,7 @@
             {%- else -%}
               iptables
             {%- endif %}
-          
+
           # Open ports (SSH by default if detected)
           firewall_allowed_ports: >-
             {{

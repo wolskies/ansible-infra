@@ -7,7 +7,7 @@
     discovered_services:
       running: "{{ ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | map('regex_replace', '\\.service$', '') | list }}"
       enabled: "{{ ansible_facts.services | dict2items | selectattr('value.status', 'equalto', 'enabled') | map(attribute='key') | map('regex_replace', '\\.service$', '') | list }}"
-      
+
       # Security services (kept for system_security role)
       security:
         ssh_detected: "{{ 'ssh' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'sshd' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
