@@ -252,11 +252,10 @@ sync-to-github:
       when: on_success
     - if: $CI_COMMIT_TAG
       when: on_success
-  variables:
-    # These should be set in GitLab CI/CD variables:
-    # GITHUB_SSH_PRIVATE_KEY - SSH private key for GitHub access
-    # GITHUB_USERNAME - GitHub username/organization
-    # GITHUB_REPOSITORY - GitHub repository name
+  # Required GitLab CI/CD variables:
+  # GITHUB_SSH_PRIVATE_KEY - SSH private key for GitHub access
+  # GITHUB_USERNAME - GitHub username/organization
+  # GITHUB_REPOSITORY - GitHub repository name
 
 # Cleanup job for failed pipelines
 cleanup-on-failure:
@@ -328,7 +327,7 @@ test-ubuntu-discovery:
     MOLECULE_PLATFORM: ubuntu2404
 
 test-debian-discovery:
-  <<: *os-matrix-test  
+  <<: *os-matrix-test
   script:
     - echo "Testing discovery on Debian 12..."
     - cd molecule/discovery
@@ -344,7 +343,7 @@ test-cross-os-compatibility:
     - molecule test --parallel
   variables:
     MOLECULE_PARALLEL: "true"
-    
+
 # End-to-End Testing (full workflow)
 test-e2e-workflow:
   stage: test-integration

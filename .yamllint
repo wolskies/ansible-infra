@@ -1,0 +1,27 @@
+---
+extends: default
+
+ignore: |
+  .venv/
+  slowki/
+  playbooks/
+  examples/
+
+rules:
+  line-length:
+    max: 120  # More reasonable for Ansible
+    level: error
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no']
+  key-duplicates: enable
+  trailing-spaces: enable
+  empty-lines:
+    max-end: 1
+  document-start:
+    present: false  # Don't require --- at start
+  braces:
+    max-spaces-inside: 1
+    min-spaces-inside: 0

@@ -29,7 +29,7 @@
 
     - name: Validate supported OS
       ansible.builtin.fail:
-        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported. Supported: Ubuntu 24+, Debian 12+, Arch Linux, macOS"
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} not supported. Need: Ubuntu 24+, Debian 12+, Arch Linux, macOS"
       when:
         - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
           (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
@@ -139,7 +139,8 @@
           - "Next steps:"
           - "1. Review generated inventory and host_vars"
           - "2. Configure vault variables for sensitive data"
-          - "3. Run: ansible-playbook -i {{ discovery.output_dir }}/inventory.yml {{ discovery.output_dir }}/playbooks/new_machine.yml"
+          - "3. Run: ansible-playbook -i {{ discovery.output_dir }}/inventory.yml"
+          - "   {{ discovery.output_dir }}/playbooks/new_machine.yml"
 
     - name: Create README for discovered configuration
       ansible.builtin.template:
