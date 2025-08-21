@@ -34,11 +34,10 @@
       become: true
       
     # Additional packages (user-defined and discovered)
-    - name: wolskinet.infrastructure.extra_packages
       become: true
       
     # System updates for all machines
-    - name: wolskinet.infrastructure.system_update
+    - name: wolskinet.infrastructure.maintenance
       become: false
 
   post_tasks:

@@ -94,8 +94,8 @@ test-docker-setup:
     DOCKER_TLS_CERTDIR: ""
   <<: *base-setup
   script:
-    - echo "Testing docker_setup role..."
-    - cd molecule/docker_setup
+    - echo "Testing container_platform role..."
+    - cd molecule/container_platform
     - molecule test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

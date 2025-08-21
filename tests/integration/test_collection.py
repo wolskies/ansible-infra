@@ -43,8 +43,8 @@ class TestCollectionStructure:
         """Test that expected roles exist"""
         expected_roles = [
             'basic_setup',
-            'docker_setup', 
-            'system_update'
+            'container_platform', 
+            'maintenance'
         ]
         
         roles_dir = Path('roles')
@@ -58,7 +58,7 @@ class TestCollectionStructure:
         expected_scenarios = [
             'default',
             'basic_setup',
-            'docker_setup',
+            'container_platform',
             'discovery'
         ]
         
@@ -85,9 +85,9 @@ class TestRoleConfigurations:
             full_path = role_path / file_path
             assert full_path.exists(), f"File {file_path} must exist in basic_setup role"
 
-    def test_docker_setup_role_structure(self):
-        """Test docker_setup role has proper structure"""
-        role_path = Path('roles/docker_setup')
+    def test_container_platform_role_structure(self):
+        """Test container_platform role has proper structure"""
+        role_path = Path('roles/container_platform')
         required_files = [
             'tasks/main.yml',
             'tasks/install-Debian.yml',
@@ -100,7 +100,7 @@ class TestRoleConfigurations:
         
         for file_path in required_files:
             full_path = role_path / file_path
-            assert full_path.exists(), f"File {file_path} must exist in docker_setup role"
+            assert full_path.exists(), f"File {file_path} must exist in container_platform role"
 
     def test_role_metadata_valid(self):
         """Test that role metadata is valid"""
@@ -132,11 +132,11 @@ class TestUtilities:
 
     def test_discovery_templates_exist(self):
         """Test that discovery templates exist"""
-        templates_dir = Path('utilities/templates')
+        templates_dir = Path('roles/discovery/templates')
         expected_templates = [
             'inventory.yml.j2',
-            'host-vars.yml.j2',
-            'group-vars.yml.j2',
+            'host_vars.yml.j2',
+            'group_vars.yml.j2',
             'package-replication.yml.j2',
             'secrets-template.yml.j2'
         ]
@@ -258,7 +258,7 @@ class TestSecurity:
 
     def test_vault_templates_secure(self):
         """Test that vault templates contain only placeholder values"""
-        vault_template = Path('utilities/templates/secrets-template.yml.j2')
+        vault_template = Path('roles/discovery/templates/secrets-template.yml.j2')
         if vault_template.exists():
             with open(vault_template, 'r') as f:
                 content = f.read()

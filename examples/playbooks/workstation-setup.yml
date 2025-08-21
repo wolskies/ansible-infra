@@ -6,7 +6,6 @@
     - wolskinet.infrastructure
     
   vars:
-    # Desktop packages for workstations (handled by extra_packages role)
     desktop_packages:
       - firefox
       - gimp
@@ -21,9 +20,8 @@
 
   roles:
     - name: wolskinet.infrastructure.basic_setup
-    - name: wolskinet.infrastructure.extra_packages
     - name: wolskinet.infrastructure.dotfiles
-    - name: wolskinet.infrastructure.system_update
+    - name: wolskinet.infrastructure.maintenance
 
   post_tasks:
     - name: Enable desktop login manager (Linux)

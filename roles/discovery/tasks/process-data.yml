@@ -61,8 +61,8 @@
     recommended_roles: >-
       {{
         (['basic_setup'] if true else []) +
-        (['system_update'] if true else []) +
-        (['docker_setup'] if discovered_docker.installed else []) +
+        (['maintenance'] if true else []) +
+        (['container_platform'] if discovered_docker.installed else []) +
         (['dotfiles'] if discovered_users.dotfiles.detected else []) +
         (['desktop-' + discovered_desktop.environment] if discovered_desktop.has_gui and discovered_desktop.environment != 'unknown' else [])
       }}

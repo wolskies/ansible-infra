@@ -8,19 +8,62 @@ This collection provides a set of roles designed to automate the setup and maint
 
 ## Architecture Overview
 
-The collection is designed around the concept of **configuring machines by inventory group**:
+The collection fully leverages [Ansible's variable precedence hierarchy](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable) for maximum flexibility. Users can define variables at any level:
 
-- **`servers`**: Get security hardening + basic setup + system maintenance
-- **`docker_hosts`**: Inherit server configuration + add Docker installation + configurable container services  
-- **`workstations`**: Get basic setup + dotfiles + desktop-specific configurations
-- **Custom groups**: Users can define their own groups with specific role combinations
+- **Role defaults** provide sensible baselines for all configurations
+- **`group_vars/all.yml`** for global overrides affecting all hosts
+- **`group_vars/{group}.yml`** for group-specific configuration (servers, workstations, etc.)
+- **`host_vars/{host}.yml`** for host-specific customization
+- **Play variables** for runtime overrides
+
+This means users are **never constrained** in how they structure their inventory - the same variable can be set globally, per-group, per-host, or any combination.
+
+### Variable Precedence Example
+
+```yaml
+# Role defaults (lowest precedence)
+# roles/basic_setup/defaults/main.yml
+packages_install: []
+install_development_packages: true
+
+# Global configuration
+# group_vars/all.yml  
+packages_install:
+  - htop
+  - curl
+
+# Group-specific 
+# group_vars/servers.yml
+packages_install:
+  - nginx
+  - certbot
+install_development_packages: false  # Servers don't need dev tools
+
+# Host-specific (highest precedence)
+# host_vars/web-01.yml
+packages_install:
+  - redis-server
+  - postgresql-client
+
+# Final result for web-01: redis-server, postgresql-client (host wins)
+# Final result for other servers: nginx, certbot (group wins)  
+# Development packages: false for all servers (group wins)
+
+# Discovery Integration Example:
+# Discovery generates: discovered_packages, discovered_homebrew_casks, etc.
+# Users can incorporate these into standard variables at any level:
+# host_vars/discovered-machine.yml
+packages_install: "{{ discovered_packages | default([]) }}"
+homebrew_casks: "{{ discovered_homebrew_casks | default([]) }}"
+```
 
 ### Key Principles
 
-1. **Group-Based Configuration**: Machines are configured based on their inventory group membership
-2. **Modular Roles**: Each role handles a specific aspect (basic setup, Docker, security, etc.)
-3. **Extensible Design**: Users can easily add roles from other collections or create custom roles
-4. **Building Blocks**: Roles are designed to be combined and layered for complex configurations
+1. **Ansible Variable Precedence**: Natural hierarchy eliminates complex merging logic
+2. **Group-Based Configuration**: Machines are configured based on their inventory group membership  
+3. **Modular Roles**: Each role handles a specific aspect (basic setup, Docker, security, etc.)
+4. **Extensible Design**: Users can easily add roles from other collections or create custom roles
+5. **Building Blocks**: Roles are designed to be combined and layered for complex configurations
 
 ## Supported Operating Systems
 
@@ -43,16 +86,7 @@ All roles support **Python 3.13** as the primary version, with fallbacks to syst
 - Hierarchical variable integration with discovery system
 - Predictable starting point across all supported operating systems
 
-*For additional packages beyond essentials, use the extra_packages role*
-
-### wolskinet.infrastructure.extra_packages
-**Additional package management beyond basic_setup essentials**:
-- Unified package variables (standard inventory hierarchy)
-- Discovery integration (populates same variables users define manually)
-- Category-based control (development, desktop, media packages)
-- Cross-platform language package support (pip, npm, AUR, Homebrew)
-- Repository management for additional package sources
-- Safe failure handling and fine-grained control
+Package categories can be controlled via feature flags in the basic_setup role
 
 ### wolskinet.infrastructure.firewall
 **Cross-platform firewall port management**:
@@ -62,7 +96,7 @@ All roles support **Python 3.13** as the primary version, with fallbacks to syst
 - Integration with Docker service registry
 - Works with basic_setup's firewall installation
 
-### wolskinet.infrastructure.docker_setup
+### wolskinet.infrastructure.container_platform
 Docker infrastructure management:
 - Docker and Docker Compose installation
 - Container service deployment
@@ -70,7 +104,7 @@ Docker infrastructure management:
 - Registry authentication
 - Service templates (Portainer, Nginx Proxy, Monitoring)
 
-### wolskinet.infrastructure.system_update  
+### wolskinet.infrastructure.maintenance  
 System maintenance and updates:
 - Package updates for each OS
 - Dotfiles management via Git
@@ -149,28 +183,25 @@ user_details:
 # group_vars/servers.yml - Hardened servers
 group_roles_install:
   - basic_setup
-  - extra_packages
-  - system_update
+  - maintenance
 security_hardening_enabled: true
 install_firewall: true
 
 # group_vars/docker_hosts.yml - Docker infrastructure  
 group_roles_install:
   - basic_setup
-  - extra_packages
-  - system_update
-  - docker_setup
+  - maintenance
+  - container_platform
 docker_services_deploy:
   - gitlab
-  - nginx_proxy_manager
-  - nextcloud
+  - portainer
+  - monitoring
 
 # group_vars/workstations.yml - Desktop machines
 group_roles_install:
   - basic_setup
-  - extra_packages
   - dotfiles
-  - system_update
+  - maintenance
 install_development_packages: true
 install_desktop_packages: true
 ```
@@ -231,7 +262,7 @@ Add your own roles alongside collection roles:
 # group_vars/web_servers.yml
 group_roles_install:
   - basic_setup
-  - docker_setup
+  - container_platform
 
 additional_roles_install:
   - name: "my_company.web.nginx"
@@ -250,14 +281,13 @@ Define Docker services with custom configurations:
 # group_vars/docker_hosts.yml
 docker_services_deploy:
   - gitlab
-  - nginx_proxy_manager
-  - nextcloud
+  - portainer
+  - monitoring
 
-# Service configurations are handled by individual service roles
-# See roles/gitlab/, roles/nextcloud/, etc. for service-specific variables
+# Service configurations use variables defined in container_platform role
+# See roles/container_platform/vars/services.yml for service definitions
 gitlab_hostname: "gitlab.example.com"
 gitlab_initial_root_password: "{{ vault_gitlab_password }}"
-nextcloud_admin_password: "{{ vault_nextcloud_password }}"
 ```
 
 ## Role Details

@@ -1,89 +1,42 @@
 ---
-# Merge hierarchical variables in additive fashion
-# This task file creates final merged variable lists from the hierarchy:
-# global -> group -> host -> discovered
+# Leverage Ansible's natural variable precedence for configuration
+# Variables automatically follow precedence: role defaults < inventory group_vars < inventory host_vars < play vars
+# We just need to handle list merging and deduplication
 
-- name: Merge package installation lists
+- name: Process package installation lists
   ansible.builtin.set_fact:
-    final_packages_install: >-
-      {{
-        (packages_install | default([])) +
-        (global_packages_install | default([])) +
-        (group_packages_install | default([])) +
-        (host_packages_install | default([])) +
-      }}
-    final_packages_remove: >-
-      {{
-        (packages_remove | default([])) +
-        (global_packages_remove | default([])) +
-        (group_packages_remove | default([])) +
-        (host_packages_remove | default([])) +
-      }}
+    final_packages_install: "{{ (packages_install | default([])) | unique }}"
+    final_packages_remove: "{{ (packages_remove | default([])) | unique }}"
 
-- name: Merge macOS Homebrew package lists
+- name: Process macOS Homebrew package lists
   ansible.builtin.set_fact:
-    final_homebrew_packages: >-
-      {{
-        (homebrew_packages | default([])) +
-        (global_homebrew_packages | default([])) +
-        (group_homebrew_packages | default([])) +
-        (host_homebrew_packages | default([])) +
-      }}
-    final_homebrew_casks: >-
-      {{
-        (homebrew_casks | default([])) +
-        (global_homebrew_casks | default([])) +
-        (group_homebrew_casks | default([])) +
-        (host_homebrew_casks | default([])) +
-      }}
+    final_homebrew_packages: "{{ (homebrew_packages | default([])) | unique }}"
+    final_homebrew_casks: "{{ (homebrew_casks | default([])) | unique }}"
   when: ansible_os_family == 'Darwin'
 
-- name: Merge service configuration lists
+- name: Process development packages by category
   ansible.builtin.set_fact:
-    final_services_enable: >-
-      {{
-        (global_services_enable | default([])) +
-        (group_services_enable | default([])) +
-        (host_services_enable | default([])) +
-        (discovered_services_enable | default([]))
-      }}
-    final_services_disable: >-
-      {{
-        (global_services_disable | default([])) +
-        (group_services_disable | default([])) +
-        (host_services_disable | default([])) +
-        (discovered_services_disable | default([]))
-      }}
+    final_development_packages: "{{ (development_packages | default([])) | unique }}"
+    final_desktop_packages: "{{ (desktop_packages | default([])) | unique }}"
+    final_media_packages: "{{ (media_packages | default([])) | unique }}"
+    final_system_packages: "{{ (system_packages | default([])) | unique }}"
 
-- name: Merge role installation lists
+- name: Process language-specific packages
   ansible.builtin.set_fact:
-    final_roles_install: >-
-      {{
-        (global_roles_install | default([])) +
-        (group_roles_install | default([])) +
-        (host_roles_install | default([])) +
-        (discovered_roles_install | default([]))
-      }}
+    final_pip_packages: "{{ (pip_packages | default([])) | unique }}"
+    final_npm_packages: "{{ (npm_packages | default([])) | unique }}"
+    final_aur_packages: "{{ (aur_packages | default([])) | unique }}"
 
-- name: Remove duplicates and apply exclusions
+- name: Process service configuration lists
   ansible.builtin.set_fact:
-    final_packages_install: "{{ final_packages_install | difference(final_packages_remove) | unique }}"
-    final_services_enable: "{{ final_services_enable | difference(final_services_disable) | unique }}"
-    final_roles_install: "{{ final_roles_install | unique }}"
+    final_services_enable: "{{ (services_enable | default([])) | unique }}"
+    final_services_disable: "{{ (services_disable | default([])) | unique }}"
 
-- name: Remove duplicates from macOS Homebrew packages
+- name: Process role installation lists  
   ansible.builtin.set_fact:
-    final_homebrew_packages: "{{ final_homebrew_packages | unique }}"
-    final_homebrew_casks: "{{ final_homebrew_casks | unique }}"
-  when: ansible_os_family == 'Darwin'
+    final_roles_install: "{{ (roles_install | default([])) | unique }}"
 
-- name: Display merged configuration summary
-  ansible.builtin.debug:
-    msg:
-      - "=== Variable Merging Summary ==="
-      - "Packages to install: {{ final_packages_install | length }} ({{ final_packages_install[:5] | join(', ') }}{{ '...' if final_packages_install | length > 5 else '' }})"
-      - "Packages to remove: {{ final_packages_remove | length }}"
-      - "Services to enable: {{ final_services_enable | length }}"
-      - "Services to disable: {{ final_services_disable | length }}"
-      - "Roles to install: {{ final_roles_install | length }}"
-  when: final_packages_install | length > 0 or final_services_enable | length > 0
+- name: Apply package exclusions
+  ansible.builtin.set_fact:
+    final_packages_install: "{{ final_packages_install | difference(final_packages_remove) }}"
+    final_services_enable: "{{ final_services_enable | difference(final_services_disable) }}"

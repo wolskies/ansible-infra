@@ -39,7 +39,7 @@ global_services_disable:
 # Global roles - applied to every machine
 global_roles_install:
   - basic_setup
-  - system_update
+  - maintenance
 
 # Security defaults
 global_enable_firewall: true

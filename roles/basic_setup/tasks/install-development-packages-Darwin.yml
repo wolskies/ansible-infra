@@ -1,0 +1,13 @@
+---
+# Install development packages for macOS systems
+# These are development tools, compilers, etc.
+
+- name: Install development packages via Homebrew
+  community.general.homebrew:
+    name: "{{ final_development_packages }}"
+    state: present
+  become: false
+  when: final_development_packages | length > 0
+  tags:
+    - packages
+    - development-packages

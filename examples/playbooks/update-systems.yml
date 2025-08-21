@@ -6,7 +6,7 @@
     - wolskinet.infrastructure
     
   roles:
-    - name: wolskinet.infrastructure.system_update
+    - name: wolskinet.infrastructure.maintenance
       become: false
 
   tasks:

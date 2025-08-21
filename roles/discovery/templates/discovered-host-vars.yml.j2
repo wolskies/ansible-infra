@@ -1,6 +1,10 @@
 # Host-specific variables for {{ inventory_hostname }}
 # Generated from infrastructure discovery on {{ ansible_date_time.iso8601 }}
 # OS: {{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}
+# 
+# These variables represent the discovered state of this machine.
+# You can use them with any roles or playbooks that support these variable names.
+# This discovery makes no assumptions about your preferred group structure or role assignments.
 
 ---
 # System Information
@@ -25,205 +29,103 @@ system_hostname: "{{ discovery_profile.hostname }}"
 system_fqdn: "{{ discovery_profile.network.fqdn }}"
 {% endif %}
 
-{% if discovery_profile.desktop.has_gui %}
-# Desktop Environment (detected workstation)
-{% if discovery_profile.desktop.environment %}
-desktop_environment: "{{ discovery_profile.desktop.environment }}"
-{% endif %}
-
-# Display Manager Detection
-{% set display_managers = discovery_profile.services.running | intersect(['gdm', 'lightdm', 'sddm', 'xdm', 'kdm']) %}
-{% if display_managers %}
-display_manager: "{{ display_managers[0] }}"
-{% endif %}
-
-# Development Tools
-development_tools_detected:
-{% for tool in discovery_profile.development.tools_installed %}
-  - "{{ tool | basename }}"
-{% endfor %}
-{% endif %}
-
-{% if discovery_profile.docker.installed %}
-# Docker Configuration (detected Docker host)
-docker_detected: true
-docker_version_found: "{{ discovery_profile.docker.version }}"
-
-# Discovered Docker containers (for reference)
-discovered_containers:
-{% for container in discovery_profile.docker.containers %}
-  - "{{ container }}"
+# Package Discovery - Standard Ansible variable names
+# These can be used directly with roles that support these variables
+{% set discovered_packages = [] %}
+{% for package in discovery_profile.packages.installed %}
+  {% set _ = discovered_packages.append(package.split()[0]) %}
 {% endfor %}
 
-# Discovered Docker networks
-discovered_networks:
-{% for network in discovery_profile.docker.networks %}
-  - "{{ network }}"
+# Discovered packages as system packages (basic infrastructure)
+# Note: Discovery cannot determine package categories, so all discovered packages
+# are classified as system packages. Users can reorganize as needed.
+system_packages:
+{% for package in discovered_packages | unique %}
+  - "{{ package }}"
 {% endfor %}
 
-# Discovered Docker volumes  
-discovered_volumes:
-{% for volume in discovery_profile.docker.volumes %}
-  - "{{ volume }}"
-{% endfor %}
-{% endif %}
-
-{% if discovery_profile.system.os_family == "Darwin" %}
-# macOS Configuration
-homebrew_detected: {{ discovery_profile.packages.homebrew_formulae | length > 0 }}
-
-{% if discovery_profile.packages.homebrew_formulae %}
-# Discovered Homebrew packages
-discovered_homebrew_packages:
+{% if discovery_profile.system.os_family == "Darwin" and discovery_profile.packages.homebrew_formulae %}
+# Homebrew packages (macOS)
+homebrew_packages:
 {% for package in discovery_profile.packages.homebrew_formulae %}
   - "{{ package }}"
 {% endfor %}
 {% endif %}
 
-{% if discovery_profile.packages.homebrew_casks %}
-# Discovered Homebrew casks
-discovered_homebrew_casks:
+{% if discovery_profile.system.os_family == "Darwin" and discovery_profile.packages.homebrew_casks %}
+# Homebrew casks (macOS)
+homebrew_casks:
 {% for cask in discovery_profile.packages.homebrew_casks %}
   - "{{ cask }}"
 {% endfor %}
 {% endif %}
-{% endif %}
 
-# Security Configuration
-{% if discovery_profile.security.ufw_status %}
-firewall_detected:
-  type: "ufw"
-  status: "{{ discovery_profile.security.ufw_status | regex_replace('\\n.*', '') }}"
-{% elif discovery_profile.security.firewalld_status %}
-firewall_detected:
-  type: "firewalld"
-  status: "{{ discovery_profile.security.firewalld_status }}"
-{% endif %}
-
-# SSH Configuration (detected from sshd_config)
-{% if discovery_profile.security.ssh_config %}
-ssh_configuration_detected:
-  # TODO: Parse SSH config and extract key settings
-  # Current config available in discovery profile
-  config_detected: true
-{% endif %}
-
-# Package Manager Detection
-package_manager: "{{ 'brew' if discovery_profile.system.os_family == 'Darwin' else 'pacman' if discovery_profile.system.distribution == 'Archlinux' else 'apt' if discovery_profile.system.os_family == 'Debian' else 'unknown' }}"
-
-# Services Configuration
-critical_services_detected:
-{% for service in discovery_profile.services.running | intersect(['ssh', 'sshd', 'systemd-resolved', 'networkd', 'docker']) %}
-  - name: "{{ service }}"
-    status: "running"
+{% if discovery_profile.packages.aur_packages %}
+# AUR packages (Arch Linux)
+aur_packages:
+{% for package in discovery_profile.packages.aur_packages %}
+  - "{{ package.split()[0] }}"
 {% endfor %}
+{% endif %}
 
-# Configuration Management
-{% if discovery_profile.development.dotfiles_repo %}
-dotfiles_repository_detected: true
-dotfiles_location: "{{ ansible_env.HOME }}/.dotfiles"
-{% if discovery_profile.development.dotfiles_repo_url %}
-dotfiles_repository_url: "{{ discovery_profile.development.dotfiles_repo_url }}"
+# Machine Type Detection (based on discovered characteristics)
+{% set machine_characteristics = [] %}
+
+{% if discovery_profile.docker.installed %}
+{% set _ = machine_characteristics.append('docker') %}
 {% endif %}
-{% if discovery_profile.development.dotfiles_branch %}
-dotfiles_repository_branch: "{{ discovery_profile.development.dotfiles_branch }}"
+
+{% set dev_tools = [] %}
+{% if 'git' in discovered_packages %}
+{% set _ = dev_tools.append('git') %}
 {% endif %}
-{% if discovery_profile.development.dotfiles_tools %}
-dotfiles_management_tools:
-{% for tool in discovery_profile.development.dotfiles_tools %}
+{% if 'vim' in discovered_packages or 'nvim' in discovered_packages %}
+{% set _ = dev_tools.append('vim') %}
+{% endif %}
+
+{% if dev_tools | length > 0 %}
+{% set _ = machine_characteristics.append('development') %}
+development_tools_detected:
+{% for tool in dev_tools %}
   - "{{ tool }}"
 {% endfor %}
 {% endif %}
+
+# Machine characteristics for reference (not prescriptive)
+discovered_machine_characteristics:
+{% for characteristic in machine_characteristics %}
+  - "{{ characteristic }}"
+{% endfor %}
+
+{% if discovery_profile.docker.installed %}
+# Docker Configuration
+docker_detected: true
 {% endif %}
 
 # Shell Configuration
-{% if discovery_profile.development.preferred_shell %}
-preferred_shell: "{{ discovery_profile.development.preferred_shell }}"
-default_user_shell: "{{ discovery_profile.development.preferred_shell }}"
+{% if discovery_profile.users.current_shell and discovery_profile.users.current_shell != '/bin/bash' %}
+detected_preferred_shell: "{{ discovery_profile.users.current_shell }}"
+# NOTE: Uncomment to use detected shell as default
+# default_user_shell: "{{ discovery_profile.users.current_shell }}"
 {% endif %}
 
-{% if discovery_profile.development.shell_configs %}
-shell_configs_detected:
-{% for config in discovery_profile.development.shell_configs %}
-  - "{{ config }}"
-{% endfor %}
+# Dotfiles Configuration  
+{% if discovery_profile.dotfiles.detected %}
+dotfiles_detected: true
+{% if discovery_profile.dotfiles.remote_url %}
+# NOTE: Set your actual dotfiles repository URL  
+# dotfiles_repository_url: "{{ discovery_profile.dotfiles.remote_url }}"
+{% endif %}
 {% endif %}
 
-# Repository Configuration
-{% if discovery_profile.repositories.apt_sources %}
-# APT Additional Sources Detected
-apt_additional_sources_detected:
-{% for source in discovery_profile.repositories.apt_sources %}
-  - "{{ source | basename }}"
-{% endfor %}
-{% endif %}
 
-{% if discovery_profile.repositories.aur_helpers %}
-# AUR Helpers Detected
-aur_helper_detected: true
-aur_helpers_available:
-{% for helper in discovery_profile.repositories.aur_helpers %}
-  - "{{ helper | basename }}"
-{% endfor %}
-{% endif %}
+# Discovery metadata
+discovery_completed_at: "{{ ansible_date_time.iso8601 }}"
+discovery_source_os: "{{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}"
 
-{% if discovery_profile.packages.aur_packages %}
-# AUR Packages (Arch Linux)
-aur_packages_detected:
-{% for package in discovery_profile.packages.aur_packages %}
-  - "{{ package.split()[0] }}"  # Package name only
-{% endfor %}
-{% endif %}
-
-{% if discovery_profile.repositories.homebrew_taps %}
-# Homebrew Taps (macOS)
-homebrew_taps_detected:
-{% for tap in discovery_profile.repositories.homebrew_taps %}
-  - "{{ tap }}"
-{% endfor %}
-{% endif %}
-
-# Service Configuration Detection
-{% if discovery_profile.service_configs.detected_configs %}
-service_configs_detected:
-{% for config in discovery_profile.service_configs.detected_configs %}
-  - service: "{{ config.service }}"
-    type: "{{ config.type }}"
-    config_path: "{{ config.path }}"
-{% endfor %}
-{% endif %}
-
-{% if discovery_profile.service_configs.nginx_sites %}
-# Nginx Site Configurations
-nginx_sites_detected:
-{% for site in discovery_profile.service_configs.nginx_sites %}
-  - "{{ site | basename }}"
-{% endfor %}
-{% endif %}
-
-{% if discovery_profile.service_configs.apache_sites %}
-# Apache Virtual Host Configurations
-apache_sites_detected:
-{% for site in discovery_profile.service_configs.apache_sites %}
-  - "{{ site | basename }}"
-{% endfor %}
-{% endif %}
-
-{% if discovery_profile.service_configs.systemd_services %}
-# Custom Systemd Services
-custom_systemd_services_detected:
-{% for service in discovery_profile.service_configs.systemd_services %}
-  - "{{ service | basename | regex_replace('\\.service$', '') }}"
-{% endfor %}
-{% endif %}
-
-# TODO Items for Manual Configuration
-# - Update ansible_host in inventory.yml with actual IP address
-# - Review and adjust firewall rules
-# - Configure vault variables for sensitive data
-# - Verify package lists and remove unnecessary items
-# - Test SSH key authentication
-{% if discovery_profile.docker.installed %}
-# - Review Docker container configurations
-# - Set up proper Docker service definitions
-{% endif %}
+# NOTES:
+# - These variables represent the essential configuration of {{ inventory_hostname }}
+# - Use these with any roles that support standard Ansible variable names
+# - Package lists are ready to use with package management roles  
+# - Discovery focuses only on what basic_setup role can replicate
+# - AUR packages (Arch) and Homebrew packages (macOS) are categorized separately

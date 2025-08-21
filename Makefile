@@ -61,9 +61,9 @@ test-basic: ## Test basic_setup role
 	@echo "Testing basic_setup role..."
 	cd molecule/basic_setup && molecule test
 
-test-docker: ## Test docker_setup role
-	@echo "Testing docker_setup role..."
-	cd molecule/docker_setup && molecule test
+test-docker: ## Test container_platform role
+	@echo "Testing container_platform role..."
+	cd molecule/container_platform && molecule test
 
 test-discovery: ## Test infrastructure discovery utility
 	@echo "Testing discovery utility..."

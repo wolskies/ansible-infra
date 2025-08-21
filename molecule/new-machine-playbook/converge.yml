@@ -9,7 +9,7 @@
   vars:
     # Override for testing - disable slow operations
     reboot_after_setup: false
-    enable_system_updates: false
+    enable_maintenances: false
     
   tasks:
     # Phase 1: Run discovery on the prepared machines
@@ -41,13 +41,13 @@
         discovered_machine_type: "{{ machine_type | default('workstation') }}"
       tags: new_machine
       
-    - name: Test system_update role
+    - name: Test maintenance role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.system_update
+        name: wolskinet.infrastructure.maintenance
         apply:
           become: false
       vars:
-        enable_system_updates: false  # Skip actual updates in tests
+        enable_maintenances: false  # Skip actual updates in tests
       tags: new_machine
       
     # Phase 3: Verify hierarchical variable merging

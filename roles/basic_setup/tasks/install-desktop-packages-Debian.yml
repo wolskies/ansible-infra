@@ -1,0 +1,13 @@
+---
+# Install desktop packages for Debian family systems
+# These are GUI applications, themes, and desktop environment packages
+
+- name: Install desktop packages
+  ansible.builtin.package:
+    name: "{{ final_desktop_packages }}"
+    state: present
+  become: true
+  when: final_desktop_packages | length > 0
+  tags:
+    - packages
+    - desktop-packages

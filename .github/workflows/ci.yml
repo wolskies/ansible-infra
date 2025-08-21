@@ -66,7 +66,7 @@ jobs:
     needs: lint-and-validate
     strategy:
       matrix:
-        scenario: [basic_setup, docker_setup, discovery]
+        scenario: [basic_setup, container_platform, discovery]
     steps:
       - name: Check out code
         uses: actions/checkout@v4

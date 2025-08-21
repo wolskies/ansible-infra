@@ -81,7 +81,7 @@ jobs:
           
           echo "" >> RELEASE_NOTES.md
           echo "### Collection Contents:" >> RELEASE_NOTES.md
-          echo "- **Roles**: basic_setup, docker_setup, system_update" >> RELEASE_NOTES.md
+          echo "- **Roles**: basic_setup, container_platform, maintenance" >> RELEASE_NOTES.md
           echo "- **Utilities**: Infrastructure discovery playbook" >> RELEASE_NOTES.md
           echo "- **Documentation**: Comprehensive role and utility guides" >> RELEASE_NOTES.md
           echo "- **Tests**: Complete Molecule test suite" >> RELEASE_NOTES.md

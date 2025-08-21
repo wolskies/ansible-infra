@@ -1,68 +1,60 @@
 # Group variables for {{ item }}
 # Generated from infrastructure discovery on {{ ansible_date_time.iso8601 }}
-# Compatible with existing ~/Ansible/inventory structure
+# 
+# This file contains variables that are common across hosts in the {{ item }} group.
+# Review and customize these variables based on your infrastructure needs.
+# The discovery process cannot determine group-level intentions, only host-level facts.
 
 ---
-{% if item == 'workstations' %}
-# Workstations Configuration - matches workstations.yml format
-group_roles_install:
-{% if discovery_profile.desktop.environment %}
-  - desktop-{{ discovery_profile.desktop.environment | lower }}
-{% else %}
-  - desktop-hyprland  # Default from existing config
+# Common variables inferred from {{ item }} group hosts
+# NOTE: These are suggestions based on discovered host characteristics.
+# Customize according to your actual group requirements.
+
+{% if hostvars | selectattr('group_names', 'contains', item) | map(attribute='discovered_machine_characteristics') | list | flatten | unique | intersect(['desktop']) | length > 0 %}
+# Desktop-related hosts detected in this group
+install_desktop_packages: true
 {% endif %}
 
-{% elif item == 'docker_hosts' %}
-# Docker Hosts Configuration - matches docker_hosts/vars.yml format
-group_packages_install: 
-  - curl 
-  - openssh-server
-  - ca-certificates
-
-group_services_remove: []
-
-group_services_remove_Debian: []
-
-group_roles_include:
-  - docker_role
-
-{% elif item == 'infra' %}
-# Infrastructure hosts configuration
-group_roles_install:
-  - basic_setup
-  - system_update
-
-# Security configuration for infrastructure hosts
-enable_hardening: true
-enable_firewall: true
-
-{% elif item.endswith('_hosts') and item.startswith(('gitlab', 'nextcloud', 'paperless', 'nginx', 'apache')) %}
-# Application-specific host group: {{ item }}
-group_roles_install:
-  - basic_setup
-  - system_update
-{% if item.startswith(('gitlab', 'nextcloud', 'paperless')) %}
-  - docker_role
+{% if hostvars | selectattr('group_names', 'contains', item) | map(attribute='docker_detected') | select('defined') | list | length > 0 %}
+# Docker hosts detected in this group  
+# NOTE: Consider whether all hosts in this group should have Docker
+docker_group_detected: true
 {% endif %}
 
-{% if item.startswith('nginx') %}
-# Nginx-specific configuration
-nginx_sites_detected: {{ discovery_profile.service_configs.nginx_sites | length }}
+{% if hostvars | selectattr('group_names', 'contains', item) | map(attribute='discovered_machine_characteristics') | list | flatten | unique | intersect(['development']) | length > 0 %}
+# Development tools detected on hosts in this group
+install_development_packages: true
 {% endif %}
 
-{% if item.startswith('apache') %}
-# Apache-specific configuration  
-apache_sites_detected: {{ discovery_profile.service_configs.apache_sites | length }}
+{% if hostvars | selectattr('group_names', 'contains', item) | map(attribute='discovered_machine_characteristics') | list | flatten | unique | intersect(['server']) | length > 0 %}
+# Server characteristics detected in this group
+# Consider security hardening for server groups
+# install_firewall: true
+# enable_security_hardening: true
 {% endif %}
 
-{% else %}
-# Generic group configuration for {{ item }}
-group_roles_install:
-  - basic_setup
-  - system_update
-
+# Group-specific package suggestions (review and customize)
+{% set common_packages = [] %}
+{% for host in hostvars | selectattr('group_names', 'contains', item) %}
+  {% if host.packages_install is defined %}
+    {% set _ = common_packages.extend(host.packages_install) %}
+  {% endif %}
+{% endfor %}
+{% if common_packages %}
+# Packages detected on multiple hosts in this group:
+{% for package in common_packages | unique %}
+# - {{ package }}  # Found on {{ hostvars | selectattr('group_names', 'contains', item) | selectattr('packages_install', 'contains', package) | list | length }} hosts
+{% endfor %}
+# 
+# Consider adding commonly needed packages to group variables:
+# packages_install:
+#   - htop
+#   - curl
+#   - git
 {% endif %}
 
-# TODO: Review and customize role assignments
-# TODO: Add vault.yml file for sensitive variables
-# TODO: Verify compatibility with existing roles
+# NOTES:
+# - This file is generated from discovery analysis
+# - Review all suggestions before implementing
+# - Group variables should reflect intentional group policies, not just common discoveries
+# - Consider your actual grouping strategy (e.g., by function, environment, security level)

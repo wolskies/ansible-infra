@@ -41,9 +41,9 @@ group_services_disable:
 # Server-specific roles
 group_roles_install:
   - basic_setup
-  - system_update
+  - maintenance
   - security_hardening
-  - docker_setup
+  - container_platform
 
 # Security hardening configuration
 security_hardening_enabled: true

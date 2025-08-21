@@ -81,7 +81,7 @@ ansible-playbook site.yml --tags "networks,volumes"
 - `cache` - Package cache management
 - `maintenance` - System maintenance tasks
 
-### docker_setup Role
+### container_platform Role
 
 #### Core Tags
 - `always` - Critical Docker setup tasks

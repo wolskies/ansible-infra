@@ -69,14 +69,12 @@
         - essentials
 
     # Additional packages (user-defined and discovered)
-    - name: wolskinet.infrastructure.extra_packages
       become: true
       tags:
-        - extra_packages
         - packages
 
     # System updates
-    - name: wolskinet.infrastructure.system_update
+    - name: wolskinet.infrastructure.maintenance
       become: false
       tags:
         - updates
@@ -159,7 +157,7 @@
     # Docker setup (if discovered or manually configured)
     - name: Setup Docker environment
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.docker_setup
+        name: wolskinet.infrastructure.container_platform
         apply:
           become: true
       when: 

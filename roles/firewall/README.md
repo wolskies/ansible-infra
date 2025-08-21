@@ -75,7 +75,7 @@ The role can integrate with the Docker service registry:
   vars:
     firewall_ports: "{{ docker_service_ports | default([]) }}"
   roles:
-    - wolskinet.infrastructure.docker_setup
+    - wolskinet.infrastructure.container_platform
     - wolskinet.infrastructure.firewall
 ```
 

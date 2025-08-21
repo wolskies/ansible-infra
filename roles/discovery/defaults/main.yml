@@ -37,7 +37,7 @@ machine_classification:
       - has_gui: false
     roles:
       - basic_setup
-      - system_update
+      - maintenance
     security:
       hardening_enabled: true
       firewall_enabled: true
@@ -47,8 +47,8 @@ machine_classification:
       - docker_installed: true
     roles:
       - basic_setup
-      - system_update
-      - docker_setup
+      - maintenance
+      - container_platform
     packages:
       - curl
       - openssh-server
@@ -59,7 +59,7 @@ machine_classification:
       - has_gui: true
     roles:
       - basic_setup
-      - system_update
+      - maintenance
       - dotfiles
     security:
       firewall_enabled: false  # More flexible networking for workstations
@@ -237,7 +237,6 @@ docker_service_mapping:
   gitlab: "gitlab"
   "gitlab/gitlab-ce": "gitlab"
   nextcloud: "nextcloud"
-  "paperless-ngx": "paperless"
   jellyfin: "jellyfin"
   prometheus: "monitoring"
   grafana: "monitoring"

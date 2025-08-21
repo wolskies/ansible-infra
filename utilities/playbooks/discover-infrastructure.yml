@@ -13,10 +13,14 @@
     - community.docker
   
   vars:
-    discovery_output_dir: "./discovered-infrastructure"
+    # Assume standard Ansible directory structure
+    discovery_output_dir: "./discovery-output"  # Temporary staging area
+    ansible_playbooks_dir: "./playbooks"        # Standard playbooks location
+    ansible_inventory_dir: "./inventory"        # Standard inventory location
     generate_configs: true
     include_sensitive: false  # Set to true to include user hashes (use vault!)
     discovery_timeout: 300  # 5 minutes timeout for discovery tasks
+    preserve_existing_inventory: true  # Don't overwrite existing inventory files
     
   pre_tasks:
     - name: Discovery environment setup
@@ -48,6 +52,22 @@
           tags:
             - setup
             - directories
+
+        - name: Ensure Ansible directory structure exists
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+          loop:
+            - "{{ ansible_inventory_dir }}"
+            - "{{ ansible_inventory_dir }}/host_vars"
+            - "{{ ansible_inventory_dir }}/group_vars"
+            - "{{ ansible_playbooks_dir }}"
+          delegate_to: localhost
+          run_once: true
+          tags:
+            - setup
+            - ansible-structure
 
         - name: Display discovery target
           ansible.builtin.debug:
@@ -1125,7 +1145,7 @@
                 - management-tools
                 - setup
 
-          when: config_files.results | selectattr('item', 'equalto', '.dotfiles') | selectattr('stat.exists') | list
+          when: (config_files.results | selectattr('item', 'equalto', '.dotfiles') | selectattr('stat.exists') | list) | length > 0
           rescue:
             - name: Handle dotfiles repository discovery errors
               ansible.builtin.debug:
@@ -1230,8 +1250,8 @@
             homebrew_casks: "{{ homebrew_casks.stdout_lines | default([]) }}"
             aur_packages: "{{ aur_packages.stdout_lines | default([]) if ansible_distribution == 'Archlinux' else [] }}"
           services:
-            running: "{{ ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | list }}"
-            enabled: "{{ ansible_facts.services | dict2items | selectattr('value.status', 'equalto', 'enabled') | map(attribute='key') | list }}"
+            running: "{{ (ansible_facts.services | default({})) | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | list }}"
+            enabled: "{{ (ansible_facts.services | default({})) | dict2items | selectattr('value.status', 'equalto', 'enabled') | map(attribute='key') | list }}"
           docker:
             installed: "{{ docker_installed.stat.exists | default(false) }}"
             version: "{{ docker_version_output.stdout | default('') }}"
@@ -1277,16 +1297,14 @@
         mode: '0644'
       delegate_to: localhost
 
-    # Generate configurations using template
-    - name: Generate Ansible configurations
+    # Generate configurations to staging area first
+    - name: Generate Ansible configurations to staging
       ansible.builtin.template:
         src: "{{ item.src }}"
         dest: "{{ discovery_output_dir }}/{{ item.dest }}"
         mode: '0644'
       loop:
-        - src: "../templates/discovered-inventory.yml.j2"
-          dest: "inventory.yml"
-        - src: "../templates/discovered-host-vars-simple.yml.j2"  
+        - src: "../templates/discovered-host-vars.yml.j2"  
           dest: "host_vars/{{ inventory_hostname }}.yml"
         - src: "../templates/package-replication.yml.j2"
           dest: "host_vars/{{ inventory_hostname }}-packages.yml"
@@ -1296,31 +1314,31 @@
           dest: "{{ inventory_hostname }}-secrets-template.yml"
       delegate_to: localhost
 
-    - name: Determine machine groups
-      ansible.builtin.set_fact:
-        suggested_groups:
-          - "{{ 'servers' if (discovery_profile.services.running | intersect(['ssh', 'sshd']) | length > 0 and not discovery_profile.desktop.has_gui) else '' }}"
-          - "{{ 'docker_hosts' if discovery_profile.docker.installed else '' }}"
-          - "{{ 'workstations' if discovery_profile.desktop.has_gui else '' }}"
-          - "{{ ansible_distribution | lower }}_hosts"
-        suggested_roles:
-          - basic_setup
-          - system_update
-          - "{{ 'docker_setup' if discovery_profile.docker.installed else '' }}"
-          - "{{ 'dotfiles' if discovery_profile.development.dotfiles_repo else '' }}"
-
-    - name: Generate group_vars configuration
-      ansible.builtin.template:
-        src: "../templates/discovered-group-vars.yml.j2"
-        dest: "{{ discovery_output_dir }}/group_vars/{{ item }}.yml"
+    # Write host_vars directly to proper Ansible structure
+    - name: Write discovered host variables to Ansible inventory
+      ansible.builtin.copy:
+        src: "{{ discovery_output_dir }}/host_vars/{{ inventory_hostname }}.yml"
+        dest: "{{ ansible_inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
         mode: '0644'
-      loop: "{{ suggested_groups | select | list }}"
+        backup: true  # Backup existing files
       delegate_to: localhost
 
-    - name: Generate replication playbook
+    # Generate group_vars analysis (only if requested)
+    - name: Generate group analysis to staging (optional)
       ansible.builtin.template:
-        src: "../templates/discovered-playbook-simple.yml.j2"
-        dest: "{{ discovery_output_dir }}/replicate-{{ inventory_hostname }}.yml"
+        src: "../templates/discovered-group-vars.yml.j2"
+        dest: "{{ discovery_output_dir }}/group_vars/group-analysis-{{ item }}.yml"
+        mode: '0644'
+      loop: "{{ group_names | default([]) }}"
+      when: 
+        - generate_group_analysis | default(false)
+        - group_names is defined
+      delegate_to: localhost
+
+    - name: Generate deployment playbook template
+      ansible.builtin.template:
+        src: "../templates/discovered-playbook.yml.j2"
+        dest: "{{ ansible_playbooks_dir }}/deploy-{{ inventory_hostname }}.yml"
         mode: '0644'
       delegate_to: localhost
 
@@ -1334,28 +1352,32 @@
     - name: Display completion message
       ansible.builtin.debug:
         msg:
-          - "Infrastructure discovery completed!"
-          - "Generated files in: {{ discovery_output_dir }}/"
-          - "Ready for integration with your ~/Ansible/ structure:"
+          - "✅ Infrastructure discovery completed for {{ inventory_hostname }}!"
           - ""
-          - "Core files:"
-          - "- inventory.yml (matches your inventory format)"
-          - "- host_vars/{{ inventory_hostname }}.yml (compatible with your host_vars)"
-          - "- group_vars/[groups].yml (matches your group_vars pattern)"
-          - "- replicate-{{ inventory_hostname }}.yml (compatible with new_machine.yml)"
+          - "📁 Files written to your Ansible directory structure:"
+          - "   inventory/host_vars/{{ inventory_hostname }}.yml   ← Host-specific variables"
+          - "   playbooks/deploy-{{ inventory_hostname }}.yml     ← Replication playbook"
           - ""
-          - "Reference files:"
-          - "- {{ inventory_hostname }}-packages.yml (package details)"
-          - "- {{ inventory_hostname }}-services.yml (service configurations)" 
-          - "- {{ inventory_hostname }}-secrets-template.yml (vault template)"
-          - "- DISCOVERY-REPORT.md (analysis and recommendations)"
+          - "📋 Reference files in {{ discovery_output_dir }}:"
+          - "   {{ inventory_hostname }}-profile.yml              ← Raw discovery data"
+          - "   {{ inventory_hostname }}-packages.yml             ← Package details"
+          - "   {{ inventory_hostname }}-services.yml             ← Service configurations"
+          - "   {{ inventory_hostname }}-secrets-template.yml     ← Vault template"
+          - "   DISCOVERY-REPORT.md                               ← Analysis & recommendations"
           - ""
-          - "Discovery Summary:"
-          - "  - Total packages: {{ discovery_profile.packages.installed.keys() | length }}"
-          - "  - Service configs: {{ discovery_profile.service_configs.detected_configs | length }}"
-          - "  - Repository sources: {{ (discovery_profile.repositories.apt_sources | length) + (discovery_profile.repositories.homebrew_taps | length) + (discovery_profile.repositories.aur_helpers | length) }}"
-          - "  - Dotfiles detected: {{ 'Yes' if discovery_profile.development.dotfiles_repo else 'No' }}"
-          - "  - Preferred shell: {{ discovery_profile.development.preferred_shell | default('Not detected') }}"
+          - "🔍 Discovery Summary:"
+          - "   • Packages discovered: {{ discovery_profile.packages.installed.keys() | length }}"
+          - "   • Services running: {{ discovery_profile.services.running | length }}"
+          - "   • Machine characteristics: {{ discovery_profile.desktop.has_gui | ternary('desktop', 'headless') }}, {{ discovery_profile.docker.installed | ternary('docker', 'no-docker') }}"
+          - "   • Configuration management: {{ 'dotfiles detected' if discovery_profile.development.dotfiles_repo else 'no dotfiles detected' }}"
+          - "   • Preferred shell: {{ discovery_profile.development.preferred_shell | default('not detected') }}"
           - ""
-          - "Suggested groups: {{ suggested_groups | select | list }}"
-          - "Suggested roles: {{ suggested_roles | select | list }}"
+          - "▶️  Next steps:"
+          - "   1. Review inventory/host_vars/{{ inventory_hostname }}.yml"
+          - "   2. Run replication: ansible-playbook playbooks/deploy-{{ inventory_hostname }}.yml"
+          - "   3. Create vault secrets using {{ inventory_hostname }}-secrets-template.yml if needed"
+          - "   4. Test replication on a fresh machine with same OS"
+          - "   5. Organize {{ inventory_hostname }} into your preferred inventory groups"
+          - ""
+          - "💡 Discovery respects your existing inventory structure and makes no assumptions"
+          - "   about groups or roles - use the discovered variables as you see fit!"

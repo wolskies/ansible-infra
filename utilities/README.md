@@ -197,8 +197,8 @@ development_tools_detected:
 # group_vars/docker_hosts.yml
 group_roles_install:
   - basic_setup
-  - system_update
-  - docker_setup
+  - maintenance
+  - container_platform
 
 docker_services_deploy:
   - portainer      # Based on discovered containers
@@ -235,7 +235,7 @@ You can extend the discovery playbook with custom tasks:
 Modify the Jinja2 templates to customize generated configurations:
 
 ```jinja2
-{# utilities/templates/discovered-host-vars.yml.j2 #}
+{# roles/discovery/templates/discovered-host-vars.yml.j2 #}
 # Add custom variables based on discovery
 {% if 'nginx' in discovery_profile.services.running %}
 web_server_detected: true

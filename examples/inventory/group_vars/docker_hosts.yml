@@ -5,8 +5,8 @@
 # Roles to install on Docker hosts (basic + docker)
 group_roles_install:
   - basic_setup
-  - system_update
-  - docker_setup
+  - maintenance
+  - container_platform
 
 # Docker services to deploy
 docker_services_deploy:

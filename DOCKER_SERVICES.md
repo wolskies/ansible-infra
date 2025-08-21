@@ -8,7 +8,7 @@ This document describes the Docker services implementation within the `wolskinet
 
 ### Service Registry Pattern
 
-All Docker services are registered in `roles/docker_setup/vars/services.yml` with metadata including:
+All Docker services are registered in `roles/container_platform/vars/services.yml` with metadata including:
 
 - **Role**: Dedicated Ansible role for the service
 - **Description**: Human-readable service description
@@ -30,7 +30,7 @@ docker_services_deploy:
   - jellyfin
 
 # Services are processed from docker_services_deploy variable
-# Each service must exist in the service registry (roles/docker_setup/vars/services.yml)
+# Each service must exist in the service registry (roles/container_platform/vars/services.yml)
 ```
 
 ## Available Services
@@ -204,7 +204,7 @@ Each service role includes:
 ### Adding a New Service
 
 1. Create service role: `roles/newservice/`
-2. Add to service registry: `roles/docker_setup/vars/services.yml`
+2. Add to service registry: `roles/container_platform/vars/services.yml`
 3. Create Docker Compose template
 4. Define required variables in defaults
 5. Test with the validation playbook

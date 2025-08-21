@@ -1,0 +1,73 @@
+# Replication playbook for localhost
+# Generated from infrastructure discovery on 2025-08-20T11:27:26Z
+# 
+# This playbook replicates the discovered configuration using the basic_setup role
+# and the variables discovered from the original machine.
+# Original OS: Archlinux rolling
+
+---
+- name: Replicate discovered configuration for localhost
+  hosts: localhost
+  gather_facts: true
+  become: true
+  
+  collections:
+    - wolskinet.infrastructure
+    - community.general    - community.docker
+  pre_tasks:
+    - name: Display replication target information
+      ansible.builtin.debug:
+        msg:
+          - "Replicating configuration for: localhost"
+          - "Source discovery: Archlinux rolling"
+          - "Target OS: Archlinux NA"
+          - "Discovery date: 2025-08-20T11:27:26Z"
+          - "Packages to install: 0"
+          - "Machine characteristics: []"
+
+    - name: Validate OS compatibility
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Archlinux"
+        fail_msg: "Target OS (Archlinux) doesn't match source OS (Archlinux)"
+        success_msg: "OS compatibility confirmed"
+
+  roles:
+    # Core system setup with discovered packages and configuration
+    - name: wolskinet.infrastructure.basic_setup
+      vars:
+        # The basic_setup role will consume the packages_install variable
+        # from host_vars/localhost.yml automatically
+        install_discovered_packages: true
+        
+        # Container platform setup (Docker was detected)
+    - name: wolskinet.infrastructure.container_platform
+      when: docker_detected | default(false)
+        
+        # Dotfiles management (dotfiles repository was detected)  
+    - name: wolskinet.infrastructure.dotfiles
+      become: false
+      when: dotfiles_detected | default(false)
+        
+    # System maintenance and updates
+    - name: wolskinet.infrastructure.maintenance
+
+  post_tasks:
+    - name: Display replication results
+      ansible.builtin.debug:
+        msg:
+          - "Configuration replication completed for localhost"
+          - "Packages to install: 0 system packages"
+          - "Docker configuration applied"
+          - "Note: Docker containers/volumes are reference only - not automatically recreated"
+          - "Dotfiles repository configured"
+          - ""
+          - "Manual verification steps:"
+          - "  1. Compare package lists: check if critical packages are installed"
+          - "  2. Verify services are running as expected"
+          - "  3. Test application functionality"
+          - "  4. Manually recreate Docker containers/volumes as needed"
+          - "  5. Verify dotfiles are properly linked"  
+          - ""
+          - "Source machine characteristics: []"
+          - "Replication should closely match the original localhost configuration"

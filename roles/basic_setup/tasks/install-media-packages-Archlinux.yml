@@ -1,0 +1,13 @@
+---
+# Install media packages for Arch Linux systems
+# These are typically large packages for media creation/editing
+
+- name: Install media packages via pacman
+  ansible.builtin.package:
+    name: "{{ final_media_packages }}"
+    state: present
+  become: true
+  when: final_media_packages | length > 0
+  tags:
+    - packages
+    - media-packages

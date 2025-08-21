@@ -18,7 +18,7 @@
     process_discovered_repositories: false      # Don't add repositories
     process_discovered_services: false          # Don't configure services
     configure_firewall: false                   # Don't modify firewall
-    enable_system_updates: false                # Don't run system updates
+    enable_maintenances: false                # Don't run system updates
     install_system_packages: false              # Don't install any packages
     install_development_packages: false         # Don't install dev packages
     install_desktop_packages: false             # Don't install desktop packages

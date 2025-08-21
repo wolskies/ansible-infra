@@ -11,7 +11,7 @@ This role creates a **minimal, predictable starting point** for each supported O
 - Providing hierarchical variable integration with discovery system
 - Supporting user management and system optimization
 
-**Philosophy:** This role installs the bare minimum needed for a functional system. For additional packages (editors, development tools, GUI applications), see the opinionated package examples in `examples/inventory/group_vars/`.
+**Philosophy:** This role provides both essential packages and category-based additional packages (development, desktop, media) controlled by feature flags.
 
 ## Supported Operating Systems
 
@@ -141,6 +141,18 @@ This role works with:
 - `packages_remove` - Packages to remove
 - `user_details` - Users to create
 - `default_user_shell` - Default shell for new users
+
+### Package Category Controls
+- `install_development_packages: true` - Development tools, compilers, etc.
+- `install_desktop_packages: true` - GUI applications, themes, etc.
+- `install_media_packages: false` - Large media packages (manual review recommended)
+- `install_productivity_packages: true` - Editors, terminals, productivity tools
+
+### Package Manager Controls
+- `install_aur_packages: true` - Arch Linux AUR packages
+- `install_pip_packages: true` - Python packages
+- `install_npm_packages: true` - Node.js packages
+- `install_homebrew_casks: true` - macOS GUI applications
 
 ### OS Feature Variables
 - `ubuntu_disable_snap: true` - Remove snapd completely

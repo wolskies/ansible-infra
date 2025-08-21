@@ -34,7 +34,7 @@
       become: true
       
     # System updates and maintenance
-    - name: wolskinet.infrastructure.system_update
+    - name: wolskinet.infrastructure.maintenance
       become: false
 
   tasks:
@@ -91,7 +91,7 @@
         - enable_automatic_updates | default(true)
 
   post_tasks:
-    # Install group-specific roles (like docker_setup for docker_hosts)
+    # Install group-specific roles (like container_platform for docker_hosts)
     - name: Install group-specific roles
       ansible.builtin.include_role:
         name: "{{ item.name if item is mapping else 'wolskinet.infrastructure.' + item }}"

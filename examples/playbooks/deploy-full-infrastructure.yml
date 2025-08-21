@@ -39,7 +39,7 @@
     - name: wolskinet.infrastructure.basic_setup
       become: true
       
-    - name: wolskinet.infrastructure.system_update
+    - name: wolskinet.infrastructure.maintenance
       become: false
 
 # Play 2: Server hardening (servers only)
@@ -60,7 +60,7 @@
   hosts: docker_hosts
   gather_facts: false
   roles:
-    - name: wolskinet.infrastructure.docker_setup
+    - name: wolskinet.infrastructure.container_platform
       become: true
 
 # Play 4: Workstation setup (workstations only)

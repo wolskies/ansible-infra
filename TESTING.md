@@ -32,7 +32,7 @@ This document outlines the comprehensive testing strategy for the `wolskinet.inf
 - **Purpose**: Test basic system setup role
 - **Coverage**: Essential package installation, user creation, firewall setup, system configuration
 
-#### `molecule/docker_setup/` - Docker Role Testing
+#### `molecule/container_platform/` - Docker Role Testing
 - **Purpose**: Test Docker installation and service deployment
 - **Coverage**: Docker CE installation, user permissions, service registry validation, container deployment
 

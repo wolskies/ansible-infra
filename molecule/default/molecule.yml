@@ -66,13 +66,13 @@ provisioner:
       servers:
         group_roles_install:
           - basic_setup
-          - system_update
+          - maintenance
         enable_firewall: false  # Don't enable firewall in tests
       docker_hosts:
         group_roles_install:
           - basic_setup
-          - system_update
-          - docker_setup
+          - maintenance
+          - container_platform
         docker_services_deploy:
           - portainer
         # Test Docker configuration
@@ -84,7 +84,7 @@ provisioner:
       workstations:
         group_roles_install:
           - basic_setup
-          - system_update
+          - maintenance
           - dotfiles
         install_dotfiles: false  # Don't actually clone in tests
   config_options:
