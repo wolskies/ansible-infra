@@ -6,7 +6,11 @@
       ansible.builtin.set_fact:
         system_installable_tools: >-
           {{
-            dotfiles_needed_tools | select('in', dotfiles_common_tools | selectattr('system_packages.' + ansible_distribution, 'defined') | selectattr('system_packages.' + ansible_distribution, '!=', []) | map(attribute='name') | list) | list
+            dotfiles_needed_tools | select('in',
+              dotfiles_common_tools |
+              selectattr('system_packages.' + ansible_distribution, 'defined') |
+              selectattr('system_packages.' + ansible_distribution, '!=', []) |
+              map(attribute='name') | list) | list
           }}
 
     - name: Create system package list for current OS

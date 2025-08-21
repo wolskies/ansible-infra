@@ -5,6 +5,11 @@ ignore: |
   slowki/
   .ansible/
   .github/
+  molecule/
+  test-discovery/
+  examples/
+  playbooks/
+  utilities/
 
 rules:
   line-length:

@@ -5,14 +5,34 @@
 - name: Store service discovery results
   ansible.builtin.set_fact:
     discovered_services:
-      running: "{{ ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | map('regex_replace', '\\.service$', '') | list }}"
-      enabled: "{{ ansible_facts.services | dict2items | selectattr('value.status', 'equalto', 'enabled') | map(attribute='key') | map('regex_replace', '\\.service$', '') | list }}"
+      running: >-
+        {{ ansible_facts.services | dict2items |
+           selectattr('value.state', 'equalto', 'running') |
+           map(attribute='key') |
+           map('regex_replace', '\\.service$', '') | list }}
+      enabled: >-
+        {{ ansible_facts.services | dict2items |
+           selectattr('value.status', 'equalto', 'enabled') |
+           map(attribute='key') |
+           map('regex_replace', '\\.service$', '') | list }}
 
       # Security services (kept for system_security role)
       security:
-        ssh_detected: "{{ 'ssh' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'sshd' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-        fail2ban_detected: "{{ 'fail2ban' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-        firewall_detected: "{{ 'ufw' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'firewalld' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'iptables' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
+        ssh_detected: >-
+          {{ 'ssh' in (ansible_facts.services.keys() |
+             map('regex_replace', '\\.service$', '') | list) or
+             'sshd' in (ansible_facts.services.keys() |
+             map('regex_replace', '\\.service$', '') | list) }}
+        fail2ban_detected: >-
+          {{ 'fail2ban' in (ansible_facts.services.keys() |
+             map('regex_replace', '\\.service$', '') | list) }}
+        firewall_detected: >-
+          {{ 'ufw' in (ansible_facts.services.keys() |
+             map('regex_replace', '\\.service$', '') | list) or
+             'firewalld' in (ansible_facts.services.keys() |
+             map('regex_replace', '\\.service$', '') | list) or
+             'iptables' in (ansible_facts.services.keys() |
+             map('regex_replace', '\\.service$', '') | list) }}
         firewall_type: >-
           {%- if 'ufw' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) -%}
             ufw
