@@ -69,11 +69,15 @@ test-discovery: ## Test infrastructure discovery utility
 	@echo "Testing discovery utility..."
 	cd molecule/discovery && molecule test
 
+test-system-tuning: ## Test system_tuning role
+	@echo "Testing system_tuning role..."
+	cd molecule/system_tuning && molecule test
+
 test-integration: ## Run full integration test suite
 	@echo "Running integration tests..."
 	cd molecule/default && molecule test
 
-test: test-basic test-docker test-discovery test-integration ## Run all tests
+test: test-basic test-docker test-discovery test-system-tuning test-integration ## Run all tests
 
 test-quick: ## Run quick validation tests
 	@echo "Running quick tests..."
@@ -142,6 +146,7 @@ ci-test: ## Run CI-style tests (same as GitLab CI)
 	$(MAKE) test-basic
 	$(MAKE) test-docker
 	$(MAKE) test-discovery
+	$(MAKE) test-system-tuning
 	$(MAKE) test-integration
 
 ci-build: ## Run CI-style build

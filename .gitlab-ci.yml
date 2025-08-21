@@ -124,7 +124,7 @@ test-discovery-utility:
     max: 2
     when: runner_system_failure
 
-test-new-machine-playbook:
+test-system-tuning:
   stage: test-roles
   image: python:3.11-slim
   services:
@@ -134,8 +134,8 @@ test-new-machine-playbook:
     DOCKER_TLS_CERTDIR: ""
   <<: *base-setup
   script:
-    - echo "Testing new-machine setup playbook..."
-    - cd molecule/new-machine-playbook
+    - echo "Testing system_tuning role..."
+    - cd molecule/system_tuning
     - molecule test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -155,8 +155,8 @@ test-hierarchical-variables:
   <<: *base-setup
   script:
     - echo "Testing hierarchical variable system..."
-    - cd molecule/new-machine-playbook
-    - molecule test -s default --tags variables
+    - cd molecule/default
+    - molecule test --tags variables
   allow_failure: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -183,7 +183,7 @@ test-collection-integration:
     - test-basic-setup
     - test-docker-setup
     - test-discovery-utility
-    - test-new-machine-playbook
+    - test-system-tuning
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -340,7 +340,7 @@ test-cross-os-compatibility:
   <<: *os-matrix-test
   script:
     - echo "Testing cross-OS compatibility..."
-    - cd molecule/new-machine-playbook
+    - cd molecule/default
     - molecule test --parallel
   variables:
     MOLECULE_PARALLEL: "true"
@@ -357,9 +357,9 @@ test-e2e-workflow:
   <<: *base-setup
   script:
     - echo "Running end-to-end workflow test..."
-    - echo "1. Discovery -> 2. Configuration Generation -> 3. New Machine Setup"
-    - cd molecule/new-machine-playbook
-    - molecule test --scenario-name default
+    - echo "1. Discovery -> 2. Configuration Generation -> 3. Infrastructure Setup"
+    - cd molecule/default
+    - molecule test
     - echo "Testing discovery-to-deployment pipeline..."
     - cd ../discovery
     - molecule converge
