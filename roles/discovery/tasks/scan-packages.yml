@@ -47,8 +47,10 @@
         - name: Identify packages from third-party repositories
           ansible.builtin.shell: |
             for pkg in $(apt-mark showmanual); do
-              origin=$(apt-cache policy "$pkg" | grep -E "^\s+\*\*\*" -A1 | tail -1 | grep -o "https\?://[^[:space:]]*" | head -1 || echo "ubuntu-standard")
-              if [[ "$origin" != "ubuntu-standard" && "$origin" != *"ubuntu.com"* && "$origin" != *"debian.org"* ]]; then
+              origin=$(apt-cache policy "$pkg" | grep -E "^\s+\*\*\*" -A1 | tail -1 | \\
+                       grep -o "https\?://[^[:space:]]*" | head -1 || echo "ubuntu-standard")
+              if [[ "$origin" != "ubuntu-standard" && "$origin" != *"ubuntu.com"* && \\
+                    "$origin" != *"debian.org"* ]]; then
                 echo "$pkg:$origin"
               fi
             done

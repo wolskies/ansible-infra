@@ -29,7 +29,10 @@
     # Check for display manager services
     - name: Check for display manager services
       ansible.builtin.set_fact:
-        display_managers_found: "{{ ansible_facts.services.keys() | select('match', '(gdm|lightdm|sddm|xdm|kdm)') | list | length > 0 }}"
+        display_managers_found: >-
+          {{ ansible_facts.services.keys() |
+             select('match', '(gdm|lightdm|sddm|xdm|kdm)') |
+             list | length > 0 }}
 
 - name: Determine if GUI is present
   ansible.builtin.set_fact:

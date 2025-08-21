@@ -90,9 +90,17 @@
       # Container information
       containers:
         total: "{{ docker_containers.containers | default([]) | length }}"
-        running: "{{ docker_containers.containers | default([]) | selectattr('State.Status', 'equalto', 'running') | list | length }}"
-        images: "{{ docker_containers.containers | default([]) | map(attribute='Config.Image') | unique | list }}"
-        names: "{{ docker_containers.containers | default([]) | map(attribute='Name') | map('regex_replace', '^/', '') | list }}"
+        running: >-
+          {{ docker_containers.containers | default([]) |
+             selectattr('State.Status', 'equalto', 'running') |
+             list | length }}
+        images: >-
+          {{ docker_containers.containers | default([]) |
+             map(attribute='Config.Image') | unique | list }}
+        names: >-
+          {{ docker_containers.containers | default([]) |
+             map(attribute='Name') |
+             map('regex_replace', '^/', '') | list }}
 
       # Networks and volumes
       networks:
@@ -114,7 +122,12 @@
         content: "{{ docker_daemon_content.content | default('') | b64decode }}"
 
       # Service mapping for deployment
-      suggested_services: "{{ docker_containers.containers | default([]) | map(attribute='Config.Image') | map('regex_replace', ':.*$', '') | map('regex_replace', '.*/([^/]+)$', '\\1') | unique | list }}"
+      suggested_services: >-
+        {{ docker_containers.containers | default([]) |
+           map(attribute='Config.Image') |
+           map('regex_replace', ':.*$', '') |
+           map('regex_replace', '.*/([^/]+)$', '\\1') |
+           unique | list }}
   when: docker_binary.stat.exists
   tags:
     - docker
