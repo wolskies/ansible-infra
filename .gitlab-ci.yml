@@ -75,8 +75,7 @@ test-basic-setup:
   <<: *base-setup
   script:
     - echo "Testing basic_setup role..."
-    - cd molecule/basic_setup
-    - molecule test
+    - molecule test -s basic_setup
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -95,8 +94,7 @@ test-docker-setup:
   <<: *base-setup
   script:
     - echo "Testing container_platform role..."
-    - cd molecule/container_platform
-    - molecule test
+    - molecule test -s container_platform
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -115,8 +113,7 @@ test-discovery-utility:
   <<: *base-setup
   script:
     - echo "Testing infrastructure discovery utility..."
-    - cd molecule/discovery
-    - molecule test
+    - molecule test -s discovery
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -135,8 +132,7 @@ test-system-tuning:
   <<: *base-setup
   script:
     - echo "Testing system_tuning role..."
-    - cd molecule/system_tuning
-    - molecule test
+    - molecule test -s system_tuning
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -155,8 +151,7 @@ test-hierarchical-variables:
   <<: *base-setup
   script:
     - echo "Testing hierarchical variable system..."
-    - cd molecule/default
-    - molecule test --tags variables
+    - molecule test -s default --tags variables
   allow_failure: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -177,8 +172,7 @@ test-collection-integration:
   <<: *base-setup
   script:
     - echo "Running full collection integration tests..."
-    - cd molecule/default
-    - molecule test
+    - molecule test -s default
   needs:
     - test-basic-setup
     - test-docker-setup
@@ -321,8 +315,7 @@ test-ubuntu-discovery:
   <<: *os-matrix-test
   script:
     - echo "Testing discovery on Ubuntu 24.04..."
-    - cd molecule/discovery
-    - molecule test
+    - molecule test -s discovery
   variables:
     MOLECULE_PLATFORM: ubuntu2404
 
@@ -330,8 +323,7 @@ test-debian-discovery:
   <<: *os-matrix-test
   script:
     - echo "Testing discovery on Debian 12..."
-    - cd molecule/discovery
-    - molecule test
+    - molecule test -s discovery
   variables:
     MOLECULE_PLATFORM: debian12
 
@@ -339,8 +331,7 @@ test-cross-os-compatibility:
   <<: *os-matrix-test
   script:
     - echo "Testing cross-OS compatibility..."
-    - cd molecule/default
-    - molecule test --parallel
+    - molecule test -s default --parallel
   variables:
     MOLECULE_PARALLEL: "true"
 
@@ -357,12 +348,10 @@ test-e2e-workflow:
   script:
     - echo "Running end-to-end workflow test..."
     - echo "1. Discovery -> 2. Configuration Generation -> 3. Infrastructure Setup"
-    - cd molecule/default
-    - molecule test
+    - molecule test -s default
     - echo "Testing discovery-to-deployment pipeline..."
-    - cd ../discovery
-    - molecule converge
-    - molecule verify
+    - molecule converge -s discovery
+    - molecule verify -s discovery
   needs:
     - test-collection-integration
   rules:

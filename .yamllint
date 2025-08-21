@@ -2,11 +2,9 @@ extends: default
 
 ignore: |
   .venv/
-  slowki/
   .ansible/
   .github/
   molecule/
-  test-discovery/
   examples/
   playbooks/
   utilities/
