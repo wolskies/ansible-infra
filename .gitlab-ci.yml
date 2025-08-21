@@ -26,7 +26,7 @@ cache:
 .base-setup: &base-setup
   before_script:
     - apt-get update -qq && apt-get install -y -qq python3-pip docker.io
-    - pip3 install --cache-dir .pip-cache/ ansible molecule[docker] docker pytest-testinfra
+    - pip3 install --cache-dir .pip-cache/ ansible molecule[docker] docker pytest-testinfra ansible-lint yamllint
     - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
     - docker --version
     - ansible --version
@@ -42,7 +42,7 @@ lint-collection:
     - ansible-lint --version || pip3 install ansible-lint
     - ansible-lint .
     - echo "Checking YAML syntax..."
-    - find . -name "*.yml" -o -name "*.yaml" | xargs -I {} ansible-playbook --syntax-check {}
+    - yamllint .
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

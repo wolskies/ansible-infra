@@ -82,7 +82,7 @@ test: test-basic test-docker test-discovery test-system-tuning test-integration 
 test-quick: ## Run quick validation tests
 	@echo "Running quick tests..."
 	$(PYTHON) -m pytest tests/integration/ -v
-	ansible-lint --parseable-severity .
+	ansible-lint .
 
 test-security: ## Run security scans
 	@echo "Running security scans..."
