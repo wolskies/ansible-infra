@@ -1,0 +1,171 @@
+---
+# Arch Linux system tuning tasks
+
+- name: Apply network performance optimizations
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop: "{{ system_tuning_network_optimizations.sysctl | dict2items }}"
+  when: system_tuning_network_enabled | bool
+  become: true
+  tags:
+    - network
+    - performance
+    - sysctl
+    - system-tuning
+
+- name: Apply gaming performance optimizations
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop: "{{ system_tuning_gaming_optimizations.sysctl | dict2items }}"
+  when: system_tuning_gaming_enabled | bool
+  become: true
+  tags:
+    - gaming
+    - performance
+    - sysctl
+    - system-tuning
+
+- name: Apply custom sysctl parameters
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop: "{{ system_tuning_custom_sysctl | dict2items }}"
+  when: system_tuning_custom_sysctl | length > 0
+  become: true
+  tags:
+    - sysctl
+    - custom
+    - system-tuning
+
+- name: Configure NVIDIA GPU kernel modules
+  ansible.builtin.lineinfile:
+    path: /etc/modprobe.d/nvidia.conf
+    line: "options nvidia_drm modeset=1 fbdev=1"
+    create: true
+    mode: '0644'
+  when:
+    - system_tuning_gpu_enabled | bool
+    - system_tuning_gpu_nvidia_enabled | bool
+    - ansible_lspci is defined
+    - "'nvidia' in ansible_lspci | lower"
+  become: true
+  notify: Update initramfs
+  tags:
+    - gpu
+    - nvidia
+    - kernel
+    - system-tuning
+
+- name: Configure early loading of NVIDIA modules
+  ansible.builtin.lineinfile:
+    path: /etc/mkinitcpio.conf.d/nvidia.conf
+    line: "MODULES+=({{ system_tuning_gpu_nvidia_modules | join(' ') }})"
+    create: true
+    mode: '0644'
+  when:
+    - system_tuning_gpu_enabled | bool
+    - system_tuning_gpu_nvidia_enabled | bool
+    - ansible_lspci is defined
+    - "'nvidia' in ansible_lspci | lower"
+  become: true
+  notify: Update initramfs
+  tags:
+    - gpu
+    - nvidia
+    - kernel
+    - initramfs
+    - system-tuning
+
+- name: Enable camera support (uvcvideo module)
+  ansible.builtin.lineinfile:
+    path: /etc/modules-load.d/uvcvideo.conf
+    line: "uvcvideo"
+    create: true
+    mode: '0644'
+  when: system_tuning_camera_support_enabled | bool
+  become: true
+  tags:
+    - camera
+    - hardware
+    - system-tuning
+
+- name: Configure SSH hardening
+  ansible.builtin.template:
+    src: sshd_config_hardening.j2
+    dest: /etc/ssh/sshd_config.d/99-system-tuning.conf
+    mode: '0644'
+    backup: true
+  when: system_tuning_ssh_hardening_enabled | bool
+  become: true
+  notify: Restart SSH
+  tags:
+    - ssh
+    - security
+    - system-tuning
+
+- name: Configure user groups
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: "{{ system_tuning_user_groups_add }}"
+    append: true
+  when: system_tuning_user_groups_add | length > 0
+  become: true
+  tags:
+    - users
+    - groups
+    - security
+    - system-tuning
+
+- name: Configure passwordless sudo
+  ansible.builtin.lineinfile:
+    path: "/etc/sudoers.d/{{ ansible_user }}-nopasswd"
+    line: "{{ ansible_user }} ALL=(ALL) NOPASSWD: ALL"
+    create: true
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  when: system_tuning_sudo_nopasswd | bool
+  become: true
+  tags:
+    - sudo
+    - security
+    - system-tuning
+
+- name: Enable system services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: "{{ system_tuning_services_enable }}"
+  when:
+    - system_tuning_services_enabled | bool
+    - system_tuning_services_enable | length > 0
+  become: true
+  failed_when: false
+  tags:
+    - services
+    - systemd
+    - system-tuning
+
+- name: Disable system services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ system_tuning_services_disable }}"
+  when:
+    - system_tuning_services_enabled | bool
+    - system_tuning_services_disable | length > 0
+  become: true
+  failed_when: false
+  tags:
+    - services
+    - systemd
+    - system-tuning

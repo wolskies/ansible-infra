@@ -25,20 +25,20 @@ desktop_packages:
   - thunderbird
   - libreoffice
 
-# Python packages (language-specific)
-python_packages:
+# Python packages (for third_party_packages role)
+group_pip_packages:
   - requests
   - ansible
   - poetry
 
-# Node.js packages (language-specific)
-nodejs_packages:
+# Node.js packages (for third_party_packages role)
+group_npm_packages:
   - "@angular/cli"
   - typescript
   - prettier
 
 # Additional repositories (all platforms)
-additional_repositories:
+group_additional_repositories:
   apt:
     sources:
       - "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
@@ -52,13 +52,13 @@ additional_repositories:
 
 # Platform-specific packages
 # Arch Linux AUR packages
-aur_packages:
+group_aur_packages:
   - visual-studio-code-bin
   - discord
   - spotify
 
 # macOS Homebrew casks
-homebrew_casks:
+group_homebrew_casks:
   - visual-studio-code
   - discord
   - spotify

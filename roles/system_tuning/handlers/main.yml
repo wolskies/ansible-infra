@@ -1,0 +1,15 @@
+---
+# handlers file for system_tuning
+
+- name: Update initramfs
+  ansible.builtin.command: "{{ system_tuning_initramfs_update_command }}"
+  become: true
+  changed_when: true
+  listen: "Update initramfs"
+
+- name: Restart SSH
+  ansible.builtin.systemd:
+    name: "{{ system_tuning_ssh_service_name }}"
+    state: restarted
+  become: true
+  listen: "Restart SSH"

@@ -1,0 +1,33 @@
+---
+# Go package installation via go install
+# Future implementation for go install packages
+
+- name: Ensure Go is available
+  ansible.builtin.command: "go version"
+  register: go_check
+  changed_when: false
+  failed_when: go_check.rc != 0
+  tags:
+    - golang
+    - prerequisites
+
+- name: Install Go packages
+  ansible.builtin.command: "go install {{ item }}"
+  loop: "{{ go_packages }}"
+  register: go_install
+  changed_when: true  # go install doesn't provide clear changed indication
+  environment:
+    GOPATH: "{{ ansible_env.HOME }}/go"
+    GOBIN: "{{ ansible_env.HOME }}/go/bin"
+  tags:
+    - golang
+    - go-install
+
+- name: Display Go packages summary
+  ansible.builtin.debug:
+    msg:
+      - "Go packages installed: {{ go_packages | length }}"
+      - "Installation location: ~/go/bin"
+  tags:
+    - golang
+    - summary

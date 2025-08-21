@@ -3,563 +3,266 @@
 # Tags: always, debug, validation, install, config, users, compose, directories, 
 #       registries, networks, volumes, services, maintenance, docker-setup
 
-- name: Docker environment validation
-  block:
-    - name: Debug OS information
-      ansible.builtin.debug:
-        msg:
-          - "OS Family: {{ ansible_os_family }}"
-          - "Distribution: {{ ansible_distribution }}"
-          - "Distribution Version: {{ ansible_distribution_version }}"
-          - "Architecture: {{ ansible_architecture }}"
-      tags:
-        - always
-        - debug
-        - validation
-
-    - name: Validate supported OS
-      ansible.builtin.fail:
-        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported for Docker setup. macOS Docker Desktop should be installed manually."
-      when:
-        - ansible_os_family == 'Darwin'  # macOS not supported for Docker server setup
-      tags:
-        - always
-        - validation
-        - os-check
-
-  rescue:
-    - name: Handle validation errors
-      ansible.builtin.debug:
-        msg: "Docker setup validation failed, check OS compatibility"
-      tags:
-        - debug
-        - validation
-        - error-handling
-
+- name: Validate supported OS
+  ansible.builtin.fail:
+    msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported for Docker setup. macOS Docker Desktop should be installed manually."
+  when: ansible_os_family == 'Darwin'
   tags:
     - always
     - validation
+    - os-check
     - docker-setup
 
-- name: Docker installation
-  block:
-    - name: Include OS-specific Docker installation
-      ansible.builtin.include_tasks: "install-{{ ansible_os_family }}.yml"
-      tags:
-        - install
-        - docker-install
-        - os-specific
 
-  rescue:
-    - name: Handle installation errors
-      ansible.builtin.fail:
-        msg: "Docker installation failed, check system requirements and repositories"
-      tags:
-        - install
-        - error-handling
 
+- name: Wait for Docker daemon to be ready
+  ansible.builtin.wait_for:
+    path: /var/run/docker.sock
+    state: present
+    timeout: 60
   tags:
-    - install
-    - docker-setup
-
-- name: Docker user and group configuration
-  block:
-    - name: Create docker group
-      ansible.builtin.group:
-        name: docker
-        state: present
-        system: true
-      become: true
-      tags:
-        - users
-        - groups
-        - permissions
-
-    - name: Add users to docker group
-      ansible.builtin.user:
-        name: "{{ item }}"
-        groups: docker
-        append: true
-      loop: "{{ docker_users }}"
-      become: true
-      notify: restart docker
-      when: docker_users is defined
-      tags:
-        - users
-        - permissions
-        - user-config
-
-    - name: Verify docker group membership
-      ansible.builtin.command: groups {{ item }}
-      loop: "{{ docker_users }}"
-      register: group_membership
-      changed_when: false
-      when: docker_users is defined
-      tags:
-        - users
-        - verification
-        - debug
-
-  rescue:
-    - name: Handle user configuration errors
-      ansible.builtin.debug:
-        msg: "Failed to configure Docker users, manual configuration may be required"
-      tags:
-        - debug
-        - users
-        - error-handling
-
-  tags:
-    - users
-    - config
-    - docker-setup
-
-- name: Docker daemon configuration
-  block:
-    - name: Create Docker configuration directory
-      ansible.builtin.file:
-        path: /etc/docker
-        state: directory
-        mode: '0755'
-      become: true
-      tags:
-        - config
-        - directories
-        - daemon-config
-
-    - name: Create docker daemon configuration
-      ansible.builtin.copy:
-        content: "{{ docker_daemon_config | to_nice_json }}"
-        dest: /etc/docker/daemon.json
-        mode: '0644'
-        backup: true
-      become: true
-      notify: restart docker
-      when: docker_daemon_config is defined
-      tags:
-        - config
-        - daemon-config
-        - json-config
-
-    - name: Start and enable docker service
-      ansible.builtin.systemd:
-        name: docker
-        state: started
-        enabled: true
-        daemon_reload: true
-      become: true
-      tags:
-        - service
-        - daemon
-        - systemd
-
-    - name: Wait for Docker daemon to be ready
-      ansible.builtin.wait_for:
-        path: /var/run/docker.sock
-        state: present
-        timeout: 60
-      tags:
-        - service
-        - verification
-        - daemon
-
-  rescue:
-    - name: Handle Docker daemon configuration errors
-      ansible.builtin.debug:
-        msg: "Docker daemon configuration failed, check logs with 'journalctl -u docker'"
-      tags:
-        - debug
-        - service
-        - error-handling
-
-  tags:
-    - config
     - service
+    - verification
+    - daemon
     - docker-setup
 
-- name: Docker Compose installation
-  block:
-    - name: Install Docker Compose
-      ansible.builtin.get_url:
-        url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
-        dest: /usr/local/bin/docker-compose
-        mode: '0755'
-        timeout: 30
-      become: true
-      when: docker_install_compose | default(true)
-      tags:
-        - compose
-        - download
-        - tools
 
-    - name: Create docker-compose symlink
-      ansible.builtin.file:
-        src: /usr/local/bin/docker-compose
-        dest: /usr/bin/docker-compose
-        state: link
-        force: true
-      become: true
-      when: docker_install_compose | default(true)
-      tags:
-        - compose
-        - symlink
-        - tools
-
-    - name: Verify Docker Compose installation
-      ansible.builtin.command: docker-compose --version
-      register: compose_version
-      changed_when: false
-      when: docker_install_compose | default(true)
-      tags:
-        - compose
-        - verification
-        - debug
-
-    - name: Display Docker Compose version
-      ansible.builtin.debug:
-        var: compose_version.stdout
-      when: 
-        - docker_install_compose | default(true)
-        - compose_version is defined
-      tags:
-        - compose
-        - debug
-        - summary
-
-  rescue:
-    - name: Handle Docker Compose installation errors
-      ansible.builtin.debug:
-        msg: "Docker Compose installation failed, install manually if needed"
-      tags:
-        - debug
-        - compose
-        - error-handling
-
-  tags:
-    - compose
-    - docker-setup
-
-- name: Docker directory structure
-  block:
-    - name: Create docker services directories
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-        owner: root
-        group: root
-      loop:
-        - "{{ docker_services_dir }}"
-        - "{{ docker_compose_dir }}"
-        - "{{ docker_data_dir | default('/opt/docker/data') }}"
-        - "{{ docker_logs_dir | default('/opt/docker/logs') }}"
-      become: true
-      tags:
-        - directories
-        - filesystem
-        - services
-
-  rescue:
-    - name: Handle directory creation errors
-      ansible.builtin.debug:
-        msg: "Failed to create Docker directories, check permissions"
-      tags:
-        - debug
-        - directories
-        - error-handling
-
+- name: Create docker services directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ docker_services_dir }}"
+    - "{{ docker_compose_dir }}"
+    - "{{ docker_data_dir | default('/opt/docker/data') }}"
+    - "{{ docker_logs_dir | default('/opt/docker/logs') }}"
+  become: true
   tags:
     - directories
-    - docker-setup
-
-- name: Docker registry authentication
-  block:
-    - name: Log in to Docker registries
-      community.docker.docker_login:
-        registry_url: "{{ item.registry }}"
-        username: "{{ item.username }}"
-        password: "{{ item.password }}"
-        state: present
-      loop: "{{ docker_registries }}"
-      when: docker_registries | length > 0
-      no_log: true
-      tags:
-        - registries
-        - authentication
-        - login
-        - security
-
-  rescue:
-    - name: Handle registry authentication errors
-      ansible.builtin.debug:
-        msg: "Docker registry authentication failed for some registries"
-      tags:
-        - debug
-        - registries
-        - error-handling
-
-  when: docker_registries is defined and docker_registries | length > 0
-  tags:
-    - registries
-    - docker-setup
-
-- name: Docker network configuration
-  block:
-    - name: Create Docker networks
-      community.docker.docker_network:
-        name: "{{ item.name }}"
-        driver: "{{ item.driver | default('bridge') }}"
-        enable_ipv6: "{{ item.enable_ipv6 | default(false) }}"
-        ipam_config: "{{ item.ipam_config | default(omit) }}"
-        state: present
-      loop: "{{ docker_networks }}"
-      when: docker_networks | length > 0
-      tags:
-        - networks
-        - networking
-        - infrastructure
-
-    - name: Verify Docker networks
-      community.docker.docker_network_info:
-        name: "{{ item.name }}"
-      loop: "{{ docker_networks }}"
-      register: network_info
-      when: docker_networks | length > 0
-      tags:
-        - networks
-        - verification
-        - debug
-
-  rescue:
-    - name: Handle network configuration errors
-      ansible.builtin.debug:
-        msg: "Docker network configuration failed for some networks"
-      tags:
-        - debug
-        - networks
-        - error-handling
-
-  when: docker_networks is defined and docker_networks | length > 0
-  tags:
-    - networks
-    - docker-setup
-
-- name: Docker volume management
-  block:
-    - name: Create Docker volumes
-      community.docker.docker_volume:
-        name: "{{ item.name }}"
-        driver: "{{ item.driver | default('local') }}"
-        driver_options: "{{ item.driver_options | default(omit) }}"
-        state: present
-      loop: "{{ docker_volumes }}"
-      when: docker_volumes | length > 0
-      tags:
-        - volumes
-        - storage
-        - data-persistence
-
-    - name: Verify Docker volumes
-      community.docker.docker_volume_info:
-        name: "{{ item.name }}"
-      loop: "{{ docker_volumes }}"
-      register: volume_info
-      when: docker_volumes | length > 0
-      tags:
-        - volumes
-        - verification
-        - debug
-
-  rescue:
-    - name: Handle volume management errors
-      ansible.builtin.debug:
-        msg: "Docker volume configuration failed for some volumes"
-      tags:
-        - debug
-        - volumes
-        - error-handling
-
-  when: docker_volumes is defined and docker_volumes | length > 0
-  tags:
-    - volumes
-    - docker-setup
-
-- name: Docker service deployment
-  block:
-    - name: Load service registry for deployment planning
-      ansible.builtin.include_vars: services.yml
-      tags:
-        - services
-        - registry
-
-    - name: Merge Docker service lists from hierarchical variables
-      ansible.builtin.set_fact:
-        final_docker_services: >-
-          {{
-            (global_docker_services | default([])) +
-            (group_docker_services | default([])) +
-            (host_docker_services | default([])) +
-            (discovered_docker_services | default([])) +
-            (docker_services_deploy | default([]))
-            | unique
-          }}
-      tags:
-        - services
-        - variables
-
-    - name: Display Docker services deployment plan
-      ansible.builtin.debug:
-        msg:
-          - "=== Docker Services Deployment Plan ==="
-          - "Global services: {{ global_docker_services | default([]) }}"
-          - "Group services: {{ group_docker_services | default([]) }}"
-          - "Host services: {{ host_docker_services | default([]) }}"
-          - "Discovered services: {{ discovered_docker_services | default([]) }}"
-          - "Legacy services: {{ docker_services_deploy | default([]) }}"
-          - ""
-          - "Final merged services ({{ final_docker_services | length }}): {{ final_docker_services }}"
-      tags:
-        - services
-        - info
-        - variables
-
-    - name: Validate all services exist in registry
-      ansible.builtin.fail:
-        msg: "Service '{{ item }}' not found in registry. Available: {{ docker_service_registry.keys() | list }}"
-      loop: "{{ final_docker_services }}"
-      when: 
-        - final_docker_services | length > 0
-        - item not in docker_service_registry
-      tags:
-        - services
-        - validation
-
-    - name: Deploy Docker services from merged list
-      ansible.builtin.include_tasks: deploy-service.yml
-      loop: "{{ final_docker_services }}"
-      loop_control:
-        loop_var: service_name
-      when: final_docker_services | length > 0
-      vars:
-        # Pass service-specific variables if defined
-        service_vars: "{{ vars[service_name + '_config'] | default({}) }}"
-      tags:
-        - services
-        - deployment
-        - containers
-
-  rescue:
-    - name: Handle service deployment errors
-      ansible.builtin.debug:
-        msg: 
-          - "Docker service deployment failed for some services"
-          - "Check service registry and variable configuration"
-          - "Failed services may need manual intervention"
-      tags:
-        - debug
-        - services
-        - error-handling
-
-  when: 
-    - final_docker_services is defined and final_docker_services | length > 0
-    - docker_enable_services | default(true)
-  tags:
+    - filesystem
     - services
     - docker-setup
 
-- name: Docker maintenance configuration
-  block:
-    - name: Set up Docker system cleanup cron job
-      ansible.builtin.cron:
-        name: "Docker system cleanup"
-        minute: "{{ docker_prune_schedule.split()[0] }}"
-        hour: "{{ docker_prune_schedule.split()[1] }}"
-        day: "{{ docker_prune_schedule.split()[2] }}"
-        month: "{{ docker_prune_schedule.split()[3] }}"
-        weekday: "{{ docker_prune_schedule.split()[4] }}"
-        job: "/usr/bin/docker system prune -f --volumes"
-        user: root
-        state: present
-      become: true
-      when: docker_system_prune | default(false)
-      tags:
-        - maintenance
-        - cron
-        - cleanup
-        - automation
-
-    - name: Create Docker log rotation configuration
-      ansible.builtin.copy:
-        content: |
-          /var/lib/docker/containers/*/*.log {
-              daily
-              missingok
-              rotate 7
-              compress
-              delaycompress
-              copytruncate
-              create 0644 root root
-          }
-        dest: /etc/logrotate.d/docker
-        mode: '0644'
-      become: true
-      when: docker_log_rotation | default(true)
-      tags:
-        - maintenance
-        - logs
-        - logrotate
-        - disk-management
-
-  rescue:
-    - name: Handle maintenance configuration errors
-      ansible.builtin.debug:
-        msg: "Docker maintenance configuration failed, manual setup may be required"
-      tags:
-        - debug
-        - maintenance
-        - error-handling
-
+- name: Log in to Docker registries
+  community.docker.docker_login:
+    registry_url: "{{ item.registry }}"
+    username: "{{ item.username }}"
+    password: "{{ item.password }}"
+    state: present
+  loop: "{{ docker_registries }}"
+  when: 
+    - docker_registries is defined 
+    - docker_registries | length > 0
+  no_log: true
   tags:
-    - maintenance
+    - registries
+    - authentication
+    - login
+    - security
     - docker-setup
 
-- name: Docker setup verification and summary
-  block:
-    - name: Verify Docker installation
-      ansible.builtin.command: docker version --format '{{.Server.Version}}'
-      register: docker_version
-      changed_when: false
-      tags:
-        - verification
-        - debug
-        - summary
+- name: Create Docker networks
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver | default('bridge') }}"
+    enable_ipv6: "{{ item.enable_ipv6 | default(false) }}"
+    ipam_config: "{{ item.ipam_config | default(omit) }}"
+    state: present
+  loop: "{{ docker_networks }}"
+  when: 
+    - docker_networks is defined
+    - docker_networks | length > 0
+  tags:
+    - networks
+    - networking
+    - infrastructure
+    - docker-setup
 
-    - name: Display Docker setup summary
-      ansible.builtin.debug:
-        msg:
-          - "Docker setup completed successfully!"
-          - "Docker version: {{ docker_version.stdout | default('unknown') }}"
-          - "Compose installed: {{ 'yes' if docker_install_compose | default(true) else 'no' }}"
-          - "Users in docker group: {{ docker_users | default([]) | join(', ') }}"
-          - "Networks configured: {{ docker_networks | default([]) | length }}"
-          - "Volumes configured: {{ docker_volumes | default([]) | length }}"
-          - "Services to deploy: {{ docker_services_deploy | default([]) | length }}"
-          - "System cleanup: {{ 'enabled' if docker_system_prune | default(false) else 'disabled' }}"
-      tags:
-        - always
-        - summary
-        - debug
+- name: Verify Docker networks
+  community.docker.docker_network_info:
+    name: "{{ item.name }}"
+  loop: "{{ docker_networks }}"
+  register: network_info
+  when: 
+    - docker_networks is defined
+    - docker_networks | length > 0
+  tags:
+    - networks
+    - verification
+    - debug
+    - docker-setup
 
-  rescue:
-    - name: Handle verification errors
-      ansible.builtin.debug:
-        msg: "Docker setup verification failed, check installation"
-      tags:
-        - debug
-        - verification
-        - error-handling
+- name: Create Docker volumes
+  community.docker.docker_volume:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver | default('local') }}"
+    driver_options: "{{ item.driver_options | default(omit) }}"
+    state: present
+  loop: "{{ docker_volumes }}"
+  when: 
+    - docker_volumes is defined
+    - docker_volumes | length > 0
+  tags:
+    - volumes
+    - storage
+    - data-persistence
+    - docker-setup
 
+- name: Verify Docker volumes
+  community.docker.docker_volume_info:
+    name: "{{ item.name }}"
+  loop: "{{ docker_volumes }}"
+  register: volume_info
+  when: 
+    - docker_volumes is defined
+    - docker_volumes | length > 0
+  tags:
+    - volumes
+    - verification
+    - debug
+    - docker-setup
+
+- name: Load service registry for deployment planning
+  ansible.builtin.include_vars: services.yml
+  tags:
+    - services
+    - registry
+    - docker-setup
+
+- name: Merge Docker service lists from hierarchical variables
+  ansible.builtin.set_fact:
+    final_docker_services: >-
+      {{
+        (global_docker_services | default([])) +
+        (group_docker_services | default([])) +
+        (host_docker_services | default([])) +
+        (discovered_docker_services | default([])) +
+        (docker_services_deploy | default([]))
+        | unique
+      }}
+  tags:
+    - services
+    - variables
+    - docker-setup
+
+- name: Display Docker services deployment plan
+  ansible.builtin.debug:
+    msg:
+      - "=== Docker Services Deployment Plan ==="
+      - "Global services: {{ global_docker_services | default([]) }}"
+      - "Group services: {{ group_docker_services | default([]) }}"
+      - "Host services: {{ host_docker_services | default([]) }}"
+      - "Discovered services: {{ discovered_docker_services | default([]) }}"
+      - "Legacy services: {{ docker_services_deploy | default([]) }}"
+      - ""
+      - "Final merged services ({{ final_docker_services | length }}): {{ final_docker_services }}"
+  tags:
+    - services
+    - info
+    - variables
+    - docker-setup
+
+- name: Validate all services exist in registry
+  ansible.builtin.fail:
+    msg: "Service '{{ item }}' not found in registry. Available: {{ docker_service_registry.keys() | list }}"
+  loop: "{{ final_docker_services }}"
+  when: 
+    - final_docker_services | length > 0
+    - item not in docker_service_registry
+  tags:
+    - services
+    - validation
+    - docker-setup
+
+- name: Deploy Docker services from merged list
+  ansible.builtin.include_tasks: deploy-service.yml
+  loop: "{{ final_docker_services }}"
+  loop_control:
+    loop_var: service_name
+  when: 
+    - final_docker_services is defined 
+    - final_docker_services | length > 0
+    - docker_enable_services | default(true)
+  vars:
+    # Pass service-specific variables if defined
+    service_vars: "{{ vars[service_name + '_config'] | default({}) }}"
+  tags:
+    - services
+    - deployment
+    - containers
+    - docker-setup
+
+- name: Set up Docker system cleanup cron job
+  ansible.builtin.cron:
+    name: "Docker system cleanup"
+    minute: "{{ docker_prune_schedule.split()[0] }}"
+    hour: "{{ docker_prune_schedule.split()[1] }}"
+    day: "{{ docker_prune_schedule.split()[2] }}"
+    month: "{{ docker_prune_schedule.split()[3] }}"
+    weekday: "{{ docker_prune_schedule.split()[4] }}"
+    job: "/usr/bin/docker system prune -f --volumes"
+    user: root
+    state: present
+  become: true
+  when: docker_system_prune | default(false)
+  tags:
+    - maintenance
+    - cron
+    - cleanup
+    - automation
+    - docker-setup
+
+- name: Create Docker log rotation configuration
+  ansible.builtin.copy:
+    content: |
+      /var/lib/docker/containers/*/*.log {
+          daily
+          missingok
+          rotate 7
+          compress
+          delaycompress
+          copytruncate
+          create 0644 root root
+      }
+    dest: /etc/logrotate.d/docker
+    mode: '0644'
+  become: true
+  when: docker_log_rotation | default(true)
+  tags:
+    - maintenance
+    - logs
+    - logrotate
+    - disk-management
+    - docker-setup
+
+- name: Verify Docker installation
+  ansible.builtin.command: docker version --format '{{.Server.Version}}'
+  register: docker_version
+  changed_when: false
+  tags:
+    - verification
+    - debug
+    - summary
+    - always
+    - docker-setup
+
+- name: Display Docker setup summary
+  ansible.builtin.debug:
+    msg:
+      - "Docker setup completed successfully!"
+      - "Docker version: {{ docker_version.stdout | default('unknown') }}"
+      - "Compose plugin: {{ 'installed via geerlingguy.docker' }}"
+      - "Users in docker group: {{ docker_users | default([]) | join(', ') }}"
+      - "Networks configured: {{ docker_networks | default([]) | length }}"
+      - "Volumes configured: {{ docker_volumes | default([]) | length }}"
+      - "Services deployed: {{ final_docker_services | default([]) | length }}"
+      - "System cleanup: {{ 'enabled' if docker_system_prune | default(false) else 'disabled' }}"
   tags:
     - always
+    - summary
+    - debug
     - verification
     - docker-setup

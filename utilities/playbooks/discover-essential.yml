@@ -39,17 +39,17 @@
           - "Focus: Only scanning what basic_setup can replicate"
 
   tasks:
-    # 1. Package Discovery (Core requirement)
-    - name: Get installed packages (Arch Linux)
-      ansible.builtin.command: pacman -Q
+    # 1. Package Discovery (Core requirement - only explicitly installed)
+    - name: Get explicitly installed packages (Arch Linux)
+      ansible.builtin.command: pacman -Qqe
       register: pacman_packages
       become: false
       changed_when: false
       when: ansible_distribution == "Archlinux"
       tags: packages
       
-    - name: Get installed packages (Debian/Ubuntu)
-      ansible.builtin.command: dpkg-query -W -f='${Package}\n'
+    - name: Get explicitly installed packages (Debian/Ubuntu)
+      ansible.builtin.command: apt-mark showmanual
       register: dpkg_packages
       become: false
       changed_when: false
@@ -57,8 +57,8 @@
       when: ansible_os_family == "Debian"
       tags: packages
       
-    - name: Get installed packages (RedHat/CentOS)
-      ansible.builtin.command: rpm -qa --queryformat '%{NAME}\n'
+    - name: Get explicitly installed packages (RedHat/CentOS)
+      ansible.builtin.command: dnf history userinstalled
       register: rpm_packages
       become: false
       changed_when: false
@@ -123,18 +123,27 @@
       when: ansible_os_family == "Darwin"
       tags: homebrew
 
-    # 4. Python packages (if pip is available)
-    - name: Get pip packages
-      ansible.builtin.command: pip list --format=freeze
+    # 4. Python packages (user-installed only)
+    - name: Get user pip packages
+      ansible.builtin.shell: |
+        if command -v pip3 >/dev/null 2>&1; then
+          pip3 list --user --format=freeze 2>/dev/null || true
+        elif command -v pip >/dev/null 2>&1; then
+          pip list --user --format=freeze 2>/dev/null || true
+        fi
       register: pip_packages
       become: false
       changed_when: false
       failed_when: false
       tags: python
 
-    # 5. Node packages (if npm is available)
+    # 5. Node packages (global npm packages only, not system packages)
     - name: Get global npm packages
-      ansible.builtin.command: npm list -g --depth=0 --parseable
+      ansible.builtin.shell: |
+        if command -v npm >/dev/null 2>&1; then
+          # Get global packages, excluding npm itself and system packages
+          npm list -g --depth=0 --parseable 2>/dev/null | grep -v '/npm$' || true
+        fi
       register: npm_packages
       become: false
       changed_when: false

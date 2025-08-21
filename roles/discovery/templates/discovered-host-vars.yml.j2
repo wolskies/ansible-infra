@@ -1,10 +1,10 @@
-# Host-specific variables for {{ inventory_hostname }}
+# Host variables for {{ inventory_hostname }}
 # Generated from infrastructure discovery on {{ ansible_date_time.iso8601 }}
-# OS: {{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}
+# Source OS: {{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}
 # 
-# These variables represent the discovered state of this machine.
-# You can use them with any roles or playbooks that support these variable names.
-# This discovery makes no assumptions about your preferred group structure or role assignments.
+# These variables represent the essential configuration discovered from this machine.
+# Use with any roles that support standard Ansible variable names.
+# No assumptions about inventory group structure - organize as you prefer.
 
 ---
 # System Information
@@ -29,103 +29,174 @@ system_hostname: "{{ discovery_profile.hostname }}"
 system_fqdn: "{{ discovery_profile.network.fqdn }}"
 {% endif %}
 
-# Package Discovery - Standard Ansible variable names
-# These can be used directly with roles that support these variables
-{% set discovered_packages = [] %}
-{% for package in discovery_profile.packages.installed %}
-  {% set _ = discovered_packages.append(package.split()[0]) %}
-{% endfor %}
+# Package Discovery - Standard OS packages only
+# These packages can be installed via basic_setup without additional repositories
+{% set standard_packages = discovery_profile.packages.standard_packages | default([]) %}
+{% if standard_packages | length > 0 %}
+# Standard packages (available in default repositories)
+# Discovery command: {{ discovery_profile.system.distribution }} - 
+{%- if discovery_profile.system.distribution == "Archlinux" -%}
+pacman -Qqe (filtered for standard repos)
+{%- elif discovery_profile.system.os_family == "Debian" -%}
+apt-mark showmanual (filtered for ubuntu/debian repos)
+{%- elif discovery_profile.system.os_family == "RedHat" -%}
+dnf history userinstalled (filtered for standard repos)
+{%- elif discovery_profile.system.os_family == "Darwin" -%}
+brew list --formulae
+{%- endif %}
 
-# Discovered packages as system packages (basic infrastructure)
-# Note: Discovery cannot determine package categories, so all discovered packages
-# are classified as system packages. Users can reorganize as needed.
-system_packages:
-{% for package in discovered_packages | unique %}
+host_packages_install_{{ discovery_profile.system.distribution }}:
+{% for package in standard_packages | unique %}
+  - "{{ package }}"
+{% endfor %}
+{% endif %}
+
+{% set third_party_packages = discovery_profile.packages.third_party_packages | default([]) %}
+{% if third_party_packages | length > 0 %}
+# Third-party system packages for third_party_packages role
+# These packages require additional repositories to be configured first
+host_third_party_packages:
+{% for package in third_party_packages %}
   - "{{ package }}"
 {% endfor %}
 
+# Repository configuration for third_party_packages role
+# Configure these repositories to install the packages above
+{% if discovery_profile.repositories.apt.package_origins is defined %}
+# Additional repositories needed (configure in additional_repositories)
+# Example configuration:
+# additional_repositories:
+#   apt:
+#     sources:
+#       - "deb [arch=amd64] REPO_URL stable main"
+#     keys:
+#       - url: "KEY_URL"
+#         name: "repo-name"
+third_party_package_sources:
+{% for package, origin in discovery_profile.repositories.apt.package_origins.items() %}
+  {{ package }}: "{{ origin }}"
+{% endfor %}
+{% endif %}
+{% endif %}
+
 {% if discovery_profile.system.os_family == "Darwin" and discovery_profile.packages.homebrew_formulae %}
-# Homebrew packages (macOS)
-homebrew_packages:
+# Homebrew formulae (macOS)
+host_homebrew_packages:
 {% for package in discovery_profile.packages.homebrew_formulae %}
   - "{{ package }}"
 {% endfor %}
 {% endif %}
 
 {% if discovery_profile.system.os_family == "Darwin" and discovery_profile.packages.homebrew_casks %}
-# Homebrew casks (macOS)
-homebrew_casks:
+# Homebrew casks (macOS GUI applications)
+host_homebrew_casks:
 {% for cask in discovery_profile.packages.homebrew_casks %}
   - "{{ cask }}"
 {% endfor %}
 {% endif %}
 
 {% if discovery_profile.packages.aur_packages %}
-# AUR packages (Arch Linux)
-aur_packages:
+# AUR packages (Arch Linux user repository)
+host_aur_packages:
 {% for package in discovery_profile.packages.aur_packages %}
   - "{{ package.split()[0] }}"
 {% endfor %}
 {% endif %}
 
-# Machine Type Detection (based on discovered characteristics)
-{% set machine_characteristics = [] %}
+{% if discovery_profile.packages.pip_packages %}
+# Python packages (pip user packages - for python_packages role)
+# These are user-installed packages only, not system packages
+host_pip_packages:
+{% for package in discovery_profile.packages.pip_packages %}
+  - "{{ package.split('==')[0] }}"
+{% endfor %}
+{% endif %}
 
+{% if discovery_profile.packages.npm_packages %}
+# Node.js packages (npm global - for npm_packages role)
+# These are globally installed npm packages, not system packages
+host_npm_packages:
+{% for package in discovery_profile.packages.npm_packages %}
+  - "{{ package | basename }}"
+{% endfor %}
+{% endif %}
+
+# Machine characteristics (informational)
+{% set machine_characteristics = [] %}
 {% if discovery_profile.docker.installed %}
 {% set _ = machine_characteristics.append('docker') %}
 {% endif %}
-
 {% set dev_tools = [] %}
 {% if 'git' in discovered_packages %}
 {% set _ = dev_tools.append('git') %}
 {% endif %}
-{% if 'vim' in discovered_packages or 'nvim' in discovered_packages %}
-{% set _ = dev_tools.append('vim') %}
+{% if 'vim' in discovered_packages or 'nvim' in discovered_packages or 'neovim' in discovered_packages %}
+{% set _ = dev_tools.append('editor') %}
 {% endif %}
-
 {% if dev_tools | length > 0 %}
 {% set _ = machine_characteristics.append('development') %}
-development_tools_detected:
-{% for tool in dev_tools %}
-  - "{{ tool }}"
-{% endfor %}
 {% endif %}
 
-# Machine characteristics for reference (not prescriptive)
+{% if machine_characteristics | length > 0 %}
 discovered_machine_characteristics:
 {% for characteristic in machine_characteristics %}
   - "{{ characteristic }}"
 {% endfor %}
+{% endif %}
 
+# Docker detected
 {% if discovery_profile.docker.installed %}
-# Docker Configuration
 docker_detected: true
 {% endif %}
 
-# Shell Configuration
+# Shell configuration
 {% if discovery_profile.users.current_shell and discovery_profile.users.current_shell != '/bin/bash' %}
 detected_preferred_shell: "{{ discovery_profile.users.current_shell }}"
-# NOTE: Uncomment to use detected shell as default
+# NOTE: Uncomment to set as default shell
 # default_user_shell: "{{ discovery_profile.users.current_shell }}"
 {% endif %}
 
-# Dotfiles Configuration  
+# Dotfiles detected
 {% if discovery_profile.dotfiles.detected %}
 dotfiles_detected: true
 {% if discovery_profile.dotfiles.remote_url %}
-# NOTE: Set your actual dotfiles repository URL  
+# NOTE: Configure your actual dotfiles repository
 # dotfiles_repository_url: "{{ discovery_profile.dotfiles.remote_url }}"
 {% endif %}
 {% endif %}
-
 
 # Discovery metadata
 discovery_completed_at: "{{ ansible_date_time.iso8601 }}"
 discovery_source_os: "{{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}"
 
-# NOTES:
-# - These variables represent the essential configuration of {{ inventory_hostname }}
-# - Use these with any roles that support standard Ansible variable names
-# - Package lists are ready to use with package management roles  
-# - Discovery focuses only on what basic_setup role can replicate
-# - AUR packages (Arch) and Homebrew packages (macOS) are categorized separately
+# USAGE NOTES:
+# - This file contains the essential configuration discovered from {{ inventory_hostname }}
+# 
+# ROLE ARCHITECTURE (recommended flow):
+# 1. basic_setup: Standard OS packages (host_packages_install_{{ discovery_profile.system.distribution }})
+# 2. host_third_party_packages: All packages requiring additional setup
+# 3. dotfiles: User configuration files
+#
+# PACKAGE VARIABLES:
+# - host_packages_install_{{ discovery_profile.system.distribution }}: Standard OS packages (safe for basic_setup)
+# - host_third_party_packages: System packages requiring additional repositories (for third_party_packages role)
+# - host_pip_packages: User Python packages (for third_party_packages role)
+# - host_npm_packages: Node.js packages (for third_party_packages role)
+# - host_aur_packages: AUR packages (handled by basic_setup on Arch Linux only)
+#
+# REPOSITORY CONFIGURATION:
+# - third_party_package_sources: Maps packages to their repository origins  
+# - Configure additional_repositories in third_party_packages role based on this mapping
+# - Example: NVIDIA packages require NVIDIA repository, Docker packages require Docker repository
+#
+# HIERARCHICAL PACKAGE SYSTEM:
+# - All package types support all/group/host hierarchy: 
+#   all_packages_install_Ubuntu + group_packages_install_Ubuntu + host_packages_install_Ubuntu  
+#   all_third_party_packages + group_third_party_packages + host_third_party_packages
+#   all_pip_packages + group_pip_packages + host_pip_packages
+#   (and so on for all package types)
+# - Discovery populates HOST level variables, users can add GROUP and ALL level packages
+# - All levels are merged together automatically by basic_setup role
+#
+# MACHINE CHARACTERISTICS:
+# - discovered_machine_characteristics: Informational only - not used for automatic role selection

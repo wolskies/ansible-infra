@@ -1,0 +1,240 @@
+---
+# GROUP VARIABLES (Workstations)
+# File: group_vars/workstations/workstation.yml
+#
+# 🖥️  WORKSTATION GROUP SCOPE
+# These variables apply to all machines in the 'workstations' inventory group.
+# They are merged with global variables (all.yml) and can be overridden by host variables.
+#
+# ANSIBLE VARIABLE PRECEDENCE REMINDER:
+# - Host variables (host_vars/) override these group variables  
+# - These group variables override global variables (group_vars/all/)
+# - 📦 EXCEPTION: Package variables are merged additively (all + group + host)
+
+# =============================================================================
+# GROUP PACKAGE VARIABLES (Workstations)
+# =============================================================================
+# Development and desktop packages for workstation machines.
+# These are STANDARD DISTRIBUTION PACKAGES ONLY - no third-party repositories.
+
+# Ubuntu/Debian workstation packages
+group_packages_install_Ubuntu:
+  - build-essential    # Compilation tools
+  - python3-dev        # Python development headers
+  - nodejs             # Node.js runtime (from standard repos)
+  - npm                # Node package manager  
+  - firefox            # Web browser
+  - thunderbird        # Email client
+  - libreoffice        # Office suite
+  - gimp               # Image editing
+  - vlc                # Media player
+  - tree               # Directory listing
+  - jq                 # JSON processor
+  - unzip              # Archive extraction
+  - zip                # Archive creation
+  - rsync              # File synchronization
+
+# Arch Linux workstation packages  
+group_packages_install_Archlinux:
+  - base-devel         # Development tools
+  - python             # Python runtime
+  - nodejs             # Node.js runtime
+  - npm                # Node package manager
+  - firefox            # Web browser
+  - thunderbird        # Email client  
+  - libreoffice-still  # Office suite
+  - gimp               # Image editing
+  - vlc                # Media player
+  - tree               # Directory listing
+  - jq                 # JSON processor
+  - unzip              # Archive extraction
+  - zip                # Archive creation
+  - rsync              # File synchronization
+
+# macOS workstation packages (Homebrew)
+group_homebrew_packages:
+  - node               # Node.js runtime
+  - python@3.12        # Python runtime
+  - jq                 # JSON processor
+  - tree               # Directory listing
+  - rsync              # File synchronization
+
+# macOS GUI applications (Homebrew Casks)
+group_homebrew_casks:
+  - firefox            # Web browser
+  - thunderbird        # Email client
+  - libreoffice        # Office suite
+  - gimp               # Image editing  
+  - vlc                # Media player
+
+# =============================================================================
+# WORKSTATION-SPECIFIC THIRD-PARTY PACKAGES
+# =============================================================================
+# Third-party packages requiring additional repositories.
+# These are installed by the third_party_packages role.
+
+# Development tools requiring third-party repositories
+group_third_party_packages:
+  - code               # VS Code (requires Microsoft repository)
+  - discord            # Discord (requires Discord repository)
+  - spotify-client     # Spotify (requires Spotify repository)
+
+# AUR packages for Arch Linux workstations (handled by basic_setup role)
+group_aur_packages:
+  - visual-studio-code-bin  # VS Code from AUR
+  - discord                 # Discord from AUR  
+  - spotify                 # Spotify from AUR
+  - slack-desktop          # Slack from AUR
+
+# Python development packages (pip)
+group_pip_packages:
+  - black              # Code formatter
+  - ruff               # Fast linter
+  - mypy               # Type checker
+  - pytest            # Testing framework
+  - jupyter            # Notebook environment
+  - requests           # HTTP library
+  - pandas             # Data analysis
+  - matplotlib         # Plotting library
+
+# Node.js development packages (npm)
+group_npm_packages:
+  - prettier           # Code formatter
+  - eslint             # JavaScript linter
+  - typescript         # TypeScript compiler
+  - "@angular/cli"     # Angular development
+  - "@vue/cli"         # Vue.js development
+  - create-react-app   # React development
+  - nodemon            # Development server
+
+# Additional repositories for workstation packages
+group_additional_repositories:
+  apt:
+    sources:
+      - "deb [arch=amd64,arm64,armhf] https://packages.microsoft.com/repos/code stable main"
+      - "deb http://repository.spotify.com stable non-free"
+      - "deb [signed-by=/usr/share/keyrings/discord-archive-keyring.gpg] https://discord.com/api/download/stable/server/linux"
+    keys:
+      - url: "https://packages.microsoft.com/keys/microsoft.asc"
+        name: "microsoft"
+      - url: "https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg" 
+        name: "spotify"
+      - url: "https://discord.com/api/download/stable/server/linux/discord-archive-keyring.gpg"
+        name: "discord"
+        
+  homebrew:
+    taps:
+      - homebrew/cask-fonts    # Additional fonts
+      - homebrew/cask-drivers  # Hardware drivers
+
+# =============================================================================
+# WORKSTATION-SPECIFIC SYSTEM SETTINGS  
+# =============================================================================
+# Settings that override global defaults for workstation environments.
+
+# User configuration
+default_user_shell: "/bin/bash"  # Override to /bin/zsh if preferred
+create_admin_users: true
+
+# Desktop environment settings
+install_desktop_packages: true
+enable_desktop_services: true
+configure_desktop_environment: true
+
+# Development environment
+setup_development_tools: true
+install_development_languages: 
+  - python
+  - nodejs
+  - typescript
+
+# Security settings (more relaxed than servers)
+configure_ssh_hardening: false  # Workstations typically don't need SSH hardening
+enable_automatic_updates: true  # Keep workstations updated
+ubuntu_disable_snap: true       # Prefer traditional packages
+
+# Resource settings
+optimize_for_desktop: true
+enable_graphics_acceleration: true
+install_multimedia_codecs: true
+
+# Dotfiles configuration
+dotfiles_backup_existing: true
+setup_shell_configuration: true
+preferred_shell: "{{ default_user_shell }}"
+
+# =============================================================================
+# WORKSTATION ROLE BEHAVIOR OVERRIDES
+# =============================================================================
+
+# Basic setup role
+perform_os_optimization: true
+install_essential_tools: true
+configure_development_environment: true
+
+# Third-party packages role  
+setup_additional_repositories: true
+enable_python_packages: true
+enable_npm_packages: true
+pip_install_method: "user"      # Install pip packages for user, not system-wide
+
+# Container platform (optional for workstations)
+install_docker: false           # Override to true if development requires Docker
+docker_users:
+  - "{{ ansible_user }}"
+
+# Maintenance role
+enable_automatic_updates: true
+upgrade_all_packages: false     # Only security updates by default
+cleanup_package_cache: true
+cleanup_old_kernels: true
+
+# =============================================================================
+# USAGE EXAMPLES AND BEST PRACTICES
+# =============================================================================
+#
+# 1. HIERARCHICAL PACKAGE MERGING EXAMPLE:
+#    all.yml: all_packages_install_Ubuntu: [git, vim, htop]                      ← Global essentials
+#    workstation.yml: group_packages_install_Ubuntu: [nodejs, firefox, gimp]     ← This file (group packages)
+#    host_vars/dev-laptop.yml: host_packages_install_Ubuntu: [docker.io, nginx]  ← Host-specific (discovery)
+#    
+#    Final Ubuntu packages: [git, vim, htop, nodejs, firefox, gimp, docker.io, nginx]
+#
+#    Similar hierarchy applies to ALL package types:
+#    all_third_party_packages + group_third_party_packages + host_third_party_packages
+#    all_pip_packages + group_pip_packages + host_pip_packages  
+#    all_npm_packages + group_npm_packages + host_npm_packages
+#    (and so on for all package variables)
+#
+# 2. VARIABLE OVERRIDE EXAMPLE:
+#    all.yml: ubuntu_disable_snap: true
+#    workstation.yml: ubuntu_disable_snap: true    ← Same value (no override needed)
+#    host_vars/special-laptop.yml: ubuntu_disable_snap: false ← Host override
+#    
+#    Result: special-laptop keeps snap, other workstations disable it
+#
+# 3. INVENTORY GROUP MEMBERSHIP:
+#    [workstations]
+#    dev-laptop
+#    designer-desktop
+#    marketing-laptop
+#    
+#    All three machines get these workstation.yml settings + their host_vars/
+#
+# 4. THIRD-PARTY PACKAGE STRATEGY:
+#    - List repositories once in additional_repositories
+#    - List packages in third_party_packages (cross-platform names when possible)  
+#    - Use aur_packages for Arch-specific AUR packages
+#    - third_party_packages role handles OS-specific installation
+#
+# 5. DEVELOPMENT WORKFLOW:
+#    - Start with this workstation.yml template
+#    - Add/remove packages based on your development needs
+#    - Use host_vars/ for machine-specific packages (discovered or unique)
+#    - Test package installation with --check --diff first
+#
+# 6. CUSTOMIZATION BY TEAM:
+#    - Frontend team: Add more npm packages, remove Python packages
+#    - Data science team: Add more Python packages, Jupyter extensions
+#    - Design team: Add Adobe alternatives, more graphics packages
+#    - DevOps team: Add container tools, monitoring packages

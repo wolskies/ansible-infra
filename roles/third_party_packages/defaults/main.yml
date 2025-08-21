@@ -1,0 +1,33 @@
+---
+# Third-party repositories configuration
+additional_repositories:
+  apt:
+    sources: []
+    keys: []
+  homebrew:
+    taps: []
+  flatpak:
+    remotes: []
+
+# Third-party packages (requiring additional repositories)
+third_party_packages: []
+
+# Python packages (pip)
+pip_packages: []
+pip_install_method: "user"  # user, global, virtualenv
+pip_virtualenv_path: "{{ ansible_env.HOME }}/.local/venv"
+
+# Node.js packages (npm)
+npm_packages: []
+npm_install_global: true
+
+# Language-specific package managers
+rust_packages: []  # cargo install
+go_packages: []    # go install
+
+# Feature toggles
+enable_repositories: true
+enable_python_packages: true
+enable_npm_packages: true
+enable_rust_packages: false
+enable_go_packages: false

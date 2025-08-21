@@ -1,9 +1,8 @@
 # Replication playbook for {{ inventory_hostname }}
 # Generated from infrastructure discovery on {{ ansible_date_time.iso8601 }}
 # 
-# This playbook replicates the discovered configuration using the basic_setup role
-# and the variables discovered from the original machine.
-# Original OS: {{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}
+# Replicates discovered configuration using basic_setup role and discovered variables.
+# Source OS: {{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}
 
 ---
 - name: Replicate discovered configuration for {{ inventory_hostname }}
@@ -13,47 +12,46 @@
   
   collections:
     - wolskinet.infrastructure
-    - community.general
-{% if discovery_profile.docker.installed %}    - community.docker{% endif %}
+    - community.general{% if discovery_profile.docker.installed %}
+    - community.docker{% endif %}
 
   pre_tasks:
-    - name: Display replication target information
+    - name: Display replication information
       ansible.builtin.debug:
         msg:
-          - "Replicating configuration for: {{ inventory_hostname }}"
-          - "Source discovery: {{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}"
-          - "Target OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "=== Configuration Replication ==="
+          - "Target host: {{ inventory_hostname }}"
+          - "Source OS: {{ discovery_profile.system.distribution }} {{ discovery_profile.system.distribution_version }}"
+          - "Target OS: {{ ansible_distribution }} {{ ansible_distribution_version | default('unknown') }}"
           - "Discovery date: {{ ansible_date_time.iso8601 }}"
-          - "Packages to install: {{ packages_install | default([]) | length }}"
-          - "Machine characteristics: {{ discovered_machine_characteristics | default([]) }}"
-
-    - name: Validate OS compatibility
-      ansible.builtin.assert:
-        that:
-          - ansible_distribution == "{{ discovery_profile.system.distribution }}"
-        fail_msg: "Target OS ({{ ansible_distribution }}) doesn't match source OS ({{ discovery_profile.system.distribution }})"
-        success_msg: "OS compatibility confirmed"
+          - ""
+          - "Package installation approach:"
+          - "  • Looking for: packages_install_{{ ansible_distribution }}"
+          - "  • Discovered: packages_install_{{ discovery_profile.system.distribution }} ({{ discovery_profile.packages.installed | length }} packages)"
+          - "  • Cross-OS: Add equivalent packages manually if needed"
 
   roles:
     # Core system setup with discovered packages and configuration
-    - name: wolskinet.infrastructure.basic_setup
-      vars:
-        # The basic_setup role will consume the packages_install variable
-        # from host_vars/{{ inventory_hostname }}.yml automatically
-        install_discovered_packages: true
-        
-    {% if discovery_profile.docker.installed %}
-    # Container platform setup (Docker was detected)
-    - name: wolskinet.infrastructure.container_platform
-      when: docker_detected | default(false)
-    {% endif %}
+    - name: wolskinet.infrastructure.basic_setup{% if discovery_profile.packages.pip_packages %}
     
-    {% if discovery_profile.dotfiles.detected %}
-    # Dotfiles management (dotfiles repository was detected)  
+    # Third-party packages (repositories, npm, pip, system packages)
+    - name: wolskinet.infrastructure.third_party_packages
+      vars:
+        pip_install_method: "user"
+      when: >
+        (pip_packages is defined and pip_packages | length > 0) or
+        (npm_packages is defined and npm_packages | length > 0) or
+        (third_party_packages is defined and third_party_packages | length > 0) or
+        (additional_repositories is defined){% endif %}{% if discovery_profile.docker.installed %}
+    
+    # Container platform setup (Docker detected on source)
+    - name: wolskinet.infrastructure.container_platform
+      when: docker_detected | default(false){% endif %}{% if discovery_profile.dotfiles.detected %}
+    
+    # Dotfiles management (repository detected on source)  
     - name: wolskinet.infrastructure.dotfiles
       become: false
-      when: dotfiles_detected | default(false)
-    {% endif %}
+      when: dotfiles_detected | default(false){% endif %}
     
     # System maintenance and updates
     - name: wolskinet.infrastructure.maintenance
@@ -62,30 +60,27 @@
     - name: Display replication results
       ansible.builtin.debug:
         msg:
-          - "Configuration replication completed for {{ inventory_hostname }}"
-          - "Packages to install: {{ system_packages | default([]) | length }} system packages"
-{% if discovery_profile.system.os_family == "Darwin" %}
-          - "Homebrew packages: {{ homebrew_packages | default([]) | length }}"
-          - "Homebrew casks: {{ homebrew_casks | default([]) | length }}"
-{% endif %}
-{% if discovery_profile.docker.installed %}
-          - "Docker configuration applied"
-          - "Note: Docker containers/volumes are reference only - not automatically recreated"
-{% endif %}
-{% if discovery_profile.dotfiles.detected %}
-          - "Dotfiles repository configured"
-{% endif %}
+          - "✅ Configuration replication completed for {{ inventory_hostname }}"
           - ""
-          - "Manual verification steps:"
-          - "  1. Compare package lists: check if critical packages are installed"
-          - "  2. Verify services are running as expected"
-          - "  3. Test application functionality"
-{% if discovery_profile.docker.installed %}
-          - "  4. Manually recreate Docker containers/volumes as needed"
-{% endif %}
-{% if discovery_profile.dotfiles.detected %}
-          - "  5. Verify dotfiles are properly linked"  
-{% endif %}
+          - "📦 Package installation:"
+          - "   • OS packages: {{ vars['host_packages_install_' + ansible_distribution] | default([]) | length }} for {{ ansible_distribution }}"
+          - "   • AUR packages: {{ aur_packages | default([]) | length }} (Arch only, via basic_setup)"
+          - "   • Homebrew packages: {{ homebrew_packages | default([]) | length }} (macOS only, via basic_setup)"
+          - "   • Python packages: {{ pip_packages | default([]) | length }} (via third_party_packages role)"
+          - "   • Node.js packages: {{ npm_packages | default([]) | length }} (via third_party_packages role)"
+          - "   • Third-party packages: {{ third_party_packages | default([]) | length }} (via third_party_packages role)"{% if discovery_profile.docker.installed %}
           - ""
-          - "Source machine characteristics: {{ discovered_machine_characteristics | default([]) }}"
-          - "Replication should closely match the original {{ inventory_hostname }} configuration"
+          - "🐳 Docker: Configuration applied"
+          - "   • Note: Containers/volumes not automatically recreated"{% endif %}{% if discovery_profile.dotfiles.detected %}
+          - ""
+          - "⚙️  Dotfiles: Repository configured"{% endif %}
+          - ""
+          - "🔍 Manual verification recommended:"
+          - "   1. Compare package lists with original system"
+          - "   2. Verify services are running as expected" 
+          - "   3. Test application functionality"{% if discovery_profile.docker.installed %}
+          - "   4. Recreate Docker containers/volumes as needed"{% endif %}{% if discovery_profile.dotfiles.detected %}
+          - "   5. Verify dotfiles are properly deployed"{% endif %}
+          - ""
+          - "Machine characteristics: {{ discovered_machine_characteristics | default([]) | join(', ') or 'none detected' }}"
+          - "Replication should closely match original {{ inventory_hostname }} configuration"

@@ -1,0 +1,53 @@
+---
+# Node.js package installation via npm
+# Adapted from npm_packages role
+
+- name: Ensure Node.js and npm are available
+  block:
+    - name: Check for Node.js executable
+      ansible.builtin.command: "node --version"
+      register: node_check
+      changed_when: false
+      failed_when: false
+
+    - name: Check for npm executable  
+      ansible.builtin.command: "npm --version"
+      register: npm_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if Node.js or npm not installed
+      ansible.builtin.fail:
+        msg: |
+          Node.js and/or npm are not installed. Install via basic_setup with nodejs/npm packages
+          or your OS package manager:
+          Ubuntu/Debian: nodejs npm
+          Arch Linux: nodejs npm
+          macOS: node (via brew)
+      when: node_check.rc != 0 or npm_check.rc != 0
+
+  tags:
+    - nodejs
+    - prerequisites
+
+- name: Install npm packages
+  community.general.npm:
+    name: "{{ item }}"
+    global: "{{ npm_install_global }}"
+    state: present
+  loop: "{{ npm_packages }}"
+  become: "{{ npm_install_global }}"
+  become_user: "{{ ansible_user if not npm_install_global else omit }}"
+  tags:
+    - nodejs
+    - npm-install
+
+- name: Display Node.js packages summary
+  ansible.builtin.debug:
+    msg:
+      - "npm packages installed: {{ npm_packages | length }}"
+      - "Installation scope: {{ 'global' if npm_install_global else 'local' }}"
+      - "User: {{ ansible_user if not npm_install_global else 'root' }}"
+  tags:
+    - nodejs
+    - summary

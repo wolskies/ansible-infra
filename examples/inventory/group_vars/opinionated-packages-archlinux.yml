@@ -35,7 +35,7 @@ additional_packages_install:
   - ttf-dejavu             # Default font set
 
 # AUR packages (requires paru)
-aur_packages:
+group_aur_packages:
   - visual-studio-code-bin  # VSCode from AUR
   - discord                 # Communication
   - spotify                 # Music streaming

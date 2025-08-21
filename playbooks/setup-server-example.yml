@@ -1,0 +1,168 @@
+---
+# Server Setup Example
+# Clean architecture: devsec.hardening → basic_setup → third_party_packages → dotfiles
+#
+# This playbook demonstrates the recommended flow for setting up hardened servers
+# with security hardening as the first step, followed by system packages and services.
+#
+# VARIABLE HIERARCHY (packages are merged, others follow precedence):
+# 1. all.yml (global defaults) - minimal universal settings
+# 2. group_vars/servers/server.yml (group defaults) - security and server packages
+# 3. host_vars/ (machine-specific) - discovery output and unique packages  
+# 4. playbook vars: (runtime overrides) - deployment-specific settings
+
+- name: Setup Hardened Server
+  hosts: all
+  gather_facts: true
+  
+  collections:
+    - wolskinet.infrastructure
+    - devsec.hardening
+    - community.general
+
+  vars_files:
+    - all.yml  # Global defaults (group_vars/all/all.yml)
+    # Note: Server group variables would be in group_vars/servers/server.yml
+    # Note: host_vars/ files are loaded automatically by Ansible
+
+  # Example: Server-specific runtime overrides
+  vars:
+    # Override defaults for this specific server deployment
+    environment_type: "production"
+    
+    # Security hardening variables (example overrides)
+    os_security_users_allow:
+      - "{{ ansible_user }}"
+    os_security_kernel_enable_core_dump: false
+    configure_ssh_hardening: true
+    
+    # Service configuration examples
+    nginx_remove_default_vhost: true
+    redis_bind_interface: "127.0.0.1"
+    
+    # Most server configuration should be in:
+    # - all.yml (global defaults)  
+    # - group_vars/servers/server.yml (server group settings)
+    # - host_vars/ (machine-specific, including discovery output)
+    # Only use vars: for runtime overrides or deployment-specific settings
+
+  pre_tasks:
+    - name: Display server setup information
+      ansible.builtin.debug:
+        msg:
+          - "=== Hardened Server Setup Started ==="
+          - "Target: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version | default('Unknown') }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "Machine Type: {{ machine_type }}"
+          - ""
+          - "Security: devsec.hardening will be applied first"
+          - "Services: nginx, redis, fail2ban will be configured"
+
+  roles:
+    # 1. Security hardening FIRST - before any other modifications
+    - name: devsec.hardening.os_hardening
+      tags:
+        - hardening
+        - security
+        - os-hardening
+
+    - name: devsec.hardening.ssh_hardening
+      tags:
+        - hardening
+        - security
+        - ssh-hardening
+
+    # 2. Core system setup with standard OS packages
+    - name: wolskinet.infrastructure.basic_setup
+      tags:
+        - basic
+        - system
+        - packages
+
+    # 3. Third-party packages (repositories, docker, pip, npm)
+    - name: wolskinet.infrastructure.third_party_packages
+      when: >
+        (pip_packages is defined and pip_packages | length > 0) or
+        (npm_packages is defined and npm_packages | length > 0) or
+        (third_party_packages is defined and third_party_packages | length > 0) or
+        (additional_repositories is defined)
+      tags:
+        - third-party
+        - docker
+        - repositories
+
+    # 4. User configuration and dotfiles (optional for servers)
+    - name: wolskinet.infrastructure.dotfiles
+      become: false
+      when: dotfiles_repository_url is defined and dotfiles_repository_url != ""
+      tags:
+        - dotfiles
+        - user-config
+
+  post_tasks:
+    - name: Configure firewall for web services
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - "22"    # SSH
+        - "80"    # HTTP
+        - "443"   # HTTPS
+      become: true
+      when: 
+        - ansible_os_family != 'Darwin'
+        - "'ufw' in group_packages_install_Ubuntu or 'ufw' in group_packages_install_Archlinux"
+
+    - name: Enable and start server services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - nginx
+        - redis-server
+        - fail2ban
+      become: true
+      when: 
+        - ansible_os_family != 'Darwin'
+        - ansible_service_mgr == 'systemd'
+      ignore_errors: true
+
+    - name: Display server setup summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Hardened Server Setup Complete ==="
+          - "Host: {{ inventory_hostname }}"
+          - ""
+          - "🔒 Security Hardening: Applied (devsec.hardening)"
+          - "📦 OS Packages: {{ (group_packages_install_Ubuntu | default([])) if ansible_distribution == 'Ubuntu' else (group_packages_install_Archlinux | default([])) | length }}"
+          - "🐳 Third-party Packages: {{ third_party_packages | default([]) | length }}"
+          - "🐍 Python Packages: {{ pip_packages | default([]) | length }}"
+          - "📊 Node.js Packages: {{ npm_packages | default([]) | length }}"
+          - "⚙️  Dotfiles: {{ 'Configured' if (dotfiles_repository_url is defined and dotfiles_repository_url != '') else 'Skipped (typical for servers)' }}"
+          - ""
+          - "🔥 Firewall: Configured (SSH, HTTP, HTTPS allowed)"
+          - "🌐 Web Services: nginx, redis, fail2ban enabled"
+          - "🛡️  Security: OS and SSH hardening applied"
+          - ""
+          - "✅ Your server is hardened and ready for production!"
+
+# Usage Examples:
+#
+# Basic hardened server setup:
+#   ansible-playbook -i inventory setup-server-example.yml
+#
+# With custom variables:
+#   ansible-playbook -i inventory setup-server-example.yml \
+#     -e "nginx_remove_default_vhost=false"
+#
+# Skip dotfiles (typical for servers):
+#   ansible-playbook -i inventory setup-server-example.yml --skip-tags dotfiles
+#
+# Security hardening only:
+#   ansible-playbook -i inventory setup-server-example.yml --tags hardening
+#
+# System packages only (skip hardening):
+#   ansible-playbook -i inventory setup-server-example.yml --skip-tags hardening

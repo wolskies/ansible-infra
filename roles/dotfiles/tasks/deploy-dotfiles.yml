@@ -2,6 +2,15 @@
 # Deploy dotfiles using the specified method
 - name: Deploy dotfiles using stow
   block:
+    - name: Backup conflicting files before stow
+      ansible.builtin.shell: |
+        if [ -f "{{ ansible_env.HOME }}/.bashrc" ] && [ ! -L "{{ ansible_env.HOME }}/.bashrc" ]; then
+          mv "{{ ansible_env.HOME }}/.bashrc" "{{ ansible_env.HOME }}/.bashrc{{ dotfiles_backup_suffix }}"
+          echo "Moved .bashrc to backup"
+        fi
+      become: false
+      when: dotfiles_backup_existing | bool
+
     - name: Deploy dotfiles with stow
       ansible.builtin.shell: "stow . --verbose=1 --no-folding"
       args:

@@ -1,0 +1,211 @@
+---
+# Shared Debian family (Ubuntu + Debian) basic setup and feature management
+# Tags: sudo, packages, updates, firewall, security
+
+- name: Allow passwordless sudo for the user
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^{{ ansible_user }}'
+    line: '{{ ansible_user}} ALL=(ALL) NOPASSWD:ALL'
+    validate: '/usr/sbin/visudo -cf %s'
+    backup: true
+  become: true
+  tags:
+    - sudo
+    - security
+    - user-config
+
+- name: Update package cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+  tags:
+    - packages
+    - updates
+    - cache
+
+- name: Install merged package list
+  ansible.builtin.package:
+    name: "{{ final_packages_install }}"
+    state: present
+  become: true
+  when: final_packages_install | length > 0
+  tags:
+    - packages
+    - essential
+    - install
+
+- name: Remove packages from removal list
+  ansible.builtin.package:
+    name: "{{ final_packages_remove }}"
+    state: absent
+    purge: true
+  become: true
+  when: final_packages_remove | length > 0
+  tags:
+    - packages
+    - cleanup
+    - remove
+
+- name: Set package installation facts
+  ansible.builtin.set_fact:
+    installed_packages: "{{ final_packages_install }}"
+    removed_packages: "{{ final_packages_remove }}"
+  tags:
+    - packages
+    - facts
+
+- name: Upgrade all packages
+  ansible.builtin.apt:
+    upgrade: safe
+    update_cache: true
+  become: true
+  when: 
+    - enable_system_updates | default(true)
+    - perform_system_upgrade | default(false)
+  tags:
+    - updates
+    - upgrade
+    - maintenance
+
+- name: Configure unattended upgrades
+  ansible.builtin.template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - enable_system_updates | default(true)
+    - enable_automatic_updates | default(true)
+  tags:
+    - updates
+    - automatic
+    - security
+
+# Ubuntu-specific features
+- name: Include Ubuntu-specific tasks
+  ansible.builtin.include_tasks: ubuntu-specific.yml
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - ubuntu
+    - snap
+
+# Debian-specific features
+- name: Include Debian-specific tasks
+  ansible.builtin.include_tasks: debian-specific.yml
+  when: ansible_distribution == 'Debian'
+  tags:
+    - debian
+    - repositories
+
+- name: Check if cloud-init is installed
+  ansible.builtin.stat:
+    path: /etc/cloud/cloud.cfg
+  register: cloud_init_config
+  tags:
+    - cloud-init
+    - detection
+
+- name: Disable cloud-init network management
+  ansible.builtin.lineinfile:
+    path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    line: "network: {config: disabled}"
+    create: true
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - cloud_init_config.stat.exists
+    - disable_cloud_init_network | default(true)
+  tags:
+    - cloud-init
+    - network
+    - configuration
+
+- name: Create cloud-init disable file
+  ansible.builtin.file:
+    path: /etc/cloud/cloud-init.disabled
+    state: touch
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - cloud_init_config.stat.exists
+    - disable_cloud_init | default(false)
+  tags:
+    - cloud-init
+    - disable
+
+- name: Install UFW firewall
+  ansible.builtin.package:
+    name: ufw
+    state: present
+  become: true
+  tags:
+    - firewall
+    - security
+    - install
+
+- name: Configure UFW defaults
+  community.general.ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: 'incoming', policy: 'deny' }
+    - { direction: 'outgoing', policy: 'allow' }
+  become: true
+  when: configure_firewall | default(true)
+  tags:
+    - firewall
+    - security
+    - defaults
+
+- name: Allow SSH through UFW
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+  become: true
+  when: configure_firewall | default(true)
+  tags:
+    - firewall
+    - ssh
+    - security
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+  become: true
+  when: 
+    - configure_firewall | default(true)
+    - enable_firewall | default(true)
+  tags:
+    - firewall
+    - security
+    - enable
+
+- name: Set system timezone
+  ansible.builtin.timezone:
+    name: "{{ system_timezone | default('UTC') }}"
+  become: true
+  when: system_timezone is defined
+  tags:
+    - system
+    - timezone
+    - configuration
+
+- name: Configure system locale
+  ansible.builtin.locale_gen:
+    name: "{{ system_locale | default('en_US.UTF-8') }}"
+    state: present
+  become: true
+  when: ansible_distribution in ['Ubuntu', 'Debian']
+  tags:
+    - system
+    - locale
+    - configuration

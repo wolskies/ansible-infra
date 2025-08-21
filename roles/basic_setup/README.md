@@ -1,17 +1,18 @@
 ## Ansible Role: Basic Setup
 
-Provides minimal, essential packages and OS-specific feature management for consistent system foundations across different operating systems.
+Provides essential packages and OS-specific feature management for consistent system foundations across different operating systems.
 
 ## Description
 
 This role creates a **minimal, predictable starting point** for each supported OS by:
 
-- Installing only essential packages (git, curl, build tools, Python, package managers)
+- Installing packages via hierarchical OS-specific variables (all/group/host levels)
+- Installing language-specific packages (AUR, pip, npm)
 - Managing OS-specific features (disabling snap on Ubuntu, installing paru on Arch, etc.)
-- Providing hierarchical variable integration with discovery system
-- Supporting user management and system optimization
+- Providing user management and system optimization
+- Installing and configuring basic firewall security
 
-**Philosophy:** This role provides both essential packages and category-based additional packages (development, desktop, media) controlled by feature flags.
+**Philosophy:** This role provides essential system foundations using a clean hierarchical package architecture that integrates seamlessly with discovery-generated variables.
 
 ## Supported Operating Systems
 
@@ -65,7 +66,7 @@ This role creates a **minimal, predictable starting point** for each supported O
 ## Usage
 
 ### Basic Usage
-Include in your playbook after facts gathering and before other roles:
+Include in your playbook after facts gathering:
 
 ```yaml
 - hosts: all
@@ -74,62 +75,88 @@ Include in your playbook after facts gathering and before other roles:
 ```
 
 ### With Hierarchical Variables
-The role integrates with the collection's hierarchical variable system:
+The role uses OS-specific hierarchical package variables:
 
 ```yaml
-# group_vars/all.yml
-packages_install:
+# group_vars/all/Ubuntu.yml - Global packages for all Ubuntu machines
+all_packages_install_Ubuntu:
   - htop
   - vim
 
-# group_vars/servers.yml  
-packages_install:
+# group_vars/servers/Ubuntu.yml - Server group packages
+group_packages_install_Ubuntu:
   - nginx
   - certbot
 
-# host_vars/web-01.yml
-packages_install:
+# host_vars/web-01.yml - Host-specific packages (includes discovery)
+host_packages_install_Ubuntu:
   - redis-server
 ```
 
-Final packages = essential + all + servers + host
+Final packages = essential + all + group + host (discovery populates host level)
 
 ### Variable Examples
 
 ```yaml
-# Minimal server configuration
+# User management
 user_details:
   - name: deploy
     uid: 1001
     shell: /bin/bash
     groups: ["sudo", "docker"]
 
-# Feature management
+# OS feature management
 ubuntu_disable_snap: true
 archlinux_enable_reflector: true
 macos_install_xcode_tools: true
+
+# Cross-OS package mapping
+# Ubuntu packages
+host_packages_install_Ubuntu:
+  - redis-server
+  - postgresql-client
+
+# Equivalent Arch packages
+host_packages_install_Archlinux:
+  - redis
+  - postgresql
 ```
-
-## Adding Opinionated Packages
-
-For fuller package sets (development tools, GUI applications, etc.), see:
-- `examples/inventory/group_vars/opinionated-packages-*.yml`
-- Copy and modify these files for your specific needs
-- Use `packages_install` variable to extend essential packages
 
 ## Integration with Collection
 
 This role works with:
-- **Discovery System:** Processes `discovered_packages` from infrastructure discovery
-- **Docker Setup:** Prepares systems for Docker service deployment  
-- **Security Hardening:** Provides foundation for devsec.hardening role
+- **Discovery System:** Discovery generates `host_packages_install_<Distribution>` variables
+- **Container Platform:** Prepares systems for Docker service deployment  
+- **Maintenance Role:** Provides foundation for system updates
 - **User Management:** Creates users with appropriate groups and shells
+
+## Hierarchical Package Architecture
+
+### Variable Sources (merged in order)
+1. **all_packages_install_<Distribution>** (group_vars/all)
+2. **group_packages_install_<Distribution>** (group_vars/<group>)  
+3. **host_packages_install_<Distribution>** (host_vars/<host>, includes discovery)
+
+### Package Types Handled
+- **OS packages:** Via system package managers (apt, pacman, homebrew)
+- **AUR packages:** Arch Linux user repository (via paru/yay)
+- **Homebrew packages:** macOS formulae
+- **Homebrew casks:** macOS GUI applications
+
+**Note:** Python (pip) and Node.js (npm) packages are handled by the third_party_packages role:
+- Use `third_party_packages` role for pip packages, npm packages, and repositories
+
+### OS-Specific Package Variables
+- `aur_packages` - Arch Linux AUR packages (handled by basic_setup)
+- `homebrew_packages` - macOS Homebrew formulae
+- `homebrew_casks` - macOS GUI applications
 
 ## Tags
 
 - `basic-setup` - All tasks
-- `os-setup` - Package installation and OS configuration
-- `os-features` - OS-specific feature management  
+- `os-setup` - OS-specific setup and configuration
+- `packages` - Package installation (OS packages)
+- `aur` - AUR package installation (Arch Linux only)
 - `users` - User creation and management
 - `variables` - Variable loading and merging
 - `validation` - OS version and compatibility checks
@@ -137,22 +164,12 @@ This role works with:
 ## Variables
 
 ### Core Variables
-- `packages_install` - Additional packages to install
-- `packages_remove` - Packages to remove
+- `all_packages_install_<Distribution>` - Global packages (group_vars/all)
+- `group_packages_install_<Distribution>` - Group-specific packages (group_vars/<group>)  
+- `host_packages_install_<Distribution>` - Host-specific packages (host_vars/<host>, includes discovery)
+- `packages_remove_<Distribution>` - Packages to remove (hierarchical)
 - `user_details` - Users to create
 - `default_user_shell` - Default shell for new users
-
-### Package Category Controls
-- `install_development_packages: true` - Development tools, compilers, etc.
-- `install_desktop_packages: true` - GUI applications, themes, etc.
-- `install_media_packages: false` - Large media packages (manual review recommended)
-- `install_productivity_packages: true` - Editors, terminals, productivity tools
-
-### Package Manager Controls
-- `install_aur_packages: true` - Arch Linux AUR packages
-- `install_pip_packages: true` - Python packages
-- `install_npm_packages: true` - Node.js packages
-- `install_homebrew_casks: true` - macOS GUI applications
 
 ### OS Feature Variables
 - `ubuntu_disable_snap: true` - Remove snapd completely
@@ -179,14 +196,71 @@ See `defaults/main.yml` and OS-specific variable files for complete lists.
     - wolskinet.infrastructure.basic_setup
 ```
 
-### Development Workstation
+### Development Workstation with Discovery
 ```yaml
+# 1. Run discovery on existing machine
+# ansible-playbook utilities/playbooks/discover-essential.yml
+
+# 2. Discovery generates host_packages_install_Ubuntu in host_vars/
+
+# 3. Deploy with additional packages
 - hosts: workstations
-  vars_files:
-    - examples/inventory/group_vars/opinionated-packages-ubuntu.yml
   vars:
     default_user_shell: /bin/zsh
-    configure_zsh: true
+    # Discovery packages merged with group packages
+    group_packages_install_Ubuntu:
+      - nodejs
+      - python3-dev
+      - build-essential
   roles:
     - wolskinet.infrastructure.basic_setup
+```
+
+### Cross-OS Infrastructure
+```yaml
+# Define packages for multiple distributions
+- hosts: all
+  vars:
+    # Global packages - Ubuntu
+    all_packages_install_Ubuntu:
+      - htop
+      - curl
+    
+    # Global packages - Arch Linux  
+    all_packages_install_Archlinux:
+      - htop
+      - curl
+      
+    # Global packages - macOS
+    homebrew_packages:
+      - htop
+      - curl
+  roles:
+    - wolskinet.infrastructure.basic_setup
+```
+
+## Discovery Integration
+
+The discovery role generates host-level variables that integrate seamlessly:
+
+1. **Discovery scans machine:** `ansible-playbook discover-essential.yml`
+2. **Generates host_vars:** Creates `host_packages_install_<Distribution>` variables
+3. **User adds hierarchy:** Can add group/all level packages that merge with discovery
+4. **Deploy replicates:** `ansible-playbook deploy-<host>.yml` recreates configuration
+
+```yaml
+# Generated by discovery in host_vars/web-01.yml
+host_packages_install_Ubuntu:
+  - nginx
+  - redis-server
+  - curl
+  # ... all discovered packages
+
+# User can add at any level - these merge with discovery
+# group_vars/servers/Ubuntu.yml
+group_packages_install_Ubuntu:
+  - certbot
+  - ufw
+
+# Final result: nginx + redis-server + curl + certbot + ufw + essentials
 ```

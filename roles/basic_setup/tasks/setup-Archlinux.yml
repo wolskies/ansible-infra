@@ -1,0 +1,237 @@
+
+---
+# Arch Linux basic setup and feature management
+# Tags: packages, updates, aur, firewall, optimization
+
+- name: Update package cache and system
+  community.general.pacman:
+    update_cache: true
+    upgrade: true
+  become: true
+  tags:
+    - packages
+    - updates
+    - archlinux
+
+- name: Install merged package list
+  community.general.pacman:
+    name: "{{ final_packages_install }}"
+    state: present
+  become: true
+  when: 
+    - final_packages_install is defined
+    - final_packages_install | length > 0
+  tags:
+    - packages
+    - package-install
+    - merged-packages
+    - archlinux
+
+- name: Remove unwanted packages
+  community.general.pacman:
+    name: "{{ final_packages_remove }}"
+    state: absent
+  become: true
+  when: 
+    - final_packages_remove is defined
+    - final_packages_remove | length > 0
+  tags:
+    - packages
+    - package-remove
+    - cleanup
+    - archlinux
+
+- name: AUR package installation
+  block:
+    - name: Check for AUR helper (paru)
+      ansible.builtin.command: which paru
+      register: paru_check
+      changed_when: false
+      failed_when: false
+
+    - name: Check for AUR helper (yay) as fallback
+      ansible.builtin.command: which yay
+      register: yay_check
+      changed_when: false
+      failed_when: false
+      when: paru_check.rc != 0
+
+    - name: Install AUR packages via paru
+      ansible.builtin.shell: |
+        paru -S --noconfirm {{ item }}
+      loop: "{{ final_aur_packages }}"
+      become: false
+      when: 
+        - final_aur_packages is defined
+        - final_aur_packages | length > 0
+        - paru_check.rc == 0
+
+    - name: Install AUR packages via yay (fallback)
+      ansible.builtin.shell: |
+        yay -S --noconfirm {{ item }}
+      loop: "{{ final_aur_packages }}"
+      become: false
+      when: 
+        - final_aur_packages is defined
+        - final_aur_packages | length > 0
+        - paru_check.rc != 0
+        - yay_check.rc == 0
+
+  tags:
+    - packages
+    - aur
+    - archlinux
+
+- name: Check if paru is installed
+  ansible.builtin.command: which paru
+  register: paru_check
+  failed_when: false
+  changed_when: false
+  tags:
+    - paru
+    - aur
+    - archlinux
+
+- name: Clone paru repository
+  ansible.builtin.git:
+    repo: https://aur.archlinux.org/paru.git
+    dest: /tmp/paru
+    force: true
+  when: paru_check.rc != 0
+  tags:
+    - paru
+    - aur
+    - archlinux
+
+- name: Build and install paru
+  ansible.builtin.shell: |
+    cd /tmp/paru
+    makepkg -si --noconfirm
+  when: paru_check.rc != 0
+  become: false
+  tags:
+    - paru
+    - aur
+    - archlinux
+
+- name: Clean up paru build directory
+  ansible.builtin.file:
+    path: /tmp/paru
+    state: absent
+  when: paru_check.rc != 0
+  tags:
+    - paru
+    - aur
+    - archlinux
+
+- name: System optimization
+  block:
+    - name: Configure pacman for better performance
+      ansible.builtin.lineinfile:
+        path: /etc/pacman.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        backup: true
+      loop:
+        - regexp: '^#Color'
+          line: 'Color'
+        - regexp: '^#VerbosePkgLists'
+          line: 'VerbosePkgLists'
+        - regexp: '^#ParallelDownloads'
+          line: 'ParallelDownloads = 5'
+      become: true
+      tags:
+        - pacman
+        - optimization
+
+    - name: Enable systemd-resolved for DNS
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        state: started
+        enabled: true
+      become: true
+      when: archlinux_enable_systemd_resolved | default(true)
+      tags:
+        - dns
+        - systemd
+
+    - name: Configure reflector for mirror optimization
+      ansible.builtin.package:
+        name: reflector
+        state: present
+      become: true
+      when: archlinux_enable_reflector | default(true)
+      tags:
+        - mirrors
+        - reflector
+
+    - name: Setup reflector configuration
+      ansible.builtin.copy:
+        content: |
+          --save /etc/pacman.d/mirrorlist
+          --protocol https
+          --country US
+          --latest 20
+          --sort rate
+        dest: /etc/xdg/reflector/reflector.conf
+        mode: '0644'
+      become: true
+      when: archlinux_enable_reflector | default(true)
+      tags:
+        - mirrors
+        - reflector
+
+    - name: Enable reflector timer
+      ansible.builtin.systemd:
+        name: reflector.timer
+        state: started
+        enabled: true
+      become: true
+      when: archlinux_enable_reflector | default(true)
+      tags:
+        - mirrors
+        - reflector
+
+  tags:
+    - archlinux
+    - optimization
+
+- name: Install firewalld
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+  become: true
+  when: install_firewall | default(true)
+  tags:
+    - firewall
+    - install
+    - basic-security
+    - archlinux
+
+- name: Start and enable firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+  become: true
+  when: install_firewall | default(true)
+  tags:
+    - firewall
+    - enable
+    - basic-security
+    - archlinux
+
+- name: Allow SSH through firewall
+  ansible.posix.firewalld:
+    service: ssh
+    permanent: true
+    state: enabled
+  become: true
+  when: install_firewall | default(true)
+  tags:
+    - firewall
+    - ssh
+    - basic
+    - basic-security
+    - archlinux
+

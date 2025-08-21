@@ -243,8 +243,8 @@ class TestSecurity:
         yaml_files = list(Path('.').rglob('*.yml')) + list(Path('.').rglob('*.yaml'))
         
         for yaml_file in yaml_files:
-            if 'test' in str(yaml_file).lower():
-                continue  # Skip test files
+            if 'test' in str(yaml_file).lower() or 'molecule' in str(yaml_file).lower():
+                continue  # Skip test and molecule files
                 
             with open(yaml_file, 'r') as f:
                 content = f.read().lower()

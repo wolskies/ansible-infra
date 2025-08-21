@@ -1,0 +1,69 @@
+---
+# Example: New Clean Architecture
+# 1. basic_setup → 2. third_party_packages → 3. dotfiles
+
+- name: Setup machine with new architecture
+  hosts: all
+  gather_facts: true
+  
+  vars:
+    # Standard OS packages (for basic_setup)
+    host_packages_install_Ubuntu:
+      - curl
+      - git
+      - vim
+      - nodejs  # Node.js from OS packages
+      - python3-pip  # pip from OS packages
+    
+    # Third-party packages requiring repositories
+    additional_repositories:
+      apt:
+        sources:
+          - "deb https://nvidia.github.io/libnvidia-container/stable/ubuntu24.04/$(ARCH) /"
+        keys:
+          - url: "https://nvidia.github.io/libnvidia-container/gpgkey"
+            name: "nvidia-container-toolkit"
+    
+    third_party_packages:
+      - nvidia-container-toolkit
+      - code  # Would need Microsoft repository
+    
+    # Python development packages
+    pip_packages:
+      - black
+      - ruff
+      - mypy
+    pip_install_method: "user"
+    
+    # Node.js development packages  
+    npm_packages:
+      - prettier
+      - eslint
+      - typescript
+    npm_install_global: true
+    
+    # Dotfiles
+    dotfiles_repository_url: "https://github.com/user/dotfiles.git"
+
+  roles:
+    # 1. System setup + standard OS packages
+    - name: wolskinet.infrastructure.basic_setup
+      tags: [basic]
+    
+    # 2. Repositories + third-party packages + language packages
+    - name: wolskinet.infrastructure.third_party_packages
+      tags: [third-party]
+    
+    # 3. User configuration
+    - name: wolskinet.infrastructure.dotfiles
+      become: false
+      tags: [dotfiles]
+
+  post_tasks:
+    - name: Display setup summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Clean Architecture Setup Complete ==="
+          - "1. basic_setup: {{ host_packages_install_Ubuntu | default([]) | length }} OS packages"
+          - "2. third_party_packages: {{ third_party_packages | default([]) | length }} system + {{ pip_packages | default([]) | length }} pip + {{ npm_packages | default([]) | length }} npm packages"
+          - "3. dotfiles: {{ 'configured' if dotfiles_repository_url is defined else 'skipped' }}"

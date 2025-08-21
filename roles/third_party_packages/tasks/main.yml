@@ -1,0 +1,80 @@
+---
+# Third-party packages and repositories
+# Handles repositories, npm, pip, and system packages requiring additional repos
+
+- name: Configure additional repositories
+  ansible.builtin.include_tasks: setup-repositories.yml
+  when: 
+    - enable_repositories | default(true)
+    - additional_repositories is defined
+  tags:
+    - repositories
+    - third-party-packages
+
+- name: Install third-party system packages
+  ansible.builtin.include_tasks: install-system-packages.yml
+  when: 
+    - third_party_packages is defined
+    - third_party_packages | length > 0
+  tags:
+    - system-packages
+    - third-party-packages
+
+- name: Setup Python packages
+  ansible.builtin.include_tasks: setup-python.yml
+  when:
+    - enable_python_packages | default(true)
+    - pip_packages is defined
+    - pip_packages | length > 0
+  tags:
+    - python
+    - pip
+    - third-party-packages
+
+- name: Setup Node.js packages
+  ansible.builtin.include_tasks: setup-nodejs.yml
+  when:
+    - enable_npm_packages | default(true)
+    - npm_packages is defined
+    - npm_packages | length > 0
+  tags:
+    - nodejs
+    - npm
+    - third-party-packages
+
+- name: Setup Rust packages
+  ansible.builtin.include_tasks: setup-rust.yml
+  when:
+    - enable_rust_packages | default(false)
+    - rust_packages is defined
+    - rust_packages | length > 0
+  tags:
+    - rust
+    - cargo
+    - third-party-packages
+
+- name: Setup Go packages
+  ansible.builtin.include_tasks: setup-go.yml
+  when:
+    - enable_go_packages | default(false)
+    - go_packages is defined
+    - go_packages | length > 0
+  tags:
+    - golang
+    - go
+    - third-party-packages
+
+- name: Display third-party packages summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Third-Party Packages Summary ==="
+      - "Repositories configured: {{ (additional_repositories.apt.sources | default([])) + (additional_repositories.homebrew.taps | default([])) | length }}"
+      - "System packages: {{ third_party_packages | default([]) | length }}"
+      - "Python packages: {{ pip_packages | default([]) | length }}"
+      - "Node.js packages: {{ npm_packages | default([]) | length }}"
+      - "Rust packages: {{ rust_packages | default([]) | length }}"
+      - "Go packages: {{ go_packages | default([]) | length }}"
+  tags:
+    - always
+    - summary
+    - third-party-packages

@@ -1,0 +1,32 @@
+---
+galaxy_info:
+  author: wolskinet
+  description: >-
+    System-level tuning and optimization for performance,
+    security, and hardware support
+  company: wolskinet
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+    - name: ArchLinux
+      versions:
+        - all
+  galaxy_tags:
+    - system
+    - tuning
+    - optimization
+    - performance
+    - security
+    - gpu
+    - gaming
+    - network
+
+dependencies: []

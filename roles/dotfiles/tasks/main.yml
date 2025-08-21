@@ -2,10 +2,20 @@
 ---
 # Smart dotfiles role that discovers dependencies and uses system packages when possible
 
-- name: Validate dotfiles configuration
+- name: Validate dotfiles configuration - repository method
   ansible.builtin.fail:
-    msg: "dotfiles_repository_url must be defined to use this role"
-  when: not dotfiles_repository_url or dotfiles_repository_url == ""
+    msg: "dotfiles_repository_url must be defined when using repository method"
+  when: 
+    - dotfiles_source_type == "repository"
+    - (not dotfiles_repository_url or dotfiles_repository_url == "")
+  tags: dotfiles
+
+- name: Validate dotfiles configuration - local files method
+  ansible.builtin.fail:
+    msg: "dotfiles_local_files must be defined when using local_files method"
+  when: 
+    - dotfiles_source_type == "local_files"
+    - (not dotfiles_local_files or dotfiles_local_files | length == 0)
   tags: dotfiles
 
 - name: Install essential packages
@@ -22,7 +32,16 @@
 
 - name: Clone or update dotfiles repository
   ansible.builtin.include_tasks: clone-dotfiles.yml
-  when: dotfiles_repository_url is defined and dotfiles_repository_url != ""
+  when: 
+    - dotfiles_source_type == "repository"
+    - dotfiles_repository_url is defined and dotfiles_repository_url != ""
+  tags: dotfiles
+
+- name: Deploy local files
+  ansible.builtin.include_tasks: deploy-local-files.yml
+  when: 
+    - dotfiles_source_type == "local_files"
+    - dotfiles_local_files is defined and dotfiles_local_files | length > 0
   tags: dotfiles
 
 - name: Discover dotfiles dependencies
@@ -43,9 +62,11 @@
     - dotfiles
     - packages
 
-- name: Deploy dotfiles
+- name: Deploy dotfiles using stow (repository method)
   ansible.builtin.include_tasks: deploy-dotfiles.yml
-  when: dotfiles_directory_stat.stat.exists
+  when: 
+    - dotfiles_source_type == "repository"
+    - dotfiles_directory_stat.stat.exists
   tags: dotfiles
 
 - name: Display dotfiles deployment summary

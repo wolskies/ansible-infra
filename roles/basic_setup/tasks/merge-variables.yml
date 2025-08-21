@@ -1,42 +1,169 @@
 ---
-# Leverage Ansible's natural variable precedence for configuration
-# Variables automatically follow precedence: role defaults < inventory group_vars < inventory host_vars < play vars
-# We just need to handle list merging and deduplication
+# Process ALL package variables with hierarchical merging
+# 
+# HIERARCHICAL PACKAGE VARIABLES (all merged: all + group + host):
+# - OS packages: all_packages_install_<Distribution>, group_packages_install_<Distribution>, host_packages_install_<Distribution>
+# - AUR packages: all_aur_packages, group_aur_packages, host_aur_packages  
+# - Homebrew packages: all_homebrew_packages, group_homebrew_packages, host_homebrew_packages
+# - Homebrew casks: all_homebrew_casks, group_homebrew_casks, host_homebrew_casks
+# - Third-party packages: all_third_party_packages, group_third_party_packages, host_third_party_packages
+# - Python packages: all_pip_packages, group_pip_packages, host_pip_packages
+# - Node.js packages: all_npm_packages, group_npm_packages, host_npm_packages
+# - Additional repositories: all_additional_repositories, group_additional_repositories, host_additional_repositories
+#
+# All lists are merged together, with duplicates removed.
+# Discovery populates host_* variables in host_vars files.
 
-- name: Process package installation lists
+- name: Process OS-specific package installation lists (hierarchical)
   ansible.builtin.set_fact:
-    final_packages_install: "{{ (packages_install | default([])) | unique }}"
-    final_packages_remove: "{{ (packages_remove | default([])) | unique }}"
+    # Hierarchical package merging: all -> group -> host (includes discovery)
+    final_packages_install: "{{ 
+      (vars['all_packages_install_' + ansible_distribution] | default([])) +
+      (vars['group_packages_install_' + ansible_distribution] | default([])) +
+      (vars['host_packages_install_' + ansible_distribution] | default([])) | unique
+    }}"
+    final_packages_remove: "{{
+      (vars['all_packages_remove_' + ansible_distribution] | default([])) +
+      (vars['group_packages_remove_' + ansible_distribution] | default([])) +
+      (vars['host_packages_remove_' + ansible_distribution] | default([])) | unique
+    }}"
 
-- name: Process macOS Homebrew package lists
+- name: Process AUR package lists (hierarchical - Arch Linux)
   ansible.builtin.set_fact:
-    final_homebrew_packages: "{{ (homebrew_packages | default([])) | unique }}"
-    final_homebrew_casks: "{{ (homebrew_casks | default([])) | unique }}"
+    final_aur_packages: "{{ 
+      (all_aur_packages | default([])) +
+      (group_aur_packages | default([])) +
+      (host_aur_packages | default([])) +
+      (aur_packages | default([])) | unique 
+    }}"
+  when: ansible_distribution == 'Archlinux'
+
+- name: Process Homebrew package lists (hierarchical - macOS)
+  ansible.builtin.set_fact:
+    final_homebrew_packages: "{{ 
+      (all_homebrew_packages | default([])) +
+      (group_homebrew_packages | default([])) +
+      (host_homebrew_packages | default([])) +
+      (homebrew_packages | default([])) | unique
+    }}"
+    final_homebrew_casks: "{{ 
+      (all_homebrew_casks | default([])) +
+      (group_homebrew_casks | default([])) +
+      (host_homebrew_casks | default([])) +
+      (homebrew_casks | default([])) | unique
+    }}"
   when: ansible_os_family == 'Darwin'
 
-- name: Process development packages by category
+- name: Process third-party packages (hierarchical)
   ansible.builtin.set_fact:
-    final_development_packages: "{{ (development_packages | default([])) | unique }}"
-    final_desktop_packages: "{{ (desktop_packages | default([])) | unique }}"
-    final_media_packages: "{{ (media_packages | default([])) | unique }}"
-    final_system_packages: "{{ (system_packages | default([])) | unique }}"
+    final_third_party_packages: "{{ 
+      (all_third_party_packages | default([])) +
+      (group_third_party_packages | default([])) +
+      (host_third_party_packages | default([])) +
+      (third_party_packages | default([])) | unique
+    }}"
 
-- name: Process language-specific packages
+- name: Process Python packages (hierarchical)
   ansible.builtin.set_fact:
-    final_pip_packages: "{{ (pip_packages | default([])) | unique }}"
-    final_npm_packages: "{{ (npm_packages | default([])) | unique }}"
-    final_aur_packages: "{{ (aur_packages | default([])) | unique }}"
+    final_pip_packages: "{{ 
+      (all_pip_packages | default([])) +
+      (group_pip_packages | default([])) +
+      (host_pip_packages | default([])) +
+      (pip_packages | default([])) | unique
+    }}"
 
-- name: Process service configuration lists
+- name: Process Node.js packages (hierarchical)
   ansible.builtin.set_fact:
-    final_services_enable: "{{ (services_enable | default([])) | unique }}"
-    final_services_disable: "{{ (services_disable | default([])) | unique }}"
+    final_npm_packages: "{{ 
+      (all_npm_packages | default([])) +
+      (group_npm_packages | default([])) +
+      (host_npm_packages | default([])) +
+      (npm_packages | default([])) | unique
+    }}"
 
-- name: Process role installation lists  
+- name: Process additional repositories (hierarchical merge)
   ansible.builtin.set_fact:
-    final_roles_install: "{{ (roles_install | default([])) | unique }}"
+    final_additional_repositories:
+      apt:
+        sources: "{{ 
+          (all_additional_repositories.apt.sources | default([])) +
+          (group_additional_repositories.apt.sources | default([])) +
+          (host_additional_repositories.apt.sources | default([])) +
+          (additional_repositories.apt.sources | default([])) | unique
+        }}"
+        keys: "{{ 
+          (all_additional_repositories.apt.keys | default([])) +
+          (group_additional_repositories.apt.keys | default([])) +
+          (host_additional_repositories.apt.keys | default([])) +
+          (additional_repositories.apt.keys | default([])) | unique
+        }}"
+      homebrew:
+        taps: "{{ 
+          (all_additional_repositories.homebrew.taps | default([])) +
+          (group_additional_repositories.homebrew.taps | default([])) +
+          (host_additional_repositories.homebrew.taps | default([])) +
+          (additional_repositories.homebrew.taps | default([])) | unique
+        }}"
+      yum:
+        repos: "{{ 
+          (all_additional_repositories.yum.repos | default([])) +
+          (group_additional_repositories.yum.repos | default([])) +
+          (host_additional_repositories.yum.repos | default([])) +
+          (additional_repositories.yum.repos | default([])) | unique
+        }}"
+
+- name: Process service configuration lists (hierarchical)
+  ansible.builtin.set_fact:
+    final_services_enable: "{{ 
+      (all_services_enable | default([])) +
+      (group_services_enable | default([])) +
+      (host_services_enable | default([])) +
+      (services_enable | default([])) | unique
+    }}"
+    final_services_disable: "{{ 
+      (all_services_disable | default([])) +
+      (group_services_disable | default([])) +
+      (host_services_disable | default([])) +
+      (services_disable | default([])) | unique
+    }}"
 
 - name: Apply package exclusions
   ansible.builtin.set_fact:
     final_packages_install: "{{ final_packages_install | difference(final_packages_remove) }}"
     final_services_enable: "{{ final_services_enable | difference(final_services_disable) }}"
+
+- name: Export merged variables for other roles
+  ansible.builtin.set_fact:
+    # Export final merged lists for third_party_packages role
+    third_party_packages: "{{ final_third_party_packages }}"
+    pip_packages: "{{ final_pip_packages }}"
+    npm_packages: "{{ final_npm_packages }}"
+    additional_repositories: "{{ final_additional_repositories }}"
+    # Export for basic_setup role internal use
+    aur_packages: "{{ final_aur_packages | default([]) }}"
+    homebrew_packages: "{{ final_homebrew_packages | default([]) }}"
+    homebrew_casks: "{{ final_homebrew_casks | default([]) }}"
+
+- name: Display hierarchical package processing results
+  ansible.builtin.debug:
+    msg:
+      - "=== Hierarchical Package Merging Complete ==="
+      - "OS packages ({{ ansible_distribution }}): {{ final_packages_install | length }}"
+      - "  └─ Sources: all_packages_install_{{ ansible_distribution }} + group_packages_install_{{ ansible_distribution }} + host_packages_install_{{ ansible_distribution }}"
+      - "AUR packages (Arch only): {{ final_aur_packages | default([]) | length }}"
+      - "  └─ Sources: all_aur_packages + group_aur_packages + host_aur_packages + aur_packages"
+      - "Homebrew packages (macOS only): {{ final_homebrew_packages | default([]) | length }}"
+      - "  └─ Sources: all_homebrew_packages + group_homebrew_packages + host_homebrew_packages + homebrew_packages"
+      - "Homebrew casks (macOS only): {{ final_homebrew_casks | default([]) | length }}"
+      - "  └─ Sources: all_homebrew_casks + group_homebrew_casks + host_homebrew_casks + homebrew_casks"
+      - "Third-party packages: {{ final_third_party_packages | length }}"
+      - "  └─ Sources: all_third_party_packages + group_third_party_packages + host_third_party_packages + third_party_packages"
+      - "Python packages: {{ final_pip_packages | length }}"
+      - "  └─ Sources: all_pip_packages + group_pip_packages + host_pip_packages + pip_packages"
+      - "Node.js packages: {{ final_npm_packages | length }}"
+      - "  └─ Sources: all_npm_packages + group_npm_packages + host_npm_packages + npm_packages"
+      - "Additional repositories (APT): {{ final_additional_repositories.apt.sources | length }} sources, {{ final_additional_repositories.apt.keys | length }} keys"
+      - "Additional repositories (Homebrew): {{ final_additional_repositories.homebrew.taps | length }} taps"
+      - ""
+      - "All package variables now merged hierarchically (all + group + host + legacy)"
+  when: ansible_verbosity >= 1

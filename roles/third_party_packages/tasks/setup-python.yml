@@ -1,0 +1,65 @@
+---
+# Python package installation via pip
+# Adapted from python_packages role
+
+- name: Validate pip installation method
+  ansible.builtin.fail:
+    msg: "Invalid pip_install_method: {{ pip_install_method }}. Must be 'user', 'virtualenv', or 'global'"
+  when: pip_install_method not in ['user', 'virtualenv', 'global']
+  tags:
+    - python
+    - validation
+
+- name: Warn about global pip installation
+  ansible.builtin.debug:
+    msg: |
+      WARNING: Global pip installation can conflict with system packages.
+      Consider using 'user' or 'virtualenv' method instead.
+  when: pip_install_method == 'global'
+  tags:
+    - python
+    - warning
+
+- name: Ensure pip is available
+  ansible.builtin.command: "python3 -m pip --version"
+  register: pip_check
+  changed_when: false
+  failed_when: pip_check.rc != 0
+  tags:
+    - python
+    - prerequisites
+
+- name: Setup virtual environment
+  block:
+    - name: Create virtual environment
+      ansible.builtin.command:
+        cmd: "python3 -m venv {{ pip_virtualenv_path }}"
+        creates: "{{ pip_virtualenv_path }}/bin/activate"
+      become: false
+
+  when: pip_install_method == 'virtualenv'
+  tags:
+    - python
+    - virtualenv
+
+- name: Install Python packages
+  ansible.builtin.pip:
+    name: "{{ pip_packages }}"
+    state: present
+    virtualenv: "{{ pip_virtualenv_path if pip_install_method == 'virtualenv' else omit }}"
+    extra_args: "{{ '--user' if pip_install_method == 'user' else '' }}"
+  become: "{{ pip_install_method == 'global' }}"
+  become_user: "{{ ansible_user if pip_install_method in ['user', 'virtualenv'] else omit }}"
+  tags:
+    - python
+    - pip-install
+
+- name: Display Python packages summary
+  ansible.builtin.debug:
+    msg:
+      - "Python packages installed: {{ pip_packages | length }}"
+      - "Installation method: {{ pip_install_method }}"
+      - "Location: {{ pip_virtualenv_path if pip_install_method == 'virtualenv' else 'user home' if pip_install_method == 'user' else 'system' }}"
+  tags:
+    - python
+    - summary

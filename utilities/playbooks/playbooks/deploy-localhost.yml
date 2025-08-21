@@ -1,9 +1,8 @@
 # Replication playbook for localhost
-# Generated from infrastructure discovery on 2025-08-20T11:29:32Z
+# Generated from infrastructure discovery on 2025-08-20T12:27:06Z
 # 
-# This playbook replicates the discovered configuration using the basic_setup role
-# and the variables discovered from the original machine.
-# Original OS: Archlinux NA
+# Replicates discovered configuration using basic_setup role and discovered variables.
+# Source OS: Archlinux NA
 
 ---
 - name: Replicate discovered configuration for localhost
@@ -13,43 +12,32 @@
   
   collections:
     - wolskinet.infrastructure
-    - community.general
-    - community.docker
+    - community.general    - community.docker
   pre_tasks:
-    - name: Display replication target information
+    - name: Display replication information
       ansible.builtin.debug:
         msg:
-          - "Replicating configuration for: localhost"
-          - "Source discovery: Archlinux NA"
+          - "=== Configuration Replication ==="
+          - "Target host: localhost"
+          - "Source OS: Archlinux NA"
           - "Target OS: Archlinux NA"
-          - "Discovery date: 2025-08-20T11:29:32Z"
-          - "Packages to install: 0"
-          - "Machine characteristics: []"
-
-    - name: Validate OS compatibility
-      ansible.builtin.assert:
-        that:
-          - ansible_distribution == "Archlinux"
-        fail_msg: "Target OS (Archlinux) doesn't match source OS (Archlinux)"
-        success_msg: "OS compatibility confirmed"
+          - "Discovery date: 2025-08-20T12:27:06Z"
+          - ""
+          - "Package installation approach:"
+          - "  • Looking for: packages_install_Archlinux"
+          - "  • Discovered: packages_install_Archlinux (114 packages)"
+          - "  • Cross-OS: Add equivalent packages manually if needed"
 
   roles:
     # Core system setup with discovered packages and configuration
-    - name: wolskinet.infrastructure.basic_setup
-      vars:
-        # The basic_setup role will consume the packages_install variable
-        # from host_vars/localhost.yml automatically
-        install_discovered_packages: true
-        
-        # Container platform setup (Docker was detected)
+    - name: wolskinet.infrastructure.basic_setup    
+    # Container platform setup (Docker detected on source)
     - name: wolskinet.infrastructure.container_platform
-      when: docker_detected | default(false)
-        
-        # Dotfiles management (dotfiles repository was detected)  
+      when: docker_detected | default(false)    
+    # Dotfiles management (repository detected on source)  
     - name: wolskinet.infrastructure.dotfiles
       become: false
-      when: dotfiles_detected | default(false)
-        
+      when: dotfiles_detected | default(false)    
     # System maintenance and updates
     - name: wolskinet.infrastructure.maintenance
 
@@ -57,18 +45,20 @@
     - name: Display replication results
       ansible.builtin.debug:
         msg:
-          - "Configuration replication completed for localhost"
-          - "Packages to install: 0 system packages"
-          - "Docker configuration applied"
-          - "Note: Docker containers/volumes are reference only - not automatically recreated"
-          - "Dotfiles repository configured"
+          - "✅ Configuration replication completed for localhost"
           - ""
-          - "Manual verification steps:"
-          - "  1. Compare package lists: check if critical packages are installed"
-          - "  2. Verify services are running as expected"
-          - "  3. Test application functionality"
-          - "  4. Manually recreate Docker containers/volumes as needed"
-          - "  5. Verify dotfiles are properly linked"  
-          - ""
-          - "Source machine characteristics: []"
-          - "Replication should closely match the original localhost configuration"
+          - "📦 Package installation:"
+          - "   • OS packages: 0 for Archlinux"
+          - "   • AUR packages: 0 (Arch only)"
+          - "   • Homebrew packages: 4 (macOS only)"
+          - "   • Python packages: 13"
+          - "   • Node.js packages: 13"          - ""
+          - "🐳 Docker: Configuration applied"
+          - "   • Note: Containers/volumes not automatically recreated"          - ""
+          - "⚙️  Dotfiles: Repository configured"          - ""
+          - "🔍 Manual verification recommended:"
+          - "   1. Compare package lists with original system"
+          - "   2. Verify services are running as expected" 
+          - "   3. Test application functionality"          - "   4. Recreate Docker containers/volumes as needed"          - "   5. Verify dotfiles are properly deployed"          - ""
+          - "Machine characteristics: none detected"
+          - "Replication should closely match original localhost configuration"

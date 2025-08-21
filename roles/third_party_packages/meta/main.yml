@@ -1,0 +1,29 @@
+---
+galaxy_info:
+  author: Ed Wolski
+  description: Third-party packages and repositories (npm, pip, system packages from additional repos)
+  company: wolskinet
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+
+  galaxy_tags:
+    - packages
+    - repositories
+    - npm
+    - pip
+    - python
+    - nodejs
+    - development
+
+dependencies: []

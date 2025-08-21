@@ -4,475 +4,412 @@ This utility scans existing machines and generates Ansible configuration files t
 
 ## Overview
 
-The discovery utility consists of:
+The discovery utility provides a streamlined approach to infrastructure replication:
 
-1. **Discovery Playbook** - Scans target machines and analyzes their configuration
-2. **Configuration Generator** - Creates inventory, group_vars, host_vars, and playbooks
-3. **Validation Playbook** - Compares generated configs against original machines
-4. **Comprehensive Reporting** - Detailed analysis and recommendations
+1. **Essential Discovery** - Scans target machines for packages, services, and core configuration
+2. **Host Variables Generation** - Creates OS-specific hierarchical variables
+3. **Replication Playbooks** - Generates functional playbooks using basic_setup role
+4. **Ansible Integration** - Output integrates with standard Ansible directory structure
+
+## Architecture
+
+Discovery generates variables that integrate seamlessly with the collection's hierarchical package system:
+
+- **Discovery Output**: `host_packages_install_<Distribution>` variables in host_vars files
+- **User Flexibility**: Can add `group_packages_install_<Distribution>` and `all_packages_install_<Distribution>`  
+- **Hierarchical Merging**: All levels merge together automatically in basic_setup role
+- **OS-Specific**: Package names are distribution-specific (Ubuntu vs Archlinux vs Darwin)
 
 ## Quick Start
 
-### 1. Discover Infrastructure
+### 1. Run Discovery on Target Machine
 
 ```bash
-# Create temporary inventory for existing machines
-cat > temp-inventory.yml << EOF
-existing_machines:
-  hosts:
-    arch-workstation:
-      ansible_host: 192.168.1.50
-    ubuntu-server:
-      ansible_host: 192.168.1.51
-EOF
-
-# Run discovery
-ansible-playbook -i temp-inventory.yml \
-  utilities/playbooks/discover-infrastructure.yml
+# Scan a single machine (adjust inventory as needed)
+ansible-playbook -i "target-host," utilities/playbooks/discover-essential.yml --ask-become-pass
 ```
 
-### 2. Review Generated Configuration
+### 2. Review Generated Output
 
-The discovery process creates:
+Discovery creates:
 
 ```
-discovered-infrastructure/
-├── inventory.yml                    # Generated inventory with detected groups
-├── host_vars/
-│   ├── arch-workstation.yml        # Host-specific variables
-│   └── ubuntu-server.yml
-├── group_vars/
-│   ├── servers.yml                  # Group configurations
-│   ├── workstations.yml
-│   └── archlinux_hosts.yml
-├── replicate-arch-workstation.yml  # Replication playbooks
-├── replicate-ubuntu-server.yml
-├── arch-workstation-profile.yml    # Raw discovery data
-├── ubuntu-server-profile.yml
-└── DISCOVERY-REPORT.md             # Comprehensive analysis
+utilities/playbooks/
+├── inventory/
+│   └── host_vars/
+│       └── target-host.yml     # OS-specific variables
+└── playbooks/
+    └── deploy-target-host.yml  # Replication playbook
 ```
 
-### 3. Configure Secrets
+### 3. Deploy to New Machine
 
 ```bash
-# Set up vault password
-echo "your-secure-vault-password" > ~/.ansible-vault-pass
-chmod 600 ~/.ansible-vault-pass
-
-# Create encrypted secrets file
-ansible-vault create discovered-infrastructure/group_vars/all/vault.yml
+# Use generated playbook to replicate configuration
+ansible-playbook -i "new-host," utilities/playbooks/playbooks/deploy-target-host.yml
 ```
 
-### 4. Test and Deploy
+## What Gets Discovered
 
-```bash
-# Validate generated configuration
-ansible-playbook -i discovered-infrastructure/inventory.yml \
-  utilities/playbooks/validate-discovery.yml
+### System Information
+- Operating system, distribution, version, architecture
+- Memory, CPU cores, hostname, network configuration
+- Primary network interface and IP address
 
-# Deploy to new machines
-ansible-playbook -i discovered-infrastructure/inventory.yml \
-  discovered-infrastructure/replicate-arch-workstation.yml
-```
+### Package Discovery  
+- **OS Packages**: Explicitly installed packages only (not dependencies)
+  - Ubuntu/Debian: `apt-mark showmanual` 
+  - Arch Linux: `pacman -Qqe`
+  - macOS: `brew list --formulae`
+- **AUR Packages**: Arch Linux user repository packages (`paru -Qm`)
+- **Python Packages**: User pip packages only (`pip list --user`)
+- **Node.js Packages**: Global npm packages (`npm list -g`, excluding system packages)
 
-## Detailed Usage
+### System Configuration
+- **Docker**: Installation detection for container_platform role
+- **Shell**: Preferred shell configuration (zsh/bash)
+- **Dotfiles**: Repository detection for dotfiles role
 
-### Discovery Options
+## Generated Files
 
-The discovery playbook supports several configuration options:
+### Host Variables File
 
 ```yaml
-# In your playbook or as extra vars
-vars:
-  discovery_output_dir: "./my-infrastructure"  # Output directory
-  generate_configs: true                       # Generate config files
-  include_sensitive: false                     # Include user hashes (use vault!)
-```
-
-### What Gets Discovered
-
-#### System Information
-- OS, distribution, version, architecture
-- Memory, CPU, Python version
-- Network interfaces and IP addresses
-- Hostname and FQDN
-
-#### Software Configuration
-- Installed packages (all package managers)
-- Running and enabled services
-- Docker containers, networks, volumes
-- Homebrew packages and casks (macOS)
-
-#### Development Environment
-- Development tools (git, docker, code, etc.)
-- Dotfiles repository detection
-- Shell configuration (zsh, bash)
-- Desktop environment detection
-
-#### Security Configuration
-- Firewall status (UFW, firewalld)
-- SSH configuration analysis
-- User account enumeration
-- Service security posture
-
-### Machine Classification
-
-The discovery utility automatically classifies machines into groups:
-
-#### Servers
-**Criteria:** SSH service running + no GUI detected
-**Configuration:**
-- Security hardening enabled
-- Firewall configuration
-- Automatic updates
-- Service monitoring
-
-#### Docker Hosts  
-**Criteria:** Docker installed and running
-**Configuration:**
-- Docker service management
-- Container deployment
-- Network and volume management
-- Registry authentication
-
-#### Workstations
-**Criteria:** GUI desktop environment detected
-**Configuration:**
-- Desktop environment setup
-- Development tools
-- Dotfiles management
-- User-friendly configurations
-
-### Generated Configurations
-
-#### Inventory Structure
-```yaml
-# Auto-generated based on discovered characteristics
-servers:
-  hosts:
-    ubuntu-server:
-      ansible_host: UPDATE_WITH_ACTUAL_IP
-
-docker_hosts:
-  hosts:
-    ubuntu-server:  # Can be in multiple groups
-
-workstations:
-  hosts:
-    arch-workstation:
-      ansible_host: UPDATE_WITH_ACTUAL_IP
-
-ubuntu_hosts:
-  hosts:
-    ubuntu-server:
-
-archlinux_hosts:
-  hosts:
-    arch-workstation:
-```
-
-#### Host Variables
-```yaml
-# host_vars/ubuntu-server.yml
+# utilities/playbooks/inventory/host_vars/web-01.yml
+# System Information
 ansible_user: "admin"
 system_memory_mb: 8192
 system_cpu_cores: 4
+system_architecture: "x86_64"
 primary_network_interface: "eth0"
+primary_ip_address: "192.168.1.100"
 
-# Docker configuration (if detected)
+# OS-specific packages (integrates with hierarchical system)
+host_packages_install_Ubuntu:
+  - nginx
+  - redis-server
+  - curl
+  - git
+  # ... all discovered packages
+
+# Language-specific packages (for dedicated roles)
+aur_packages:           # Handled by basic_setup (OS-specific)
+  - paru
+  - visual-studio-code-bin
+  
+pip_packages:           # For third_party_packages role (user packages only)
+  - ansible-lint
+  - black
+  
+npm_packages:           # For third_party_packages role (global CLI tools)
+  - prettier
+  - typescript
+
+# System features
 docker_detected: true
-discovered_containers:
-  - "nginx:latest"
-  - "postgres:13"
+dotfiles_detected: true
+detected_preferred_shell: "/usr/bin/zsh"
 
-# Development tools (if detected)
-development_tools_detected:
-  - "git"
-  - "docker"
-  - "code"
+# Discovery metadata
+discovery_completed_at: "2025-01-20T10:30:00Z"
+discovery_source_os: "Ubuntu 24.04"
 ```
 
-#### Group Variables
-```yaml
-# group_vars/docker_hosts.yml
-group_roles_install:
-  - basic_setup
-  - maintenance
-  - container_platform
-
-docker_services_deploy:
-  - portainer      # Based on discovered containers
-  - nginx-proxy
-  - monitoring
-
-docker_users:
-  - "{{ ansible_user }}"
-```
-
-## Advanced Features
-
-### Custom Discovery Logic
-
-You can extend the discovery playbook with custom tasks:
+### Replication Playbook
 
 ```yaml
-# Add to discover-infrastructure.yml
-- name: Custom application discovery
-  ansible.builtin.shell: |
-    if systemctl is-active --quiet myapp; then
-      echo "myapp_installed=true"
-    fi
-  register: custom_discovery
-  changed_when: false
-
-- name: Include custom discovery in profile
-  ansible.builtin.set_fact:
-    discovery_profile: "{{ discovery_profile | combine({'custom': {'myapp': custom_discovery.stdout}}) }}"
+# utilities/playbooks/playbooks/deploy-web-01.yml
+- name: Replicate discovered configuration for web-01
+  hosts: web-01
+  gather_facts: true
+  become: true
+  
+  collections:
+    - wolskinet.infrastructure
+    - community.general
+    - community.docker
+    
+  roles:
+    # Core system setup with discovered packages
+    - name: wolskinet.infrastructure.basic_setup
+    
+    # Container platform (Docker detected)
+    - name: wolskinet.infrastructure.container_platform
+      when: docker_detected | default(false)
+    
+    # Dotfiles (repository detected)  
+    - name: wolskinet.infrastructure.dotfiles
+      become: false
+      when: dotfiles_detected | default(false)
+    
+    # System maintenance
+    - name: wolskinet.infrastructure.maintenance
 ```
 
-### Template Customization
+## Hierarchical Integration
 
-Modify the Jinja2 templates to customize generated configurations:
+Discovery variables integrate with the collection's hierarchical system:
 
-```jinja2
-{# roles/discovery/templates/discovered-host-vars.yml.j2 #}
-# Add custom variables based on discovery
-{% if 'nginx' in discovery_profile.services.running %}
-web_server_detected: true
-web_server_type: "nginx"
-{% endif %}
-```
-
-### Validation Customization
-
-Extend the validation playbook for specific requirements:
-
+### Discovery Output (Host Level)
 ```yaml
-# Add to validate-discovery.yml
-- name: Validate custom application
-  ansible.builtin.uri:
-    url: "http://localhost:8080/health"
-  register: app_health
-  when: discovery_profile.custom.myapp | default(false)
+# Generated in host_vars/web-01.yml
+host_packages_install_Ubuntu:
+  - nginx
+  - redis-server
+  - curl
+  # ... discovered packages
 ```
 
-## Integration Patterns
-
-### CI/CD Integration
-
+### User Additions (Group Level)
 ```yaml
-# .github/workflows/infrastructure-sync.yml
-name: Infrastructure Sync
-on:
-  schedule:
-    - cron: '0 2 * * 0'  # Weekly
-
-jobs:
-  discover:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Discover infrastructure changes
-        run: |
-          ansible-playbook -i production-inventory.yml \
-            utilities/playbooks/discover-infrastructure.yml
-      - name: Check for changes
-        run: |
-          if git diff --quiet; then
-            echo "No infrastructure changes detected"
-          else
-            echo "Infrastructure changes detected"
-            git add discovered-infrastructure/
-            git commit -m "Update infrastructure discovery"
-            git push
-          fi
+# User creates group_vars/servers/Ubuntu.yml
+group_packages_install_Ubuntu:
+  - certbot
+  - ufw
 ```
 
-### Multi-Environment Discovery
+### User Additions (Global Level)
+```yaml
+# User creates group_vars/all/Ubuntu.yml  
+all_packages_install_Ubuntu:
+  - htop
+  - vim
+```
+
+### Final Result
+When basic_setup runs, it merges: **all** + **group** + **host** (discovery) = complete package list
+
+## Usage Examples
+
+### Basic Discovery and Replication
 
 ```bash
-# Discover multiple environments
-for env in dev staging prod; do
-  ansible-playbook -i inventories/${env}/inventory.yml \
-    utilities/playbooks/discover-infrastructure.yml \
-    -e discovery_output_dir="./discovered-${env}"
-done
+# 1. Discover existing Ubuntu server
+ansible-playbook -i "prod-web-01," \
+  utilities/playbooks/discover-essential.yml \
+  --ask-become-pass
+
+# 2. Review generated host_vars
+cat utilities/playbooks/inventory/host_vars/prod-web-01.yml
+
+# 3. Deploy to new server  
+ansible-playbook -i "new-web-01," \
+  utilities/playbooks/playbooks/deploy-prod-web-01.yml
 ```
 
-### Selective Discovery
+### Discovery with Additional Hierarchical Packages
 
 ```bash
-# Discover only specific host groups
-ansible-playbook -i inventory.yml \
-  utilities/playbooks/discover-infrastructure.yml \
-  --limit docker_hosts
+# 1. Run discovery (generates host-level packages)
+ansible-playbook -i "workstation," utilities/playbooks/discover-essential.yml
 
-# Discover with custom output
-ansible-playbook -i inventory.yml \
-  utilities/playbooks/discover-infrastructure.yml \
-  -e discovery_output_dir="./docker-infrastructure" \
-  -e generate_configs=true
+# 2. Add group-level packages for all workstations
+mkdir -p inventory/group_vars/workstations
+cat > inventory/group_vars/workstations/Ubuntu.yml << EOF
+group_packages_install_Ubuntu:
+  - code
+  - nodejs
+  - python3-dev
+EOF
+
+# 3. Add global packages for all machines
+mkdir -p inventory/group_vars/all  
+cat > inventory/group_vars/all/Ubuntu.yml << EOF
+all_packages_install_Ubuntu:
+  - htop
+  - vim
+  - curl
+EOF
+
+# 4. Deploy with merged packages (discovery + group + all)
+ansible-playbook -i inventory/hosts deploy-workstation.yml
 ```
 
-## Troubleshooting
+### Cross-OS Package Mapping
 
-### Common Issues
-
-#### Permission Errors
-```bash
-# Ensure proper SSH access
-ansible all -i temp-inventory.yml -m ping
-
-# Check sudo privileges
-ansible all -i temp-inventory.yml -m setup -b
-```
-
-#### Docker Discovery Fails
-```bash
-# Verify Docker access
-ansible docker_hosts -i temp-inventory.yml \
-  -m command -a "docker --version" -b
-```
-
-#### Incomplete Package Discovery
-```bash
-# Update package cache first
-ansible all -i temp-inventory.yml \
-  -m package -a "update_cache=yes" -b
-```
-
-### Debug Mode
-
-Enable verbose output for troubleshooting:
+Discovery is OS-specific, but users can map packages across distributions:
 
 ```bash
-ansible-playbook -vvv -i inventory.yml \
-  utilities/playbooks/discover-infrastructure.yml
+# 1. Discover Ubuntu machine
+ansible-playbook -i "ubuntu-host," discover-essential.yml
+# Generates: host_packages_install_Ubuntu
+
+# 2. Create equivalent Arch packages manually
+cat > inventory/host_vars/arch-host.yml << EOF
+# Equivalent packages for Arch Linux
+host_packages_install_Archlinux:
+  - nginx        # (Ubuntu: nginx)  
+  - redis        # (Ubuntu: redis-server)
+  - curl         # (same)
+  - git          # (same)
+EOF
+
+# 3. Deploy to Arch machine
+ansible-playbook -i "arch-host," deploy-arch.yml
 ```
 
-### Manual Profile Review
+## Discovery Playbook Details
 
-Examine raw discovery data:
-
+### Command Structure
 ```bash
-# View discovery profile
-cat discovered-infrastructure/hostname-profile.yml
-
-# Check specific sections
-yq '.docker' discovered-infrastructure/hostname-profile.yml
-yq '.services.running' discovered-infrastructure/hostname-profile.yml
+ansible-playbook -i "<target>," utilities/playbooks/discover-essential.yml [options]
 ```
+
+### Key Options
+- `--ask-become-pass`: Prompt for sudo password (recommended)
+- `-e discovery_output_host=<name>`: Override detected hostname
+- `-v`: Verbose output for debugging
+
+### Discovery Process
+1. **System Detection**: OS, architecture, memory, network
+2. **Package Scanning**: OS-specific package discovery commands
+3. **Service Detection**: Docker, systemd services, shell configuration
+4. **Template Generation**: Create host_vars and replication playbook
+5. **File Output**: Write to utilities/playbooks/ directory structure
+
+## Integration with Collection
+
+### With basic_setup Role
+Discovery generates `host_packages_install_<Distribution>` variables that basic_setup consumes automatically through hierarchical merging. Also detects AUR packages for Arch Linux.
+
+### With third_party_packages Role
+Discovery detects user-installed pip packages (via `pip list --user`) and globally installed npm packages, and includes the third_party_packages role in replication playbooks when these packages are found. It also identifies packages from third-party repositories and provides repository configuration guidance.
+
+### With container_platform Role  
+Discovery sets `docker_detected: true` when Docker is found, enabling conditional role inclusion in replication playbooks.
+
+### With dotfiles Role
+Discovery detects dotfiles repositories and sets `dotfiles_detected: true` for conditional role inclusion.
+
+### With maintenance Role
+All replication playbooks include the maintenance role for ongoing system updates.
+
+## Supported Operating Systems
+
+### Ubuntu/Debian
+- Package discovery via `apt-mark showmanual`
+- Detects explicitly installed packages only
+- Generates `host_packages_install_Ubuntu` or `host_packages_install_Debian`
+
+### Arch Linux  
+- Package discovery via `pacman -Qqe` (explicit installs)
+- AUR package detection via `paru -Qm` or `yay -Qm`
+- Generates `host_packages_install_Archlinux`
+
+### macOS
+- Package discovery via `brew list --formulae` 
+- Cask detection via `brew list --casks`
+- Generates `homebrew_packages` and `homebrew_casks`
 
 ## Limitations
 
 ### What Cannot Be Discovered
+1. **Sensitive Data**: Passwords, API keys, certificates
+2. **Custom Configurations**: Application-specific settings  
+3. **Manual Modifications**: Files changed outside package managers
+4. **Network Configuration**: External DNS, firewall rules
+5. **Service Dependencies**: Database connections, API endpoints
 
-1. **Sensitive Data**: Passwords, API keys, private keys
-2. **Custom Configurations**: Application-specific settings
-3. **Historical Data**: Changes made since last boot
-4. **External Dependencies**: DNS, load balancer configurations
-5. **Business Logic**: Application workflows and processes
+### Manual Steps After Discovery
+1. **Review Variables**: Check generated host_vars for accuracy
+2. **Add Secrets**: Use Ansible Vault for sensitive data
+3. **Customize Hierarchy**: Add group/all level packages as needed
+4. **Test Deployment**: Verify replication playbook works
+5. **Update Inventory**: Integrate with existing Ansible structure
 
-### Manual Configuration Required
+## Troubleshooting
 
-After discovery, you must still:
+### Permission Issues
+```bash
+# Test SSH access
+ansible -i "target," all -m ping
 
-1. Configure vault secrets
-2. Set up SSH key authentication  
-3. Review and adjust firewall rules
-4. Validate application configurations
-5. Test service dependencies
+# Test sudo access  
+ansible -i "target," all -m setup -b --ask-become-pass
+```
+
+### Package Discovery Problems
+```bash
+# Check package manager access
+ansible -i "target," all -m command -a "apt list --installed" -b  # Ubuntu
+ansible -i "target," all -m command -a "pacman -Q" -b              # Arch
+ansible -i "target," all -m command -a "brew list" -b              # macOS
+```
+
+### Output Issues
+```bash
+# Check discovery output directory
+ls -la utilities/playbooks/inventory/host_vars/
+ls -la utilities/playbooks/playbooks/
+
+# Review discovery debug output
+ansible-playbook -vv -i "target," discover-essential.yml
+```
 
 ## Best Practices
 
-### Regular Discovery
+### Before Discovery
+1. Ensure SSH key authentication is working
+2. Test sudo access with --ask-become-pass
+3. Update package managers on target systems
+4. Choose meaningful hostnames for inventory
 
-Run discovery regularly to keep configurations updated:
+### After Discovery
+1. Review generated host_vars for completeness
+2. Test replication playbook with --check --diff
+3. Add hierarchical packages at group/all levels as needed
+4. Version control the generated configurations
+5. Document any manual post-deployment steps
 
+### Regular Updates
+1. Re-run discovery when systems change significantly
+2. Keep discovery output in version control
+3. Test replication playbooks against clean systems
+4. Update hierarchical packages as needs evolve
+
+## Example Workflows
+
+### Development Machine Replication
 ```bash
-# Monthly discovery
-ansible-playbook -i inventory.yml \
-  utilities/playbooks/discover-infrastructure.yml \
-  -e discovery_output_dir="./discovery-$(date +%Y-%m)"
+# Discover development workstation
+ansible-playbook -i "dev-machine," discover-essential.yml
+
+# Add development-specific packages at group level
+mkdir -p inventory/group_vars/developers
+echo "group_packages_install_Ubuntu:" > inventory/group_vars/developers/Ubuntu.yml
+echo "  - nodejs" >> inventory/group_vars/developers/Ubuntu.yml  
+echo "  - python3-dev" >> inventory/group_vars/developers/Ubuntu.yml
+
+# Replicate to new developer machine
+ansible-playbook -i "new-dev," deploy-dev-machine.yml
 ```
 
-### Version Control
-
-Track discovery results in version control:
-
+### Server Infrastructure Discovery
 ```bash
-git add discovered-infrastructure/
-git commit -m "Infrastructure discovery - $(date)"
-git tag "discovery-$(date +%Y%m%d)"
+# Discover production server
+ansible-playbook -i "prod-web," discover-essential.yml
+
+# Add server hardening packages  
+mkdir -p inventory/group_vars/servers
+echo "group_packages_install_Ubuntu:" > inventory/group_vars/servers/Ubuntu.yml
+echo "  - fail2ban" >> inventory/group_vars/servers/Ubuntu.yml
+echo "  - ufw" >> inventory/group_vars/servers/Ubuntu.yml
+
+# Deploy to staging for testing
+ansible-playbook -i "staging-web," deploy-prod-web.yml --check
 ```
 
-### Documentation
+## Output File Reference
 
-Always review the generated `DISCOVERY-REPORT.md`:
+Discovery creates these files in `utilities/playbooks/`:
 
-1. Verify machine classifications
-2. Review missing role recommendations  
-3. Check security configurations
-4. Validate network settings
-
-### Testing
-
-Test generated configurations in development:
-
-```bash
-# Deploy to test environment first
-ansible-playbook -i test-inventory.yml \
-  discovered-infrastructure/replicate-hostname.yml \
-  --check --diff
+```
+utilities/playbooks/
+├── inventory/
+│   └── host_vars/
+│       └── <hostname>.yml          # OS-specific hierarchical variables
+└── playbooks/  
+    └── deploy-<hostname>.yml       # Replication playbook with basic_setup
 ```
 
-## Security Considerations
-
-### Data Safety
-
-The discovery utility is designed to be safe:
-
-- ✅ No sensitive data captured
-- ✅ No modifications made to target systems
-- ✅ Read-only operations only
-- ✅ Local file generation
-
-### Access Requirements
-
-Discovery requires:
-
-- SSH access to target machines
-- Sudo privileges for system information
-- Docker access (if detecting containers)
-- Package manager access
-
-### Output Security
-
-Secure the generated configurations:
-
-```bash
-# Set proper permissions
-chmod 700 discovered-infrastructure/
-chmod 600 discovered-infrastructure/host_vars/*
-chmod 600 discovered-infrastructure/group_vars/*
-
-# Use vault for any sensitive additions
-ansible-vault encrypt discovered-infrastructure/group_vars/all/vault.yml
-```
-
-## Examples
-
-See the `examples/` directory for complete usage examples:
-
-- `examples/discovery-scenarios/` - Different discovery use cases
-- `examples/integration/` - CI/CD integration examples  
-- `examples/validation/` - Custom validation scenarios
-
-## Support
-
-For issues with the discovery utility:
-
-1. Check the troubleshooting section above
-2. Review generated logs and reports
-3. Submit issues with discovery profiles attached
-4. Include target OS and environment details
+The generated files integrate with standard Ansible directory structure and can be moved to your main inventory as needed.

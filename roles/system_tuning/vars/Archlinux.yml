@@ -1,0 +1,5 @@
+---
+# Arch Linux-specific variables for system_tuning
+
+system_tuning_initramfs_update_command: "mkinitcpio -P"
+system_tuning_ssh_service_name: "sshd"

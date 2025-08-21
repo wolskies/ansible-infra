@@ -1,0 +1,36 @@
+---
+# tasks file for system_tuning
+# System-level tuning and optimization requiring root privileges
+
+- name: Validate supported OS versions
+  ansible.builtin.fail:
+    msg: >-
+      {{ ansible_distribution }} {{ ansible_distribution_version }}
+      is not supported. Supported versions: Ubuntu 24+, Debian 12+,
+      Arch Linux (latest)
+  when:
+    - >-
+      (ansible_distribution == "Ubuntu" and
+      ansible_distribution_major_version | int < 24) or
+      (ansible_distribution == "Debian" and
+      ansible_distribution_major_version | int < 12)
+  tags:
+    - always
+    - validation
+    - system-tuning
+
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux']
+  tags:
+    - always
+    - variables
+    - system-tuning
+
+- name: Include OS-specific system tuning tasks
+  ansible.builtin.include_tasks: "tuning-{{ ansible_os_family }}.yml"
+  when: ansible_os_family in ['Debian', 'Archlinux']
+  tags:
+    - always
+    - system-tuning
+    - optimization

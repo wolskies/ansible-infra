@@ -6,65 +6,37 @@
 # - User management
 # - System configuration
 
-- name: System validation and setup
-  block:
-    - name: Validate supported OS versions
-      ansible.builtin.fail:
-        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported. Supported versions: Ubuntu 24+, Debian 12+, Arch Linux (latest), macOS (latest)"
-      when:
-        - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
-          (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
-      tags:
-        - always
-        - validation
-        - os-check
-
-  rescue:
-    - name: Handle validation errors
-      ansible.builtin.include_tasks: ../../common/tasks/error-handler.yml
-      vars:
-        critical_errors: false  # OS validation errors are non-critical
-      tags:
-        - always
-        - debug
-  
+- name: Validate supported OS versions
+  ansible.builtin.fail:
+    msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported. Supported versions: Ubuntu 24+, Debian 12+, Arch Linux (latest), macOS (latest)"
+  when:
+    - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
+      (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
   tags:
     - always
     - validation
+    - os-check
     - basic-setup
 
-- name: Load OS-specific configuration
-  block:
-    - name: Load OS-specific variables
-      ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
-      when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux'] or ansible_os_family == 'Darwin'
-      tags:
-        - variables
-        - config
-        - os-vars
-
-    - name: Load OS family variables as fallback
-      ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
-      when: ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux'] and ansible_os_family != 'Darwin'
-      tags:
-        - variables
-        - config
-        - os-vars
-        - fallback
-
-  rescue:
-    - name: Handle variable loading errors
-      ansible.builtin.include_tasks: ../../common/tasks/error-handler.yml
-      vars:
-        critical_errors: false  # Variable loading errors are non-critical
-      tags:
-        - debug
-        - variables
-        - error-handling
-
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux'] or ansible_os_family == 'Darwin'
   tags:
     - always
     - variables
+    - config
+    - os-vars
+    - basic-setup
+
+- name: Load OS family variables as fallback
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  when: ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux'] and ansible_os_family != 'Darwin'
+  tags:
+    - always
+    - variables
+    - config
+    - os-vars
+    - fallback
     - basic-setup
 
 - name: Merge hierarchical variables
@@ -75,185 +47,45 @@
     - merge
     - basic-setup
 
-- name: Execute OS-specific setup tasks
-  block:
-    - name: Include OS-specific setup tasks for Debian family
-      ansible.builtin.include_tasks: "basic-Debian-family.yml"
-      when: ansible_os_family == 'Debian'
-      tags:
-        - os-setup
-        - packages
-        - security
-        - system-config
-
-    - name: Include OS-specific setup tasks for other OS families
-      ansible.builtin.include_tasks: "basic-{{ ansible_os_family }}.yml"
-      when: ansible_os_family != 'Debian'
-      tags:
-        - os-setup
-        - packages
-        - security
-        - system-config
-
-  rescue:
-    - name: Handle OS setup errors
-      ansible.builtin.include_tasks: ../../common/tasks/error-handler.yml
-      tags:
-        - debug
-        - error-handling
-
+- name: Include OS-specific setup tasks for Debian family
+  ansible.builtin.include_tasks: "setup-Debian.yml"
+  when: ansible_os_family == 'Debian'
   tags:
     - always
     - os-setup
+    - security
+    - system-config
     - basic-setup
 
-- name: Merge additional package sources
-  ansible.builtin.include_tasks: merge-package-sources.yml
+- name: Include OS-specific setup tasks for other OS families
+  ansible.builtin.include_tasks: "setup-{{ ansible_os_family }}.yml"
+  when: ansible_os_family != 'Debian'
   tags:
     - always
-    - packages
-    - merge
+    - os-setup
+    - security
+    - system-config
+    - basic-setup
 
-- name: Process additional repositories
-  block:
-    - name: Configure additional repositories
-      ansible.builtin.include_tasks: process-repositories.yml
-      when:
-        - enable_additional_repositories | default(true)
-        - additional_repositories is defined
-      tags:
-        - repositories
 
-  rescue:
-    - name: Handle repository configuration errors
-      ansible.builtin.include_tasks: ../../common/tasks/error-handler.yml
-      vars:
-        critical_errors: false
-      tags:
-        - debug
-        - repositories
-        - error-handling
 
-  tags:
-    - packages
-    - repositories
 
-- name: Install additional packages by category
-  block:
-    - name: Install system packages
-      ansible.builtin.include_tasks: "install-system-packages-{{ ansible_os_family }}.yml"
-      when: final_system_packages is defined and final_system_packages | length > 0
-      tags:
-        - packages
-        - system-packages
-
-    - name: Install development packages
-      ansible.builtin.include_tasks: "install-development-packages-{{ ansible_os_family }}.yml"
-      when: 
-        - install_development_packages | default(true)
-        - final_development_packages is defined and final_development_packages | length > 0
-      tags:
-        - packages
-        - development-packages
-
-    - name: Install desktop packages
-      ansible.builtin.include_tasks: "install-desktop-packages-{{ ansible_os_family }}.yml"
-      when: 
-        - install_desktop_packages | default(true)
-        - final_desktop_packages is defined and final_desktop_packages | length > 0
-      tags:
-        - packages
-        - desktop-packages
-
-    - name: Install media packages
-      ansible.builtin.include_tasks: "install-media-packages-{{ ansible_os_family }}.yml"
-      when: 
-        - install_media_packages | default(false)
-        - final_media_packages is defined and final_media_packages | length > 0
-      tags:
-        - packages
-        - media-packages
-
-  rescue:
-    - name: Handle package installation errors
-      ansible.builtin.include_tasks: ../../common/tasks/error-handler.yml
-      vars:
-        critical_errors: false
-      tags:
-        - debug
-        - packages
-        - error-handling
-
-  tags:
-    - packages
-    - additional-packages
-
-- name: Install language-specific packages
-  block:
-    - name: Install Python packages
-      ansible.builtin.include_tasks: install-python-packages.yml
-      when: 
-        - install_pip_packages | default(true)
-        - final_pip_packages is defined and final_pip_packages | length > 0
-      tags:
-        - packages
-        - python-packages
-
-    - name: Install Node.js packages
-      ansible.builtin.include_tasks: install-nodejs-packages.yml
-      when: 
-        - install_npm_packages | default(true)
-        - final_npm_packages is defined and final_npm_packages | length > 0
-      tags:
-        - packages
-        - nodejs-packages
-
-  rescue:
-    - name: Handle language package installation errors
-      ansible.builtin.include_tasks: ../../common/tasks/error-handler.yml
-      vars:
-        critical_errors: false
-      tags:
-        - debug
-        - packages
-        - error-handling
-
-  tags:
-    - packages
-    - language-packages
-
-- name: User management
-  block:
-    - name: Add users to system (Linux only)
-      become: true
-      ansible.builtin.user:
-        name: "{{ item.name }}"
-        uid: "{{ item.uid }}"
-        shell: "{{ default_user_shell }}"
-        password: "{{ item.password }}"
-        state: present
-        create_home: true
-        groups: "{{ item.groups | default([]) }}"
-      loop: "{{ user_details | default([]) }}"
-      when: 
-        - user_details is defined
-        - ansible_os_family != 'Darwin'
-      tags:
-        - users
-        - user-creation
-        - security
-
-  rescue:
-    - name: Handle user creation errors
-      ansible.builtin.include_tasks: ../../common/tasks/error-handler.yml
-      tags:
-        - debug
-        - users
-        - error-handling
-
+- name: Add users to system (Linux only)
+  become: true
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    shell: "{{ default_user_shell }}"
+    password: "{{ item.password }}"
+    state: present
+    create_home: true
+    groups: "{{ item.groups | default([]) }}"
+  loop: "{{ user_details | default([]) }}"
   when: 
     - user_details is defined
     - ansible_os_family != 'Darwin'
   tags:
     - users
+    - user-creation
+    - security
     - basic-setup

@@ -1,0 +1,8 @@
+---
+- name: Converge - Test system_tuning role
+  hosts: all
+  become: true
+  vars:
+    ansible_user: root
+  roles:
+    - role: wolskinet.infrastructure.system_tuning

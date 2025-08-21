@@ -6,103 +6,72 @@
     - always
     - docker-services
 
-- name: "Validate service {{ service_name }} configuration"
-  block:
-    - name: "Check if {{ service_name }} exists in service registry"
-      ansible.builtin.fail:
-        msg: "Service '{{ service_name }}' not found in registry. Available services: {{ docker_service_registry.keys() | list }}"
-      when: service_name not in docker_service_registry
-
-    - name: "Display service deployment information"
-      ansible.builtin.debug:
-        msg:
-          - "=== Deploying Docker Service: {{ service_name }} ==="
-          - "Description: {{ docker_service_registry[service_name].description }}"
-          - "Category: {{ docker_service_registry[service_name].category }}"
-          - "Role: {{ docker_service_registry[service_name].role }}"
-          - "Dependencies: {{ docker_service_registry[service_name].dependencies | default([]) }}"
-      tags:
-        - info
-        - docker-services
-
-    - name: "Validate required variables for {{ service_name }}"
-      ansible.builtin.fail:
-        msg: "Required variable '{{ item }}' is not defined for service {{ service_name }}"
-      when: 
-        - docker_service_registry[service_name].required_vars is defined
-        - item not in vars or vars[item] is not defined or vars[item] == ""
-      loop: "{{ docker_service_registry[service_name].required_vars | default([]) }}"
-      tags:
-        - validation
-        - docker-services
-
+- name: "Check if {{ service_name }} exists in service registry"
+  ansible.builtin.fail:
+    msg: "Service '{{ service_name }}' not found in registry. Available services: {{ docker_service_registry.keys() | list }}"
+  when: service_name not in docker_service_registry
   tags:
     - validation
     - docker-services
 
-- name: "Deploy {{ service_name }} using dedicated role"
-  block:
-    - name: "Include {{ service_name }} service role"
-      ansible.builtin.include_role:
-        name: "{{ docker_service_registry[service_name].role }}"
-      vars:
-        # Pass service configuration from registry
-        service_config: "{{ docker_service_registry[service_name] }}"
-        # Merge any additional service-specific variables
-        service_vars: "{{ service_vars | default({}) }}"
-        # Apply default service settings
-        service_defaults: "{{ docker_service_defaults }}"
-      tags:
-        - deploy
-        - docker-services
-        - "{{ service_name }}"
+- name: "Display service deployment information"
+  ansible.builtin.debug:
+    msg:
+      - "=== Deploying Docker Service: {{ service_name }} ==="
+      - "Description: {{ docker_service_registry[service_name].description }}"
+      - "Category: {{ docker_service_registry[service_name].category }}"
+      - "Role: {{ docker_service_registry[service_name].role }}"
+      - "Dependencies: {{ docker_service_registry[service_name].dependencies | default([]) }}"
+  tags:
+    - info
+    - docker-services
 
-  rescue:
-    - name: "Handle {{ service_name }} deployment failure"
-      ansible.builtin.debug:
-        msg:
-          - "Failed to deploy {{ service_name }} using role {{ docker_service_registry[service_name].role }}"
-          - "Check that the role exists and all required variables are set"
-          - "Required variables: {{ docker_service_registry[service_name].required_vars | default('none') }}"
-      tags:
-        - error
-        - docker-services
+- name: "Validate required variables for {{ service_name }}"
+  ansible.builtin.fail:
+    msg: "Required variable '{{ item }}' is not defined for service {{ service_name }}"
+  when: 
+    - docker_service_registry[service_name].required_vars is defined
+    - item not in vars or vars[item] is not defined or vars[item] == ""
+  loop: "{{ docker_service_registry[service_name].required_vars | default([]) }}"
+  tags:
+    - validation
+    - docker-services
 
-    - name: "Fallback: Use legacy deployment method for {{ service_name }}"
-      ansible.builtin.include_tasks: deploy-service-legacy.yml
-      when: docker_use_legacy_fallback | default(false)
-      tags:
-        - fallback
-        - docker-services
-
+- name: "Include {{ service_name }} service role"
+  ansible.builtin.include_role:
+    name: "{{ docker_service_registry[service_name].role }}"
+  vars:
+    # Pass service configuration from registry
+    service_config: "{{ docker_service_registry[service_name] }}"
+    # Merge any additional service-specific variables
+    service_vars: "{{ service_vars | default({}) }}"
+    # Apply default service settings
+    service_defaults: "{{ docker_service_defaults }}"
   tags:
     - deploy
     - docker-services
+    - "{{ service_name }}"
 
-- name: "Post-deployment verification for {{ service_name }}"
-  block:
-    - name: "Verify {{ service_name }} service health"
-      community.docker.docker_container_info:
-        name: "{{ service_name }}"
-      register: service_info
-      failed_when: false
-      tags:
-        - health
-        - verification
-
-    - name: "Display {{ service_name }} deployment summary"
-      ansible.builtin.debug:
-        msg:
-          - "=== {{ service_name | title }} Deployment Summary ==="
-          - "Status: {{ 'Running' if service_info.container.State.Running | default(false) else 'Not Running' }}"
-          - "Health: {{ service_info.container.State.Health.Status | default('Unknown') if service_info.container.State.Health is defined else 'No healthcheck' }}"
-          - "Category: {{ docker_service_registry[service_name].category | title }}"
-          - "Ports: {{ docker_service_registry[service_name].ports | default(['None configured']) }}"
-      when: service_info.container is defined
-      tags:
-        - summary
-        - verification
-
+- name: "Verify {{ service_name }} service health"
+  community.docker.docker_container_info:
+    name: "{{ service_name }}"
+  register: service_info
+  failed_when: false
   tags:
+    - health
+    - verification
+    - docker-services
+
+- name: "Display {{ service_name }} deployment summary"
+  ansible.builtin.debug:
+    msg:
+      - "=== {{ service_name | title }} Deployment Summary ==="
+      - "Status: {{ 'Running' if service_info.container.State.Running | default(false) else 'Not Running' }}"
+      - "Health: {{ service_info.container.State.Health.Status | default('Unknown') if service_info.container.State.Health is defined else 'No healthcheck' }}"
+      - "Category: {{ docker_service_registry[service_name].category | title }}"
+      - "Ports: {{ docker_service_registry[service_name].ports | default(['None configured']) }}"
+  when: service_info.container is defined
+  tags:
+    - summary
     - verification
     - docker-services

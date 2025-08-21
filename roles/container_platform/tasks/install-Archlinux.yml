@@ -1,23 +1,17 @@
 ---
-# Docker installation for Arch Linux
-- name: Update pacman cache
-  community.general.pacman:
-    update_cache: true
-  become: true
+# Install Docker on Arch Linux
 
-- name: Install Docker
+- name: Install Docker packages
   community.general.pacman:
     name:
       - docker
       - docker-compose
-      - docker-buildx
     state: present
   become: true
-  notify: restart docker
 
-- name: Install Python Docker SDK
-  community.general.pacman:
-    name:
-      - python-docker
-    state: present
+- name: Start and enable Docker service
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
   become: true
