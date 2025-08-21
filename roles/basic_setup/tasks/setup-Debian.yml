@@ -62,7 +62,7 @@
     upgrade: safe
     update_cache: true
   become: true
-  when: 
+  when:
     - enable_system_updates | default(true)
     - perform_system_upgrade | default(false)
   tags:
@@ -181,7 +181,7 @@
   community.general.ufw:
     state: enabled
   become: true
-  when: 
+  when:
     - configure_firewall | default(true)
     - enable_firewall | default(true)
   tags:

@@ -2,4 +2,4 @@
 ---
 # handlers file for dotfiles
 - name: Source .zshrc
-  ansible.builtin.command: source 
+  ansible.builtin.command: source

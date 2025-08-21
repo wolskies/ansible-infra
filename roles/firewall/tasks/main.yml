@@ -21,7 +21,7 @@
       ansible.builtin.fail:
         msg: "Invalid port configuration: {{ item }}"
       loop: "{{ firewall_ports }}"
-      when: 
+      when:
         - firewall_ports is defined
         - item.port is not defined or item.protocol is not defined
       tags:
@@ -44,7 +44,7 @@
 
     - name: Fallback to OS family tasks
       ansible.builtin.include_tasks: "firewall-{{ ansible_os_family }}.yml"
-      when: 
+      when:
         - ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux']
         - ansible_os_family != 'Darwin'
         - ansible_os_family in ['RedHat', 'Suse']

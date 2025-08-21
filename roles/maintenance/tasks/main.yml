@@ -2,9 +2,9 @@
 # tasks file for testrole
 - name: OS-specficic setup tasks
   ansible.builtin.include_tasks: "update-{{ ansible_distribution }}.yml"
- 
+
 - name: Update dotfiles
-  block: 
+  block:
     - name: Check if dotfiles have been installed
       ansible.builtin.stat:
         path: "{{ dotfiles_dest }}/.git"

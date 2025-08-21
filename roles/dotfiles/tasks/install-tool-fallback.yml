@@ -4,7 +4,7 @@
   block:
     - name: Install {{ tool_config.name }} via curl script
       ansible.builtin.shell: "{{ tool_config.fallback_install }}"
-      when: 
+      when:
         - tool_config.fallback_install.startswith('curl')
         - tool_config.fallback_install != "manual"
       become: false
@@ -31,7 +31,7 @@
             elif [ -f install.sh ]; then
               bash install.sh
             fi
-          when: 
+          when:
             - tool_config.fallback_install.startswith('git+')
             - tool_config.name == "fzf"  # Specific handling for fzf
 
@@ -39,7 +39,7 @@
 
     - name: Handle manual installation for {{ tool_config.name }}
       ansible.builtin.debug:
-        msg: 
+        msg:
           - "{{ tool_config.name }} requires manual installation"
           - "System packages not available for {{ ansible_distribution }}"
           - "Please install {{ tool_config.name }} manually or add it to your system repositories"

@@ -161,7 +161,7 @@
     discovered_packages:
       total: "{{ ansible_facts.packages.keys() | length }}"
       all_packages: "{{ ansible_facts.packages.keys() | list }}"
-      
+
       # Separate standard vs third-party packages
       standard_packages: >-
         {%- if ansible_os_family == "Debian" -%}
@@ -170,14 +170,14 @@
           {{- discovery_profile.packages.installed | map('regex_replace', '\s.*', '') | list -}}
         {%- endif -%}
       third_party_packages: "{{ third_party_package_map.keys() | default([]) | list }}"
-      
+
       # Categorize packages
       essential: "{{ ansible_facts.packages.keys() | intersect(package_categories.essential) | list }}"
       development: "{{ ansible_facts.packages.keys() | intersect(package_categories.development) | list }}"
       server: "{{ ansible_facts.packages.keys() | intersect(package_categories.server) | list }}"
       desktop: "{{ ansible_facts.packages.keys() | intersect(package_categories.desktop) | list }}"
       desktop_environment: "{{ ansible_facts.packages.keys() | intersect(package_categories.desktop_environment) | list }}"
-      
+
       # Package manager specific
       homebrew_formulae: "{{ homebrew_packages.stdout_lines | default([]) }}"
       homebrew_casks: "{{ homebrew_casks.stdout_lines | default([]) }}"
@@ -193,13 +193,13 @@
         source_contents: "{{ apt_source_contents.results | default([]) | selectattr('content', 'defined') | list }}"
         keys: "{{ apt_keys.files | default([]) | map(attribute='path') | list }}"
         package_origins: "{{ third_party_package_map | default({}) }}"
-      
+
       # Pacman/AUR
       pacman:
         config: "{{ pacman_config.content | default('') | b64decode }}"
         mirrorlist: "{{ pacman_mirrorlist.content | default('') | b64decode }}"
         aur_helpers: "{{ (aur_helpers_check.results | default([])) | selectattr('stat', 'defined') | selectattr('stat.exists') | map(attribute='item') | list }}"
-      
+
       # Homebrew
       homebrew:
         path: "{{ homebrew_path | default('') }}"

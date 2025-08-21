@@ -10,7 +10,7 @@
       changed_when: false
       failed_when: false
 
-    - name: Check for npm executable  
+    - name: Check for npm executable
       ansible.builtin.command: "npm --version"
       register: npm_check
       changed_when: false

@@ -81,38 +81,38 @@
       installed: "{{ docker_binary.stat.exists }}"
       version: "{{ docker_version.stdout | default('') }}"
       running: "{{ docker_host_info is succeeded | default(false) }}"
-      
+
       # Docker service status
       service:
         enabled: "{{ ansible_facts.services.get('docker.service', {}).get('status') == 'enabled' }}"
         active: "{{ ansible_facts.services.get('docker.service', {}).get('state') == 'running' }}"
-      
+
       # Container information
       containers:
         total: "{{ docker_containers.containers | default([]) | length }}"
         running: "{{ docker_containers.containers | default([]) | selectattr('State.Status', 'equalto', 'running') | list | length }}"
         images: "{{ docker_containers.containers | default([]) | map(attribute='Config.Image') | unique | list }}"
         names: "{{ docker_containers.containers | default([]) | map(attribute='Name') | map('regex_replace', '^/', '') | list }}"
-      
+
       # Networks and volumes
       networks:
         total: "{{ docker_networks.networks | default([]) | length }}"
         custom: "{{ docker_networks.networks | default([]) | rejectattr('Name', 'in', ['bridge', 'host', 'none']) | map(attribute='Name') | list }}"
-      
+
       volumes:
         total: "{{ docker_volumes.volumes | default([]) | length }}"
         names: "{{ docker_volumes.volumes | default([]) | map(attribute='Name') | list }}"
-      
+
       # Docker Compose
       compose:
         available: "{{ docker_compose_version.rc | default(1) == 0 }}"
         version: "{{ docker_compose_version.stdout | default('') }}"
-      
+
       # Configuration
       daemon_config:
         exists: "{{ docker_daemon_config.stat.exists | default(false) }}"
         content: "{{ docker_daemon_content.content | default('') | b64decode }}"
-      
+
       # Service mapping for deployment
       suggested_services: "{{ docker_containers.containers | default([]) | map(attribute='Config.Image') | map('regex_replace', ':.*$', '') | map('regex_replace', '.*/([^/]+)$', '\\1') | unique | list }}"
   when: docker_binary.stat.exists

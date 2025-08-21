@@ -1,9 +1,9 @@
 ---
 # Process ALL package variables with hierarchical merging
-# 
+#
 # HIERARCHICAL PACKAGE VARIABLES (all merged: all + group + host):
 # - OS packages: all_packages_install_<Distribution>, group_packages_install_<Distribution>, host_packages_install_<Distribution>
-# - AUR packages: all_aur_packages, group_aur_packages, host_aur_packages  
+# - AUR packages: all_aur_packages, group_aur_packages, host_aur_packages
 # - Homebrew packages: all_homebrew_packages, group_homebrew_packages, host_homebrew_packages
 # - Homebrew casks: all_homebrew_casks, group_homebrew_casks, host_homebrew_casks
 # - Third-party packages: all_third_party_packages, group_third_party_packages, host_third_party_packages
@@ -17,7 +17,7 @@
 - name: Process OS-specific package installation lists (hierarchical)
   ansible.builtin.set_fact:
     # Hierarchical package merging: all -> group -> host (includes discovery)
-    final_packages_install: "{{ 
+    final_packages_install: "{{
       (vars['all_packages_install_' + ansible_distribution] | default([])) +
       (vars['group_packages_install_' + ansible_distribution] | default([])) +
       (vars['host_packages_install_' + ansible_distribution] | default([])) | unique
@@ -30,23 +30,23 @@
 
 - name: Process AUR package lists (hierarchical - Arch Linux)
   ansible.builtin.set_fact:
-    final_aur_packages: "{{ 
+    final_aur_packages: "{{
       (all_aur_packages | default([])) +
       (group_aur_packages | default([])) +
       (host_aur_packages | default([])) +
-      (aur_packages | default([])) | unique 
+      (aur_packages | default([])) | unique
     }}"
   when: ansible_distribution == 'Archlinux'
 
 - name: Process Homebrew package lists (hierarchical - macOS)
   ansible.builtin.set_fact:
-    final_homebrew_packages: "{{ 
+    final_homebrew_packages: "{{
       (all_homebrew_packages | default([])) +
       (group_homebrew_packages | default([])) +
       (host_homebrew_packages | default([])) +
       (homebrew_packages | default([])) | unique
     }}"
-    final_homebrew_casks: "{{ 
+    final_homebrew_casks: "{{
       (all_homebrew_casks | default([])) +
       (group_homebrew_casks | default([])) +
       (host_homebrew_casks | default([])) +
@@ -56,7 +56,7 @@
 
 - name: Process third-party packages (hierarchical)
   ansible.builtin.set_fact:
-    final_third_party_packages: "{{ 
+    final_third_party_packages: "{{
       (all_third_party_packages | default([])) +
       (group_third_party_packages | default([])) +
       (host_third_party_packages | default([])) +
@@ -65,7 +65,7 @@
 
 - name: Process Python packages (hierarchical)
   ansible.builtin.set_fact:
-    final_pip_packages: "{{ 
+    final_pip_packages: "{{
       (all_pip_packages | default([])) +
       (group_pip_packages | default([])) +
       (host_pip_packages | default([])) +
@@ -74,7 +74,7 @@
 
 - name: Process Node.js packages (hierarchical)
   ansible.builtin.set_fact:
-    final_npm_packages: "{{ 
+    final_npm_packages: "{{
       (all_npm_packages | default([])) +
       (group_npm_packages | default([])) +
       (host_npm_packages | default([])) +
@@ -85,27 +85,27 @@
   ansible.builtin.set_fact:
     final_additional_repositories:
       apt:
-        sources: "{{ 
+        sources: "{{
           (all_additional_repositories.apt.sources | default([])) +
           (group_additional_repositories.apt.sources | default([])) +
           (host_additional_repositories.apt.sources | default([])) +
           (additional_repositories.apt.sources | default([])) | unique
         }}"
-        keys: "{{ 
+        keys: "{{
           (all_additional_repositories.apt.keys | default([])) +
           (group_additional_repositories.apt.keys | default([])) +
           (host_additional_repositories.apt.keys | default([])) +
           (additional_repositories.apt.keys | default([])) | unique
         }}"
       homebrew:
-        taps: "{{ 
+        taps: "{{
           (all_additional_repositories.homebrew.taps | default([])) +
           (group_additional_repositories.homebrew.taps | default([])) +
           (host_additional_repositories.homebrew.taps | default([])) +
           (additional_repositories.homebrew.taps | default([])) | unique
         }}"
       yum:
-        repos: "{{ 
+        repos: "{{
           (all_additional_repositories.yum.repos | default([])) +
           (group_additional_repositories.yum.repos | default([])) +
           (host_additional_repositories.yum.repos | default([])) +
@@ -114,13 +114,13 @@
 
 - name: Process service configuration lists (hierarchical)
   ansible.builtin.set_fact:
-    final_services_enable: "{{ 
+    final_services_enable: "{{
       (all_services_enable | default([])) +
       (group_services_enable | default([])) +
       (host_services_enable | default([])) +
       (services_enable | default([])) | unique
     }}"
-    final_services_disable: "{{ 
+    final_services_disable: "{{
       (all_services_disable | default([])) +
       (group_services_disable | default([])) +
       (host_services_disable | default([])) +

@@ -77,7 +77,7 @@
             path: "{{ current_user_home }}/.dotfiles/{{ item }}"
           register: dotfiles_management_tools
           become: false
-          loop: "{{ dotfiles_detection.management_tools }}"
+          loop: "{{ discovery_dotfiles_detection.management_tools }}"
       when: dotfiles_directory.stat.exists
 
     # Check for common application configurations
@@ -120,26 +120,26 @@
         shell: "{{ current_user_shell }}"
         uid: "{{ ansible_facts.getent_passwd[ansible_user][1] }}"
         gid: "{{ ansible_facts.getent_passwd[ansible_user][2] }}"
-      
+
       system_users:
         total: "{{ ansible_facts.getent_passwd.keys() | length }}"
         regular_users: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', '1000') | selectattr('value.1', '<', '65534') | map(attribute='key') | list }}"
         system_users: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '<', '1000') | map(attribute='key') | list }}"
-      
+
       shell_config:
         preferred_shell: "{{ current_user_shell | basename }}"
         config_files: "{{ shell_configs.results | selectattr('stat.exists') | map(attribute='item') | list }}"
-        
+
       dotfiles:
         detected: "{{ dotfiles_directory.stat.exists }}"
         is_git_repo: "{{ dotfiles_git_dir.stat.exists | default(false) }}"
         repository_url: "{{ dotfiles_remote_url.stdout | default('') }}"
         current_branch: "{{ dotfiles_current_branch.stdout | default('') }}"
         management_tools: "{{ dotfiles_management_tools.results | default([]) | selectattr('stat.exists') | map(attribute='item') | list }}"
-      
+
       application_configs:
         detected: "{{ app_configs.results | selectattr('stat.exists') | map(attribute='item') | list }}"
-        
+
       development_environment:
         user_tools: "{{ user_dev_tools.results | selectattr('stat.exists') | map(attribute='item') | list }}"
   tags:

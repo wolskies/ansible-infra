@@ -35,7 +35,7 @@
             file_type: file
           register: nginx_sites
           become: true
-          when: 
+          when:
             - item.name == "nginx"
             - "'nginx' in ansible_facts.services"
             - ansible_facts.services['nginx.service']['state'] == 'running'
@@ -48,7 +48,7 @@
             file_type: file
           register: apache_sites
           become: true
-          when: 
+          when:
             - item.name in ["apache2", "httpd"]
             - item.name in ansible_facts.services or (item.name + '.service') in ansible_facts.services
           loop: "{{ critical_services.web_servers }}"
@@ -87,7 +87,7 @@
         src: "{{ item.item.config_paths[0] }}"
       register: service_config_contents
       loop: "{{ service_config_files.results }}"
-      when: 
+      when:
         - item.stat.exists
         - item.item.name in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list)
       become: true
@@ -101,7 +101,7 @@
     discovered_services:
       running: "{{ ansible_facts.services | dict2items | selectattr('value.state', 'equalto', 'running') | map(attribute='key') | map('regex_replace', '\\.service$', '') | list }}"
       enabled: "{{ ansible_facts.services | dict2items | selectattr('value.status', 'equalto', 'enabled') | map(attribute='key') | map('regex_replace', '\\.service$', '') | list }}"
-      
+
       # Web servers
       web_servers:
         nginx:
@@ -112,23 +112,23 @@
           detected: "{{ ('apache2' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list)) or ('httpd' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list)) }}"
           running: "{{ (ansible_facts.services.get('apache2.service', {}).get('state') == 'running') or (ansible_facts.services.get('httpd.service', {}).get('state') == 'running') }}"
           sites: "{{ apache_sites.results | default([]) | selectattr('files', 'defined') | map(attribute='files') | flatten | map(attribute='path') | list }}"
-      
+
       # Database servers
       databases:
         mysql_detected: "{{ 'mysql' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'mariadb' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
         postgresql_detected: "{{ 'postgresql' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
         redis_detected: "{{ 'redis' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-      
+
       # Security services
       security:
         fail2ban_detected: "{{ 'fail2ban' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
         firewall_detected: "{{ 'ufw' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) or 'firewalld' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) }}"
-      
+
       # Custom services
       custom_systemd:
         services: "{{ custom_systemd_services.files | default([]) | map(attribute='path') | list }}"
         count: "{{ custom_systemd_services.files | default([]) | length }}"
-      
+
       # Configuration files
       configurations:
         detected: "{{ service_config_files.results | selectattr('stat.exists') | map(attribute='item') | list }}"

@@ -8,7 +8,7 @@
     remote_src: true
     backup: false
   loop: "{{ dotfiles_local_files }}"
-  when: 
+  when:
     - dotfiles_backup_existing | bool
   failed_when: false  # Don't fail if source doesn't exist
   become: false
@@ -24,15 +24,15 @@
       register: bashrc_stat
 
     - name: Move existing .bashrc to backup
-      ansible.builtin.command: 
+      ansible.builtin.command:
         cmd: "mv {{ ansible_env.HOME }}/.bashrc {{ ansible_env.HOME }}/.bashrc{{ dotfiles_backup_suffix }}"
-      when: 
+      when:
         - bashrc_stat.stat.exists
         - item.dest == ".bashrc"
       loop: "{{ dotfiles_local_files }}"
       become: false
 
-  when: 
+  when:
     - dotfiles_backup_existing | bool
     - dotfiles_local_files | selectattr('dest', 'equalto', '.bashrc') | list | length > 0
   tags:
@@ -58,7 +58,7 @@
     path: "{{ ansible_env.HOME }}/{{ item.item.dest }}"
     mode: "{{ item.item.mode | default('0755') }}"
   loop: "{{ local_files_result.results }}"
-  when: 
+  when:
     - item.item.dest | regex_search('\.(sh|bash|zsh|fish)$')
     - item.item.mode is not defined
   become: false

@@ -104,7 +104,7 @@
         config_accessible: "{{ sshd_config.content is defined }}"
         settings: "{{ ssh_config_parsed | default({}) }}"
         config_content: "{{ sshd_config.content | default('') | b64decode }}"
-      
+
       firewall:
         ufw:
           available: "{{ ansible_os_family == 'Debian' }}"
@@ -116,22 +116,22 @@
         iptables:
           rules_count: "{{ iptables_rules.stdout_lines | default([]) | length }}"
           has_custom_rules: "{{ iptables_rules.stdout_lines | default([]) | length > 10 }}"
-      
+
       services:
         fail2ban: "{{ security_services.fail2ban | default(false) }}"
         apparmor: "{{ security_services.apparmor | default(false) }}"
         selinux: "{{ security_services.selinux | default(false) }}"
-      
+
       access_control:
         sudo_configured: "{{ sudoers_file.stat.exists | default(false) }}"
         sudo_users: "{{ sudo_group.ansible_facts.getent_group.sudo.2 | default('') if sudo_group is succeeded else '' }}"
         wheel_users: "{{ wheel_group.ansible_facts.getent_group.wheel.2 | default('') if wheel_group is succeeded else '' }}"
         current_user_privileged: "{{ ansible_user in (sudo_group.ansible_facts.getent_group.sudo.2 | default('') + ',' + wheel_group.ansible_facts.getent_group.wheel.2 | default('')) }}"
-      
+
       network:
         listening_ports: "{{ listening_services.stdout_lines | default([]) | length }}"
         external_services: "{{ listening_services.stdout_lines | default([]) | select('search', '0\\.0\\.0\\.0') | list | length }}"
-        
+
       password_policy:
         aging_info: "{{ password_aging.stdout_lines | default([]) if password_aging is succeeded else [] }}"
   tags:

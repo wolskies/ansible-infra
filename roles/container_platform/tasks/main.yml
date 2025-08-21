@@ -1,6 +1,6 @@
 ---
 # Docker Setup Main Tasks
-# Tags: always, debug, validation, install, config, users, compose, directories, 
+# Tags: always, debug, validation, install, config, users, compose, directories,
 #       registries, networks, volumes, services, maintenance, docker-setup
 
 - name: Validate supported OS
@@ -53,8 +53,8 @@
     password: "{{ item.password }}"
     state: present
   loop: "{{ docker_registries }}"
-  when: 
-    - docker_registries is defined 
+  when:
+    - docker_registries is defined
     - docker_registries | length > 0
   no_log: true
   tags:
@@ -72,7 +72,7 @@
     ipam_config: "{{ item.ipam_config | default(omit) }}"
     state: present
   loop: "{{ docker_networks }}"
-  when: 
+  when:
     - docker_networks is defined
     - docker_networks | length > 0
   tags:
@@ -86,7 +86,7 @@
     name: "{{ item.name }}"
   loop: "{{ docker_networks }}"
   register: network_info
-  when: 
+  when:
     - docker_networks is defined
     - docker_networks | length > 0
   tags:
@@ -102,7 +102,7 @@
     driver_options: "{{ item.driver_options | default(omit) }}"
     state: present
   loop: "{{ docker_volumes }}"
-  when: 
+  when:
     - docker_volumes is defined
     - docker_volumes | length > 0
   tags:
@@ -116,7 +116,7 @@
     name: "{{ item.name }}"
   loop: "{{ docker_volumes }}"
   register: volume_info
-  when: 
+  when:
     - docker_volumes is defined
     - docker_volumes | length > 0
   tags:
@@ -169,7 +169,7 @@
   ansible.builtin.fail:
     msg: "Service '{{ item }}' not found in registry. Available: {{ docker_service_registry.keys() | list }}"
   loop: "{{ final_docker_services }}"
-  when: 
+  when:
     - final_docker_services | length > 0
     - item not in docker_service_registry
   tags:
@@ -182,8 +182,8 @@
   loop: "{{ final_docker_services }}"
   loop_control:
     loop_var: service_name
-  when: 
-    - final_docker_services is defined 
+  when:
+    - final_docker_services is defined
     - final_docker_services | length > 0
     - docker_enable_services | default(true)
   vars:

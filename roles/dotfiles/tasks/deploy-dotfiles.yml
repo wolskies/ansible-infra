@@ -71,7 +71,7 @@
     chdir: "{{ dotfiles_directory }}"
   loop: "{{ install_scripts.files }}"
   become: false
-  when: 
+  when:
     - install_scripts.files | length > 0
     - dotfiles_auto_install_dependencies | default(true)
   register: script_results

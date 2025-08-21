@@ -5,7 +5,7 @@
 - name: Validate dotfiles configuration - repository method
   ansible.builtin.fail:
     msg: "dotfiles_repository_url must be defined when using repository method"
-  when: 
+  when:
     - dotfiles_source_type == "repository"
     - (not dotfiles_repository_url or dotfiles_repository_url == "")
   tags: dotfiles
@@ -13,14 +13,14 @@
 - name: Validate dotfiles configuration - local files method
   ansible.builtin.fail:
     msg: "dotfiles_local_files must be defined when using local_files method"
-  when: 
+  when:
     - dotfiles_source_type == "local_files"
     - (not dotfiles_local_files or dotfiles_local_files | length == 0)
   tags: dotfiles
 
 - name: Install essential packages
   ansible.builtin.include_tasks: install-essentials.yml
-  tags: 
+  tags:
     - dotfiles
     - packages
 
@@ -32,21 +32,21 @@
 
 - name: Clone or update dotfiles repository
   ansible.builtin.include_tasks: clone-dotfiles.yml
-  when: 
+  when:
     - dotfiles_source_type == "repository"
     - dotfiles_repository_url is defined and dotfiles_repository_url != ""
   tags: dotfiles
 
 - name: Deploy local files
   ansible.builtin.include_tasks: deploy-local-files.yml
-  when: 
+  when:
     - dotfiles_source_type == "local_files"
     - dotfiles_local_files is defined and dotfiles_local_files | length > 0
   tags: dotfiles
 
 - name: Discover dotfiles dependencies
   ansible.builtin.include_tasks: discover-dependencies.yml
-  when: 
+  when:
     - dotfiles_scan_for_dependencies | default(true)
     - dotfiles_directory_stat.stat.exists
   tags:
@@ -55,7 +55,7 @@
 
 - name: Install discovered dependencies
   ansible.builtin.include_tasks: install-dependencies.yml
-  when: 
+  when:
     - dotfiles_auto_install_dependencies | default(true)
     - dotfiles_needed_tools is defined
   tags:
@@ -64,7 +64,7 @@
 
 - name: Deploy dotfiles using stow (repository method)
   ansible.builtin.include_tasks: deploy-dotfiles.yml
-  when: 
+  when:
     - dotfiles_source_type == "repository"
     - dotfiles_directory_stat.stat.exists
   tags: dotfiles

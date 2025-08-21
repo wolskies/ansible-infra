@@ -50,7 +50,7 @@
     fi
     {% endfor %}
     {% endfor %}
-    
+
     printf '%s\n' "${installed_tools[@]}" | sort -u
   register: post_install_check
   changed_when: false

@@ -9,27 +9,27 @@ packages_install:
   - ca-certificates
   - locales-all
   - dnsutils
-  
+
   # Core utilities
   - git
   - curl
   - wget
   - rsync
   - unzip
-  
+
   # System administration
   - ufw
-  
+
   # Build tools
   - build-essential
   - software-properties-common
-  
+
   # Python essentials
   - python3
   - python3-pip
   - python3-venv
 
-# Packages to remove for security/cleanliness  
+# Packages to remove for security/cleanliness
 packages_remove:
   - xinetd
   - inetd

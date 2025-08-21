@@ -24,7 +24,7 @@
     - packages
     - system
 
-- name: Gather service facts  
+- name: Gather service facts
   ansible.builtin.service_facts:
   become: true
   timeout: "{{ discovery.timeout }}"

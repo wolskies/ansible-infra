@@ -48,7 +48,7 @@
       state: present
   - name: Update apt and install eza
     ansible.builtin.package:
-      name: 
+      name:
         - eza
       state: latest
       update_cache: true

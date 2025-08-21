@@ -31,6 +31,6 @@ firewall_tool_preference:
   # Linux distributions will auto-detect and use appropriate tool
   # This allows override if needed
   Ubuntu: "ufw"
-  Debian: "ufw" 
+  Debian: "ufw"
   Archlinux: "firewalld"
   Darwin: "macos_alf"  # macOS Application Layer Firewall

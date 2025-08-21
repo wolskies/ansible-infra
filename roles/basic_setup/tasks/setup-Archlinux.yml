@@ -18,7 +18,7 @@
     name: "{{ final_packages_install }}"
     state: present
   become: true
-  when: 
+  when:
     - final_packages_install is defined
     - final_packages_install | length > 0
   tags:
@@ -32,7 +32,7 @@
     name: "{{ final_packages_remove }}"
     state: absent
   become: true
-  when: 
+  when:
     - final_packages_remove is defined
     - final_packages_remove | length > 0
   tags:
@@ -61,7 +61,7 @@
         paru -S --noconfirm {{ item }}
       loop: "{{ final_aur_packages }}"
       become: false
-      when: 
+      when:
         - final_aur_packages is defined
         - final_aur_packages | length > 0
         - paru_check.rc == 0
@@ -71,7 +71,7 @@
         yay -S --noconfirm {{ item }}
       loop: "{{ final_aur_packages }}"
       become: false
-      when: 
+      when:
         - final_aur_packages is defined
         - final_aur_packages | length > 0
         - paru_check.rc != 0

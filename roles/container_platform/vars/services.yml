@@ -12,7 +12,7 @@ docker_service_registry:
     networks: ["services"]
     ports:
       - "80:80"
-      - "443:443" 
+      - "443:443"
       - "2222:22"
       - "5050:5050"
     volumes:
@@ -27,7 +27,7 @@ docker_service_registry:
       - gitlab_registry_enabled
       - gitlab_pages_enable
       - gitlab_letsencrypt
-    
+
   # Nextcloud - Self-hosted cloud storage and collaboration
   nextcloud:
     role: "wolskinet.infrastructure.nextcloud"
@@ -48,7 +48,7 @@ docker_service_registry:
       - nextcloud_database_type
       - nextcloud_redis_enabled
       - nextcloud_smtp_enabled
-    
+
   # Jellyfin - Media server for movies, music, and TV shows
   jellyfin:
     role: "wolskinet.infrastructure.jellyfin"
@@ -67,7 +67,7 @@ docker_service_registry:
     optional_features:
       - jellyfin_hardware_acceleration
       - jellyfin_external_access
-    
+
   # Paperless-ngx - Document management system
   paperless:
     description: "Document management system with OCR and full-text search"
@@ -87,7 +87,7 @@ docker_service_registry:
       - paperless_ocr_language
       - paperless_smtp_enabled
       - paperless_social_auth
-    
+
   # Nginx Proxy Manager - Reverse proxy with SSL management
   nginx_proxy_manager:
     role: "wolskinet.infrastructure.nginx_proxy_manager"
@@ -106,7 +106,7 @@ docker_service_registry:
     optional_features:
       - npm_default_email
       - npm_disable_ipv6
-    
+
   # Portainer - Docker management interface
   portainer:
     role: "wolskinet.infrastructure.portainer"

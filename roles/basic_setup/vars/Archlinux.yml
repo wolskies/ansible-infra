@@ -7,21 +7,21 @@ packages_install:
   # Build tools and development essentials
   - base-devel
   - linux-headers
-  
+
   # Core utilities
   - git
   - curl
   - wget
   - rsync
   - unzip
-  
+
   # System administration
   - firewalld
-  
+
   # Python essentials
   - python
   - python-pip
-  
+
   # Package management
   - pacman-contrib  # For paccache and other pacman utilities
 

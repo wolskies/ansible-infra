@@ -74,10 +74,10 @@
       type: "{{ primary_machine_type }}"
       groups: "{{ applicable_groups | unique }}"
       roles: "{{ recommended_roles | unique }}"
-      
+
       # Classification scores for debugging
       classification_scores: "{{ machine_type_scores }}"
-      
+
       # Key characteristics
       characteristics:
         has_gui: "{{ discovered_desktop.has_gui }}"
@@ -85,7 +85,7 @@
         has_web_server: "{{ discovered_services.web_servers.nginx.detected or discovered_services.web_servers.apache.detected }}"
         has_database: "{{ discovered_services.databases.mysql_detected or discovered_services.databases.postgresql_detected }}"
         is_secure: "{{ discovered_security.ssh.service_running and discovered_security.firewall.ufw.status != 'inactive' }}"
-        
+
       # Deployment recommendations
       deployment:
         security_hardening: "{{ not discovered_desktop.has_gui }}"
@@ -102,17 +102,17 @@
         server: "{{ discovered_packages.server }}"
         desktop: "{{ discovered_packages.desktop if discovered_desktop.has_gui else [] }}"
         desktop_environment: "{{ discovered_packages.desktop_environment if discovered_desktop.has_gui else [] }}"
-      
+
       # Special package managers
       homebrew:
         formulae: "{{ discovered_packages.homebrew_formulae }}"
         casks: "{{ discovered_packages.homebrew_casks }}"
         taps: "{{ discovered_repositories.homebrew.taps }}"
-      
+
       aur:
         packages: "{{ discovered_packages.aur_packages }}"
         helper: "{{ discovered_repositories.pacman.aur_helpers | first | default('') }}"
-      
+
       # Repository management
       repositories:
         apt_sources: "{{ discovered_repositories.apt.additional_sources }}"
@@ -127,7 +127,7 @@
           (['nginx'] if discovered_services.web_servers.nginx.detected else []) +
           (['apache'] if discovered_services.web_servers.apache.detected else [])
         }}
-      
+
       # Database services
       database_services: >-
         {{
@@ -135,17 +135,17 @@
           (['postgresql'] if discovered_services.databases.postgresql_detected else []) +
           (['redis'] if discovered_services.databases.redis_detected else [])
         }}
-      
+
       # Security services
       security_services: >-
         {{
           (['fail2ban'] if discovered_services.security.fail2ban_detected else []) +
           (['ufw'] if discovered_security.firewall.ufw.status and 'active' in discovered_security.firewall.ufw.status else [])
         }}
-      
+
       # Docker services
       docker_services: "{{ discovered_docker.suggested_services | default([]) }}"
-      
+
       # Custom systemd services
       custom_services: "{{ discovered_services.custom_systemd.services | map('basename') | map('regex_replace', '\\.service$', '') | list }}"
 
@@ -155,13 +155,13 @@
       shell_setup:
         preferred_shell: "{{ discovered_users.shell_config.preferred_shell }}"
         config_files: "{{ discovered_users.shell_config.config_files }}"
-      
+
       dotfiles_setup:
         enabled: "{{ discovered_users.dotfiles.detected }}"
         repository_url: "{{ discovered_users.dotfiles.repository_url }}"
         branch: "{{ discovered_users.dotfiles.current_branch | default('main') }}"
         management_tools: "{{ discovered_users.dotfiles.management_tools }}"
-      
+
       development_environment:
         user_tools: "{{ discovered_users.development_environment.user_tools }}"
         application_configs: "{{ discovered_users.application_configs.detected }}"

@@ -81,7 +81,7 @@
     create_home: true
     groups: "{{ item.groups | default([]) }}"
   loop: "{{ user_details | default([]) }}"
-  when: 
+  when:
     - user_details is defined
     - ansible_os_family != 'Darwin'
   tags:

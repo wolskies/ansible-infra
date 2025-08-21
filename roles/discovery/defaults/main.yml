@@ -8,7 +8,7 @@
 
 # Discovery output settings
 discovery:
-  output_dir: "./discovered-infrastructure"
+  output_dir: "./inventory"
   generate_configs: true
   include_sensitive: false  # Set to true to include user hashes (use vault!)
   timeout: 300  # 5 minutes timeout for discovery tasks
@@ -30,7 +30,7 @@ discovery_scan:
 # =============================================================================
 
 # Machine type detection logic
-machine_classification:
+discovery_machine_classification:
   server:
     criteria:
       - ssh_service_running: true
@@ -41,7 +41,7 @@ machine_classification:
     security:
       hardening_enabled: true
       firewall_enabled: true
-  
+
   docker_host:
     criteria:
       - docker_installed: true
@@ -53,7 +53,7 @@ machine_classification:
       - curl
       - openssh-server
       - ca-certificates
-  
+
   workstation:
     criteria:
       - has_gui: true
@@ -69,7 +69,7 @@ machine_classification:
 # =============================================================================
 
 # Package categories for intelligent installation
-package_categories:
+discovery_package_categories:
   essential:
     - git
     - curl
@@ -150,7 +150,7 @@ package_categories:
 # =============================================================================
 
 # Critical services to detect and configure
-critical_services:
+discovery_critical_services:
   web_servers:
     - name: nginx
       config_paths:
@@ -200,24 +200,24 @@ critical_services:
 # =============================================================================
 
 # Repository detection patterns
-repository_detection:
+discovery_repository_detection:
   apt:
     main_sources: /etc/apt/sources.list
     additional_sources: /etc/apt/sources.list.d
     keys_paths:
       - /etc/apt/trusted.gpg.d
       - /usr/share/keyrings
-  
+
   pacman:
     config: /etc/pacman.conf
     mirrorlist: /etc/pacman.d/mirrorlist
-  
+
   aur_helpers:
     - yay
     - paru
     - pikaur
     - trizen
-  
+
   homebrew:
     paths:
       - /opt/homebrew/bin/brew  # ARM Mac
@@ -228,7 +228,7 @@ repository_detection:
 # =============================================================================
 
 # Docker service mapping for common containers
-docker_service_mapping:
+discovery_docker_service_mapping:
   # Map container images to service names
   portainer: "portainer"
   "portainer/portainer-ce": "portainer"
@@ -246,13 +246,13 @@ docker_service_mapping:
 # =============================================================================
 
 # Shell detection and configuration
-shell_configuration:
+discovery_shell_configuration:
   supported_shells:
     - /bin/bash
     - /bin/zsh
     - /usr/bin/fish
     - /bin/dash
-  
+
   config_files:
     bash:
       - .bashrc
@@ -266,11 +266,11 @@ shell_configuration:
       - .config/fish/config.fish
 
 # Dotfiles detection
-dotfiles_detection:
+discovery_dotfiles_detection:
   repository_indicators:
     - .dotfiles
     - .config
-  
+
   management_tools:
     - Makefile
     - install.sh
@@ -284,26 +284,26 @@ dotfiles_detection:
 # =============================================================================
 
 # Template generation settings
-template_generation:
+discovery_template_generation:
   inventory_format: "yaml"  # yaml or ini
   create_vault_templates: true
   create_replication_playbooks: true
   create_package_lists: true
   create_service_configs: true
-  
+
 # Files to generate
-generated_files:
+discovery_generated_files:
   core:
     - inventory.yml
     - group_vars/all.yml
     - playbooks/new_machine.yml
-  
+
   host_specific:
     - host_vars/{hostname}.yml
     - host_vars/{hostname}/packages.yml
     - host_vars/{hostname}/services.yml
     - host_vars/{hostname}/vault.yml.template
-  
+
   documentation:
     - README.md
     - DISCOVERED-SERVICES.md

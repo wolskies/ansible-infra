@@ -29,7 +29,7 @@
 - name: "Validate required variables for {{ service_name }}"
   ansible.builtin.fail:
     msg: "Required variable '{{ item }}' is not defined for service {{ service_name }}"
-  when: 
+  when:
     - docker_service_registry[service_name].required_vars is defined
     - item not in vars or vars[item] is not defined or vars[item] == ""
   loop: "{{ docker_service_registry[service_name].required_vars | default([]) }}"

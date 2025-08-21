@@ -23,10 +23,13 @@
     dest: "{{ discovery.output_dir }}/{{ item.dest }}"
     mode: '0644'
   loop:
-    - src: "host_discovered_packages.yml.j2"
-      dest: "host_vars/{{ inventory_hostname }}.yml"
+    - src: "host-settings.yml.j2"
+      dest: "host_vars/{{ inventory_hostname }}/settings.yml"
     - src: "vault_template.yml.j2"
       dest: "host_vars/{{ inventory_hostname }}/vault.yml.template"
+    # Legacy format for backward compatibility
+    - src: "host_discovered_packages.yml.j2"
+      dest: "host_vars/{{ inventory_hostname }}.yml"
   delegate_to: localhost
   tags:
     - generation

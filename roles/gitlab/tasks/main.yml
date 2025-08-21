@@ -136,7 +136,7 @@
       - port: "{{ gitlab_https_port }}"
         protocol: tcp
         comment: "GitLab HTTPS"
-      - port: "{{ gitlab_shell_ssh_port }}"  
+      - port: "{{ gitlab_shell_ssh_port }}"
         protocol: tcp
         comment: "GitLab SSH"
       - port: "{{ gitlab_registry_port }}"
@@ -164,7 +164,7 @@
 
     - name: Install certbot for Let's Encrypt
       ansible.builtin.package:
-        name: 
+        name:
           - certbot
           - python3-certbot-nginx
         state: present

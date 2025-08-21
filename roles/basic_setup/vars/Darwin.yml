@@ -10,10 +10,10 @@ homebrew_packages:
   - wget
   - rsync
   - unzip
-  
+
   # Development essentials
   - python@3.13
-  
+
   # Package management
   - homebrew/bundle  # For Brewfile support
 

@@ -5,7 +5,7 @@ galaxy_info:
   company: wolskinet
   license: GPL-3.0-or-later
   min_ansible_version: "2.12"
-  
+
   platforms:
     - name: Ubuntu
       versions:
@@ -21,7 +21,7 @@ galaxy_info:
     - name: MacOSX
       versions:
         - all
-  
+
   galaxy_tags:
     - system
     - packages

@@ -4,7 +4,7 @@
   ansible.builtin.shell: |
     set -e
     tools_found=()
-    
+
     # Look for common tool references in dotfiles
     {% for tool in dotfiles_common_tools %}
     {% for command in tool.commands %}
@@ -14,7 +14,7 @@
     fi
     {% endfor %}
     {% endfor %}
-    
+
     # Remove duplicates and output
     printf '%s\n' "${tools_found[@]}" | sort -u
   register: dotfiles_scan_result
@@ -32,7 +32,7 @@
     fi
     {% endfor %}
     {% endfor %}
-    
+
     printf '%s\n' "${available_tools[@]}" | sort -u
   register: available_tools_result
   changed_when: false

@@ -45,7 +45,7 @@
     - discovery
     - system
 
-# Phase 2: Package Discovery  
+# Phase 2: Package Discovery
 - name: Discover packages and repositories
   ansible.builtin.include_tasks: scan-packages.yml
   when: discovery_scan.packages or discovery_scan.repositories
@@ -77,6 +77,14 @@
     - discovery
     - users
 
+# Phase 5a: Enhanced Dotfiles Discovery
+- name: Enhanced dotfiles discovery
+  ansible.builtin.include_tasks: scan-dotfiles.yml
+  when: discovery_scan.dotfiles
+  tags:
+    - discovery
+    - dotfiles
+
 # Phase 6: Desktop Environment Discovery
 - name: Discover desktop environment
   ansible.builtin.include_tasks: scan-desktop.yml
@@ -99,6 +107,13 @@
   tags:
     - discovery
     - processing
+
+# Phase 8a: Generate Role-Specific Variables
+- name: Generate role-specific variables
+  ansible.builtin.include_tasks: generate-role-vars.yml
+  tags:
+    - discovery
+    - role-integration
 
 # Phase 9: Configuration Generation
 - name: Generate configuration files

@@ -4,7 +4,7 @@
 
 - name: Configure additional repositories
   ansible.builtin.include_tasks: setup-repositories.yml
-  when: 
+  when:
     - enable_repositories | default(true)
     - additional_repositories is defined
   tags:
@@ -13,7 +13,7 @@
 
 - name: Install third-party system packages
   ansible.builtin.include_tasks: install-system-packages.yml
-  when: 
+  when:
     - third_party_packages is defined
     - third_party_packages | length > 0
   tags:
