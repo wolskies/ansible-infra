@@ -74,7 +74,7 @@
               - "ansible_facts.getent_passwd['testuser1'][5] == '/usr/bin/zsh'"
             fail_msg: "User shell not set to zsh"
             success_msg: "User shell configuration verified"
-          when: 
+          when:
             - ansible_os_family != 'Darwin'
             - "'testuser1' in ansible_facts.getent_passwd"
           ignore_errors: true  # zsh may not be available in test images

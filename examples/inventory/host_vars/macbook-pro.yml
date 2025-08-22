@@ -18,7 +18,7 @@ macos_settings:
     value: true
   - domain: "com.apple.finder"
     key: "ShowPathbar"
-    type: "bool" 
+    type: "bool"
     value: true
 
 # Development tools specific to this Mac

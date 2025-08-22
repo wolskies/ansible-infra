@@ -1,0 +1,136 @@
+---
+# Scan individual user for dotfiles - called per user
+# target_user variable contains user details
+
+- name: "Scan dotfiles for user {{ target_user.name }}"
+  block:
+    - name: "Check if {{ target_user.name }}'s home directory exists"
+      ansible.builtin.stat:
+        path: "{{ target_user.home }}"
+      register: user_home_stat
+
+    - name: "Scan {{ target_user.name }} for dotfiles repository"
+      block:
+        - name: Check for dotfiles repository directories
+          ansible.builtin.stat:
+            path: "{{ target_user.home }}/{{ item }}"
+          register: dotfiles_dirs
+          loop:
+            - .dotfiles
+            - dotfiles
+          become: true
+
+        - name: Set dotfiles directory if found
+          ansible.builtin.set_fact:
+            user_dotfiles_dir: "{{ item.item }}"
+          loop: "{{ dotfiles_dirs.results }}"
+          when: item.stat.exists and item.stat.isdir
+          loop_control:
+            loop_var: item
+
+        - name: Check if dotfiles is a git repository
+          ansible.builtin.stat:
+            path: "{{ target_user.home }}/{{ user_dotfiles_dir }}/.git"
+          register: dotfiles_git_check
+          become: true
+          when: user_dotfiles_dir is defined
+
+        - name: Get dotfiles repository information
+          block:
+            - name: Get remote origin URL
+              ansible.builtin.command: >-
+                git -C {{ target_user.home }}/{{ user_dotfiles_dir }}
+                remote get-url origin
+              register: dotfiles_repo_url
+              become: true
+              become_user: "{{ target_user.name }}"
+              changed_when: false
+              failed_when: false
+
+            - name: Get current branch
+              ansible.builtin.command: >-
+                git -C {{ target_user.home }}/{{ user_dotfiles_dir }}
+                branch --show-current
+              register: dotfiles_repo_branch
+              become: true
+              become_user: "{{ target_user.name }}"
+              changed_when: false
+              failed_when: false
+
+            - name: Check for stow directory structure
+              ansible.builtin.find:
+                paths: "{{ target_user.home }}/{{ user_dotfiles_dir }}"
+                file_type: directory
+                patterns: "*"
+                excludes: [".git", ".github", "scripts", "docs", "README*"]
+              register: dotfiles_stow_dirs
+              become: true
+
+          when:
+            - user_dotfiles_dir is defined
+            - dotfiles_git_check.stat.exists | default(false)
+
+      when: user_home_stat.stat.exists and user_home_stat.stat.isdir
+
+    - name: "Scan {{ target_user.name }} for local configuration files"
+      block:
+        - name: Check for common config files
+          ansible.builtin.stat:
+            path: "{{ target_user.home }}/{{ item.src }}"
+          register: local_config_files
+          become: true
+          loop: >-
+            {{
+              dotfiles_default_config_files.values()
+              | list | flatten
+            }}
+          when: user_dotfiles_dir is not defined
+
+        - name: Create discovered files list
+          ansible.builtin.set_fact:
+            user_discovered_config_files: >-
+              {{
+                local_config_files.results | default([])
+                | selectattr('stat.exists')
+                | map(attribute='item')
+                | list
+              }}
+          when: user_dotfiles_dir is not defined
+
+      when:
+        - user_home_stat.stat.exists and user_home_stat.stat.isdir
+        - user_dotfiles_dir is not defined
+
+    - name: "Store {{ target_user.name }} dotfiles results"
+      ansible.builtin.set_fact:
+        user_dotfiles_results: >-
+          {{
+            (user_dotfiles_results | default([])) + [{
+              'user': target_user.name,
+              'home': target_user.home,
+              'has_dotfiles': (user_dotfiles_dir is defined) or (user_discovered_config_files | default([]) | length > 0),
+              'repository_detected': user_dotfiles_dir is defined and dotfiles_git_check.stat.exists | default(false),
+              'local_configs_detected': user_discovered_config_files | default([]) | length > 0,
+              'dotfiles_dir': user_dotfiles_dir | default(''),
+              'repository_url': dotfiles_repo_url.stdout | default(''),
+              'repository_branch': dotfiles_repo_branch.stdout | default('main'),
+              'uses_stow': (dotfiles_stow_dirs.files | default([]) | length > 0),
+              'stow_packages': dotfiles_stow_dirs.files | default([]) | map(attribute='path') | map('basename') | list,
+              'config_files': user_discovered_config_files | default([]),
+              'shell': target_user.shell
+            }]
+          }}
+
+    # Reset per-user variables for next iteration
+    - name: Reset user-specific variables
+      ansible.builtin.set_fact:
+        user_dotfiles_dir:
+        user_discovered_config_files: []
+        dotfiles_repo_url:
+        dotfiles_repo_branch:
+        dotfiles_stow_dirs:
+
+  rescue:
+    - name: "Handle errors for user {{ target_user.name }}"
+      ansible.builtin.debug:
+        msg: "Failed to scan dotfiles for {{ target_user.name }}, continuing with other users"

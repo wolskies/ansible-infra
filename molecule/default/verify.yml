@@ -17,7 +17,7 @@
             fail_msg: "Git package not found"
             success_msg: "Git package verified"
 
-        - name: Verify curl is installed  
+        - name: Verify curl is installed
           ansible.builtin.assert:
             that:
               - "'curl' in ansible_facts.packages"
@@ -123,7 +123,7 @@
               - "ansible_facts.services['ssh.service'].status == 'enabled' or ansible_facts.services['sshd.service'].status == 'enabled'"
             fail_msg: "SSH service not enabled"
             success_msg: "SSH service verified"
-          when: 
+          when:
             - inventory_hostname in groups['servers']
             - "'ssh.service' in ansible_facts.services or 'sshd.service' in ansible_facts.services"
 

@@ -1,10 +1,7 @@
 ---
-# Desktop Environment Discovery - Simplified
-# Only detects if GUI is present (boolean)
 
 - name: Check for GUI indicators
   block:
-    # Check for display environment variables
     - name: Check for display variables
       ansible.builtin.shell: |
         echo "DISPLAY=${DISPLAY:-}"
@@ -14,7 +11,6 @@
       changed_when: false
       become: false
 
-    # Check for common GUI indicators
     - name: Check for desktop environment indicators
       ansible.builtin.stat:
         path: "{{ item }}"
@@ -26,7 +22,6 @@
         - /usr/bin/X
         - /usr/bin/Xorg
 
-    # Check for display manager services
     - name: Check for display manager services
       ansible.builtin.set_fact:
         display_managers_found: >-

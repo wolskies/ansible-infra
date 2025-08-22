@@ -1,22 +1,22 @@
 ---
 # GLOBAL VARIABLES (All Machines)
 # File: group_vars/all/all.yml
-# 
+#
 # ⚠️  WARNING: GLOBAL SCOPE - AFFECTS ALL MACHINES ⚠️
 # These variables apply to EVERY machine in your inventory.
 # Use sparingly - prefer group-specific or host-specific variables.
 #
 # ANSIBLE VARIABLE PRECEDENCE (highest to lowest):
-# 1. Extra vars (ansible-playbook -e "var=value") 
+# 1. Extra vars (ansible-playbook -e "var=value")
 # 2. Task vars
-# 3. Block vars  
+# 3. Block vars
 # 4. Role and include vars
 # 5. Play vars_files
 # 6. Play vars
 # 7. Set_facts / registered vars
 # 8. Host facts
 # 9. Playbook host_vars/* ← HOST LEVEL
-# 10. Playbook group_vars/* ← GROUP LEVEL  
+# 10. Playbook group_vars/* ← GROUP LEVEL
 # 11. Inventory host_vars/*
 # 12. Inventory group_vars/*
 # 13. Inventory vars
@@ -27,7 +27,7 @@
 # ALL package types support all/group/host hierarchy:
 #
 # OS Packages: all_packages_install_Ubuntu + group_packages_install_Ubuntu + host_packages_install_Ubuntu
-# Third-party: all_third_party_packages + group_third_party_packages + host_third_party_packages  
+# Third-party: all_third_party_packages + group_third_party_packages + host_third_party_packages
 # Python: all_pip_packages + group_pip_packages + host_pip_packages
 # Node.js: all_npm_packages + group_npm_packages + host_npm_packages
 # AUR: all_aur_packages + group_aur_packages + host_aur_packages
@@ -80,7 +80,7 @@ all_homebrew_packages:
 # Global third-party packages (use sparingly - only truly universal)
 all_third_party_packages: []
 
-# Global Python packages (use sparingly - only truly universal)  
+# Global Python packages (use sparingly - only truly universal)
 all_pip_packages: []
 
 # Global Node.js packages (use sparingly - only truly universal)
@@ -162,18 +162,18 @@ enable_system_monitoring: false
 # 1. HIERARCHICAL STRUCTURE:
 #    ├── group_vars/all/all.yml          ← This file (global defaults)
 #    ├── group_vars/workstations/workstation.yml ← Group-specific
-#    ├── group_vars/servers/server.yml    ← Group-specific  
+#    ├── group_vars/servers/server.yml    ← Group-specific
 #    └── host_vars/hostname/example-host.yml ← Host-specific
 #
 # 2. HIERARCHICAL PACKAGE MERGING EXAMPLES:
 #    all.yml: all_packages_install_Ubuntu: [git, vim]
-#    workstation.yml: group_packages_install_Ubuntu: [nodejs, python3-dev] 
+#    workstation.yml: group_packages_install_Ubuntu: [nodejs, python3-dev]
 #    example-host.yml: host_packages_install_Ubuntu: [docker.io, nginx]
 #    Final result: [git, vim, nodejs, python3-dev, docker.io, nginx]
 #
 #    all.yml: all_pip_packages: []
 #    workstation.yml: group_pip_packages: [pytest, black]
-#    example-host.yml: host_pip_packages: [django, fastapi]  
+#    example-host.yml: host_pip_packages: [django, fastapi]
 #    Final result: [pytest, black, django, fastapi]
 #
 # 3. VARIABLE PRECEDENCE (non-packages):

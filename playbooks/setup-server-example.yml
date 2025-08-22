@@ -8,13 +8,13 @@
 # VARIABLE HIERARCHY (packages are merged, others follow precedence):
 # 1. all.yml (global defaults) - minimal universal settings
 # 2. group_vars/servers/server.yml (group defaults) - security and server packages
-# 3. host_vars/ (machine-specific) - discovery output and unique packages  
+# 3. host_vars/ (machine-specific) - discovery output and unique packages
 # 4. playbook vars: (runtime overrides) - deployment-specific settings
 
 - name: Setup Hardened Server
   hosts: all
   gather_facts: true
-  
+
   collections:
     - wolskinet.infrastructure
     - devsec.hardening
@@ -29,19 +29,19 @@
   vars:
     # Override defaults for this specific server deployment
     environment_type: "production"
-    
+
     # Security hardening variables (example overrides)
     os_security_users_allow:
       - "{{ ansible_user }}"
     os_security_kernel_enable_core_dump: false
     configure_ssh_hardening: true
-    
+
     # Service configuration examples
     nginx_remove_default_vhost: true
     redis_bind_interface: "127.0.0.1"
-    
+
     # Most server configuration should be in:
-    # - all.yml (global defaults)  
+    # - all.yml (global defaults)
     # - group_vars/servers/server.yml (server group settings)
     # - host_vars/ (machine-specific, including discovery output)
     # Only use vars: for runtime overrides or deployment-specific settings
@@ -111,7 +111,7 @@
         - "80"    # HTTP
         - "443"   # HTTPS
       become: true
-      when: 
+      when:
         - ansible_os_family != 'Darwin'
         - "'ufw' in group_packages_install_Ubuntu or 'ufw' in group_packages_install_Archlinux"
 
@@ -125,7 +125,7 @@
         - redis-server
         - fail2ban
       become: true
-      when: 
+      when:
         - ansible_os_family != 'Darwin'
         - ansible_service_mgr == 'systemd'
       ignore_errors: true

@@ -20,7 +20,7 @@ platforms:
     command: "/lib/systemd/systemd"
     groups:
       - docker_hosts
-    
+
   - name: debian-docker
     image: quay.io/ansible/debian12-test:latest
     pre_build_image: true
@@ -44,7 +44,7 @@ provisioner:
         docker_install_compose: true
         docker_compose_version: "2.20.0"
         docker_users: ["root"]
-        
+
         # Test container deployment
         docker_containers:
           - name: test-nginx
@@ -56,17 +56,17 @@ provisioner:
               - name: test-network
             env:
               NGINX_HOST: localhost
-              
+
         # Test network creation
         docker_networks:
           - name: test-network
             driver: bridge
-            
+
         # Test volume creation
         docker_volumes:
           - name: test-volume
             driver: local
-            
+
         # Test service deployment
         docker_services:
           - name: portainer

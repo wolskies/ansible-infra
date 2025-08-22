@@ -6,7 +6,7 @@
     - wolskinet.infrastructure
     - devsec.hardening
     - community.general
-  
+
   pre_tasks:
     - name: Update package cache (Debian/Ubuntu)
       ansible.builtin.apt:
@@ -14,7 +14,7 @@
         cache_valid_time: 3600
       become: true
       when: ansible_os_family == "Debian"
-      
+
     - name: Update package cache (Arch)
       community.general.pacman:
         update_cache: true
@@ -25,14 +25,14 @@
     # Security hardening first
     - name: devsec.hardening.os_hardening
       become: true
-      
+
     - name: devsec.hardening.ssh_hardening
       become: true
-      
+
     # Basic server setup
     - name: wolskinet.infrastructure.basic_setup
       become: true
-      
+
     # System updates and maintenance
     - name: wolskinet.infrastructure.maintenance
       become: false
@@ -76,7 +76,7 @@
         src: 50unattended-upgrades.j2
         dest: /etc/apt/apt.conf.d/50unattended-upgrades
       become: true
-      when: 
+      when:
         - ansible_os_family == "Debian"
         - enable_automatic_updates | default(true)
 
@@ -86,7 +86,7 @@
         enabled: true
         state: started
       become: true
-      when: 
+      when:
         - ansible_os_family == "Debian"
         - enable_automatic_updates | default(true)
 
@@ -96,10 +96,10 @@
       ansible.builtin.include_role:
         name: "{{ item.name if item is mapping else 'wolskinet.infrastructure.' + item }}"
       loop: "{{ group_roles_install | default([]) }}"
-      when: 
+      when:
         - group_roles_install is defined
         - (item.when | default(true)) if item is mapping else true
-        
+
     # Install additional user-defined roles
     - name: Install additional server roles
       ansible.builtin.include_role:
@@ -107,7 +107,7 @@
         apply:
           become: "{{ item.become | default(true) }}"  # Default to become for servers
       loop: "{{ additional_roles_install | default([]) }}"
-      when: 
+      when:
         - additional_roles_install is defined
         - (item.when | default(true))
 
@@ -122,16 +122,16 @@
         reboot_timeout: 300
         pre_reboot_delay: 10
       become: true
-      when: 
+      when:
         - reboot_if_required | default(false)
-        - reboot_required_file is defined 
+        - reboot_required_file is defined
         - reboot_required_file.stat.exists
 
     - name: Display reboot status
       ansible.builtin.debug:
         msg: "{{ inventory_hostname }} requires a reboot but automatic reboot is disabled. Please reboot manually."
-      when: 
-        - reboot_required_file is defined 
+      when:
+        - reboot_required_file is defined
         - reboot_required_file.stat.exists
         - not (reboot_if_required | default(false))
 

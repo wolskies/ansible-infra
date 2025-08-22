@@ -1,6 +1,6 @@
 # Replication playbook for localhost
 # Generated from infrastructure discovery on 2025-08-20T12:27:06Z
-# 
+#
 # Replicates discovered configuration using basic_setup role and discovered variables.
 # Source OS: Archlinux NA
 
@@ -9,7 +9,7 @@
   hosts: localhost
   gather_facts: true
   become: true
-  
+
   collections:
     - wolskinet.infrastructure
     - community.general    - community.docker
@@ -30,14 +30,14 @@
 
   roles:
     # Core system setup with discovered packages and configuration
-    - name: wolskinet.infrastructure.basic_setup    
+    - name: wolskinet.infrastructure.basic_setup
     # Container platform setup (Docker detected on source)
     - name: wolskinet.infrastructure.container_platform
-      when: docker_detected | default(false)    
-    # Dotfiles management (repository detected on source)  
+      when: docker_detected | default(false)
+    # Dotfiles management (repository detected on source)
     - name: wolskinet.infrastructure.dotfiles
       become: false
-      when: dotfiles_detected | default(false)    
+      when: dotfiles_detected | default(false)
     # System maintenance and updates
     - name: wolskinet.infrastructure.maintenance
 
@@ -58,7 +58,7 @@
           - "⚙️  Dotfiles: Repository configured"          - ""
           - "🔍 Manual verification recommended:"
           - "   1. Compare package lists with original system"
-          - "   2. Verify services are running as expected" 
+          - "   2. Verify services are running as expected"
           - "   3. Test application functionality"          - "   4. Recreate Docker containers/volumes as needed"          - "   5. Verify dotfiles are properly deployed"          - ""
           - "Machine characteristics: none detected"
           - "Replication should closely match original localhost configuration"

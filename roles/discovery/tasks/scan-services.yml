@@ -1,6 +1,6 @@
 ---
-# Service Discovery - Simplified
-# Only discovers running/enabled services and security-related services
+# Service and Security Discovery
+# Combined scan for all services and security-related configurations
 
 - name: Store service discovery results
   ansible.builtin.set_fact:
@@ -16,7 +16,6 @@
            map(attribute='key') |
            map('regex_replace', '\\.service$', '') | list }}
 
-      # Security services (kept for system_security role)
       security:
         ssh_detected: >-
           {{ 'ssh' in (ansible_facts.services.keys() |
@@ -43,6 +42,15 @@
           {%- else -%}
             none
           {%- endif %}
+
+- name: Store security configuration discovery
+  ansible.builtin.set_fact:
+    discovered_security:
+      ssh:
+        service_running: "{{ discovered_services.security.ssh_detected }}"
+        settings:
+          port: "{{ ansible_ssh_port | default('22') }}"
   tags:
     - services
+    - security
     - discovery

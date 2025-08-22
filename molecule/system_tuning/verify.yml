@@ -4,7 +4,7 @@
   become: true
   gather_facts: true
   tasks:
-    
+
     - name: Verify network sysctl parameters
       ansible.builtin.command: sysctl {{ item }}
       register: sysctl_output
@@ -14,7 +14,7 @@
         - net.ipv4.tcp_congestion_control
         - net.ipv4.ip_unprivileged_port_start
       tags: network
-      
+
     - name: Check network sysctl values
       ansible.builtin.assert:
         that:
@@ -24,13 +24,13 @@
         fail_msg: "Network sysctl parameters not configured correctly"
         success_msg: "Network sysctl parameters configured successfully"
       tags: network
-      
+
     - name: Verify gaming sysctl parameters
       ansible.builtin.command: sysctl vm.max_map_count
       register: gaming_sysctl
       changed_when: false
       tags: gaming
-      
+
     - name: Check gaming sysctl values
       ansible.builtin.assert:
         that:
@@ -38,13 +38,13 @@
         fail_msg: "Gaming sysctl parameters not configured correctly"
         success_msg: "Gaming sysctl parameters configured successfully"
       tags: gaming
-      
+
     - name: Verify custom sysctl parameters
       ansible.builtin.command: sysctl kernel.sysrq
       register: custom_sysctl
       changed_when: false
       tags: custom
-      
+
     - name: Check custom sysctl values
       ansible.builtin.assert:
         that:
@@ -52,13 +52,13 @@
         fail_msg: "Custom sysctl parameters not configured correctly"
         success_msg: "Custom sysctl parameters configured successfully"
       tags: custom
-      
+
     - name: Check SSH configuration file exists
       ansible.builtin.stat:
         path: /etc/ssh/sshd_config.d/99-system-tuning.conf
       register: ssh_config
       tags: ssh
-      
+
     - name: Verify SSH hardening configuration
       ansible.builtin.assert:
         that:
@@ -67,13 +67,13 @@
         fail_msg: "SSH hardening configuration not applied correctly"
         success_msg: "SSH hardening configuration applied successfully"
       tags: ssh
-      
+
     - name: Check SSH service status
       ansible.builtin.systemd:
         name: "{{ 'ssh' if ansible_os_family == 'Debian' else 'sshd' }}"
       register: ssh_service
       tags: ssh
-      
+
     - name: Verify SSH service is running
       ansible.builtin.assert:
         that:
@@ -81,14 +81,14 @@
         fail_msg: "SSH service is not running"
         success_msg: "SSH service is running correctly"
       tags: ssh
-      
+
     - name: Check user groups (skip if no test user exists)
       ansible.builtin.command: groups root
       register: user_groups
       changed_when: false
       failed_when: false
       tags: groups
-      
+
     - name: Verify user group membership (when test user exists)
       ansible.builtin.assert:
         that:

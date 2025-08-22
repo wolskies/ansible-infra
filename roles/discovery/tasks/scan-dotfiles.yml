@@ -1,162 +1,33 @@
 ---
-# Enhanced Dotfiles Discovery
-# Integrates with collection dotfiles role for comprehensive dotfiles management
+# Enhanced Dotfiles Discovery - All Regular Users
+# Scans all regular users for dotfiles configurations
 
-- name: Enhanced dotfiles discovery
+- name: Enhanced dotfiles discovery for all users
   block:
     - name: Load dotfiles configuration defaults
       ansible.builtin.include_vars: "{{ role_path }}/../dotfiles/vars/all.yml"
 
-    - name: Check for dotfiles repository
-      ansible.builtin.stat:
-        path: "{{ current_user_home }}/{{ item }}"
-      register: dotfiles_dirs
-      become: false
-      loop:
-        - .dotfiles
-        - dotfiles
-
-    - name: Set dotfiles directory if found
-      ansible.builtin.set_fact:
-        dotfiles_found_dir: "{{ item.item }}"
-      loop: "{{ dotfiles_dirs.results }}"
-      when: item.stat.exists
+    - name: Scan all regular users for dotfiles
+      ansible.builtin.include_tasks: scan-user-dotfiles.yml
+      loop: "{{ discovered_users.system_users.regular_users_detailed }}"
       loop_control:
-        loop_var: item
+        loop_var: target_user
 
-    - name: Discover dotfiles repository information
-      block:
-        - name: Check if dotfiles is a git repository
-          ansible.builtin.stat:
-            path: "{{ current_user_home }}/{{ dotfiles_found_dir }}/.git"
-          register: dotfiles_git_check
-          become: false
-
-        - name: Get dotfiles repository information
-          block:
-            - name: Get remote origin URL
-              ansible.builtin.command: >-
-                git -C {{ current_user_home }}/{{ dotfiles_found_dir }}
-                remote get-url origin
-              register: dotfiles_repo_url
-              become: false
-              changed_when: false
-              failed_when: false
-
-            - name: Get current branch
-              ansible.builtin.command: >-
-                git -C {{ current_user_home }}/{{ dotfiles_found_dir }}
-                branch --show-current
-              register: dotfiles_repo_branch
-              become: false
-              changed_when: false
-              failed_when: false
-
-            - name: Check for stow directory structure
-              ansible.builtin.find:
-                paths: "{{ current_user_home }}/{{ dotfiles_found_dir }}"
-                file_type: directory
-                patterns: "*"
-                excludes: [".git", ".github", "scripts", "docs"]
-              register: dotfiles_stow_dirs
-              become: false
-
-          when: dotfiles_git_check.stat.exists
-
-      when: dotfiles_found_dir is defined
-
-    - name: Discover local configuration files (fallback method)
-      block:
-        - name: Scan for configuration files
-          ansible.builtin.stat:
-            path: "{{ current_user_home }}/{{ item.src }}"
-          register: local_config_files
-          become: false
-          loop: >-
-            {{
-              dotfiles_default_config_files.values()
-              | list | flatten
-            }}
-
-        - name: Create discovered files list
-          ansible.builtin.set_fact:
-            discovered_config_files: >-
-              {{
-                local_config_files.results
-                | selectattr('stat.exists')
-                | map(attribute='item')
-                | list
-              }}
-
-        - name: Copy discovered configuration files to inventory
-          block:
-            - name: Create config backup directory in inventory
-              ansible.builtin.file:
-                path: >-
-                  {{ discovery_paths.inventory_dir }}/host_vars/{{
-                  inventory_hostname }}/config_files
-                state: directory
-                mode: '0755'
-              delegate_to: localhost
-
-            - name: Copy configuration files to inventory
-              ansible.builtin.fetch:
-                src: "{{ current_user_home }}/{{ item.src }}"
-                dest: >-
-                  {{ discovery_paths.inventory_dir }}/host_vars/{{
-                  inventory_hostname }}/config_files/{{ item.dest | dirname }}/
-                flat: false
-                mode: "{{ item.mode | default('0644') }}"
-              loop: "{{ discovered_config_files }}"
-              become: false
-              when: discovered_config_files | length > 0
-
-          when:
-            - dotfiles_found_dir is not defined
-            - discovered_config_files | length > 0
-
-      when: dotfiles_found_dir is not defined
-
-    - name: Store enhanced dotfiles discovery results
+    - name: Aggregate dotfiles discovery results
       ansible.builtin.set_fact:
         discovered_dotfiles:
-          # Repository method detected
-          has_repository: >-
-            {{
-              dotfiles_found_dir is defined and
-              dotfiles_git_check.stat.exists | default(false)
-            }}
-          repository_path: >-
-            {{ current_user_home }}/{{ dotfiles_found_dir | default('') }}
-          repository_url: "{{ dotfiles_repo_url.stdout | default('') }}"
-          repository_branch: >-
-            {{ dotfiles_repo_branch.stdout | default('main') }}
-          uses_stow: >-
-            {{ (dotfiles_stow_dirs.files | length > 0) | default(false) }}
-          stow_packages: >-
-            {{
-              dotfiles_stow_dirs.files | map(attribute='path') |
-              map('basename') | list | default([])
-            }}
+          users_with_dotfiles: "{{ user_dotfiles_results | default([]) | selectattr('has_dotfiles') | list }}"
+          total_users_scanned: "{{ discovered_users.system_users.regular_users_detailed | length }}"
+          dotfiles_methods_found:
+            repository: "{{ user_dotfiles_results | default([]) | selectattr('repository_detected') | list }}"
+            local_configs: "{{ user_dotfiles_results | default([]) | selectattr('local_configs_detected') | list }}"
 
-          # Local files method (fallback)
-          has_local_configs: >-
-            {{ discovered_config_files | length > 0 | default(false) }}
-          local_config_files: "{{ discovered_config_files | default([]) }}"
-          config_files_copied: >-
+          # Primary recommendation (first user with repository dotfiles, or first with configs)
+          primary_dotfiles: >-
             {{
-              dotfiles_found_dir is not defined and
-              discovered_config_files | length > 0 | default(false)
-            }}
-
-          # Integration variables for dotfiles role
-          suggested_dotfiles_source_type: >-
-            {{
-              'repository' if (dotfiles_found_dir is defined and
-              dotfiles_git_check.stat.exists | default(false))
-              else 'local_files' if
-              discovered_config_files | length > 0 | default(false)
-              else 'none'
+              (user_dotfiles_results | default([]) | selectattr('repository_detected') | first) | default(
+                user_dotfiles_results | default([]) | selectattr('local_configs_detected') | first, {}
+              )
             }}
 
   tags:

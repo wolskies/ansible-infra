@@ -44,7 +44,7 @@ group_additional_repositories:
       - "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
     keys:
       - "https://download.docker.com/linux/ubuntu/gpg"
-  
+
   homebrew:
     taps:
       - "homebrew/cask-fonts"

@@ -9,7 +9,7 @@
     - devsec.hardening
     - community.general
     - community.docker
-  
+
   pre_tasks:
     - name: Display deployment plan
       ansible.builtin.debug:
@@ -17,14 +17,14 @@
           - "Deploying infrastructure for {{ inventory_hostname }}"
           - "Groups: {{ group_names }}"
           - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
-      
+
     - name: Update package cache (Debian/Ubuntu)
       ansible.builtin.apt:
         update_cache: true
         cache_valid_time: 3600
       become: true
       when: ansible_os_family == "Debian"
-      
+
     - name: Update package cache (Arch)
       community.general.pacman:
         update_cache: true
@@ -38,7 +38,7 @@
   roles:
     - name: wolskinet.infrastructure.basic_setup
       become: true
-      
+
     - name: wolskinet.infrastructure.maintenance
       become: false
 
@@ -50,7 +50,7 @@
     - name: devsec.hardening.os_hardening
       become: true
       when: security_hardening_enabled | default(true)
-      
+
     - name: devsec.hardening.ssh_hardening
       become: true
       when: security_hardening_enabled | default(true)
@@ -81,12 +81,12 @@
       ansible.builtin.include_role:
         name: "{{ item.name if item is mapping else 'wolskinet.infrastructure.' + item }}"
       loop: "{{ group_roles_install | default([]) }}"
-      when: 
+      when:
         - group_roles_install is defined
         - (item.when | default(true)) if item is mapping else true
       vars:
         role_vars: "{{ item.vars | default({}) if item is mapping else {} }}"
-        
+
     # Install additional user-defined roles (any collection)
     - name: Install additional roles
       ansible.builtin.include_role:
@@ -94,7 +94,7 @@
         apply:
           become: "{{ item.become | default(false) }}"
       loop: "{{ additional_roles_install | default([]) }}"
-      when: 
+      when:
         - additional_roles_install is defined
         - (item.when | default(true))
       vars:
@@ -115,14 +115,14 @@
       loop:
         - ssh
         - fail2ban
-      when: 
+      when:
         - inventory_hostname in groups['servers'] | default([])
         - item + '.service' in ansible_facts.services
 
     - name: Check Docker service (docker_hosts)
       ansible.builtin.debug:
         msg: "Docker is {{ 'running' if ansible_facts.services['docker.service'].state == 'running' else 'not running' }}"
-      when: 
+      when:
         - inventory_hostname in groups['docker_hosts'] | default([])
         - "'docker.service' in ansible_facts.services"
 

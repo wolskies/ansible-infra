@@ -12,12 +12,12 @@ additional_homebrew_packages:
   - eza            # Modern ls replacement
   - fzf            # Fuzzy finder
   - zoxide         # Smart cd command
-  
+
   # System monitoring and information
   - fastfetch      # System information tool
   - btop           # System monitor
   - htop           # Process viewer
-  
+
   # Development tools
   - ansible        # Infrastructure automation
   - stow           # Symlink farm manager
@@ -25,7 +25,7 @@ additional_homebrew_packages:
   - node           # JavaScript runtime
   - npm            # Node package manager
   - yarn           # Alternative package manager
-  
+
   # Text editors and development
   - vim            # Enhanced vi editor
   - neovim         # Modern vim

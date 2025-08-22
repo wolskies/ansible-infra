@@ -21,7 +21,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-    
+
   - name: debian-12
     image: quay.io/ansible/debian12-test:latest
     groups:
@@ -32,7 +32,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-    
+
   - name: archlinux-latest
     image: quay.io/ansible/archlinux-test:latest
     groups:

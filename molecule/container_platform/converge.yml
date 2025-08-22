@@ -6,7 +6,7 @@
   collections:
     - wolskinet.infrastructure
     - community.docker
-  
+
   pre_tasks:
     - name: Update package cache
       ansible.builtin.package:

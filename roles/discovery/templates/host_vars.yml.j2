@@ -11,33 +11,74 @@
 # Packages found on the source machine
 
 {% if discovered_docker.installed %}
-# Docker Service Configuration
-docker_service_deploy:
-{% for service in discovered_docker.suggested_services %}
-# - {{ service }}-docker  # Discovered: {{ service }}
-{% endfor %}
-
+# Docker Configuration
 docker_detected: true
 docker_version: "{{ discovered_docker.version }}"
-{% if discovered_docker.containers.total > 0 %}
-docker_containers_running: {{ discovered_docker.containers.total }}
+docker_compose_available: {{ discovered_docker.compose.available }}
+docker_compose_dir: "{{ discovered_docker.compose_dir }}"
+
+{% if discovered_docker.services.canned %}
+# Canned Services (will use dedicated collection roles)
+docker_canned_services:
+{% for service in discovered_docker.services.canned %}
+  - name: "{{ service.name }}"
+    role: "{{ service.role }}"
+    image: "{{ service.image }}"
+    compose_file: "{{ service.compose_file }}"
+{% endfor %}
+
+docker_canned_roles: {{ discovered_docker.services.canned_roles }}
+{% endif %}
+
+{% if discovered_docker.services.generic %}
+# Generic Services (will use generic deployment)
+docker_generic_services:
+{% for service in discovered_docker.services.generic %}
+  - name: "{{ service.name }}"
+    image: "{{ service.image }}"
+    compose_file: "{{ service.compose_file }}"
+    compose_dir: "{{ service.compose_dir }}"
+{% endfor %}
+{% endif %}
+
+{% if discovered_docker.compose_files %}
+# Discovered Compose Files
+docker_compose_files: {{ discovered_docker.compose_files }}
+{% endif %}
+
+{% if discovered_docker.env_files %}
+# Discovered Environment Files
+docker_env_files: {{ discovered_docker.env_files }}
+{% endif %}
+
+{% if discovered_docker.services.generic %}
+# Generic compose files have been copied to:
+# ./host_vars/{{ inventory_hostname }}/docker_compose/
+# Review and customize these files, especially .env files for secrets
 {% endif %}
 
 {% endif %}
-{% if discovered_users.dotfiles.detected %}
-# Dotfiles Configuration
-{% if discovered_users.dotfiles.repository_url %}
-dotfiles_repository_url: "{{ discovered_users.dotfiles.repository_url }}"
+{% if discovered_dotfiles.users_with_dotfiles | default([]) | length > 0 %}
+# Dotfiles Configuration (Multi-User Discovery)
+dotfiles_users_scanned: {{ discovered_dotfiles.total_users_scanned | default(0) }}
+dotfiles_users_with_configs: {{ discovered_dotfiles.users_with_dotfiles | length | default(0) }}
+
+{% if discovered_dotfiles.primary_dotfiles.user | default('') != '' %}
+# Primary dotfiles user: {{ discovered_dotfiles.primary_dotfiles.user }}
+{% if discovered_dotfiles.primary_dotfiles.repository_detected %}
+dotfiles_repository_url: "{{ discovered_dotfiles.primary_dotfiles.repository_url }}"
+dotfiles_branch: "{{ discovered_dotfiles.primary_dotfiles.repository_branch }}"
+dotfiles_method: "{{ 'stow' if discovered_dotfiles.primary_dotfiles.uses_stow else 'symlink' }}"
+{% if discovered_dotfiles.primary_dotfiles.stow_packages | length > 0 %}
+dotfiles_stow_packages: {{ discovered_dotfiles.primary_dotfiles.stow_packages }}
 {% endif %}
-{% if discovered_users.dotfiles.current_branch %}
-dotfiles_branch: "{{ discovered_users.dotfiles.current_branch }}"
 {% endif %}
-{% if discovered_users.dotfiles.management_tools %}
-dotfiles_management_tools:
-{% for tool in discovered_users.dotfiles.management_tools %}
-  - "{{ tool }}"
+{% endif %}
+
+# All users with dotfiles:
+{% for user in discovered_dotfiles.users_with_dotfiles %}
+# - {{ user.user }}: {{ 'repository' if user.repository_detected else 'local configs' }}{% if user.repository_url %} ({{ user.repository_url }}){% endif %}
 {% endfor %}
-{% endif %}
 
 {% endif %}
 {% if discovered_users.shell_config.preferred_shell and discovered_users.shell_config.preferred_shell != '/bin/bash' %}
@@ -75,6 +116,53 @@ ssh_port_custom: {{ discovered_security.ssh.settings.port }}
 {% endif %}
 
 {% endif %}
+# System Tuning Configuration
+# Placeholders for system-level optimizations and user permissions
+# system_tuning_network_enabled: false           # Uncomment to enable network performance tuning
+# system_tuning_security_enabled: false          # Uncomment to enable SSH hardening
+# system_tuning_sudo_nopasswd: false             # Uncomment to enable passwordless sudo for primary user
+# system_tuning_ssh_hardening_enabled: false     # Uncomment to harden SSH configuration
+{% if discovered_desktop.detected | default(false) %}
+# Desktop environment detected - gaming/hardware optimizations available:
+# system_tuning_gaming_enabled: false            # Uncomment for gaming optimizations
+# system_tuning_gpu_enabled: false               # Uncomment for GPU-specific configurations
+# system_tuning_camera_support_enabled: false    # Uncomment for camera/webcam support
+# system_tuning_bluetooth_enabled: false         # Uncomment for Bluetooth support
+{% endif %}
+
+# User Groups Configuration
+# Based on discovered services and environment
+{% if discovered_docker.installed | default(false) or discovered_desktop.detected | default(false) %}
+system_tuning_user_groups_add:                   # Discovered services suggest these groups:
+{% if discovered_docker.installed | default(false) %}
+  - docker                                        # Docker service detected
+{% endif %}
+{% if discovered_desktop.detected | default(false) %}
+  - audio                                         # Desktop environment detected
+{% endif %}
+{% else %}
+# system_tuning_user_groups_add: []              # Uncomment to add user to additional groups
+{% endif %}
+
+# System Security Configuration
+# Based on discovered security services and configurations
+{% if discovered_services.security.firewall_detected | default(false) %}
+enable_firewall: true                            # Firewall service detected
+firewall_type: "{{ discovered_services.security.firewall_type }}"  # Discovered: {{ discovered_services.security.firewall_type }}
+{% else %}
+# enable_firewall: false                         # No firewall detected - uncomment to enable
+# firewall_type: "ufw"                           # Uncomment and set desired firewall type
+{% endif %}
+{% if discovered_services.security.fail2ban_detected | default(false) %}
+enable_fail2ban: true                            # fail2ban service detected
+{% else %}
+# enable_fail2ban: true                          # No fail2ban detected - uncomment to enable
+{% endif %}
+{% if discovered_security.ssh.service_running | default(false) %}
+# firewall_allowed_ports:                        # SSH service detected
+#   - "22"                                        # Uncomment to configure firewall ports
+{% endif %}
+
 # System Information (for reference)
 discovered_info:
   os: "{{ discovered_system.os.distribution }} {{ discovered_system.os.version }}"

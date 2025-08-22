@@ -5,7 +5,7 @@
 # User configuration
 global_ansible_user: 'ed'
 
-# System configuration  
+# System configuration
 global_config_system_locale: 'en_US.UTF-8'
 global_config_system_language: 'en_US.UTF-8'
 global_config_system_timezone: 'America/New_York'

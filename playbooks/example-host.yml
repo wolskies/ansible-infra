@@ -9,7 +9,7 @@
 # ANSIBLE VARIABLE PRECEDENCE REMINDER:
 # - Host variables (this file) have HIGHEST precedence for individual settings
 # - Host variables override group variables (group_vars/workstations/)
-# - Host variables override global variables (group_vars/all/) 
+# - Host variables override global variables (group_vars/all/)
 # - 📦 EXCEPTION: Package variables are merged additively (all + group + host)
 #
 # TYPICAL SOURCES FOR HOST VARIABLES:
@@ -29,10 +29,10 @@
 host_packages_install_Ubuntu:
   # Discovery-found packages (example)
   - nginx              # Web server discovered on this machine
-  - redis-server       # Cache server discovered on this machine  
+  - redis-server       # Cache server discovered on this machine
   - postgresql-client  # Database client discovered on this machine
   - docker.io          # Container runtime discovered on this machine
-  
+
   # Machine-specific additions (manual)
   - htop               # System monitoring (if not in group/global)
   - ncdu               # Disk usage analyzer (unique to this machine)
@@ -41,7 +41,7 @@ host_packages_install_Ubuntu:
 # Arch Linux host-specific packages (if this were an Arch machine)
 # host_packages_install_Archlinux:
 #   - nginx            # Web server
-#   - redis            # Cache server  
+#   - redis            # Cache server
 #   - postgresql       # Database client
 #   - docker           # Container runtime
 #   - htop             # System monitoring
@@ -68,7 +68,7 @@ host_aur_packages:
 # Host-specific Python packages (unique development needs)
 host_pip_packages:
   - django               # Web framework (project-specific)
-  - fastapi              # API framework (project-specific)  
+  - fastapi              # API framework (project-specific)
   - sqlalchemy           # Database ORM (project-specific)
   - redis                # Redis client (matches server setup)
   - psycopg2-binary      # PostgreSQL adapter (matches database)
@@ -109,7 +109,7 @@ system_memory_mb: 16384              # 16GB RAM
 system_cpu_cores: 8                 # 8 CPU cores
 system_architecture: "x86_64"       # Architecture
 
-# Network configuration (discovered) 
+# Network configuration (discovered)
 primary_network_interface: "wlp0s20f3"     # Primary network interface
 primary_ip_address: "192.168.1.100"        # Primary IP address
 
@@ -127,7 +127,7 @@ ubuntu_disable_snap: false          # Keep snap on this machine (override group)
 enable_desktop_services: true       # This is a desktop machine
 configure_graphics_drivers: true    # This machine has dedicated graphics
 
-# Development environment (this machine's specific needs)  
+# Development environment (this machine's specific needs)
 setup_development_tools: true
 install_development_languages:
   - python
@@ -177,7 +177,7 @@ discovery_completed_at: "2024-01-15T10:30:00Z"
 discovery_source_os: "Ubuntu 24.04"
 discovered_machine_characteristics:
   - "development"
-  - "docker" 
+  - "docker"
   - "web-server"
 
 # Machine characteristics (affects role behavior)
@@ -195,37 +195,37 @@ development_environment: true       # This is a development machine
 #
 # 1. COMPLETE HIERARCHICAL PACKAGE MERGING EXAMPLE:
 #    all.yml: all_packages_install_Ubuntu: [git, vim, htop]                           ← Global (all machines)
-#    workstation.yml: group_packages_install_Ubuntu: [nodejs, firefox]               ← Group (all workstations) 
+#    workstation.yml: group_packages_install_Ubuntu: [nodejs, firefox]               ← Group (all workstations)
 #    example-host.yml: host_packages_install_Ubuntu: [nginx, docker.io]              ← This file (this machine only)
-#    
+#
 #    Final result for dev-laptop: [git, vim, htop, nodejs, firefox, nginx, docker.io]
 #
 #    The same hierarchical merging applies to ALL package types:
 #    all_third_party_packages + group_third_party_packages + host_third_party_packages → final_third_party_packages
 #    all_pip_packages + group_pip_packages + host_pip_packages → final_pip_packages
 #    all_npm_packages + group_npm_packages + host_npm_packages → final_npm_packages
-#    all_aur_packages + group_aur_packages + host_aur_packages → final_aur_packages  
+#    all_aur_packages + group_aur_packages + host_aur_packages → final_aur_packages
 #    all_homebrew_packages + group_homebrew_packages + host_homebrew_packages → final_homebrew_packages
 #    all_additional_repositories + group_additional_repositories + host_additional_repositories → final_additional_repositories
 #
 # 2. VARIABLE PRECEDENCE EXAMPLE:
 #    group_vars/all/all.yml: default_user_shell: "/bin/bash"
-#    group_vars/workstations/workstation.yml: default_user_shell: "/bin/bash"  
+#    group_vars/workstations/workstation.yml: default_user_shell: "/bin/bash"
 #    host_vars/dev-laptop/example-host.yml: default_user_shell: "/bin/zsh"    ← This file wins
-#    
+#
 #    Result: dev-laptop uses zsh, other machines use bash
 #
 # 3. DISCOVERY INTEGRATION:
 #    # Before discovery (manual example)
 #    host_packages_install_Ubuntu: []
-#    
-#    # After running discovery on existing machine  
+#
+#    # After running discovery on existing machine
 #    host_packages_install_Ubuntu:
 #      - nginx              # Found installed
-#      - redis-server       # Found installed  
+#      - redis-server       # Found installed
 #      - postgresql-client  # Found installed
 #      # ... all discovered packages
-#    
+#
 #    Discovery populates this file automatically, you can then edit as needed.
 #
 # 4. MACHINE-SPECIFIC OVERRIDES:

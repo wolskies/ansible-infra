@@ -7,7 +7,7 @@
 # They are merged with global variables (all.yml) and can be overridden by host variables.
 #
 # ANSIBLE VARIABLE PRECEDENCE REMINDER:
-# - Host variables (host_vars/) override these group variables  
+# - Host variables (host_vars/) override these group variables
 # - These group variables override global variables (group_vars/all/)
 # - 📦 EXCEPTION: Package variables are merged additively (all + group + host)
 
@@ -22,7 +22,7 @@ group_packages_install_Ubuntu:
   - build-essential    # Compilation tools
   - python3-dev        # Python development headers
   - nodejs             # Node.js runtime (from standard repos)
-  - npm                # Node package manager  
+  - npm                # Node package manager
   - firefox            # Web browser
   - thunderbird        # Email client
   - libreoffice        # Office suite
@@ -34,14 +34,14 @@ group_packages_install_Ubuntu:
   - zip                # Archive creation
   - rsync              # File synchronization
 
-# Arch Linux workstation packages  
+# Arch Linux workstation packages
 group_packages_install_Archlinux:
   - base-devel         # Development tools
   - python             # Python runtime
   - nodejs             # Node.js runtime
   - npm                # Node package manager
   - firefox            # Web browser
-  - thunderbird        # Email client  
+  - thunderbird        # Email client
   - libreoffice-still  # Office suite
   - gimp               # Image editing
   - vlc                # Media player
@@ -64,7 +64,7 @@ group_homebrew_casks:
   - firefox            # Web browser
   - thunderbird        # Email client
   - libreoffice        # Office suite
-  - gimp               # Image editing  
+  - gimp               # Image editing
   - vlc                # Media player
 
 # =============================================================================
@@ -82,7 +82,7 @@ group_third_party_packages:
 # AUR packages for Arch Linux workstations (handled by basic_setup role)
 group_aur_packages:
   - visual-studio-code-bin  # VS Code from AUR
-  - discord                 # Discord from AUR  
+  - discord                 # Discord from AUR
   - spotify                 # Spotify from AUR
   - slack-desktop          # Slack from AUR
 
@@ -117,18 +117,18 @@ group_additional_repositories:
     keys:
       - url: "https://packages.microsoft.com/keys/microsoft.asc"
         name: "microsoft"
-      - url: "https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg" 
+      - url: "https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg"
         name: "spotify"
       - url: "https://discord.com/api/download/stable/server/linux/discord-archive-keyring.gpg"
         name: "discord"
-        
+
   homebrew:
     taps:
       - homebrew/cask-fonts    # Additional fonts
       - homebrew/cask-drivers  # Hardware drivers
 
 # =============================================================================
-# WORKSTATION-SPECIFIC SYSTEM SETTINGS  
+# WORKSTATION-SPECIFIC SYSTEM SETTINGS
 # =============================================================================
 # Settings that override global defaults for workstation environments.
 
@@ -143,7 +143,7 @@ configure_desktop_environment: true
 
 # Development environment
 setup_development_tools: true
-install_development_languages: 
+install_development_languages:
   - python
   - nodejs
   - typescript
@@ -172,7 +172,7 @@ perform_os_optimization: true
 install_essential_tools: true
 configure_development_environment: true
 
-# Third-party packages role  
+# Third-party packages role
 setup_additional_repositories: true
 enable_python_packages: true
 enable_npm_packages: true
@@ -197,12 +197,12 @@ cleanup_old_kernels: true
 #    all.yml: all_packages_install_Ubuntu: [git, vim, htop]                      ← Global essentials
 #    workstation.yml: group_packages_install_Ubuntu: [nodejs, firefox, gimp]     ← This file (group packages)
 #    host_vars/dev-laptop.yml: host_packages_install_Ubuntu: [docker.io, nginx]  ← Host-specific (discovery)
-#    
+#
 #    Final Ubuntu packages: [git, vim, htop, nodejs, firefox, gimp, docker.io, nginx]
 #
 #    Similar hierarchy applies to ALL package types:
 #    all_third_party_packages + group_third_party_packages + host_third_party_packages
-#    all_pip_packages + group_pip_packages + host_pip_packages  
+#    all_pip_packages + group_pip_packages + host_pip_packages
 #    all_npm_packages + group_npm_packages + host_npm_packages
 #    (and so on for all package variables)
 #
@@ -210,7 +210,7 @@ cleanup_old_kernels: true
 #    all.yml: ubuntu_disable_snap: true
 #    workstation.yml: ubuntu_disable_snap: true    ← Same value (no override needed)
 #    host_vars/special-laptop.yml: ubuntu_disable_snap: false ← Host override
-#    
+#
 #    Result: special-laptop keeps snap, other workstations disable it
 #
 # 3. INVENTORY GROUP MEMBERSHIP:
@@ -218,12 +218,12 @@ cleanup_old_kernels: true
 #    dev-laptop
 #    designer-desktop
 #    marketing-laptop
-#    
+#
 #    All three machines get these workstation.yml settings + their host_vars/
 #
 # 4. THIRD-PARTY PACKAGE STRATEGY:
 #    - List repositories once in additional_repositories
-#    - List packages in third_party_packages (cross-platform names when possible)  
+#    - List packages in third_party_packages (cross-platform names when possible)
 #    - Use aur_packages for Arch-specific AUR packages
 #    - third_party_packages role handles OS-specific installation
 #

@@ -9,16 +9,24 @@ discovery:
   generate_configs: true
   timeout: 300
 
-# Docker service mapping for common containers
+# Docker Compose discovery configuration
+discovery_docker_compose_dir: "/opt/docker"  # Default compose directory to scan
+
+# Docker service mapping - maps container images to collection roles
 discovery_docker_service_mapping:
-  portainer: "portainer"
-  "portainer/portainer-ce": "portainer"
-  nginx: "nginx-proxy"
-  "nginxproxy/nginx-proxy": "nginx-proxy"
-  gitlab: "gitlab"
+  # Canned services with dedicated roles
   "gitlab/gitlab-ce": "gitlab"
-  nextcloud: "nextcloud"
-  jellyfin: "jellyfin"
+  "gitlab/gitlab-ee": "gitlab"
+  "ghcr.io/paperless-ngx/paperless-ngx": "paperless"
+  "paperless-ngx/paperless-ngx": "paperless"
+  "jc21/nginx-proxy-manager": "nginx_proxy_manager"
+  "jellyfin/jellyfin": "jellyfin"
+  "ghcr.io/gethomepage/homepage": "homepage"
+  "benphelps/homepage": "homepage"
+
+  # Infrastructure services
+  "portainer/portainer-ce": "portainer"
+  "portainer/portainer-ee": "portainer"
 
 # Shell detection and configuration
 discovery_shell_configuration:
@@ -38,6 +46,26 @@ discovery_shell_configuration:
       - .profile
     fish:
       - .config/fish/config.fish
+
+# Repository detection configuration
+repository_detection:
+  pacman:
+    config: "/etc/pacman.conf"
+    mirrorlist: "/etc/pacman.d/mirrorlist"
+  aur_helpers:
+    - yay
+    - paru
+    - trizen
+  homebrew:
+    paths:
+      - "/opt/homebrew/bin/brew"
+      - "/usr/local/bin/brew"
+
+discovery_repository_detection:
+  apt:
+    keys_paths:
+      - "/etc/apt/trusted.gpg.d"
+      - "/usr/share/keyrings"
 
 # Dotfiles detection
 discovery_dotfiles_detection:

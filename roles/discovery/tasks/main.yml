@@ -43,77 +43,61 @@
     - discovery
     - setup
 
-# Phase 1: System Discovery
 - name: Discover system information
   ansible.builtin.include_tasks: scan-system.yml
   tags:
     - discovery
     - system
 
-# Phase 2: Package Discovery
 - name: Discover packages and repositories
   ansible.builtin.include_tasks: scan-packages.yml
   tags:
     - discovery
     - packages
 
-# Phase 3: Service Discovery
-- name: Discover services and configurations
+- name: Discover services and security configurations
   ansible.builtin.include_tasks: scan-services.yml
   tags:
     - discovery
     - services
+    - security
 
-# Phase 4: Docker Discovery
 - name: Discover Docker environment
   ansible.builtin.include_tasks: scan-docker.yml
   tags:
     - discovery
     - docker
 
-# Phase 5: User Environment Discovery
 - name: Discover user environment
   ansible.builtin.include_tasks: scan-users.yml
   tags:
     - discovery
     - users
 
-# Phase 5a: Enhanced Dotfiles Discovery
 - name: Enhanced dotfiles discovery
   ansible.builtin.include_tasks: scan-dotfiles.yml
   tags:
     - discovery
     - dotfiles
 
-# Phase 6: Desktop Environment Discovery
 - name: Discover desktop environment
   ansible.builtin.include_tasks: scan-desktop.yml
   tags:
     - discovery
     - desktop
 
-# Phase 7: Security Configuration Discovery
-- name: Discover security configuration
-  ansible.builtin.include_tasks: scan-security.yml
-  tags:
-    - discovery
-    - security
-
-# Phase 8: Data Processing and Classification
 - name: Process discovery data
   ansible.builtin.include_tasks: process-data.yml
   tags:
     - discovery
     - processing
 
-# Phase 8a: Generate Role-Specific Variables
 - name: Generate role-specific variables
   ansible.builtin.include_tasks: generate-role-vars.yml
   tags:
     - discovery
     - role-integration
 
-# Phase 9: Configuration Generation
 - name: Generate configuration files
   ansible.builtin.include_tasks: generate-configs.yml
   when: discovery.generate_configs
@@ -121,7 +105,6 @@
     - discovery
     - generation
 
-# Phase 10: Summary and Completion
 - name: Display discovery completion
   block:
     - name: Show discovery summary

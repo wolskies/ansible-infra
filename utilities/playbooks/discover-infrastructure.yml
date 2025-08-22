@@ -1,7 +1,7 @@
 ---
 # Infrastructure Discovery Playbook
 # Scans target machines and generates configuration files for replication
-# Tags: always, setup, discovery, packages, docker, users, security, network, 
+# Tags: always, setup, discovery, packages, docker, users, security, network,
 #       desktop, development, config-files, generation, summary
 
 - name: Discover infrastructure configuration
@@ -11,7 +11,7 @@
     - wolskinet.infrastructure
     - community.general
     - community.docker
-  
+
   vars:
     # Assume standard Ansible directory structure
     discovery_output_dir: "./discovery-output"  # Temporary staging area
@@ -21,7 +21,7 @@
     include_sensitive: false  # Set to true to include user hashes (use vault!)
     discovery_timeout: 300  # 5 minutes timeout for discovery tasks
     preserve_existing_inventory: true  # Don't overwrite existing inventory files
-    
+
   pre_tasks:
     - name: Discovery environment setup
       block:
@@ -110,7 +110,7 @@
             - system-info
             - discovery
 
-        - name: Gather service facts  
+        - name: Gather service facts
           ansible.builtin.service_facts:
           become: true
           timeout: "{{ discovery_timeout }}"
@@ -877,7 +877,7 @@
               loop: "{{ homebrew_taps.stdout_lines | default([]) }}"
               changed_when: false
               become: false
-              when: 
+              when:
                 - homebrew_path is defined
                 - homebrew_taps.stdout_lines is defined
               failed_when: false
@@ -949,7 +949,7 @@
             src: "{{ item.item.path }}"
           register: service_config_contents
           loop: "{{ service_configs.results }}"
-          when: 
+          when:
             - item.stat.exists
             - item.item.service in (discovery_profile.services.running | default([]))
           become: true
@@ -1182,7 +1182,7 @@
               become: false
               loop:
                 - ".bashrc"
-                - ".bash_profile" 
+                - ".bash_profile"
                 - ".zshrc"
                 - ".zsh_profile"
                 - ".profile"
@@ -1304,7 +1304,7 @@
         dest: "{{ discovery_output_dir }}/{{ item.dest }}"
         mode: '0644'
       loop:
-        - src: "../templates/discovered-host-vars.yml.j2"  
+        - src: "../templates/discovered-host-vars.yml.j2"
           dest: "host_vars/{{ inventory_hostname }}.yml"
         - src: "../templates/package-replication.yml.j2"
           dest: "host_vars/{{ inventory_hostname }}-packages.yml"
@@ -1330,7 +1330,7 @@
         dest: "{{ discovery_output_dir }}/group_vars/group-analysis-{{ item }}.yml"
         mode: '0644'
       loop: "{{ group_names | default([]) }}"
-      when: 
+      when:
         - generate_group_analysis | default(false)
         - group_names is defined
       delegate_to: localhost

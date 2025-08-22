@@ -1,0 +1,46 @@
+---
+# Pacman/AUR Package and Repository Discovery (Arch Linux)
+
+- name: Pacman repository discovery
+  block:
+    - name: Read pacman configuration
+      ansible.builtin.slurp:
+        src: "{{ repository_detection.pacman.config }}"
+      register: pacman_config
+      become: true
+      failed_when: false
+
+    - name: Read pacman mirrorlist
+      ansible.builtin.slurp:
+        src: "{{ repository_detection.pacman.mirrorlist }}"
+      register: pacman_mirrorlist
+      become: true
+      failed_when: false
+
+    - name: Check for AUR helpers
+      ansible.builtin.stat:
+        path: "/usr/bin/{{ item }}"
+      register: aur_helpers_check
+      loop: "{{ repository_detection.aur_helpers }}"
+
+    - name: Get AUR packages (if available)
+      ansible.builtin.command: "{{ item.item }} -Qm"
+      register: aur_packages
+      loop: "{{ aur_helpers_check.results }}"
+      when: item.stat.exists
+      become: false
+      changed_when: false
+      failed_when: false
+  rescue:
+    - name: Handle pacman discovery errors
+      ansible.builtin.debug:
+        msg: "Pacman repository discovery failed"
+
+- name: Store Pacman repository discovery results
+  ansible.builtin.set_fact:
+    discovered_repositories:
+      pacman:
+        config: "{{ pacman_config.content | default('') | b64decode }}"
+        mirrorlist: "{{ pacman_mirrorlist.content | default('') | b64decode }}"
+        aur_helpers: "{{ (aur_helpers_check.results | default([])) | selectattr('stat', 'defined') | selectattr('stat.exists') | map(attribute='item') | list }}"
+    aur_packages_result: "{{ aur_packages }}"

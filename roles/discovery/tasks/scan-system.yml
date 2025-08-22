@@ -32,34 +32,6 @@
     - services
     - system
 
-- name: Get network configuration
-  block:
-    - name: Get routing information
-      ansible.builtin.command: ip route show
-      register: routing_table
-      changed_when: false
-      failed_when: false
-      become: true
-
-    - name: Get listening ports
-      ansible.builtin.command: ss -tuln
-      register: listening_ports
-      changed_when: false
-      failed_when: false
-      become: true
-
-    - name: Read DNS configuration
-      ansible.builtin.slurp:
-        src: /etc/resolv.conf
-      register: dns_config
-      failed_when: false
-  rescue:
-    - name: Handle network discovery errors
-      ansible.builtin.debug:
-        msg: "Network discovery failed, continuing with basic facts"
-  tags:
-    - network
-    - system
 
 - name: Store system discovery results
   ansible.builtin.set_fact:
@@ -79,9 +51,6 @@
         interfaces: "{{ ansible_interfaces }}"
         default_ipv4: "{{ ansible_default_ipv4 | default({}) }}"
         fqdn: "{{ ansible_fqdn }}"
-        routing: "{{ routing_table.stdout_lines | default([]) }}"
-        listening_ports: "{{ listening_ports.stdout_lines | default([]) }}"
-        dns_servers: "{{ (dns_config.content | default('') | b64decode).split('\n') | select('match', '^nameserver') | list }}"
       python:
         version: "{{ ansible_python_version }}"
         executable: "{{ ansible_python['executable'] }}"

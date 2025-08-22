@@ -64,10 +64,10 @@ jobs:
               repo: context.repo.repo,
               ref: 'main'
             });
-            
+
             const commitAge = Date.now() - new Date(latestCommit.commit.committer.date).getTime();
             const oneHour = 60 * 60 * 1000;
-            
+
             if (commitAge < oneHour) {
               console.log('Recent changes detected, triggering CI pipeline');
               await github.rest.actions.createWorkflowDispatch({
@@ -99,17 +99,17 @@ jobs:
         run: |
           cat > sync-report.md << EOF
           # Repository Sync Report
-          
+
           **Sync Date**: $(date)
           **Status**: ✅ Successful
           **Latest Commit**: $(git log -1 --oneline)
           **Branch**: $(git branch --show-current)
-          
+
           ## Repository Health
           - GitLab sync: ✅ Complete
           - GitHub mirror: ✅ Updated
           - CI status: ✅ Ready
-          
+
           ---
           *Automated sync from GitLab to GitHub*
           EOF

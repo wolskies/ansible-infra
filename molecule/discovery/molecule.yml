@@ -19,7 +19,7 @@ platforms:
     command: "/sbin/init"
     groups:
       - discovery_targets
-    
+
   - name: debian-discovery
     image: debian:12
     pre_build_image: false
@@ -43,7 +43,7 @@ provisioner:
         discovery_inventory_name: "discovered"
         discovery_create_vault_template: true
         discovery_create_replication_playbook: true
-        
+
         # Test package installations for discovery
         test_packages:
           - git
@@ -51,13 +51,13 @@ provisioner:
           - wget
           - vim
           - htop
-          
+
         # Test user creation for discovery
         test_users:
           - name: discoverytest
             uid: 1500
             shell: /bin/bash
-            
+
         # Test service configurations
         test_services:
           - name: test-discovery-service

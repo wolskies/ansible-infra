@@ -1,0 +1,11 @@
+---
+# Nginx Proxy Manager Role - Placeholder
+# TODO: Implement NPM docker-compose deployment
+
+- name: Nginx Proxy Manager role placeholder
+  ansible.builtin.debug:
+    msg: "Nginx Proxy Manager role is not yet implemented"
+
+- name: Fail if NPM deployment is attempted
+  ansible.builtin.fail:
+    msg: "Nginx Proxy Manager role is a placeholder - implementation needed"

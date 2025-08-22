@@ -10,12 +10,12 @@ additional_packages_install:
   - zsh            # Advanced shell
   - exa            # Modern ls replacement (eza not available on older Ubuntu)
   - fzf            # Fuzzy finder
-  
+
   # System monitoring and information
   - neofetch       # System information tool
   - htop           # Process viewer
   - tree           # Directory tree viewer
-  
+
   # Development tools
   - ansible        # Infrastructure automation
   - stow           # Symlink farm manager
@@ -23,11 +23,11 @@ additional_packages_install:
   - tmux           # Modern terminal multiplexer
   - nodejs         # JavaScript runtime
   - npm            # Node package manager
-  
+
   # Text editors and IDEs
   - vim            # Enhanced vi editor
   - neovim         # Modern vim
-  
+
   # Fonts and appearance
   - fonts-powerline     # Programming fonts with powerline symbols
   - fonts-firacode      # Monospace font with ligatures

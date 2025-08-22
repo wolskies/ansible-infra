@@ -7,7 +7,7 @@
     - wolskinet.infrastructure
     - community.general
     - community.docker
-  
+
   pre_tasks:
     - name: Display test target information
       ansible.builtin.debug:
@@ -24,7 +24,7 @@
 
     # Test container_platform role on docker_hosts
     - name: wolskinet.infrastructure.container_platform
-      when: 
+      when:
         - "'container_platform' in (group_roles_install | default([]))"
         - inventory_hostname in groups['docker_hosts']
 
@@ -40,7 +40,7 @@
       ansible.builtin.include_role:
         name: "wolskinet.infrastructure.{{ item }}"
       loop: "{{ group_roles_install | default([]) }}"
-      when: 
+      when:
         - group_roles_install is defined
         - item not in ['basic_setup', 'container_platform', 'maintenance']  # Already tested above
 

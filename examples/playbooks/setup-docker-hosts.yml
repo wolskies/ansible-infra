@@ -7,7 +7,7 @@
     - devsec.hardening
     - community.general
     - community.docker
-  
+
   pre_tasks:
     - name: Update package cache (Debian/Ubuntu)
       ansible.builtin.apt:
@@ -15,7 +15,7 @@
         cache_valid_time: 3600
       become: true
       when: ansible_os_family == "Debian"
-      
+
     - name: Update package cache (Arch)
       community.general.pacman:
         update_cache: true
@@ -27,15 +27,15 @@
     - name: devsec.hardening.os_hardening
       become: true
       when: security_hardening_enabled | default(true)
-      
+
     # Basic setup
     - name: wolskinet.infrastructure.basic_setup
       become: true
-      
+
     # Docker installation and setup
     - name: wolskinet.infrastructure.container_platform
       become: true
-      
+
     # System updates
     - name: wolskinet.infrastructure.maintenance
       become: false
@@ -89,13 +89,13 @@
         apply:
           become: "{{ item.become | default(true) }}"
       loop: "{{ additional_docker_roles | default([]) }}"
-      when: 
+      when:
         - additional_docker_roles is defined
         - (item.when | default(true))
 
     - name: Display deployed services
       ansible.builtin.debug:
-        msg: 
+        msg:
           - "Docker services deployed on {{ inventory_hostname }}:"
           - "{{ docker_services_deploy | default(['None']) }}"
       when: docker_services_deploy is defined

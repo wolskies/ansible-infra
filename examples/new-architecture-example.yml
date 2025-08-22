@@ -5,7 +5,7 @@
 - name: Setup machine with new architecture
   hosts: all
   gather_facts: true
-  
+
   vars:
     # Standard OS packages (for basic_setup)
     host_packages_install_Ubuntu:
@@ -14,7 +14,7 @@
       - vim
       - nodejs  # Node.js from OS packages
       - python3-pip  # pip from OS packages
-    
+
     # Third-party packages requiring repositories
     additional_repositories:
       apt:
@@ -23,25 +23,25 @@
         keys:
           - url: "https://nvidia.github.io/libnvidia-container/gpgkey"
             name: "nvidia-container-toolkit"
-    
+
     third_party_packages:
       - nvidia-container-toolkit
       - code  # Would need Microsoft repository
-    
+
     # Python development packages
     pip_packages:
       - black
       - ruff
       - mypy
     pip_install_method: "user"
-    
-    # Node.js development packages  
+
+    # Node.js development packages
     npm_packages:
       - prettier
       - eslint
       - typescript
     npm_install_global: true
-    
+
     # Dotfiles
     dotfiles_repository_url: "https://github.com/user/dotfiles.git"
 
@@ -49,11 +49,11 @@
     # 1. System setup + standard OS packages
     - name: wolskinet.infrastructure.basic_setup
       tags: [basic]
-    
+
     # 2. Repositories + third-party packages + language packages
     - name: wolskinet.infrastructure.third_party_packages
       tags: [third-party]
-    
+
     # 3. User configuration
     - name: wolskinet.infrastructure.dotfiles
       become: false

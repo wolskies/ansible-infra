@@ -1,5 +1,5 @@
 # Host variables for localhost
-# Generated from infrastructure discovery on 2025-08-16T13:11:11Z  
+# Generated from infrastructure discovery on 2025-08-16T13:11:11Z
 # Compatible with existing ~/Ansible/inventory/host_vars structure
 
 ---

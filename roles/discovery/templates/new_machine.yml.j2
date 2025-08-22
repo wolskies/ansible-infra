@@ -7,15 +7,19 @@
   hosts: {{ inventory_hostname }}
   gather_facts: true
   
-  roles: []
+  roles:
     # Uncomment roles as needed:
     #
     # - wolskinet.infrastructure.basic_setup
 {% if discovered_docker.installed %}
-    # - wolskinet.infrastructure.container_platform
+    # - geerlingguy.docker  # Install Docker
+    # - wolskinet.infrastructure.container_platform  # Basic Docker setup + Portainer
+{% for role in discovered_docker.services.canned_roles %}
+    # - wolskinet.infrastructure.{{ role }}  # Discovered {{ role }} service
+{% endfor %}
 {% endif %}
-{% if discovered_dotfiles.detected %}  
-    # - wolskinet.infrastructure.dotfiles
+{% if discovered_dotfiles.users_with_dotfiles | default([]) | length > 0 %}  
+    # - wolskinet.infrastructure.dotfiles  # Found dotfiles for {{ discovered_dotfiles.users_with_dotfiles | length }} user(s)
 {% endif %}
     # - wolskinet.infrastructure.maintenance
 {% if discovered_machine.type == 'server' %}

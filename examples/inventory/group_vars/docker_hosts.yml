@@ -58,10 +58,10 @@ docker_registries:
 service_configs:
   portainer:
     admin_password: "{{ vault_portainer_password | default('admin') }}"
-  
+
   nginx-proxy:
     default_email: "{{ vault_email.notification_email | default('admin@example.com') }}"
-    
+
   monitoring:
     grafana_admin_password: "{{ vault_grafana_password | default('admin') }}"
     prometheus_retention: "15d"

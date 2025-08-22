@@ -7,14 +7,14 @@
 #
 # VARIABLE HIERARCHY (packages are merged, others follow precedence):
 # 1. all.yml (global defaults) - minimal universal settings
-# 2. workstation.yml (group defaults) - development tools and desktop packages  
+# 2. workstation.yml (group defaults) - development tools and desktop packages
 # 3. host_vars/ (machine-specific) - discovery output and unique packages
 # 4. playbook vars: (runtime overrides) - deployment-specific settings
 
 - name: Setup Workstation
   hosts: all
   gather_facts: true
-  
+
   collections:
     - wolskinet.infrastructure
     - community.general
@@ -29,16 +29,16 @@
   vars:
     # Override defaults for this specific playbook run
     environment_type: "development"
-    
+
     # Example: Runtime dotfiles configuration
     dotfiles_repository_url: "{{ vault_dotfiles_url | default('') }}"
-    
+
     # Example: Force specific behavior for this playbook execution
     setup_development_tools: true
-    
+
     # Most configuration should be in the hierarchical variable files:
     # - all.yml (global defaults)
-    # - workstation.yml (group-specific) 
+    # - workstation.yml (group-specific)
     # - host_vars/ (machine-specific, including discovery output)
     # Only use vars: for runtime overrides or playbook-specific settings
 
@@ -90,7 +90,7 @@
         - NetworkManager
         - bluetooth
       become: true
-      when: 
+      when:
         - ansible_os_family != 'Darwin'
         - ansible_service_mgr == 'systemd'
       ignore_errors: true

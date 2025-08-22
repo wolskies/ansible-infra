@@ -1,0 +1,50 @@
+---
+# Homebrew Package and Repository Discovery (macOS)
+
+- name: Homebrew discovery
+  block:
+    - name: Find Homebrew installation
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: homebrew_paths
+      loop: "{{ repository_detection.homebrew.paths }}"
+
+    - name: Set Homebrew path
+      ansible.builtin.set_fact:
+        homebrew_path: "{{ item.item }}"
+      loop: "{{ homebrew_paths.results }}"
+      when: item.stat.exists
+
+    - name: Get Homebrew packages
+      ansible.builtin.command: "{{ homebrew_path }} list --formulae"
+      register: homebrew_packages
+      when: homebrew_path is defined
+      changed_when: false
+      failed_when: false
+
+    - name: Get Homebrew casks
+      ansible.builtin.command: "{{ homebrew_path }} list --casks"
+      register: homebrew_casks
+      when: homebrew_path is defined
+      changed_when: false
+      failed_when: false
+
+    - name: Get Homebrew taps
+      ansible.builtin.command: "{{ homebrew_path }} tap"
+      register: homebrew_taps
+      when: homebrew_path is defined
+      changed_when: false
+      failed_when: false
+  rescue:
+    - name: Handle Homebrew discovery errors
+      ansible.builtin.debug:
+        msg: "Homebrew discovery failed"
+
+- name: Store Homebrew repository discovery results
+  ansible.builtin.set_fact:
+    discovered_repositories:
+      homebrew:
+        path: "{{ homebrew_path | default('') }}"
+        taps: "{{ homebrew_taps.stdout_lines | default([]) }}"
+    homebrew_packages_result: "{{ homebrew_packages }}"
+    homebrew_casks_result: "{{ homebrew_casks }}"

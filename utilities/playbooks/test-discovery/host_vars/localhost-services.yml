@@ -12,14 +12,14 @@
 docker_configuration:
   daemon_config: "/etc/docker/daemon.json"
   compose_detected: False
-  
+
   # Detected containers (for reference - not auto-deployed)
   containers_reference:
 
   # Docker networks detected
   networks_detected:
 
-  # Docker volumes detected  
+  # Docker volumes detected
   volumes_detected:
 
 # Security Service Configurations
@@ -29,7 +29,7 @@ docker_configuration:
 replication_strategy:
   priority_order:
     - "Install base services (nginx, apache, docker, etc.)"
-    - "Deploy main configuration files"  
+    - "Deploy main configuration files"
     - "Deploy site/application specific configs"
     - "Deploy custom systemd services"
     - "Configure security services (fail2ban, firewall)"

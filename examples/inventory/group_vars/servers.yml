@@ -173,7 +173,7 @@ group_docker_networks:
     driver: "bridge"
     enable_ipv6: false
   - name: "services"
-    driver: "bridge" 
+    driver: "bridge"
     enable_ipv6: false
 
 # Server-specific Docker daemon configuration (overrides all-level config)

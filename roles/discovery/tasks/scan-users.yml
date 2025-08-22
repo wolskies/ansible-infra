@@ -1,10 +1,8 @@
 ---
-# User Environment Discovery
 # Discovers user configurations, shell preferences, and dotfiles
 
 - name: Discover user environment
   block:
-    # Get system users
     - name: Get system users
       ansible.builtin.getent:
         database: passwd
@@ -27,7 +25,6 @@
           - "UID: {{ current_user_uid }}"
           - "GID: {{ current_user_gid }}"
 
-    # Discover shell configurations
     - name: Check shell configuration files
       ansible.builtin.stat:
         path: "{{ current_user_home }}/{{ item }}"
@@ -41,7 +38,6 @@
         - .profile
         - .config/fish/config.fish
 
-    # Discover dotfiles
     - name: Check for dotfiles directory
       ansible.builtin.stat:
         path: "{{ current_user_home }}/.dotfiles"
@@ -80,7 +76,6 @@
           loop: "{{ discovery_dotfiles_detection.management_tools }}"
       when: dotfiles_directory.stat.exists
 
-    # Check for common application configurations
     - name: Check for application configuration directories
       ansible.builtin.stat:
         path: "{{ current_user_home }}/{{ item }}"
@@ -96,7 +91,6 @@
         - .config/Code
         - .config/nvim
 
-    # Discover development tools in user space
     - name: Check for user-installed development tools
       ansible.builtin.stat:
         path: "{{ current_user_home }}/{{ item }}"
@@ -124,6 +118,21 @@
       system_users:
         total: "{{ ansible_facts.getent_passwd.keys() | length }}"
         regular_users: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', '1000') | selectattr('value.1', '<', '65534') | map(attribute='key') | list }}"
+        regular_users_detailed: >-
+          {%- set users = [] -%}
+          {%- for user, details in ansible_facts.getent_passwd.items() -%}
+            {%- if details[1] | int >= 1000 and details[1] | int < 65534 -%}
+              {%- set user_info = {
+                  'name': user,
+                  'home': details[4],
+                  'shell': details[5],
+                  'uid': details[1],
+                  'gid': details[2]
+              } -%}
+              {%- set _ = users.append(user_info) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ users }}
         system_users: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '<', '1000') | map(attribute='key') | list }}"
 
       shell_config:

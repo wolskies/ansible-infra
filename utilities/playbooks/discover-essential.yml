@@ -1,5 +1,5 @@
 ---
-# Streamlined Infrastructure Discovery Playbook  
+# Streamlined Infrastructure Discovery Playbook
 # Only discovers what basic_setup role can actually replicate
 # Runs with proper become privileges
 
@@ -10,12 +10,12 @@
   collections:
     - wolskinet.infrastructure
     - community.general
-  
+
   vars:
     discovery_output_dir: "./discovery-output"
     ansible_playbooks_dir: "./playbooks"
     ansible_inventory_dir: "./inventory"
-    
+
   pre_tasks:
     - name: Create output directories
       ansible.builtin.file:
@@ -47,7 +47,7 @@
       changed_when: false
       when: ansible_distribution == "Archlinux"
       tags: packages
-      
+
     - name: Get explicitly installed packages (Debian/Ubuntu)
       ansible.builtin.command: apt-mark showmanual
       register: dpkg_packages
@@ -56,7 +56,7 @@
       failed_when: false
       when: ansible_os_family == "Debian"
       tags: packages
-      
+
     - name: Get explicitly installed packages (RedHat/CentOS)
       ansible.builtin.command: dnf history userinstalled
       register: rpm_packages
@@ -77,7 +77,7 @@
           failed_when: false
 
         - name: Try yay for AUR packages (fallback)
-          ansible.builtin.command: yay -Qm  
+          ansible.builtin.command: yay -Qm
           register: aur_packages_yay
           become: false
           changed_when: false
@@ -117,7 +117,7 @@
         - name: Get Homebrew casks
           ansible.builtin.command: "{{ homebrew_path }} list --casks"
           register: homebrew_casks
-          become: false  
+          become: false
           changed_when: false
           when: homebrew_path is defined
       when: ansible_os_family == "Darwin"
@@ -157,7 +157,7 @@
       changed_when: false
       tags: users
 
-    - name: Get user shell information  
+    - name: Get user shell information
       ansible.builtin.command: "getent passwd {{ current_user.stdout }}"
       register: user_info
       changed_when: false
@@ -265,7 +265,7 @@
           - "📦 Discovered:"
           - "   • System packages: {{ discovery_profile.packages.installed | length }}"
           - "   • AUR packages: {{ aur_packages_result.stdout_lines | default([]) | length }} (Arch only)"
-          - "   • Homebrew packages: {{ homebrew_packages.stdout_lines | default([]) | length }} (macOS only)" 
+          - "   • Homebrew packages: {{ homebrew_packages.stdout_lines | default([]) | length }} (macOS only)"
           - "   • Docker: {{ 'installed' if docker_installed.stat.exists else 'not found' }}"
           - "   • Dotfiles: {{ 'detected' if dotfiles_dir.stat.exists else 'not found' }}"
           - ""

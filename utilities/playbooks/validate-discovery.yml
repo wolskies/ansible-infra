@@ -8,12 +8,12 @@
     - wolskinet.infrastructure
     - community.general
     - community.docker
-  
+
   vars:
     discovery_output_dir: "./discovered-infrastructure"
     validation_report_file: "{{ discovery_output_dir }}/validation-report.yml"
     allow_differences: false  # Set to true to report but not fail on differences
-    
+
   tasks:
     - name: Load original discovery profile
       ansible.builtin.include_vars:
@@ -105,7 +105,7 @@
             docker_differences:
               missing_containers: "{{ original_profile.docker.containers | difference(current_containers.containers | map(attribute='Config.Image') | list) }}"
               new_containers: "{{ current_containers.containers | map(attribute='Config.Image') | difference(original_profile.docker.containers) | list }}"
-          when: 
+          when:
             - original_profile.docker.installed
             - current_docker_status.stat.exists
 
@@ -115,7 +115,7 @@
               - "Docker comparison for {{ inventory_hostname }}:"
               - "Missing containers: {{ docker_differences.missing_containers | default([]) }}"
               - "New containers: {{ docker_differences.new_containers | default([]) }}"
-          when: 
+          when:
             - original_profile.docker.installed
             - current_docker_status.stat.exists
             - (docker_differences.missing_containers | default([])) | length > 0 or (docker_differences.new_containers | default([])) | length > 0
@@ -169,7 +169,7 @@
           name: "dotfiles_repository"
           expected: "{{ original_profile.development.dotfiles_repo | default(false) }}"
         - path: "{{ ansible_env.HOME }}/.zshrc"
-          name: "zsh_configuration"  
+          name: "zsh_configuration"
           expected: "{{ original_profile.development.shell_config | default(false) }}"
 
     - name: Report configuration file differences
@@ -239,12 +239,12 @@
 
     - name: Fail if significant differences found
       ansible.builtin.fail:
-        msg: 
+        msg:
           - "Significant differences found between discovery and current state"
           - "Review validation report: {{ validation_report_file }}"
           - "Consider re-running discovery or updating configurations"
       when:
         - not allow_differences
-        - not validation_summary.system_match or 
+        - not validation_summary.system_match or
           (validation_summary.differences_found.packages.missing | length > 10) or
           (validation_summary.differences_found.services.stopped | length > 3)

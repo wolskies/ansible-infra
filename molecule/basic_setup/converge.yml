@@ -5,7 +5,7 @@
   gather_facts: true
   collections:
     - wolskinet.infrastructure
-  
+
   pre_tasks:
     - name: Update package cache
       ansible.builtin.package:

@@ -9,12 +9,12 @@
         update_cache: true
         cache_valid_time: 3600
       when: ansible_os_family == "Debian"
-      
+
     - name: Update package cache (Arch)
       community.general.pacman:
         update_cache: true
       when: ansible_distribution == "Archlinux"
-      
+
     - name: Install basic dependencies for testing
       ansible.builtin.package:
         name:
@@ -23,7 +23,7 @@
           - ca-certificates
         state: present
       ignore_errors: true  # Some test images may not have all packages
-      
+
     - name: Create test directories
       ansible.builtin.file:
         path: "{{ item }}"
@@ -32,10 +32,10 @@
       loop:
         - /opt/test
         - /var/log/test
-        
+
     - name: Ensure Python pip is available
       ansible.builtin.package:
-        name: 
+        name:
           - python3-pip
         state: present
       when: ansible_os_family == "Debian"

@@ -12,23 +12,23 @@ additional_packages_install:
   - eza            # Modern ls replacement
   - fzf            # Fuzzy finder
   - zoxide         # Smart cd command
-  
+
   # System monitoring and information
   - fastfetch      # System information tool
   - btop           # System monitor
   - htop           # Process viewer
-  
+
   # Development tools
   - ansible        # Infrastructure automation
   - stow           # Symlink farm manager
   - screen         # Terminal multiplexer
   - tmux           # Modern terminal multiplexer
-  
+
   # Text editors and IDEs
   - vim            # Enhanced vi editor
   - neovim         # Modern vim
   - code           # Visual Studio Code (from AUR)
-  
+
   # Fonts and appearance
   - ttf-nerd-fonts-symbols  # Programming fonts with icons
   - ttf-fira-code          # Monospace font with ligatures
