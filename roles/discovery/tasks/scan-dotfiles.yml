@@ -93,7 +93,7 @@
             - name: Create config backup directory in inventory
               ansible.builtin.file:
                 path: >-
-                  {{ discovery.output_dir }}/host_vars/{{
+                  {{ discovery_paths.inventory_dir }}/host_vars/{{
                   inventory_hostname }}/config_files
                 state: directory
                 mode: '0755'
@@ -103,7 +103,7 @@
               ansible.builtin.fetch:
                 src: "{{ current_user_home }}/{{ item.src }}"
                 dest: >-
-                  {{ discovery.output_dir }}/host_vars/{{
+                  {{ discovery_paths.inventory_dir }}/host_vars/{{
                   inventory_hostname }}/config_files/{{ item.dest | dirname }}/
                 flat: false
                 mode: "{{ item.mode | default('0644') }}"

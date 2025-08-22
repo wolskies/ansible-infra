@@ -7,9 +7,9 @@
     - name: Generate basic_setup role variables
       ansible.builtin.set_fact:
         basic_setup_vars:
-          # Package management
+          # Package management - use all discovered packages
           "host_packages_install_{{ ansible_distribution }}": >-
-            {{ discovered_packages.standard_packages | default([]) | unique }}
+            {{ discovered_packages.all | default([]) | unique }}
 
           # User management
           user_details:
@@ -20,8 +20,8 @@
           # System configuration
           default_user_shell: "{{ discovered_users.shell_config.preferred_shell | default('/bin/bash') }}"
 
-          # Simple feature detection
-          install_development_packages: "{{ (discovered_packages.development_packages | default([])) | length > 5 }}"
+          # Simple feature detection based on package count
+          install_development_packages: "{{ discovered_packages.total | default(0) > 100 }}"
           install_media_packages: "{{ discovered_desktop.detected | default(false) }}"
 
     - name: Generate container_platform role variables
@@ -77,8 +77,8 @@
           # Enable automatic updates for servers (no GUI)
           enable_automatic_updates: "{{ not discovered_desktop.detected | default(false) }}"
 
-          # Development environment maintenance
-          maintain_dev_tools: "{{ (discovered_packages.development_packages | default([])) | length > 5 }}"
+          # Development environment maintenance - enabled for machines with many packages
+          maintain_dev_tools: "{{ discovered_packages.total | default(0) > 100 }}"
 
     - name: Generate system_security role variables
       ansible.builtin.set_fact:

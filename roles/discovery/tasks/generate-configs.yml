@@ -1,34 +1,21 @@
 ---
 # Configuration File Generation - Simplified
-# Only generates essential files that exist and are used
+# Generates host_vars and playbook in user's configured ansible directories
 
-- name: Generate core configuration files
+- name: Generate host-specific variables
   ansible.builtin.template:
-    src: "inventory.yml.j2"
-    dest: "{{ discovery.output_dir }}/inventory.yml"
+    src: "host_vars.yml.j2"
+    dest: "{{ discovery_paths.inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
     mode: '0644'
-  delegate_to: localhost
-  tags:
-    - generation
-    - core
-
-- name: Generate host-specific configuration files
-  ansible.builtin.template:
-    src: "{{ item.src }}"
-    dest: "{{ discovery.output_dir }}/{{ item.dest }}"
-    mode: '0644'
-  loop:
-    - src: "host_vars.yml.j2"
-      dest: "host_vars/{{ inventory_hostname }}.yml"
   delegate_to: localhost
   tags:
     - generation
     - host_vars
 
-- name: Generate playbook
+- name: Generate deployment playbook
   ansible.builtin.template:
     src: "new_machine.yml.j2"
-    dest: "{{ discovery.output_dir }}/playbooks/new_machine.yml"
+    dest: "{{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
     mode: '0644'
   delegate_to: localhost
   tags:
@@ -39,15 +26,14 @@
   ansible.builtin.debug:
     msg:
       - "=== Configuration Files Generated ==="
-      - "Files created in: {{ discovery.output_dir }}"
-      - "  - inventory.yml"
-      - "  - host_vars/{{ inventory_hostname }}.yml"
-      - "  - playbooks/new_machine.yml"
+      - "Host variables: {{ discovery_paths.inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
+      - "Deployment playbook: {{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
+      - "Discovery README: {{ discovery_paths.inventory_dir }}/README_{{ inventory_hostname }}_discovery.md"
       - ""
       - "Next steps:"
-      - "1. Review generated files"
+      - "1. Review generated host_vars file"
       - "2. Configure vault variables for sensitive data"
-      - "3. Run: ansible-playbook -i inventory.yml playbooks/new_machine.yml"
+      - "3. Run deployment: ansible-playbook {{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
   tags:
     - generation
     - summary

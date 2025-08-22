@@ -3,87 +3,11 @@
 
 # Discovery output settings
 discovery:
-  output_dir: "./inventory"
+  # Output paths - follows standard Ansible directory layout
+  inventory_dir: "{{ ansible_env.PWD }}/inventory"  # ./inventory by default
+  playbooks_dir: "{{ ansible_env.PWD }}/playbooks"  # ./playbooks by default
   generate_configs: true
   timeout: 300
-
-# Discovery scope - what to scan
-discovery_scan:
-  packages: true
-  services: true
-  docker: true
-  users: true
-  security: true
-  repositories: true
-  dotfiles: true
-  desktop: true
-
-# Package categories for role integration
-discovery_package_categories:
-  essential:
-    - git
-    - curl
-    - wget
-    - vim
-    - htop
-    - tree
-    - unzip
-    - zip
-    - rsync
-    - ssh
-    - openssh-server
-    - sudo
-
-  development:
-    - build-essential  # Ubuntu/Debian
-    - base-devel      # Arch
-    - gcc
-    - make
-    - cmake
-    - python3
-    - python3-pip
-    - nodejs
-    - npm
-    - go
-    - rust
-    - cargo
-    - docker
-    - docker-compose
-    - git-lfs
-
-  server:
-    - fail2ban
-    - ufw
-    - firewalld
-    - chrony
-    - rsyslog
-    - logrotate
-    - nginx
-    - apache2
-    - mysql-server
-    - postgresql
-    - redis
-    - certbot
-
-  desktop:
-    - firefox
-    - chromium
-    - libreoffice
-    - vlc
-    - gimp
-    - thunderbird
-
-  desktop_environment:
-    - gnome
-    - kde
-    - xfce4
-    - i3
-    - awesome
-    - lightdm
-    - gdm3
-    - sddm
-    - xorg
-    - wayland
 
 # Docker service mapping for common containers
 discovery_docker_service_mapping:

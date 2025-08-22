@@ -30,12 +30,18 @@
 
 ## Generated Files
 
-- `inventory.yml` - Ansible inventory
-- `host_vars/{{ inventory_hostname }}.yml` - Host-specific variables
-- `playbooks/new_machine.yml` - Deployment playbook
+- `host_vars/{{ inventory_hostname }}.yml` - Host-specific variables for your inventory
+- `{{ inventory_hostname }}_discovered.yml` - Deployment playbook for this host
 
 ## Next Steps
 
-1. Review generated host_vars for accuracy
-2. Customize playbook roles as needed
-3. Deploy: `ansible-playbook -i inventory.yml playbooks/new_machine.yml`
+1. Review generated host_vars file for accuracy
+2. Uncomment desired roles in the deployment playbook
+3. Configure vault variables for sensitive data
+4. Deploy: `ansible-playbook {{ inventory_hostname }}_discovered.yml`
+
+## File Locations
+
+The discovery role respects your ansible.cfg configuration:
+- Host variables: Added to your configured inventory directory
+- Playbook: Created in your configured playbooks directory

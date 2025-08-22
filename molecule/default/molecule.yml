@@ -57,7 +57,7 @@ provisioner:
           - name: 'testuser'
             uid: 1001
             gid: 1001
-            password: '$6$$test$$test'  # Test password hash
+            password: '$$6$$$$test$$$$test'  # Test password hash
         # Disable services that require real credentials
         enable_automatic_updates: false
         security_hardening_enabled: false

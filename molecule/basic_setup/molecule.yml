@@ -50,11 +50,11 @@ provisioner:
           - name: 'testuser1'
             uid: 1001
             gid: 1001
-            password: '$6$test1$testhash1'
+            password: '$$6$$test1$$testhash1'
           - name: 'testuser2'
             uid: 1002
             gid: 1002
-            password: '$6$test2$testhash2'
+            password: '$$6$$test2$$testhash2'
         # Test security settings
         enable_firewall: false  # Don't enable in container tests
         disable_unnecessary_services: true
