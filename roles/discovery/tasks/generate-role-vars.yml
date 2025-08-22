@@ -22,7 +22,6 @@
 
           # Simple feature detection based on package count
           install_development_packages: "{{ discovered_packages.total | default(0) > 100 }}"
-          install_media_packages: "{{ discovered_desktop.detected | default(false) }}"
 
     - name: Generate container_platform role variables
       ansible.builtin.set_fact:
@@ -82,19 +81,17 @@
           system_tuning_security_enabled: true
           system_tuning_ssh_hardening_enabled: true
 
-          # Desktop-specific tuning (gaming, GPU, hardware support)
-          system_tuning_gaming_enabled: "{{ discovered_desktop.detected | default(false) }}"
-          system_tuning_gpu_enabled: false  # User can enable if needed
-          system_tuning_camera_support_enabled: "{{ discovered_desktop.detected | default(false) }}"
-          system_tuning_bluetooth_enabled: "{{ discovered_desktop.detected | default(false) }}"
+          # Hardware and performance tuning (user configurable)
+          system_tuning_gaming_enabled: false            # User can enable for gaming optimizations
+          system_tuning_gpu_enabled: false               # User can enable for GPU support
+          system_tuning_camera_support_enabled: false    # User can enable for camera support
+          system_tuning_bluetooth_enabled: false         # User can enable for Bluetooth support
 
           # User permissions and groups
           system_tuning_sudo_nopasswd: false  # User can enable for convenience
-          system_tuning_user_groups_add: >-
-            {{
-              (['docker'] if discovered_docker.installed | default(false) else []) +
-              (['audio'] if discovered_desktop.detected | default(false) else [])
-            }}
+          # Use discovered user groups - no automatic additions
+          discovered_user_groups: "{{ discovered_users.current_user.groups | default([]) }}"
+          system_tuning_user_groups_add: []  # User can add groups as needed
 
     - name: Generate maintenance role variables
       ansible.builtin.set_fact:

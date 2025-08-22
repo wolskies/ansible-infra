@@ -122,27 +122,19 @@ ssh_port_custom: {{ discovered_security.ssh.settings.port }}
 # system_tuning_security_enabled: false          # Uncomment to enable SSH hardening
 # system_tuning_sudo_nopasswd: false             # Uncomment to enable passwordless sudo for primary user
 # system_tuning_ssh_hardening_enabled: false     # Uncomment to harden SSH configuration
-{% if discovered_desktop.detected | default(false) %}
-# Desktop environment detected - gaming/hardware optimizations available:
+
+# Hardware and performance optimizations (enable as needed):
 # system_tuning_gaming_enabled: false            # Uncomment for gaming optimizations
 # system_tuning_gpu_enabled: false               # Uncomment for GPU-specific configurations
 # system_tuning_camera_support_enabled: false    # Uncomment for camera/webcam support
 # system_tuning_bluetooth_enabled: false         # Uncomment for Bluetooth support
-{% endif %}
 
 # User Groups Configuration
-# Based on discovered services and environment
-{% if discovered_docker.installed | default(false) or discovered_desktop.detected | default(false) %}
-system_tuning_user_groups_add:                   # Discovered services suggest these groups:
-{% if discovered_docker.installed | default(false) %}
-  - docker                                        # Docker service detected
-{% endif %}
-{% if discovered_desktop.detected | default(false) %}
-  - audio                                         # Desktop environment detected
-{% endif %}
-{% else %}
+# Current user groups discovered on the system
+discovered_user_groups: {{ discovered_users.current_user.groups | default([]) }}
+
+# System tuning groups (add user to additional groups as needed)
 # system_tuning_user_groups_add: []              # Uncomment to add user to additional groups
-{% endif %}
 
 # System Security Configuration
 # Based on discovered security services and configurations

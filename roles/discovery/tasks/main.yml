@@ -80,12 +80,6 @@
     - discovery
     - dotfiles
 
-- name: Discover desktop environment
-  ansible.builtin.include_tasks: scan-desktop.yml
-  tags:
-    - discovery
-    - desktop
-
 - name: Process discovery data
   ansible.builtin.include_tasks: process-data.yml
   tags:

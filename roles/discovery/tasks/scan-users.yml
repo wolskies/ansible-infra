@@ -8,6 +8,17 @@
         database: passwd
       become: true
 
+    - name: Get group information
+      ansible.builtin.getent:
+        database: group
+      become: true
+
+    - name: Get current user group memberships
+      ansible.builtin.command: groups {{ ansible_user }}
+      register: user_groups_result
+      become: true
+      changed_when: false
+
     - name: Set current user facts directly from Ansible facts
       ansible.builtin.set_fact:
         current_user_shell: "{{ ansible_user_shell | default('/bin/bash') }}"
@@ -114,6 +125,7 @@
         shell: "{{ current_user_shell }}"
         uid: "{{ ansible_facts.getent_passwd[ansible_user][1] }}"
         gid: "{{ ansible_facts.getent_passwd[ansible_user][2] }}"
+        groups: "{{ user_groups_result.stdout.split()[1:] | list }}"
 
       system_users:
         total: "{{ ansible_facts.getent_passwd.keys() | length }}"

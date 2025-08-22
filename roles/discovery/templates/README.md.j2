@@ -25,9 +25,6 @@
 {% endif %}
 {% endif %}
 
-{% if discovered_desktop.detected %}
-**Desktop**: GUI environment detected
-{% endif %}
 
 {% if discovered_dotfiles.users_with_dotfiles | default([]) | length > 0 %}
 **Dotfiles**: Found for {{ discovered_dotfiles.users_with_dotfiles | length }}/{{ discovered_dotfiles.total_users_scanned }} users
