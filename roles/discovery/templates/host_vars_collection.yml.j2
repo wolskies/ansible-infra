@@ -55,14 +55,14 @@ discovered_users_config:
     home: "{{ user_info.home }}"
     shell: "{{ user_info.shell }}"
     default_user_shell: "{{ user_info.shell | basename }}"
-{% if user_info.groups is defined and user_info.groups | select('string') | select('length') | reject('match', '^\\s*$') | list | length > 0 %}
+{% if user_info.groups is defined and user_info.groups | select('string') | reject('match', '^\\s*$') | list | length > 0 %}
     groups:
-{% for group in user_info.groups | select('string') | select('length') | reject('match', '^\\s*$') | list %}
+{% for group in user_info.groups | select('string') | reject('match', '^\\s*$') | list %}
       - {{ group }}
 {% endfor %}
-{% elif user_info.name == discovered_users.current_user.name and discovered_users.current_user.groups is defined and discovered_users.current_user.groups | select('string') | select('length') | reject('match', '^\\s*$') | list | length > 0 %}
+{% elif user_info.name == discovered_users.current_user.name and discovered_users.current_user.groups is defined and discovered_users.current_user.groups | select('string') | reject('match', '^\\s*$') | list | length > 0 %}
     groups:
-{% for group in discovered_users.current_user.groups | select('string') | select('length') | reject('match', '^\\s*$') | list %}
+{% for group in discovered_users.current_user.groups | select('string') | reject('match', '^\\s*$') | list %}
       - {{ group }}
 {% endfor %}
 {% endif %}
