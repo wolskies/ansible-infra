@@ -1,46 +1,55 @@
 ---
 # Pacman/AUR Package and Repository Discovery (Arch Linux)
 
-- name: Pacman repository discovery
+- name: scan-packages-Archlinux | Get explicitly installed packages (not dependencies)
+  ansible.builtin.command: "pacman -Qet"
+  register: discovery_pacman_explicit_packages
+  become: false
+  changed_when: false
+  failed_when: false
+
+- name: scan-packages-Archlinux | Pacman repository discovery
   block:
-    - name: Read pacman configuration
+    - name: scan-packages-Archlinux | Read pacman configuration
       ansible.builtin.slurp:
         src: "{{ repository_detection.pacman.config }}"
-      register: pacman_config
+      register: discovery_pacman_config
       become: true
       failed_when: false
 
-    - name: Read pacman mirrorlist
+    - name: scan-packages-Archlinux | Read pacman mirrorlist
       ansible.builtin.slurp:
         src: "{{ repository_detection.pacman.mirrorlist }}"
-      register: pacman_mirrorlist
+      register: discovery_pacman_mirrorlist
       become: true
       failed_when: false
 
-    - name: Check for AUR helpers
+    - name: scan-packages-Archlinux | Check for AUR helpers
       ansible.builtin.stat:
         path: "/usr/bin/{{ item }}"
-      register: aur_helpers_check
+      register: discovery_aur_helpers_check
       loop: "{{ repository_detection.aur_helpers }}"
 
-    - name: Get AUR packages (if available)
+    - name: scan-packages-Archlinux | Get AUR packages (if available)
       ansible.builtin.command: "{{ item.item }} -Qm"
-      register: aur_packages
-      loop: "{{ aur_helpers_check.results }}"
+      register: discovery_aur_packages
+      loop: "{{ discovery_aur_helpers_check.results }}"
       when: item.stat.exists
       become: false
       changed_when: false
       failed_when: false
   rescue:
-    - name: Handle pacman discovery errors
+    - name: scan-packages-Archlinux | Handle pacman discovery errors
       ansible.builtin.debug:
         msg: "Pacman repository discovery failed"
 
-- name: Store Pacman repository discovery results
+- name: scan-packages-Archlinux | Store Pacman repository discovery results
   ansible.builtin.set_fact:
     discovered_repositories:
       pacman:
-        config: "{{ pacman_config.content | default('') | b64decode }}"
-        mirrorlist: "{{ pacman_mirrorlist.content | default('') | b64decode }}"
-        aur_helpers: "{{ (aur_helpers_check.results | default([])) | selectattr('stat', 'defined') | selectattr('stat.exists') | map(attribute='item') | list }}"
-    aur_packages_result: "{{ aur_packages }}"
+        config: "{{ discovery_pacman_config.content | default('') | b64decode }}"
+        mirrorlist: "{{ discovery_pacman_mirrorlist.content | default('') | b64decode }}"
+        aur_helpers: "{{ (discovery_aur_helpers_check.results | default([])) | selectattr('stat', 'defined') | selectattr('stat.exists') | map(attribute='item') | list }}"
+    discovery_aur_packages_result: "{{ discovery_aur_packages }}"
+    # Override package facts with explicit packages only
+    discovery_archlinux_explicit_packages: "{{ (discovery_pacman_explicit_packages.stdout_lines | default([])) | map('regex_replace', ' .*', '') | list }}"

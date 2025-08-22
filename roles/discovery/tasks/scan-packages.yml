@@ -12,13 +12,25 @@
 - name: Store discovered packages
   ansible.builtin.set_fact:
     discovered_packages:
-      total: "{{ ansible_facts.packages.keys() | length }}"
-      all: "{{ ansible_facts.packages.keys() | list }}"
+      total: >-
+        {%- if ansible_os_family == "Archlinux" -%}
+          {{- discovery_archlinux_explicit_packages | default([]) | length -}}
+        {%- else -%}
+          {{- ansible_facts.packages.keys() | length -}}
+        {%- endif -%}
+      all: >-
+        {%- if ansible_os_family == "Archlinux" -%}
+          {{- discovery_archlinux_explicit_packages | default([]) -}}
+        {%- else -%}
+          {{- ansible_facts.packages.keys() | list -}}
+        {%- endif -%}
 
       # Separate standard vs third-party packages (for Debian/Ubuntu)
       standard: >-
         {%- if ansible_os_family == "Debian" -%}
           {{- ansible_facts.packages.keys() | difference(third_party_package_map.keys() | default([])) | list -}}
+        {%- elif ansible_os_family == "Archlinux" -%}
+          {{- discovery_archlinux_explicit_packages | default([]) -}}
         {%- else -%}
           {{- ansible_facts.packages.keys() | list -}}
         {%- endif -%}
@@ -27,7 +39,7 @@
       # Package manager specific
       homebrew_formulae: "{{ homebrew_packages_result.stdout_lines | default([]) }}"
       homebrew_casks: "{{ homebrew_casks_result.stdout_lines | default([]) }}"
-      aur_packages: "{{ aur_packages_result.results | default([]) | selectattr('stdout_lines', 'defined') | map(attribute='stdout_lines') | flatten | list }}"
+      aur_packages: "{{ discovery_aur_packages_result.results | default([]) | selectattr('stdout_lines', 'defined') | map(attribute='stdout_lines') | flatten | list }}"
 
 - name: Initialize empty repository results for unsupported distributions
   ansible.builtin.set_fact:

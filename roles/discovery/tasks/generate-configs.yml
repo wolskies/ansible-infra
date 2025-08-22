@@ -36,6 +36,7 @@
     - not (item.0.dotfiles_repo | default(false))
     - item.0.discovered_config_files is defined
     - item.0.discovered_config_files | length > 0
+  become: true
   tags:
     - generation
     - dotfiles

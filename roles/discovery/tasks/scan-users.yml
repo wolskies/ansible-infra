@@ -19,6 +19,14 @@
       become: true
       changed_when: false
 
+    - name: Get group memberships for all regular users
+      ansible.builtin.command: groups {{ item }}
+      register: all_user_groups_result
+      become: true
+      changed_when: false
+      failed_when: false
+      loop: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', '1000') | selectattr('value.1', '<', '65534') | map(attribute='key') | list }}"
+
     - name: Set current user facts directly from Ansible facts
       ansible.builtin.set_fact:
         current_user_shell: "{{ ansible_user_shell | default('/bin/bash') }}"
@@ -125,7 +133,7 @@
         shell: "{{ current_user_shell }}"
         uid: "{{ ansible_facts.getent_passwd[ansible_user][1] }}"
         gid: "{{ ansible_facts.getent_passwd[ansible_user][2] }}"
-        groups: "{{ user_groups_result.stdout.split()[1:] | list }}"
+        groups: "{{ user_groups_result.stdout.split()[1:] | select('string') | select('length') | list }}"
 
       system_users:
         total: "{{ ansible_facts.getent_passwd.keys() | length }}"
@@ -134,12 +142,19 @@
           {%- set users = [] -%}
           {%- for user, details in ansible_facts.getent_passwd.items() -%}
             {%- if details[1] | int >= 1000 and details[1] | int < 65534 -%}
+              {%- set user_groups = [] -%}
+              {%- for group_result in all_user_groups_result.results -%}
+                {%- if group_result.item == user and group_result.stdout is defined -%}
+                  {%- set user_groups = group_result.stdout.split()[1:] | select('string') | select('length') | list -%}
+                {%- endif -%}
+              {%- endfor -%}
               {%- set user_info = {
                   'name': user,
                   'home': details[4],
                   'shell': details[5],
                   'uid': details[1],
-                  'gid': details[2]
+                  'gid': details[2],
+                  'groups': user_groups
               } -%}
               {%- set _ = users.append(user_info) -%}
             {%- endif -%}

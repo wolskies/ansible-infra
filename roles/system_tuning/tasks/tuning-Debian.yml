@@ -115,13 +115,13 @@
 - name: Configure user groups - from discovered configuration
   ansible.builtin.user:
     name: "{{ item.key }}"
-    groups: "{{ item.value.system_tuning_user_groups_add | default([]) }}"
+    groups: "{{ item.value.groups | default([]) }}"
     append: true
   loop: "{{ discovered_users_config | default({}) | dict2items }}"
-  when: 
+  when:
     - discovered_users_config is defined
-    - item.value.system_tuning_user_groups_add is defined
-    - item.value.system_tuning_user_groups_add | length > 0
+    - item.value.groups is defined
+    - item.value.groups | length > 0
   become: true
   tags:
     - users
@@ -137,7 +137,7 @@
     mode: '0440'
     validate: 'visudo -cf %s'
   loop: "{{ discovered_users_config | default({}) | dict2items }}"
-  when: 
+  when:
     - discovered_users_config is defined
     - item.value.system_tuning_sudo_nopasswd is defined
     - item.value.system_tuning_sudo_nopasswd | bool
@@ -152,7 +152,7 @@
     name: "{{ ansible_user }}"
     groups: "{{ system_tuning_user_groups_add }}"
     append: true
-  when: 
+  when:
     - discovered_users_config is not defined
     - system_tuning_user_groups_add is defined
     - system_tuning_user_groups_add | length > 0
@@ -170,7 +170,7 @@
     create: true
     mode: '0440'
     validate: 'visudo -cf %s'
-  when: 
+  when:
     - discovered_users_config is not defined
     - system_tuning_sudo_nopasswd is defined
     - system_tuning_sudo_nopasswd | bool

@@ -106,7 +106,7 @@
           - "Packages: {{ discovered_packages.total | default(0) }}"
           - "Services: {{ discovered_services.running | default([]) | length }}"
           - "Docker: {{ 'Enabled' if discovered_docker.installed | default(false) else 'Not installed' }}"
-          - "Dotfiles: {{ 'Repository detected' if discovered_dotfiles.primary_dotfiles.repository_detected | default(false) else 'Local configs' if discovered_dotfiles.users_with_dotfiles | default([]) | length > 0 else 'None detected' }}"
+          - "Users discovered: {{ discovered_users.system_users.regular_users_detailed | default([]) | length }} (with per-user dotfiles config)"
           - ""
           - "Generated files:"
           - "  Host vars: {{ discovery_paths.host_vars_file }}"

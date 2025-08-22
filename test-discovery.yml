@@ -1,8 +1,0 @@
----
-# Simple test playbook for discovery role
-- name: Test discovery role
-  hosts: localhost
-  connection: local
-  gather_facts: true
-  roles:
-    - wolskinet.infrastructure.discovery

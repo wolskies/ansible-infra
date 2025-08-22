@@ -28,7 +28,7 @@
     force: true
   become: true
   become_user: "{{ current_user }}"
-  when: 
+  when:
     - current_dotfiles_repo | bool
     - current_dotfiles_source_type == "repository"
     - user_config.value.dotfiles_repository_url is defined

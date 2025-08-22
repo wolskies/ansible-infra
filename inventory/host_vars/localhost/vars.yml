@@ -29,7 +29,7 @@ discovered_users_config:
     home: "/home/ed"
     shell: "/bin/zsh"
     default_user_shell: "zsh"
-    
+
     # User groups
     groups:
       - ed
@@ -37,16 +37,16 @@ discovered_users_config:
       - kvm
       - docker
       - libvirt
-    
+
     # System tuning configuration
     system_tuning_user_groups_add: []
     system_tuning_sudo_nopasswd: false
-    
+
     # Dotfiles configuration
     dotfiles_method: "repository"
     dotfiles_repository_url: "https://github.com/ed/dotfiles.git"
     dotfiles_branch: "main"
-    dotfiles_uses_stow: True
+    dotfiles_uses_stow: true
     dotfiles_stow_packages:
       - vim
       - tmux
@@ -59,18 +59,18 @@ discovered_users_config:
     home: "/home/shelly"
     shell: "/bin/bash"
     default_user_shell: "bash"
-    
+
     # User groups
     groups:
       - shelly
       - users
       - audio
       - video
-    
+
     # System tuning configuration
     system_tuning_user_groups_add: []
     system_tuning_sudo_nopasswd: false
-    
+
     # Dotfiles configuration
     dotfiles_method: "local_copy"
     dotfiles_files_copied: true  # Files copied to ./inventory/host_vars/localhost/dotfiles/shelly/
@@ -99,5 +99,4 @@ discovery_info:
   discovery_date: "2025-08-22T21:40:09Z"
   packages_discovered: 5
   services_discovered: 0
-  docker_detected: False
-  dotfiles_detected: True
+  docker_detected: false
