@@ -1,0 +1,46 @@
+---
+# Debug discovery dotfiles detection
+- name: Debug dotfiles discovery
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    ansible_user: ed
+  tasks:
+    - name: Check for dotfiles directory manually
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.dotfiles"
+      register: dotfiles_check
+
+    - name: Debug dotfiles directory existence
+      ansible.builtin.debug:
+        msg:
+          - "HOME: {{ ansible_env.HOME }}"
+          - "USER: {{ ansible_user }}"
+          - ".dotfiles exists: {{ dotfiles_check.stat.exists | default(false) }}"
+          - ".dotfiles is dir: {{ dotfiles_check.stat.isdir | default(false) }}"
+
+    - name: Check if it's a git repo
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.dotfiles/.git"
+      register: git_check
+      when: dotfiles_check.stat.exists
+
+    - name: Debug git repository
+      ansible.builtin.debug:
+        msg:
+          - ".git exists: {{ git_check.stat.exists | default(false) }}"
+      when: dotfiles_check.stat.exists
+
+    - name: Get repository URL if it exists
+      ansible.builtin.command: git -C {{ ansible_env.HOME }}/.dotfiles remote get-url origin
+      register: repo_url
+      changed_when: false
+      failed_when: false
+      when: git_check.stat.exists | default(false)
+
+    - name: Debug repository URL
+      ansible.builtin.debug:
+        msg:
+          - "Repository URL: {{ repo_url.stdout | default('N/A') }}"
+      when: git_check.stat.exists | default(false)

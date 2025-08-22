@@ -3,9 +3,11 @@
 
 # Discovery output settings
 discovery:
-  # Output paths - follows standard Ansible directory layout
-  inventory_dir: "{{ ansible_env.PWD }}/inventory"  # ./inventory by default
-  playbooks_dir: "{{ ansible_env.PWD }}/playbooks"  # ./playbooks by default
+  # Output paths - defaults to ./inventory and ./playbooks from where ansible-playbook is run
+  # Override these in your playbook to control output location:
+  #   discovery:
+  #     inventory_dir: "/absolute/path/to/inventory"
+  #     playbooks_dir: "/absolute/path/to/playbooks"
   generate_configs: true
   timeout: 300
 

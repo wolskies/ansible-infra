@@ -12,11 +12,11 @@
         - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
           (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
 
-    - name: Set discovery output paths
+    - name: Set discovery output paths using Ansible inventory location
       ansible.builtin.set_fact:
         discovery_paths:
-          inventory_dir: "{{ discovery.inventory_dir }}"
-          playbooks_dir: "{{ discovery.playbooks_dir }}"
+          host_vars_dir: "{{ discovery.inventory_dir | default((inventory_file | dirname) if inventory_file is defined else 'inventory') }}/host_vars/{{ inventory_hostname }}"
+          host_vars_file: "{{ discovery.inventory_dir | default((inventory_file | dirname) if inventory_file is defined else 'inventory') }}/host_vars/{{ inventory_hostname }}/vars.yml"
       delegate_to: localhost
       run_once: true
 
@@ -26,17 +26,14 @@
           - "=== Infrastructure Discovery Starting ==="
           - "Target: {{ inventory_hostname }}"
           - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
-          - "Host vars output: {{ discovery_paths.inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
-          - "Playbook output: {{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
+          - "Host vars output: {{ discovery_paths.host_vars_file }}"
+          - "Host directory: {{ discovery_paths.host_vars_dir }}"
 
     - name: Create discovery output directories on Ansible controller
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: "{{ discovery_paths.host_vars_dir }}"
         state: directory
         mode: '0755'
-      loop:
-        - "{{ discovery_paths.inventory_dir }}/host_vars"
-        - "{{ discovery_paths.playbooks_dir }}"
       delegate_to: localhost
       run_once: true
   tags:
@@ -105,25 +102,21 @@
       ansible.builtin.debug:
         msg:
           - "=== Infrastructure Discovery Completed ==="
-          - "Hostname: {{ discovered_machine.hostname }}"
+          - "Hostname: {{ inventory_hostname }}"
           - "Packages: {{ discovered_packages.total | default(0) }}"
           - "Services: {{ discovered_services.running | default([]) | length }}"
-          - "Docker: {{ 'Enabled' if discovered_docker.installed else 'Not installed' }}"
-          - "Generated files:"
-          - "  Host vars: {{ discovery_paths.inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
-          - "  Playbook: {{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
+          - "Docker: {{ 'Enabled' if discovered_docker.installed | default(false) else 'Not installed' }}"
+          - "Dotfiles: {{ 'Repository detected' if discovered_dotfiles.primary_dotfiles.repository_detected | default(false) else 'Local configs' if discovered_dotfiles.users_with_dotfiles | default([]) | length > 0 else 'None detected' }}"
           - ""
-          - "Next steps:"
-          - "1. Review generated host_vars file"
-          - "2. Configure vault variables for sensitive data"
-          - "3. Run: ansible-playbook {{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
+          - "Generated files:"
+          - "  Host vars: {{ discovery_paths.host_vars_file }}"
+          - "  Host directory: {{ discovery_paths.host_vars_dir }}"
+          - ""
+          - "Ready for collection use:"
+          - "1. Review {{ discovery_paths.host_vars_file }}"
+          - "2. Use with: ansible-playbook playbooks/your-deployment.yml -l {{ inventory_hostname }}"
+          - "3. The basic_setup role will automatically use discovered packages"
 
-    - name: Create README for discovered configuration
-      ansible.builtin.template:
-        src: README.md.j2
-        dest: "{{ discovery_paths.inventory_dir }}/README_{{ inventory_hostname }}_discovery.md"
-        mode: '0644'
-      delegate_to: localhost
   tags:
     - discovery
     - summary

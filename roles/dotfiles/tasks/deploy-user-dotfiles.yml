@@ -1,0 +1,194 @@
+---
+# Deploy dotfiles for a single user from discovered configuration
+# Variables available:
+# - user_config.key: username
+# - user_config.value: user configuration dictionary
+
+- name: Set per-user dotfiles variables
+  ansible.builtin.set_fact:
+    current_user: "{{ user_config.key }}"
+    current_user_home: "{{ user_config.value.home }}"
+    current_dotfiles_repo: "{{ user_config.value.dotfiles_repo | default(false) }}"
+    current_dotfiles_source_type: "{{ user_config.value.dotfiles_source_type | default('local_files') }}"
+    current_dotfiles_directory: "{{ user_config.value.dotfiles_directory | default(user_config.value.home + '/.dotfiles') }}"
+
+- name: Display user dotfiles deployment start
+  ansible.builtin.debug:
+    msg:
+      - "=== Deploying dotfiles for user: {{ current_user }} ==="
+      - "Repository detected: {{ current_dotfiles_repo }}"
+      - "Source type: {{ current_dotfiles_source_type }}"
+      - "Home: {{ current_user_home }}"
+
+- name: Repository method - Clone or update dotfiles repository
+  ansible.builtin.git:
+    repo: "{{ user_config.value.dotfiles_repository_url }}"
+    dest: "{{ current_dotfiles_directory }}"
+    version: "{{ user_config.value.dotfiles_branch | default('main') }}"
+    force: true
+  become: true
+  become_user: "{{ current_user }}"
+  when: 
+    - current_dotfiles_repo | bool
+    - current_dotfiles_source_type == "repository"
+    - user_config.value.dotfiles_repository_url is defined
+  tags:
+    - git
+    - clone
+
+- name: Repository method - Install stow if needed
+  ansible.builtin.package:
+    name: stow
+    state: present
+  become: true
+  when:
+    - current_dotfiles_repo | bool
+    - current_dotfiles_source_type == "repository"
+    - user_config.value.dotfiles_uses_stow | default(false)
+  tags:
+    - packages
+    - stow
+
+- name: Repository method - Find files that stow would deploy
+  ansible.builtin.find:
+    paths: "{{ current_dotfiles_directory }}"
+    recurse: true
+    file_type: file
+  register: repo_files
+  become: true
+  become_user: "{{ current_user }}"
+  when:
+    - current_dotfiles_repo | bool
+    - current_dotfiles_source_type == "repository"
+    - user_config.value.dotfiles_uses_stow | default(false)
+
+- name: Repository method - Backup existing files that would conflict with stow
+  ansible.builtin.copy:
+    src: "{{ current_user_home }}/{{ item | regex_replace('^.*/[^/]+/(.*)$', '\\1') }}"
+    dest: "{{ current_user_home }}/{{ item | regex_replace('^.*/[^/]+/(.*)$', '\\1') }}{{ dotfiles_backup_suffix | default('.ansible-backup') }}"
+    remote_src: true
+    backup: false
+  loop: "{{ repo_files.files | default([]) | map(attribute='path') | list }}"
+  become: true
+  become_user: "{{ current_user }}"
+  when:
+    - current_dotfiles_repo | bool
+    - current_dotfiles_source_type == "repository"
+    - user_config.value.dotfiles_uses_stow | default(false)
+    - repo_files.files is defined
+  failed_when: false  # Don't fail if file doesn't exist
+  tags:
+    - backup
+    - stow
+
+- name: Repository method - Deploy using stow
+  ansible.builtin.command:
+    cmd: "stow {{ item }}"
+    chdir: "{{ current_dotfiles_directory }}"
+  loop: "{{ user_config.value.dotfiles_stow_packages | default([]) }}"
+  become: true
+  become_user: "{{ current_user }}"
+  when:
+    - current_dotfiles_repo | bool
+    - current_dotfiles_source_type == "repository"
+    - user_config.value.dotfiles_uses_stow | default(false)
+    - user_config.value.dotfiles_stow_packages is defined
+  changed_when: true
+  tags:
+    - stow
+    - deploy
+
+- name: Repository method - Backup existing files before symlink deployment
+  ansible.builtin.copy:
+    src: "{{ current_user_home }}/{{ item }}"
+    dest: "{{ current_user_home }}/{{ item }}{{ dotfiles_backup_suffix | default('.ansible-backup') }}"
+    remote_src: true
+    backup: false
+  loop:
+    - .bashrc
+    - .zshrc
+    - .vimrc
+    - .gitconfig
+    - .tmux.conf
+  become: true
+  become_user: "{{ current_user }}"
+  when:
+    - current_dotfiles_repo | bool
+    - current_dotfiles_source_type == "repository"
+    - not (user_config.value.dotfiles_uses_stow | default(false))
+    - dotfiles_backup_existing | default(true)
+  failed_when: false  # Don't fail if file doesn't exist
+  tags:
+    - backup
+    - symlink
+
+- name: Repository method - Deploy using direct symlinks (non-stow)
+  ansible.builtin.file:
+    src: "{{ current_dotfiles_directory }}/{{ item }}"
+    dest: "{{ current_user_home }}/{{ item }}"
+    state: link
+    force: true
+  loop:
+    - .bashrc
+    - .zshrc
+    - .vimrc
+    - .gitconfig
+    - .tmux.conf
+  become: true
+  become_user: "{{ current_user }}"
+  when:
+    - current_dotfiles_repo | bool
+    - current_dotfiles_source_type == "repository"
+    - not (user_config.value.dotfiles_uses_stow | default(false))
+  failed_when: false
+  tags:
+    - symlink
+    - deploy
+
+- name: Local files method - Backup existing config files
+  ansible.builtin.copy:
+    src: "{{ current_user_home }}/{{ item }}"
+    dest: "{{ current_user_home }}/{{ item }}{{ dotfiles_backup_suffix | default('.ansible-backup') }}"
+    remote_src: true
+    backup: false
+  loop: "{{ user_config.value.dotfiles_discovered_files | default([]) }}"
+  become: true
+  become_user: "{{ current_user }}"
+  when:
+    - not (current_dotfiles_repo | bool)
+    - current_dotfiles_source_type == "local_files"
+    - dotfiles_backup_existing | default(true)
+    - user_config.value.dotfiles_discovered_files is defined
+  failed_when: false  # Don't fail if file doesn't exist
+  tags:
+    - backup
+    - local_files
+
+- name: Local files method - Copy discovered config files from inventory
+  ansible.builtin.copy:
+    src: "{{ inventory_dir | default('inventory') }}/host_vars/{{ inventory_hostname }}/dotfiles/{{ current_user }}/{{ item }}"
+    dest: "{{ current_user_home }}/{{ item }}"
+    mode: '0644'
+    backup: false  # We already did manual backup above
+  loop: "{{ user_config.value.dotfiles_discovered_files | default([]) }}"
+  become: true
+  become_user: "{{ current_user }}"
+  when:
+    - not (current_dotfiles_repo | bool)
+    - current_dotfiles_source_type == "local_files"
+    - user_config.value.dotfiles_discovered_files is defined
+  failed_when: false  # Don't fail if file doesn't exist in inventory
+  tags:
+    - local_files
+    - deploy
+
+- name: Display user dotfiles deployment completion
+  ansible.builtin.debug:
+    msg:
+      - "=== Dotfiles deployment completed for {{ current_user }} ==="
+      - "Repository detected: {{ current_dotfiles_repo }}"
+      - "Source type: {{ current_dotfiles_source_type }}"
+      - "Repository URL: {{ user_config.value.dotfiles_repository_url | default('N/A') }}"
+      - "Local files: {{ dotfiles_local_files | map(attribute='dest') | join(', ') if not (current_dotfiles_repo | bool) else 'N/A' }}"
+      - "Backup enabled: {{ dotfiles_backup_existing | default(true) }}"
+      - "Backup suffix: {{ dotfiles_backup_suffix | default('.ansible-backup') }}"

@@ -1,39 +1,83 @@
 ---
-# Configuration File Generation - Simplified
-# Generates host_vars and playbook in user's configured ansible directories
+# Configuration File Generation
+# Generates host_vars in user's inventory structure
 
-- name: Generate host-specific variables
+- name: Generate host variables for collection use
   ansible.builtin.template:
-    src: "host_vars.yml.j2"
-    dest: "{{ discovery_paths.inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
+    src: "host_vars_collection.yml.j2"
+    dest: "{{ discovery_paths.host_vars_file }}"
     mode: '0644'
   delegate_to: localhost
   tags:
     - generation
     - host_vars
 
-- name: Generate deployment playbook
-  ansible.builtin.template:
-    src: "new_machine.yml.j2"
-    dest: "{{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
-    mode: '0644'
+- name: Create dotfiles directories for each user
+  ansible.builtin.file:
+    path: "{{ discovery_paths.host_vars_dir }}/dotfiles/{{ item.user }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ discovered_dotfiles.users_with_dotfiles | default([]) }}"
+  when:
+    - item.local_configs_detected | default(false)
+    - not item.repository_detected | default(false)
   delegate_to: localhost
   tags:
     - generation
-    - playbooks
+    - dotfiles
+
+- name: Copy discovered config files for users without repositories
+  ansible.builtin.fetch:
+    src: "{{ item.0.home }}/{{ item.1 }}"
+    dest: "{{ discovery_paths.host_vars_dir }}/dotfiles/{{ item.0.user }}/{{ item.1 }}"
+    flat: true
+  loop: "{{ discovered_dotfiles.users_with_dotfiles | default([]) | subelements('discovered_config_files', skip_missing=True) }}"
+  when:
+    - not (item.0.dotfiles_repo | default(false))
+    - item.0.discovered_config_files is defined
+    - item.0.discovered_config_files | length > 0
+  tags:
+    - generation
+    - dotfiles
+
+- name: Create docker-compose directory
+  ansible.builtin.file:
+    path: "{{ discovery_paths.host_vars_dir }}/docker_compose"
+    state: directory
+    mode: '0755'
+  when:
+    - discovered_docker.services is defined
+    - discovered_docker.services.generic is defined
+  delegate_to: localhost
+  tags:
+    - generation
+    - docker
+
+- name: Copy docker-compose files if detected
+  ansible.builtin.copy:
+    src: "{{ item.compose_file }}"
+    dest: "{{ discovery_paths.host_vars_dir }}/docker_compose/{{ item.name }}.yml"
+    mode: '0644'
+  loop: "{{ discovered_docker.services.generic | default([]) }}"
+  when:
+    - discovered_docker.services is defined
+    - discovered_docker.services.generic is defined
+  delegate_to: localhost
+  tags:
+    - generation
+    - docker
 
 - name: Display generation summary
   ansible.builtin.debug:
     msg:
       - "=== Configuration Files Generated ==="
-      - "Host variables: {{ discovery_paths.inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
-      - "Deployment playbook: {{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
-      - "Discovery README: {{ discovery_paths.inventory_dir }}/README_{{ inventory_hostname }}_discovery.md"
+      - "Host variables: {{ discovery_paths.host_vars_file }}"
+      - "Host directory: {{ discovery_paths.host_vars_dir }}"
       - ""
-      - "Next steps:"
-      - "1. Review generated host_vars file"
-      - "2. Configure vault variables for sensitive data"
-      - "3. Run deployment: ansible-playbook {{ discovery_paths.playbooks_dir }}/{{ inventory_hostname }}_discovered.yml"
+      - "Ready to use with wolskinet.infrastructure collection:"
+      - "1. Review {{ discovery_paths.host_vars_file }}"
+      - "2. Run: ansible-playbook playbooks/your-playbook.yml -l {{ inventory_hostname }}"
+      - "3. The basic_setup role will use the discovered packages automatically"
   tags:
     - generation
     - summary

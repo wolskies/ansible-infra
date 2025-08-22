@@ -1,0 +1,56 @@
+---
+# Test playbook to validate discovery templates with minimal data
+- name: Test discovery templates with edge cases
+  hosts: localhost
+  gather_facts: true
+  vars:
+    # Minimal discovered data structure to test templates
+    discovered_machine:
+      hostname: "test-host"
+      type: "unknown"
+    discovered_system:
+      os: {}
+    discovered_packages: {}
+    discovered_services: {}
+    discovered_docker: {}
+    discovered_dotfiles: {}
+    discovered_users: {}
+    discovered_repositories: {}
+    discovered_security: {}
+    discovery_paths:
+      inventory_dir: "/tmp/test"
+      playbooks_dir: "/tmp/test"
+    inventory_hostname: "test-host"
+    
+  tasks:
+    - name: Test host_vars template rendering
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../../roles/discovery/templates/host_vars.yml.j2"
+        dest: "/tmp/test-host_vars.yml"
+      register: host_vars_result
+      
+    - name: Test README template rendering
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../../roles/discovery/templates/README.md.j2"
+        dest: "/tmp/test-readme.md"
+      register: readme_result
+      
+    - name: Test new_machine template rendering
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../../roles/discovery/templates/new_machine.yml.j2"
+        dest: "/tmp/test-new_machine.yml"
+      register: new_machine_result
+      
+    - name: Verify templates rendered successfully
+      ansible.builtin.assert:
+        that:
+          - host_vars_result is succeeded
+          - readme_result is succeeded
+          - new_machine_result is succeeded
+        fail_msg: "One or more templates failed to render with minimal data"
+        
+    - name: Display test results
+      ansible.builtin.debug:
+        msg:
+          - "Template testing completed successfully"
+          - "All templates can handle missing/empty data structures"

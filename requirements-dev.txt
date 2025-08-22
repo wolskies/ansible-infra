@@ -1,0 +1,38 @@
+# Development dependencies for wolskinet.infrastructure collection
+
+# Core Ansible and testing
+ansible>=8.0,<9.0
+ansible-lint>=6.22.0
+molecule[docker]>=6.0.0
+molecule-plugins[docker]>=23.5.0
+
+# Linting and code quality
+yamllint>=1.33.0
+flake8>=6.1.0
+pylint>=3.0.0
+black>=23.12.0
+
+# Testing frameworks
+pytest>=7.4.0
+pytest-ansible>=4.1.0
+pytest-testinfra>=10.0.0
+pytest-xdist>=3.5.0
+pytest-cov>=4.1.0
+
+# Security scanning
+bandit>=1.7.5
+safety>=3.0.0
+
+# Docker support
+docker>=7.0.0
+requests>=2.31.0
+
+# Documentation
+sphinx>=7.2.0
+sphinx-rtd-theme>=2.0.0
+ansible-doc-extractor>=0.1.0
+
+# Utility packages
+jinja2>=3.1.0
+pyyaml>=6.0.0
+rich>=13.7.0  # Better terminal output

@@ -67,12 +67,32 @@
     - system-config
     - basic-setup
 
-- name: Add users to system (Linux only)
+- name: Add users to system (Linux only) - from discovered configuration
+  become: true
+  ansible.builtin.user:
+    name: "{{ item.key }}"
+    uid: "{{ item.value.uid }}"
+    shell: "{{ item.value.default_user_shell | default(item.value.shell | default('/bin/bash')) }}"
+    password: "{{ item.value.password | default('*') }}"
+    state: present
+    create_home: true
+    groups: "{{ item.value.groups | default([]) }}"
+  loop: "{{ discovered_users_config | default({}) | dict2items }}"
+  when:
+    - discovered_users_config is defined
+    - ansible_os_family != 'Darwin'
+  tags:
+    - users
+    - user-creation
+    - security
+    - basic-setup
+
+- name: Add users to system (Linux only) - from legacy user_details
   become: true
   ansible.builtin.user:
     name: "{{ item.name }}"
     uid: "{{ item.uid }}"
-    shell: "{{ default_user_shell }}"
+    shell: "{{ default_user_shell | default('/bin/bash') }}"
     password: "{{ item.password }}"
     state: present
     create_home: true
@@ -80,6 +100,7 @@
   loop: "{{ user_details | default([]) }}"
   when:
     - user_details is defined
+    - discovered_users_config is not defined
     - ansible_os_family != 'Darwin'
   tags:
     - users

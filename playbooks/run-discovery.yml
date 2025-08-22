@@ -1,58 +1,20 @@
 ---
 # Discovery Playbook for wolskinet.infrastructure collection
-# Scans the current machine and generates deployment configurations
-- name: Infrastructure Discovery and Configuration Generation
-  hosts: localhost
+# Scans target machine(s) and generates deployment configurations
+# 
+# Usage: ansible-playbook playbooks/run-discovery.yml -i inventory/inventory.yml -l target-host --ask-become-pass
+# 
+# Output will be created in:
+#   inventory/host_vars/{hostname}.yml
+#   playbooks/{hostname}_discovered.yml
+
+- name: Infrastructure Discovery
+  hosts: all
   gather_facts: true
-  connection: local
   collections:
     - wolskinet.infrastructure
-
-  vars:
-    discovery_output_dir: "./discovered-infrastructure"
-    target_hostname: "{{ discovery_target_hostname | default('new-machine') }}"
 
   tasks:
     - name: Run infrastructure discovery
       ansible.builtin.include_role:
         name: discovery
-      vars:
-        discovery:
-          output_dir: "{{ discovery_output_dir }}"
-          generate_configs: true
-          include_sensitive: false
-          timeout: 300
-        inventory_hostname: "{{ target_hostname }}"
-
-    - name: Display discovery completion
-      ansible.builtin.debug:
-        msg:
-          - "=== Infrastructure Discovery Completed ==="
-          - "Output directory: {{ discovery_output_dir }}"
-          - "Target hostname: {{ target_hostname }}"
-          - ""
-          - "Generated files:"
-          - "- inventory.yml (update IP addresses)"
-          - "- group_vars/all.yml (global configuration)"
-          - "- host_vars/{{ target_hostname }}.yml (host-specific settings)"
-          - "- new_machine.yml (deployment playbook)"
-          - "- host_packages.yml (package lists)"
-          - "- vault_template.yml (secrets template)"
-          - "- README.md (deployment instructions)"
-          - ""
-          - "Next steps:"
-          - "1. Review and update IP addresses in inventory.yml"
-          - "2. Configure vault variables for passwords/keys"
-          - "3. Run: ansible-playbook -i inventory.yml new_machine.yml"
-
-    - name: Display discovery summary
-      ansible.builtin.debug:
-        msg:
-          - "Discovery Summary:"
-          - "Machine Type: {{ discovered_machine.type | default('unknown') }}"
-          - "OS: {{ discovered_system.os.distribution | default('unknown') }} {{ discovered_system.os.version | default('') }}"
-          - "Packages: {{ discovered_packages.total | default(0) }}"
-          - "Services: {{ discovered_services.running | default([]) | length }}"
-          - "Docker: {{ 'Yes' if discovered_docker.installed | default(false) else 'No' }}"
-          - "Desktop: {{ 'Yes' if discovered_desktop.has_gui | default(false) else 'No' }}"
-          - "Dotfiles: {{ 'Yes' if discovered_users.dotfiles.detected | default(false) else 'No' }}"

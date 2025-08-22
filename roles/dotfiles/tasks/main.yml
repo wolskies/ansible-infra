@@ -2,74 +2,94 @@
 ---
 # Smart dotfiles role that discovers dependencies and uses system packages when possible
 
-- name: Validate dotfiles configuration - repository method
+- name: Deploy dotfiles for discovered users
+  ansible.builtin.include_tasks: deploy-user-dotfiles.yml
+  loop: "{{ discovered_users_config | default({}) | dict2items }}"
+  loop_control:
+    loop_var: user_config
+  when:
+    - discovered_users_config is defined
+    - user_config.value.dotfiles_source_type is defined
+  tags: dotfiles
+
+# Legacy single-user dotfiles deployment
+- name: Validate dotfiles configuration - repository method (legacy)
   ansible.builtin.fail:
     msg: "dotfiles_repository_url must be defined when using repository method"
   when:
+    - discovered_users_config is not defined
     - dotfiles_source_type == "repository"
     - (not dotfiles_repository_url or dotfiles_repository_url == "")
   tags: dotfiles
 
-- name: Validate dotfiles configuration - local files method
+- name: Validate dotfiles configuration - local files method (legacy)
   ansible.builtin.fail:
     msg: "dotfiles_local_files must be defined when using local_files method"
   when:
+    - discovered_users_config is not defined
     - dotfiles_source_type == "local_files"
     - (not dotfiles_local_files or dotfiles_local_files | length == 0)
   tags: dotfiles
 
-- name: Install essential packages
+- name: Install essential packages (legacy)
   ansible.builtin.include_tasks: install-essentials.yml
+  when: discovered_users_config is not defined
   tags:
     - dotfiles
     - packages
 
-- name: Check if dotfiles directory exists
+- name: Check if dotfiles directory exists (legacy)
   ansible.builtin.stat:
     path: "{{ dotfiles_directory }}"
   register: dotfiles_directory_stat
+  when: discovered_users_config is not defined
   tags: dotfiles
 
-- name: Clone or update dotfiles repository
+- name: Clone or update dotfiles repository (legacy)
   ansible.builtin.include_tasks: clone-dotfiles.yml
   when:
+    - discovered_users_config is not defined
     - dotfiles_source_type == "repository"
     - dotfiles_repository_url is defined and dotfiles_repository_url != ""
   tags: dotfiles
 
-- name: Deploy local files
+- name: Deploy local files (legacy)
   ansible.builtin.include_tasks: deploy-local-files.yml
   when:
+    - discovered_users_config is not defined
     - dotfiles_source_type == "local_files"
     - dotfiles_local_files is defined and dotfiles_local_files | length > 0
   tags: dotfiles
 
-- name: Discover dotfiles dependencies
+- name: Discover dotfiles dependencies (legacy)
   ansible.builtin.include_tasks: discover-dependencies.yml
   when:
+    - discovered_users_config is not defined
     - dotfiles_scan_for_dependencies | default(true)
     - dotfiles_directory_stat.stat.exists
   tags:
     - dotfiles
     - discovery
 
-- name: Install discovered dependencies
+- name: Install discovered dependencies (legacy)
   ansible.builtin.include_tasks: install-dependencies.yml
   when:
+    - discovered_users_config is not defined
     - dotfiles_auto_install_dependencies | default(true)
     - dotfiles_needed_tools is defined
   tags:
     - dotfiles
     - packages
 
-- name: Deploy dotfiles using stow (repository method)
+- name: Deploy dotfiles using stow (legacy)
   ansible.builtin.include_tasks: deploy-dotfiles.yml
   when:
+    - discovered_users_config is not defined
     - dotfiles_source_type == "repository"
     - dotfiles_directory_stat.stat.exists
   tags: dotfiles
 
-- name: Display dotfiles deployment summary
+- name: Display dotfiles deployment summary (legacy)
   ansible.builtin.debug:
     msg:
       - "=== Dotfiles Deployment Summary ==="
@@ -78,4 +98,5 @@
       - "Method: {{ dotfiles_method }}"
       - "Dependencies installed: {{ dotfiles_installed_tools | default([]) | length }}"
       - "Tools available: {{ dotfiles_available_tools | default([]) | join(', ') }}"
+  when: discovered_users_config is not defined
   tags: dotfiles

@@ -17,6 +17,36 @@
         create_home: true
       loop: "{{ test_users }}"
 
+    - name: Create dotfiles scenarios for test users
+      block:
+        - name: Create .dotfiles directory for first test user
+          ansible.builtin.file:
+            path: "/home/{{ test_users[0].name }}/.dotfiles"
+            state: directory
+            owner: "{{ test_users[0].name }}"
+            mode: '0755'
+          when: test_users | length > 0
+
+        - name: Initialize git repo in dotfiles
+          ansible.builtin.command:
+            cmd: git init
+            chdir: "/home/{{ test_users[0].name }}/.dotfiles"
+          become: true
+          become_user: "{{ test_users[0].name }}"
+          when: test_users | length > 0
+
+        - name: Create config files for second test user (no repo)
+          ansible.builtin.file:
+            path: "/home/{{ test_users[0].name }}/{{ item }}"
+            state: touch
+            owner: "{{ test_users[0].name }}"
+            mode: '0644'
+          loop:
+            - .bashrc
+            - .vimrc
+            - .gitconfig
+          when: test_users | length > 0
+
     - name: Create test directories for discovery
       ansible.builtin.file:
         path: "{{ item }}"

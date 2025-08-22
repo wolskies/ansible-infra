@@ -1,0 +1,70 @@
+---
+# Simple test playbook for discovery role (without sudo)
+- name: Test discovery role
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    # Mock some discovery data to test templates
+    ansible_user: ed
+    discovered_users:
+      current_user:
+        name: ed
+        groups: [ed, wheel, docker]
+      system_users:
+        regular_users_detailed:
+          - name: ed
+            uid: 1000
+            gid: 1000
+            home: /home/ed
+            shell: /bin/zsh
+            groups: [ed, wheel, kvm, docker, libvirt]
+          - name: shelly
+            uid: 1001
+            gid: 1001
+            home: /home/shelly
+            shell: /bin/bash
+            groups: [shelly, users, audio, video]
+    discovered_dotfiles:
+      users_with_dotfiles:
+        - user: ed
+          repository_detected: true
+          repository_url: "https://github.com/ed/dotfiles.git"
+          repository_branch: main
+          uses_stow: true
+          stow_packages: [vim, tmux, bash]
+          local_configs_detected: false
+        - user: shelly
+          repository_detected: false
+          local_configs_detected: true
+          config_files:
+            - .vimrc
+            - .bashrc
+            - .gitconfig
+            - .tmux.conf
+    discovered_packages:
+      all: [htop, vim, git, curl, wget]
+      total: 5
+    ansible_distribution: Ubuntu
+  tasks:
+    - name: Set discovery paths
+      ansible.builtin.set_fact:
+        discovery_paths:
+          host_vars_dir: "./inventory/host_vars/localhost"
+          host_vars_file: "./inventory/host_vars/localhost/vars.yml"
+
+    - name: Create output directory
+      ansible.builtin.file:
+        path: "{{ discovery_paths.host_vars_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Generate collection variables template
+      ansible.builtin.template:
+        src: "roles/discovery/templates/host_vars_collection.yml.j2"
+        dest: "{{ discovery_paths.host_vars_file }}"
+        mode: '0644'
+
+    - name: Display generated file
+      ansible.builtin.debug:
+        msg: "Generated {{ discovery_paths.host_vars_file }}"

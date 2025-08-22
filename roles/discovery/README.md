@@ -13,6 +13,34 @@ Discovers installed packages, services, Docker containers, and system configurat
     - wolskinet.infrastructure.discovery
 ```
 
+### Controlling Output Location
+
+By default, discovery outputs to `./inventory` and `./playbooks` relative to where you run `ansible-playbook`. To control the output location:
+
+```yaml
+- name: Run infrastructure discovery with custom paths
+  hosts: target_hosts
+  vars:
+    discovery:
+      inventory_dir: "{{ playbook_dir }}/inventory"  # Output relative to playbook
+      playbooks_dir: "{{ playbook_dir }}/playbooks" # Output relative to playbook
+  roles:
+    - wolskinet.infrastructure.discovery
+```
+
+Or use absolute paths:
+
+```yaml
+- name: Run infrastructure discovery to specific directory
+  hosts: target_hosts
+  vars:
+    discovery:
+      inventory_dir: "/home/{{ ansible_user }}/my-ansible/inventory"
+      playbooks_dir: "/home/{{ ansible_user }}/my-ansible/playbooks"
+  roles:
+    - wolskinet.infrastructure.discovery
+```
+
 ### Selective Discovery with Tags
 
 ```bash

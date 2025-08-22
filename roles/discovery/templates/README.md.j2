@@ -1,37 +1,34 @@
 # Infrastructure Discovery Report
 
-**Source**: {{ discovered_machine.hostname }} ({{ discovered_machine.type }})  
-**Date**: {{ discovered_machine.discovered_at }}  
-**OS**: {{ discovered_system.os.distribution }} {{ discovered_system.os.version }}
+**Source**: {{ discovered_machine.hostname | default(inventory_hostname) }} ({{ discovered_machine.type | default('unknown') }})  
+**Date**: {{ discovered_machine.discovered_at | default(ansible_date_time.iso8601) }}  
+**OS**: {{ discovered_system.os.distribution | default('Unknown') }} {{ discovered_system.os.version | default('') }}
 
 ## Discovery Results
 
 **Packages**: {{ discovered_packages.total | default(0) }} found
-{% if discovered_packages.development_packages %}
-**Development Tools**: {{ discovered_packages.development_packages | length }} packages detected
-{% endif %}
 
 **Services**: {{ discovered_services.running | default([]) | length }} running
 
-{% if discovered_docker.installed %}
+{% if discovered_docker is defined and discovered_docker.installed | default(false) %}
 **Docker**: Installed
-- Compose: {{ 'Available' if discovered_docker.compose.available else 'Not available' }}
-- Services found: {{ discovered_docker.services.total | default(0) }}
-{% if discovered_docker.services.canned %}
-- Canned services: {{ discovered_docker.services.canned_roles | join(', ') }}
+- Compose: {{ 'Available' if discovered_docker.compose.available | default(false) else 'Not available' }}
+- Services found: {{ discovered_docker.services.total | default(0) if discovered_docker.services is defined else 0 }}
+{% if discovered_docker.services is defined and discovered_docker.services.canned is defined %}
+- Canned services: {{ discovered_docker.services.canned_roles | default([]) | join(', ') }}
 {% endif %}
-{% if discovered_docker.services.generic %}
-- Generic services: {{ discovered_docker.services.generic | length }}
+{% if discovered_docker.services is defined and discovered_docker.services.generic is defined %}
+- Generic services: {{ discovered_docker.services.generic | default([]) | length }}
 {% endif %}
 {% endif %}
 
 
 {% if discovered_dotfiles.users_with_dotfiles | default([]) | length > 0 %}
-**Dotfiles**: Found for {{ discovered_dotfiles.users_with_dotfiles | length }}/{{ discovered_dotfiles.total_users_scanned }} users
-{% if discovered_dotfiles.primary_dotfiles.repository_detected %}
-- Primary: {{ discovered_dotfiles.primary_dotfiles.user }} (repository: {{ discovered_dotfiles.primary_dotfiles.repository_url }})
-{% elif discovered_dotfiles.primary_dotfiles.local_configs_detected %}
-- Primary: {{ discovered_dotfiles.primary_dotfiles.user }} (local configs)
+**Dotfiles**: Found for {{ discovered_dotfiles.users_with_dotfiles | default([]) | length }}/{{ discovered_dotfiles.total_users_scanned | default(0) }} users
+{% if discovered_dotfiles.primary_dotfiles is defined and discovered_dotfiles.primary_dotfiles.repository_detected | default(false) %}
+- Primary: {{ discovered_dotfiles.primary_dotfiles.user | default('unknown') }} (repository: {{ discovered_dotfiles.primary_dotfiles.repository_url | default('') }})
+{% elif discovered_dotfiles.primary_dotfiles is defined and discovered_dotfiles.primary_dotfiles.local_configs_detected | default(false) %}
+- Primary: {{ discovered_dotfiles.primary_dotfiles.user | default('unknown') }} (local configs)
 {% endif %}
 {% endif %}
 

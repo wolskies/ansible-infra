@@ -1,0 +1,69 @@
+---
+# .ansible-lint configuration file
+# This file configures ansible-lint to catch common errors and maintain code quality
+
+# Paths to exclude from linting
+exclude_paths:
+  - .venv/
+  - .ansible/
+  - .github/
+  - molecule/*/create.yml
+  - molecule/*/destroy.yml
+  - molecule/*/prepare.yml
+  - tests/
+
+# Enable additional rules for better error detection
+enable_list:
+  - args
+  - empty-string-compare
+  - no-log-password
+  - no-same-owner
+  - name[prefix]
+  - yaml[colons]
+  - yaml[commas]
+  - yaml[empty-lines]
+  - yaml[key-duplicates]
+  - yaml[new-line-at-end-of-file]
+  - yaml[octal-values]
+  - yaml[trailing-spaces]
+  - yaml[truthy]
+
+# Rules to skip (if needed for specific cases)
+skip_list:
+  - schema[meta]  # Allow flexible meta/main.yml schemas
+  - name[missing]  # Some generated tasks might not have names
+
+# Set stricter standards
+strict: true
+
+# Ansible-lint profiles (use production for strictest checking)
+profile: production
+
+# Use ansible syntax check
+use_default_rules: true
+
+# Parseable output for CI integration
+parseable: true
+
+# Display relative paths
+display_relative_path: true
+
+# Custom rule directories (if we add any)
+# rulesdir:
+#   - ./custom-ansible-rules/
+
+# Set variable naming patterns
+var_naming_pattern: "^[a-z_][a-z0-9_]*$"
+
+# Mock modules and roles to prevent missing module errors
+mock_modules:
+  - community.general.system.timezone
+  - community.general.system.locale_gen
+
+mock_roles:
+  - wolskinet.infrastructure.basic_setup
+  - wolskinet.infrastructure.container_platform
+  - wolskinet.infrastructure.discovery
+
+# Offline mode - don't download schemas
+offline: false

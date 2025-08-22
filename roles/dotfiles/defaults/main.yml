@@ -11,16 +11,10 @@ dotfiles_branch: "main"
 dotfiles_directory: "{{ ansible_env.HOME }}/.dotfiles"
 dotfiles_method: "stow"  # stow, symlink, copy
 
-# For local files method (source:destination format)
-dotfiles_local_files: []
-# Example:
-# dotfiles_local_files:
-#   - src: "~/.vimrc"
-#     dest: ".vimrc"
-#   - src: "~/configs/zshrc"
-#     dest: ".zshrc"
-#   - src: "~/configs/tmux.conf"
-#     dest: ".tmux.conf"
+# For local files method - discovered config files will be copied from inventory
+# When no repository is found, the discovery role copies actual config files
+# from the source machine to inventory/host_vars/{hostname}/dotfiles/{user}/
+dotfiles_local_files: []  # Populated by discovery role
 
 # Backup existing files before overwriting
 dotfiles_backup_existing: true
