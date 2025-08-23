@@ -36,7 +36,9 @@ provisioner:
   inventory:
     group_vars:
       all:
-        ansible_user: root
+        ansible_user: discoverytest
+        ansible_become: true
+        ansible_become_method: sudo
       discovery_targets:
         # Discovery configuration
         discovery_output_path: "/tmp/discovery"
@@ -52,11 +54,24 @@ provisioner:
           - vim
           - htop
 
-        # Test user creation for discovery
+        # Test user creation for discovery - multiple scenarios
         test_users:
           - name: discoverytest
             uid: 1500
             shell: /bin/bash
+            groups: ['sudo', 'docker', 'users']
+          - name: testuser2
+            uid: 1501
+            shell: /bin/zsh
+            groups: ['users', 'audio']
+          - name: testuser3
+            uid: 1502
+            shell: /bin/fish
+            groups: ['users']
+          - name: serviceuser
+            uid: 2000
+            shell: /bin/sh
+            groups: ['users']
 
         # Test service configurations
         test_services:
@@ -68,5 +83,23 @@ provisioner:
       host_key_checking: false
       stdout_callback: yaml
 
+scenario:
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - prepare
+    - converge
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+
 verifier:
   name: ansible
+
+# Additional test files for edge cases
+side_effect:
+  name: ansible
+  playbooks:
+    - test_edge_cases.yml

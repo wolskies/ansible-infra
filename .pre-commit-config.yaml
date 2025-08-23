@@ -1,0 +1,36 @@
+---
+# Pre-commit hooks for wolskinet.infrastructure collection
+# Install with: pre-commit install
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-added-large-files
+      - id: check-merge-conflict
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-c=.yamllint]
+
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v6.22.2
+    hooks:
+      - id: ansible-lint
+        files: \.(yaml|yml)$
+        exclude: ^molecule/
+
+  - repo: local
+    hooks:
+      - id: validate-jinja2-templates
+        name: Validate Jinja2 Templates
+        entry: python3 scripts/validate_templates.py
+        language: python
+        files: \.j2$
+        additional_dependencies: [jinja2]

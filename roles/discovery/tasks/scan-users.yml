@@ -1,8 +1,10 @@
 ---
 # Discovers user configurations, shell preferences, and dotfiles
+# This is the single source for all user-related discovery
 
 - name: Discover user environment
   block:
+    # Step 1: Get all system users and groups
     - name: Get system users
       ansible.builtin.getent:
         database: passwd
@@ -13,171 +15,188 @@
         database: group
       become: true
 
-    - name: Get current user group memberships
-      ansible.builtin.command: groups {{ ansible_user }}
-      register: user_groups_result
-      become: true
-      changed_when: false
-
-    - name: Get group memberships for all regular users
-      ansible.builtin.command: groups {{ item }}
-      register: all_user_groups_result
-      become: true
-      changed_when: false
-      failed_when: false
-      loop: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', '1000') | selectattr('value.1', '<', '65534') | map(attribute='key') | list }}"
-
-    - name: Set current user facts directly from Ansible facts
+    # Step 2: Filter to regular users (UID 1000-59999)
+    - name: Create list of regular users
       ansible.builtin.set_fact:
-        current_user_shell: "{{ ansible_user_shell | default('/bin/bash') }}"
-        current_user_home: "{{ ansible_env.HOME | default('/home/' + ansible_user) }}"
-        current_user_uid: "{{ ansible_user_uid | default('1000') }}"
-        current_user_gid: "{{ ansible_user_gid | default('1000') }}"
-        actual_user: "{{ ansible_user }}"
-
-    - name: Debug user information
-      ansible.builtin.debug:
-        msg:
-          - "User: {{ actual_user }}"
-          - "Home: {{ current_user_home }}"
-          - "Shell: {{ current_user_shell }}"
-          - "UID: {{ current_user_uid }}"
-          - "GID: {{ current_user_gid }}"
-
-    - name: Check shell configuration files
-      ansible.builtin.stat:
-        path: "{{ current_user_home }}/{{ item }}"
-      register: shell_configs
-      become: false
-      loop:
-        - .bashrc
-        - .bash_profile
-        - .zshrc
-        - .zsh_profile
-        - .profile
-        - .config/fish/config.fish
-
-    - name: Check for dotfiles directory
-      ansible.builtin.stat:
-        path: "{{ current_user_home }}/.dotfiles"
-      register: dotfiles_directory
-      become: false
-
-    - name: Discover dotfiles repository information
-      block:
-        - name: Check if dotfiles is a git repository
-          ansible.builtin.stat:
-            path: "{{ current_user_home }}/.dotfiles/.git"
-          register: dotfiles_git_dir
-          become: false
-
-        - name: Get dotfiles repository URL
-          ansible.builtin.command: git -C {{ current_user_home }}/.dotfiles remote get-url origin
-          register: dotfiles_remote_url
-          become: false
-          changed_when: false
-          failed_when: false
-          when: dotfiles_git_dir.stat.exists
-
-        - name: Get dotfiles repository branch
-          ansible.builtin.command: git -C {{ current_user_home }}/.dotfiles branch --show-current
-          register: dotfiles_current_branch
-          become: false
-          changed_when: false
-          failed_when: false
-          when: dotfiles_git_dir.stat.exists
-
-        - name: Check for dotfiles management tools
-          ansible.builtin.stat:
-            path: "{{ current_user_home }}/.dotfiles/{{ item }}"
-          register: dotfiles_management_tools
-          become: false
-          loop: "{{ discovery_dotfiles_detection.management_tools }}"
-      when: dotfiles_directory.stat.exists
-
-    - name: Check for application configuration directories
-      ansible.builtin.stat:
-        path: "{{ current_user_home }}/{{ item }}"
-      register: app_configs
-      become: false
-      loop:
-        - .config
-        - .ssh/config
-        - .gitconfig
-        - .tmux.conf
-        - .vimrc
-        - .nvim
-        - .config/Code
-        - .config/nvim
-
-    - name: Check for user-installed development tools
-      ansible.builtin.stat:
-        path: "{{ current_user_home }}/{{ item }}"
-      register: user_dev_tools
-      become: false
-      loop:
-        - .cargo
-        - .npm
-        - .nvm
-        - .pyenv
-        - .rbenv
-        - .sdkman
-        - go
-
-- name: Store user discovery results
-  ansible.builtin.set_fact:
-    discovered_users:
-      current_user:
-        name: "{{ ansible_user }}"
-        home: "{{ current_user_home }}"
-        shell: "{{ current_user_shell }}"
-        uid: "{{ ansible_facts.getent_passwd[ansible_user][1] }}"
-        gid: "{{ ansible_facts.getent_passwd[ansible_user][2] }}"
-        groups: "{{ user_groups_result.stdout.split()[1:] | reject('equalto', '') | select('string') | list }}"
-
-      system_users:
-        total: "{{ ansible_facts.getent_passwd.keys() | length }}"
-        regular_users: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', '1000') | selectattr('value.1', '<', '65534') | map(attribute='key') | list }}"
-        regular_users_detailed: >-
+        regular_users: >-
           {%- set users = [] -%}
           {%- for user, details in ansible_facts.getent_passwd.items() -%}
-            {%- if details[1] | int >= 1000 and details[1] | int < 65534 -%}
-              {%- set user_groups = [] -%}
-              {%- for group_result in all_user_groups_result.results -%}
-                {%- if group_result.item == user and group_result.stdout is defined -%}
-                  {%- set user_groups = group_result.stdout.split()[1:] | reject('equalto', '') | select('string') | list -%}
-                {%- endif -%}
-              {%- endfor -%}
-              {%- set user_info = {
-                  'name': user,
-                  'home': details[4],
-                  'shell': details[5],
-                  'uid': details[1],
-                  'gid': details[2],
-                  'groups': user_groups
-              } -%}
-              {%- set _ = users.append(user_info) -%}
+            {%- if details[1] | int >= 1000 and details[1] | int < 60000 -%}
+              {%- set _ = users.append(user) -%}
             {%- endif -%}
           {%- endfor -%}
           {{ users }}
+
+    - name: Debug regular users found
+      ansible.builtin.debug:
+        msg: "Found {{ regular_users | length }} regular users: {{ regular_users }}"
+      when: discovery_debug | default(true)
+
+    # Step 3: Gather user data for each regular user
+    - name: Gather user data
+      ansible.builtin.set_fact:
+        discovered_users_data: "{{ discovered_users_data | default([]) + [user_data] }}"
+      vars:
+        user_details: "{{ ansible_facts.getent_passwd[item] }}"
+        user_data:
+          name: "{{ item }}"
+          uid: "{{ user_details[1] }}"
+          gid: "{{ user_details[2] }}"
+          home: "{{ user_details[4] }}"
+          shell: "{{ user_details[5] }}"
+          groups: "{{ user_groups | default([]) }}"
+          dotfiles_repo: "{{ has_dotfiles_repo | default(false) }}"
+          dotfiles_dir: "{{ dotfiles_directory | default('') }}"
+          dotfiles_repo_url: "{{ repo_url | default('') }}"
+          dotfiles_repo_branch: "{{ repo_branch | default('main') }}"
+          dotfiles_config_files: "{{ config_files | default([]) }}"
+      # Get groups for this user
+      loop: "{{ regular_users }}"
+      when: regular_users | length > 0
+
+# Step 4: Get groups for each user
+- name: Get user groups
+  ansible.builtin.shell: |
+    groups {{ item }} 2>/dev/null | sed 's/^[^:]*: //' || echo ""
+  register: user_groups_result
+  become: true
+  changed_when: false
+  failed_when: false
+  loop: "{{ regular_users }}"
+  when: regular_users | length > 0
+
+# Step 5: Check for dotfiles for each user
+- name: Check user home directories exist
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.getent_passwd[item][4] }}"
+  register: user_homes
+  loop: "{{ regular_users }}"
+  when: regular_users | length > 0
+
+- name: Check for .dotfiles directories
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.getent_passwd[item][4] }}/.dotfiles"
+  register: dotfiles_dirs
+  become: true
+  loop: "{{ regular_users }}"
+  when:
+    - regular_users | length > 0
+    - user_homes.results | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
+
+- name: Check for fallback dotfiles directories
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.getent_passwd[item][4] }}/dotfiles"
+  register: dotfiles_fallback_dirs
+  become: true
+  loop: "{{ regular_users }}"
+  when:
+    - regular_users | length > 0
+    - user_homes.results | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
+    - not (dotfiles_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+
+- name: Check if dotfiles directories are git repositories
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.getent_passwd[item][4] }}/{{ dotfiles_dir }}/.git"
+  register: dotfiles_git_repos
+  become: true
+  vars:
+    dotfiles_dir: >-
+      {{
+        '.dotfiles' if (dotfiles_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+        else 'dotfiles' if (dotfiles_fallback_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+        else ''
+      }}
+  loop: "{{ regular_users }}"
+  when:
+    - regular_users | length > 0
+    - user_homes.results | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
+    - dotfiles_dir != ''
+
+- name: Get dotfiles repository URLs
+  ansible.builtin.command: git -C {{ ansible_facts.getent_passwd[item][4] }}/{{ dotfiles_dir }} remote get-url origin
+  register: dotfiles_repo_urls
+  become: true
+  become_user: "{{ item }}"
+  changed_when: false
+  failed_when: false
+  vars:
+    dotfiles_dir: >-
+      {{
+        '.dotfiles' if (dotfiles_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+        else 'dotfiles' if (dotfiles_fallback_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+        else ''
+      }}
+  loop: "{{ regular_users }}"
+  when:
+    - regular_users | length > 0
+    - user_homes.results | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
+    - dotfiles_dir != ''
+    - dotfiles_git_repos.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
+
+- name: Get dotfiles repository branches
+  ansible.builtin.command: git -C {{ ansible_facts.getent_passwd[item][4] }}/{{ dotfiles_dir }} branch --show-current
+  register: dotfiles_repo_branches
+  become: true
+  become_user: "{{ item }}"
+  changed_when: false
+  failed_when: false
+  vars:
+    dotfiles_dir: >-
+      {{
+        '.dotfiles' if (dotfiles_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+        else 'dotfiles' if (dotfiles_fallback_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+        else ''
+      }}
+  loop: "{{ regular_users }}"
+  when:
+    - regular_users | length > 0
+    - user_homes.results | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
+    - dotfiles_dir != ''
+    - dotfiles_git_repos.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
+
+
+# Step 6: Assemble the final user data structure
+- name: Build final user data structure
+  ansible.builtin.set_fact:
+    discovered_users_final: >-
+      {{
+        discovered_users_final | default([]) + [{
+          'name': item,
+          'uid': ansible_facts.getent_passwd[item][1],
+          'gid': ansible_facts.getent_passwd[item][2],
+          'home': ansible_facts.getent_passwd[item][4],
+          'shell': ansible_facts.getent_passwd[item][5],
+          'groups': (user_groups_result.results | selectattr('item', 'equalto', item) | map(attribute='stdout') | first | default('')).split(),
+          'dotfiles_repo': (dotfiles_git_repos.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)),
+          'dotfiles_dir': dotfiles_directory,
+          'dotfiles_repo_url': (dotfiles_repo_urls.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stdout') | first | default('')),
+          'dotfiles_repo_branch': (dotfiles_repo_branches.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stdout') | first | default('main'))
+        }]
+      }}
+  vars:
+    dotfiles_directory: >-
+      {{
+        '.dotfiles' if (dotfiles_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+        else 'dotfiles' if (dotfiles_fallback_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
+        else ''
+      }}
+  loop: "{{ regular_users }}"
+  when: regular_users | length > 0
+
+# Step 7: Store final results in the expected format
+- name: Store user discovery results
+  ansible.builtin.set_fact:
+    discovered_users:
+      system_users:
+        total: "{{ ansible_facts.getent_passwd.keys() | length }}"
+        regular_users: "{{ regular_users }}"
+        regular_users_detailed: "{{ discovered_users_final | default([]) }}"
         system_users: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '<', '1000') | map(attribute='key') | list }}"
 
-      shell_config:
-        preferred_shell: "{{ current_user_shell | basename }}"
-        config_files: "{{ shell_configs.results | selectattr('stat.exists') | map(attribute='item') | list }}"
-
-      dotfiles:
-        detected: "{{ dotfiles_directory.stat.exists }}"
-        is_git_repo: "{{ dotfiles_git_dir.stat.exists | default(false) }}"
-        repository_url: "{{ dotfiles_remote_url.stdout | default('') }}"
-        current_branch: "{{ dotfiles_current_branch.stdout | default('') }}"
-        management_tools: "{{ dotfiles_management_tools.results | default([]) | selectattr('stat.exists') | map(attribute='item') | list }}"
-
-      application_configs:
-        detected: "{{ app_configs.results | selectattr('stat.exists') | map(attribute='item') | list }}"
-
-      development_environment:
-        user_tools: "{{ user_dev_tools.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+- name: Store dotfiles discovery results
+  ansible.builtin.set_fact:
+    discovered_dotfiles:
+      users_with_dotfiles: "{{ discovered_users_final | default([]) }}"
   tags:
     - users
     - dotfiles

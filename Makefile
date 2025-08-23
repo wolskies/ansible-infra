@@ -13,7 +13,7 @@ deps: ## Install Python dependencies
 	pip install -r requirements-dev.txt
 
 .PHONY: lint
-lint: lint-yaml lint-ansible ## Run all linting checks
+lint: lint-yaml lint-ansible validate-templates ## Run all linting checks
 
 .PHONY: lint-yaml
 lint-yaml: ## Run yamllint on all YAML files
@@ -22,6 +22,16 @@ lint-yaml: ## Run yamllint on all YAML files
 .PHONY: lint-ansible
 lint-ansible: ## Run ansible-lint on all playbooks and roles
 	ansible-lint
+
+.PHONY: validate-templates
+validate-templates: ## Validate all Jinja2 templates
+	@echo "Validating Jinja2 templates..."
+	@find roles -name "*.j2" -type f | xargs python3 scripts/validate_templates.py
+
+.PHONY: test-template-edge-cases
+test-template-edge-cases: ## Test template edge cases
+	@echo "Testing template edge cases..."
+	@cd molecule/discovery && ansible-playbook test_edge_cases.yml -v
 
 .PHONY: syntax-check
 syntax-check: ## Check Ansible syntax for all roles

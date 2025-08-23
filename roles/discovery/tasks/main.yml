@@ -71,12 +71,6 @@
     - discovery
     - users
 
-- name: Enhanced dotfiles discovery
-  ansible.builtin.include_tasks: scan-dotfiles.yml
-  tags:
-    - discovery
-    - dotfiles
-
 - name: Process discovery data
   ansible.builtin.include_tasks: process-data.yml
   tags:
@@ -103,7 +97,7 @@
         msg:
           - "=== Infrastructure Discovery Completed ==="
           - "Hostname: {{ inventory_hostname }}"
-          - "Packages: {{ discovered_packages.total | default(0) }}"
+          - "Packages: {{ discovered_packages.all_native | default([]) | length }}"
           - "Services: {{ discovered_services.running | default([]) | length }}"
           - "Docker: {{ 'Enabled' if discovered_docker.installed | default(false) else 'Not installed' }}"
           - "Users discovered: {{ discovered_users.system_users.regular_users_detailed | default([]) | length }} (with per-user dotfiles config)"

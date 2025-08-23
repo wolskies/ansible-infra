@@ -12,34 +12,6 @@
     - generation
     - host_vars
 
-- name: Create dotfiles directories for each user
-  ansible.builtin.file:
-    path: "{{ discovery_paths.host_vars_dir }}/dotfiles/{{ item.user }}"
-    state: directory
-    mode: '0755'
-  loop: "{{ discovered_dotfiles.users_with_dotfiles | default([]) }}"
-  when:
-    - item.local_configs_detected | default(false)
-    - not item.repository_detected | default(false)
-  delegate_to: localhost
-  tags:
-    - generation
-    - dotfiles
-
-- name: Copy discovered config files for users without repositories
-  ansible.builtin.fetch:
-    src: "{{ item.0.home }}/{{ item.1 }}"
-    dest: "{{ discovery_paths.host_vars_dir }}/dotfiles/{{ item.0.user }}/{{ item.1 }}"
-    flat: true
-  loop: "{{ discovered_dotfiles.users_with_dotfiles | default([]) | subelements('discovered_config_files', skip_missing=True) }}"
-  when:
-    - not (item.0.dotfiles_repo | default(false))
-    - item.0.discovered_config_files is defined
-    - item.0.discovered_config_files | length > 0
-  become: true
-  tags:
-    - generation
-    - dotfiles
 
 - name: Create docker-compose directory
   ansible.builtin.file:

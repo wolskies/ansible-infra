@@ -1,55 +1,135 @@
 ---
 # Service and Security Discovery
-# Combined scan for all services and security-related configurations
+# Scans for services relevant to the collection's roles
 
 - name: Store service discovery results
   ansible.builtin.set_fact:
     discovered_services:
+      # All running services for reference
       running: >-
         {{ ansible_facts.services | dict2items |
+           selectattr('value.state', 'defined') |
            selectattr('value.state', 'equalto', 'running') |
            map(attribute='key') |
            map('regex_replace', '\\.service$', '') | list }}
+      # All enabled services for reference
       enabled: >-
         {{ ansible_facts.services | dict2items |
+           selectattr('value.status', 'defined') |
            selectattr('value.status', 'equalto', 'enabled') |
            map(attribute='key') |
            map('regex_replace', '\\.service$', '') | list }}
 
-      security:
-        ssh_detected: >-
-          {{ 'ssh' in (ansible_facts.services.keys() |
-             map('regex_replace', '\\.service$', '') | list) or
-             'sshd' in (ansible_facts.services.keys() |
-             map('regex_replace', '\\.service$', '') | list) }}
-        fail2ban_detected: >-
-          {{ 'fail2ban' in (ansible_facts.services.keys() |
-             map('regex_replace', '\\.service$', '') | list) }}
+      # Services that collection roles specifically manage
+      collection_relevant:
+        # Security services (system_security role)
+        ssh_enabled: >-
+          {{ ('ssh' in ansible_facts.services and
+              ansible_facts.services['ssh'].get('status', '') == 'enabled') or
+             ('sshd' in ansible_facts.services and
+              ansible_facts.services['sshd'].get('status', '') == 'enabled') or
+             ('ssh.service' in ansible_facts.services and
+              ansible_facts.services['ssh.service'].get('status', '') == 'enabled') or
+             ('sshd.service' in ansible_facts.services and
+              ansible_facts.services['sshd.service'].get('status', '') == 'enabled') }}
+        fail2ban_enabled: >-
+          {{ ('fail2ban' in ansible_facts.services and
+              ansible_facts.services['fail2ban'].get('status', '') == 'enabled') or
+             ('fail2ban.service' in ansible_facts.services and
+              ansible_facts.services['fail2ban.service'].get('status', '') == 'enabled') }}
         firewall_detected: >-
-          {{ 'ufw' in (ansible_facts.services.keys() |
-             map('regex_replace', '\\.service$', '') | list) or
-             'firewalld' in (ansible_facts.services.keys() |
-             map('regex_replace', '\\.service$', '') | list) or
-             'iptables' in (ansible_facts.services.keys() |
-             map('regex_replace', '\\.service$', '') | list) }}
+          {{ 'ufw' in ansible_facts.services or
+             'ufw.service' in ansible_facts.services or
+             'firewalld' in ansible_facts.services or
+             'firewalld.service' in ansible_facts.services or
+             'iptables' in ansible_facts.services or
+             'iptables.service' in ansible_facts.services }}
         firewall_type: >-
-          {%- if 'ufw' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) -%}
+          {%- if 'ufw' in ansible_facts.services or 'ufw.service' in ansible_facts.services -%}
             ufw
-          {%- elif 'firewalld' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) -%}
+          {%- elif 'firewalld' in ansible_facts.services or 'firewalld.service' in ansible_facts.services -%}
             firewalld
-          {%- elif 'iptables' in (ansible_facts.services.keys() | map('regex_replace', '\\.service$', '') | list) -%}
+          {%- elif 'iptables' in ansible_facts.services or 'iptables.service' in ansible_facts.services -%}
             iptables
           {%- else -%}
             none
           {%- endif %}
 
+        # Container platform services
+        docker_enabled: >-
+          {{ ('docker' in ansible_facts.services and
+              ansible_facts.services['docker'].get('status', '') == 'enabled') or
+             ('docker.service' in ansible_facts.services and
+              ansible_facts.services['docker.service'].get('status', '') == 'enabled') }}
+
+        # Common server services (referenced in examples)
+        cron_enabled: >-
+          {{ ('cron' in ansible_facts.services and
+              ansible_facts.services['cron'].get('status', '') == 'enabled') or
+             ('crond' in ansible_facts.services and
+              ansible_facts.services['crond'].get('status', '') == 'enabled') or
+             ('cron.service' in ansible_facts.services and
+              ansible_facts.services['cron.service'].get('status', '') == 'enabled') or
+             ('crond.service' in ansible_facts.services and
+              ansible_facts.services['crond.service'].get('status', '') == 'enabled') }}
+
+        # Workstation services (referenced in examples)
+        networkmanager_enabled: >-
+          {{ ('NetworkManager' in ansible_facts.services and
+              ansible_facts.services['NetworkManager'].get('status', '') == 'enabled') or
+             ('NetworkManager.service' in ansible_facts.services and
+              ansible_facts.services['NetworkManager.service'].get('status', '') == 'enabled') }}
+        bluetooth_enabled: >-
+          {{ ('bluetooth' in ansible_facts.services and
+              ansible_facts.services['bluetooth'].get('status', '') == 'enabled') or
+             ('bluetooth.service' in ansible_facts.services and
+              ansible_facts.services['bluetooth.service'].get('status', '') == 'enabled') }}
+
+- name: Get UFW firewall configuration
+  block:
+    - name: Get UFW status and rules
+      ansible.builtin.shell: |
+        ufw --help > /dev/null 2>&1 && ufw status numbered || echo "ufw not available"
+      register: ufw_status
+      become: true
+      changed_when: false
+      failed_when: false
+      when: discovered_services.collection_relevant.firewall_type == 'ufw'
+
+    - name: Parse UFW rules for allowed ports
+      ansible.builtin.set_fact:
+        ufw_allowed_ports: >-
+          {%- set ports = [] -%}
+          {%- if ufw_status.stdout is defined and 'ALLOW' in ufw_status.stdout -%}
+            {%- for line in ufw_status.stdout.split('\n') -%}
+              {%- if 'ALLOW' in line and not line.startswith('[') -%}
+                {%- set port_match = line | regex_findall('\\s+(\\d+)(?:/(tcp|udp))?\\s+ALLOW') -%}
+                {%- if port_match and port_match[0] and port_match[0][0] -%}
+                  {%- set _ = ports.append(port_match[0][0]) -%}
+                {%- endif -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ ports | unique | list }}
+      when:
+        - discovered_services.collection_relevant.firewall_type == 'ufw'
+        - ufw_status.stdout is defined
+
+  when: discovered_services.collection_relevant.firewall_detected | default(false)
+
 - name: Store security configuration discovery
   ansible.builtin.set_fact:
     discovered_security:
       ssh:
-        service_running: "{{ discovered_services.security.ssh_detected }}"
+        service_running: "{{ discovered_services.collection_relevant.ssh_enabled }}"
         settings:
           port: "{{ ansible_ssh_port | default('22') }}"
+      fail2ban:
+        service_enabled: "{{ discovered_services.collection_relevant.fail2ban_enabled }}"
+      firewall:
+        detected: "{{ discovered_services.collection_relevant.firewall_detected }}"
+        type: "{{ discovered_services.collection_relevant.firewall_type }}"
+        allowed_ports: "{{ ufw_allowed_ports | default([]) }}"
   tags:
     - services
     - security

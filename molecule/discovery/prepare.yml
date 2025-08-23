@@ -14,38 +14,82 @@
         name: "{{ item.name }}"
         uid: "{{ item.uid }}"
         shell: "{{ item.shell }}"
+        groups: "{{ item.groups | default([]) | join(',') }}"
         create_home: true
+        password: "{{ 'testpass123' | password_hash('sha512') }}"
       loop: "{{ test_users }}"
 
-    - name: Create dotfiles scenarios for test users
-      block:
-        - name: Create .dotfiles directory for first test user
-          ansible.builtin.file:
-            path: "/home/{{ test_users[0].name }}/.dotfiles"
-            state: directory
-            owner: "{{ test_users[0].name }}"
-            mode: '0755'
-          when: test_users | length > 0
+    - name: Grant sudo access to discoverytest user
+      ansible.builtin.copy:
+        content: "discoverytest ALL=(ALL) NOPASSWD:ALL\n"
+        dest: /etc/sudoers.d/discoverytest
+        mode: '0440'
+        validate: '/usr/sbin/visudo -cf %s'
 
-        - name: Initialize git repo in dotfiles
+    - name: Create complex dotfiles scenarios for test users
+      block:
+        - name: Create .dotfiles directory for discoverytest (git repo scenario)
+          ansible.builtin.file:
+            path: "/home/discoverytest/.dotfiles"
+            state: directory
+            owner: "discoverytest"
+            mode: '0755'
+
+        - name: Initialize git repo in discoverytest's dotfiles
           ansible.builtin.command:
             cmd: git init
-            chdir: "/home/{{ test_users[0].name }}/.dotfiles"
+            chdir: "/home/discoverytest/.dotfiles"
           become: true
-          become_user: "{{ test_users[0].name }}"
-          when: test_users | length > 0
+          become_user: "discoverytest"
 
-        - name: Create config files for second test user (no repo)
+        - name: Add git config for discoverytest
+          ansible.builtin.copy:
+            content: |
+              [user]
+                  name = Discovery Test
+                  email = test@example.com
+            dest: "/home/discoverytest/.dotfiles/.gitconfig"
+            owner: "discoverytest"
+            mode: '0644'
+
+        - name: Create dotfiles directory for testuser2 (fallback scenario)
           ansible.builtin.file:
-            path: "/home/{{ test_users[0].name }}/{{ item }}"
+            path: "/home/testuser2/dotfiles"
+            state: directory
+            owner: "testuser2"
+            mode: '0755'
+
+        - name: Create standalone config files for testuser3 (no repo scenario)
+          ansible.builtin.file:
+            path: "/home/testuser3/{{ item }}"
             state: touch
-            owner: "{{ test_users[0].name }}"
+            owner: "testuser3"
             mode: '0644'
           loop:
             - .bashrc
             - .vimrc
             - .gitconfig
-          when: test_users | length > 0
+            - .tmux.conf
+
+        - name: Create shell-specific configs
+          ansible.builtin.copy:
+            content: "{{ item.content }}"
+            dest: "/home/{{ item.user }}/{{ item.file }}"
+            owner: "{{ item.user }}"
+            mode: '0644'
+          loop:
+            - { user: "discoverytest", file: ".bashrc", content: "# Custom bash config\nexport PATH=$PATH:/usr/local/bin" }
+            - { user: "testuser2", file: ".zshrc", content: "# Custom zsh config\nautoload -U compinit\ncompinit" }
+            - { user: "testuser3", file: ".config/fish/config.fish", content: "# Custom fish config\nset -gx PATH $PATH /usr/local/bin" }
+
+        - name: Create .config directories
+          ansible.builtin.file:
+            path: "/home/{{ item }/.config/fish"
+            state: directory
+            owner: "{{ item }}"
+            mode: '0755'
+          loop:
+            - testuser3
 
     - name: Create test directories for discovery
       ansible.builtin.file:
@@ -114,6 +158,56 @@
         mode: '0644'
       when: ansible_os_family == 'Debian'
 
+    - name: Create third-party APT repository structure
+      when: ansible_os_family == 'Debian'
+      block:
+        - name: Create APT sources.list.d directory
+          ansible.builtin.file:
+            path: /etc/apt/sources.list.d
+            state: directory
+            mode: '0755'
+
+        - name: Create test third-party repo files
+          ansible.builtin.copy:
+            content: |
+              deb [signed-by=/usr/share/keyrings/test-repo.gpg] https://test.example.com/debian {{ ansible_distribution_release }} main
+            dest: "/etc/apt/sources.list.d/{{ item }}.list"
+            mode: '0644'
+          loop:
+            - test-repo
+            - gitlab_gitlab-runner
+            - nvidia-container-toolkit
+
+        - name: Create APT trusted.gpg.d directory
+          ansible.builtin.file:
+            path: /etc/apt/trusted.gpg.d
+            state: directory
+            mode: '0755'
+
+        - name: Create dummy GPG keys
+          ansible.builtin.copy:
+            content: "dummy gpg key content"
+            dest: "/etc/apt/trusted.gpg.d/{{ item }}.gpg"
+            mode: '0644'
+          loop:
+            - test-repo
+            - gitlab-runner
+
+        - name: Create /usr/share/keyrings directory
+          ansible.builtin.file:
+            path: /usr/share/keyrings
+            state: directory
+            mode: '0755'
+
+        - name: Create additional keyring files
+          ansible.builtin.copy:
+            content: "dummy keyring content"
+            dest: "/usr/share/keyrings/{{ item }}.gpg"
+            mode: '0644'
+          loop:
+            - docker-archive-keyring
+            - nvidia-container-toolkit-keyring
+
     - name: Display preparation summary
       ansible.builtin.debug:
         msg:
@@ -121,3 +215,4 @@
           - "Test packages installed: {{ test_packages | length }}"
           - "Test users created: {{ test_users | length }}"
           - "Test services configured: {{ test_services | length }}"
+          - "APT repos configured: {{ 3 if ansible_os_family == 'Debian' else 0 }}"

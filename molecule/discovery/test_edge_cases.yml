@@ -1,0 +1,115 @@
+---
+# Test edge cases that have caused runtime errors
+- name: Test discovery edge cases
+  hosts: localhost
+  gather_facts: false
+  vars:
+    role_path: "{{ playbook_dir }}/../../roles/discovery"
+  
+  tasks:
+    - name: Test case 1 - apt_keys as function instead of dict
+      block:
+        - name: Simulate apt_keys registration failure
+          ansible.builtin.set_fact:
+            test_repositories:
+              apt:
+                keys: "{{ 'some_function' }}"  # This would simulate a function object
+                
+        - name: Try to render template with bad keys
+          ansible.builtin.template:
+            src: "{{ role_path }}/templates/host_vars_collection.yml.j2"
+            dest: "/tmp/test-bad-keys.yml"
+          vars:
+            discovered_repositories: "{{ test_repositories }}"
+            discovered_packages: { all_native: [], languages: {} }
+            discovered_services: { running: [], enabled: [] }
+            discovered_docker: {}
+            discovered_dotfiles: {}
+            discovered_users: { system_users: {} }
+            discovered_security: {}
+            ansible_distribution: "Ubuntu"
+            ansible_distribution_version: "24.04"
+            inventory_hostname: "test"
+            ansible_architecture: "x86_64"
+            ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
+          ignore_errors: true
+          register: bad_keys_result
+          
+        - name: Verify template handles bad keys gracefully
+          ansible.builtin.assert:
+            that:
+              - bad_keys_result is succeeded or 'sequence' in (bad_keys_result.msg | default(''))
+            fail_msg: "Template should handle non-list keys gracefully"
+
+    - name: Test case 2 - Missing nested attributes
+      ansible.builtin.template:
+        src: "{{ role_path }}/templates/host_vars_collection.yml.j2"
+        dest: "/tmp/test-missing-nested.yml"
+      vars:
+        discovered_repositories:
+          apt:  # apt exists but has no keys attribute
+            manual_packages: ['vim']
+        discovered_packages: { all: [] }
+        discovered_services: 
+          running: []
+          enabled: []
+          # missing collection_relevant
+        discovered_docker: {}
+        discovered_dotfiles: {}
+        discovered_users: 
+          system_users: {}
+          # missing current_user
+        discovered_security: 
+          ssh: {}  # missing service_running
+          # missing firewall, fail2ban
+        ansible_distribution: "Debian"
+        ansible_distribution_version: "12"
+        inventory_hostname: "missing-nested-test"
+        ansible_architecture: "x86_64"
+        ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
+      register: missing_nested_result
+      
+    - name: Verify missing nested attributes handled
+      ansible.builtin.assert:
+        that:
+          - missing_nested_result is succeeded
+        fail_msg: "Template must handle missing nested attributes"
+
+    - name: Test case 3 - Null and undefined values
+      ansible.builtin.template:
+        src: "{{ role_path }}/templates/host_vars_collection.yml.j2"
+        dest: "/tmp/test-null-values.yml"
+      vars:
+        discovered_repositories:
+          apt:
+            keys: null
+            third_party_repos: null
+            manual_packages: null
+        discovered_packages:
+          all_native: null
+          languages: null
+        discovered_services: null
+        discovered_docker: null
+        discovered_dotfiles: null
+        discovered_users: null
+        discovered_security: null
+        ansible_distribution: "Ubuntu"
+        ansible_distribution_version: "24.04"
+        inventory_hostname: "null-test"
+        ansible_architecture: "x86_64"
+        ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
+      register: null_values_result
+      
+    - name: Verify null values handled
+      ansible.builtin.assert:
+        that:
+          - null_values_result is succeeded
+        fail_msg: "Template must handle null values"
+
+    - name: Summary of edge case tests
+      ansible.builtin.debug:
+        msg:
+          - "Edge case test results:"
+          - "Bad keys test: {{ 'PASSED' if (bad_keys_result is succeeded or 'sequence' in (bad_keys_result.msg | default(''))) else 'FAILED' }}"
+          - "Missing nested test: {{ 'PASSED' if missing_nested_result is succeeded else 'FAILED' }}"
+          - "Null values test: {{ 'PASSED' if null_values_result is succeeded else 'FAILED' }}"

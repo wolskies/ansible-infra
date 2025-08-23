@@ -1,0 +1,166 @@
+---
+# Cross-platform third-party package discovery
+# Discovers packages installed via language-specific package managers
+
+- name: Discover third-party language packages
+  block:
+    # Python packages
+    - name: Check for Python pip packages (user)
+      ansible.builtin.command: pip list --user --format=freeze
+      register: pip_user_packages
+      changed_when: false
+      failed_when: false
+
+    - name: Check for Python pip packages (system)
+      ansible.builtin.command: pip list --format=freeze
+      register: pip_system_packages
+      changed_when: false
+      failed_when: false
+
+    - name: Check for pipx packages
+      ansible.builtin.command: pipx list --short
+      register: pipx_packages
+      changed_when: false
+      failed_when: false
+
+    # Node.js packages
+    - name: Check for global npm packages
+      ansible.builtin.command: npm list -g --depth=0 --parseable
+      register: npm_global_packages
+      changed_when: false
+      failed_when: false
+
+    - name: Check for yarn global packages
+      ansible.builtin.command: yarn global list --depth=0
+      register: yarn_global_packages
+      changed_when: false
+      failed_when: false
+
+    # Go packages
+    - name: Check for Go installed packages
+      ansible.builtin.command: go list -m all
+      register: go_packages
+      changed_when: false
+      failed_when: false
+      environment:
+        GO111MODULE: "on"
+
+    # Rust packages
+    - name: Check for Cargo installed packages
+      ansible.builtin.command: cargo install --list
+      register: cargo_packages
+      changed_when: false
+      failed_when: false
+
+    # Ruby packages
+    - name: Check for Ruby gems
+      ansible.builtin.command: gem list --local
+      register: ruby_gems
+      changed_when: false
+      failed_when: false
+
+    # Snap packages (Linux)
+    - name: Check for Snap packages
+      ansible.builtin.command: snap list
+      register: snap_packages
+      changed_when: false
+      failed_when: false
+      when: ansible_system == "Linux"
+
+    # Flatpak packages (Linux)
+    - name: Check for Flatpak packages
+      ansible.builtin.command: flatpak list --app --columns=name,application
+      register: flatpak_packages
+      changed_when: false
+      failed_when: false
+      when: ansible_system == "Linux"
+
+    # Process results into clean lists
+    - name: Process third-party package results
+      ansible.builtin.set_fact:
+        discovered_third_party_packages:
+          python: >-
+            {{
+              (pip_user_packages.stdout_lines | default([]) | select('match', '^[^#].*') | list) +
+              (pipx_packages.stdout_lines | default([]) | list) | unique
+            }}
+          nodejs:
+            npm_global: >-
+              {{
+                npm_global_packages.stdout_lines | default([])
+                | select('match', '.*node_modules/[^/]+$')
+                | map('regex_replace', '.*/node_modules/([^/]+)$', '\1')
+                | list
+              }}
+            yarn_global: "{{ yarn_global_packages.stdout_lines | default([]) | select('match', '^[^info].*') | list }}"
+          go:
+            modules: "{{ go_packages.stdout_lines | default([]) | select('match', '^[^\\s].*') | list }}"
+          rust:
+            cargo: >-
+              {{
+                cargo_packages.stdout_lines | default([])
+                | select('match', '^[a-zA-Z].*')
+                | map('regex_replace', '\\s+v.*$', '')
+                | list
+              }}
+          ruby:
+            gems: >-
+              {{
+                ruby_gems.stdout_lines | default([])
+                | select('match', '^[a-zA-Z].*')
+                | map('regex_replace', '\\s+\\(.*\\)$', '')
+                | list
+              }}
+          system:
+            snap: >-
+              {{
+                snap_packages.stdout_lines | default([])
+                | select('match', '^[^Name].*')
+                | map('regex_replace', '\\s+.*$', '')
+                | list
+              }}
+            flatpak: >-
+              {{
+                flatpak_packages.stdout_lines | default([])
+                | map('regex_replace', '\\t.*$', '')
+                | list
+              }}
+
+    - name: Create consolidated third-party package list
+      ansible.builtin.set_fact:
+        third_party_packages_consolidated: >-
+          {{
+            (discovered_third_party_packages.python | default([])) +
+            (discovered_third_party_packages.nodejs.npm_global | default([])) +
+            (discovered_third_party_packages.rust.cargo | default([])) +
+            (discovered_third_party_packages.ruby.gems | default([])) +
+            (discovered_third_party_packages.system.snap | default([])) +
+            (discovered_third_party_packages.system.flatpak | default([]))
+          }}
+
+    - name: Debug third-party packages
+      ansible.builtin.debug:
+        msg:
+          - "Found {{ third_party_packages_consolidated | length }} third-party packages"
+          - "Python: {{ discovered_third_party_packages.python | default([]) | length }}"
+          - "Node.js (npm): {{ discovered_third_party_packages.nodejs.npm_global | default([]) | length }}"
+          - "Rust (cargo): {{ discovered_third_party_packages.rust.cargo | default([]) | length }}"
+          - "Snap: {{ discovered_third_party_packages.system.snap | default([]) | length }}"
+          - "Flatpak: {{ discovered_third_party_packages.system.flatpak | default([]) | length }}"
+      when: discovery_debug | default(false)
+
+  rescue:
+    - name: Handle third-party package discovery errors
+      ansible.builtin.debug:
+        msg: "Third-party package discovery failed, setting empty results"
+
+    - name: Set empty third-party package results
+      ansible.builtin.set_fact:
+        discovered_third_party_packages:
+          python: []
+          nodejs: { npm_global: [], yarn_global: [] }
+          go: { modules: [] }
+          rust: { cargo: [] }
+          ruby: { gems: [] }
+          system: { snap: [], flatpak: [] }
+        third_party_packages_consolidated: []

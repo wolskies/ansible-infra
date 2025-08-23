@@ -1,82 +1,147 @@
 ---
-# APT Package and Repository Discovery (Debian/Ubuntu)
+# Simplified APT Package and Repository Discovery (Debian/Ubuntu)
 
-- name: APT repository discovery
+- name: Discover APT packages and repositories
   block:
-    - name: Read main APT sources
-      ansible.builtin.slurp:
-        src: /etc/apt/sources.list
-      register: apt_main_sources
+    # Step 1: Get manually installed packages with debug info
+    - name: Get all manually installed packages
+      ansible.builtin.command: apt-mark showmanual
+      register: all_manual_packages_result
       become: true
+      changed_when: false
       failed_when: false
 
-    - name: Find additional APT sources
+    - name: Get base system packages (required/important priority)
+      ansible.builtin.shell: |
+        # Use apt-cache policy instead of apt list for more reliable priority detection
+        dpkg-query -W -f='${Package} ${Priority}\n' | grep -E ' (required|important)$' | cut -d' ' -f1
+      register: base_packages_result
+      become: true
+      changed_when: false
+      failed_when: false
+
+    - name: Filter out base system packages
+      ansible.builtin.set_fact:
+        manual_packages: >-
+          {{
+            all_manual_packages_result.stdout_lines | default([])
+            | difference(base_packages_result.stdout_lines | default([]))
+            | reject('match', '^(base-files|base-passwd|debian-archive-keyring|ubuntu-keyring)$')
+            | reject('match', '^(grub-common|initramfs-tools|systemd-sysv)$')
+            | reject('match', '^lib(c6|gcc-s1|systemd0)$')
+            | list
+          }}
+
+
+    # Step 2: Find and read third-party repository files
+    - name: Find third-party repository files
       ansible.builtin.find:
         paths: ["/etc/apt/sources.list.d"]
-        patterns: "*.list"
-      register: apt_additional_sources
+        patterns: "*.list,*.sources"
+      register: repo_files
       become: true
 
-    - name: Read additional APT source files
+    - name: Read third-party repository files
       ansible.builtin.slurp:
         src: "{{ item.path }}"
-      register: apt_source_contents
-      loop: "{{ apt_additional_sources.files }}"
+      register: repo_contents
+      loop: "{{ repo_files.files }}"
       become: true
       failed_when: false
 
-    - name: Find APT repository keys
-      ansible.builtin.find:
-        paths: "{{ discovery_repository_detection.apt.keys_paths }}"
-        patterns: "*.gpg"
-      register: apt_keys
-      become: true
+    # Step 3: Parse repositories and extract key paths
+    - name: Parse third-party repositories
+      ansible.builtin.set_fact:
+        parsed_repos: >-
+          {%- set repos = [] -%}
+          {%- set key_paths = [] -%}
+          {%- for file in repo_contents.results | default([]) -%}
+            {%- if file.content is defined -%}
+              {%- set content = file.content | b64decode -%}
+              {%- set filename = file.item.path | basename | regex_replace('\.(list|sources)$', '') -%}
+              {%- for line in content.split('\n') -%}
+                {%- if line.strip() and not line.strip().startswith('#') and line.startswith('deb') -%}
+                  {%- if not ('ubuntu.com' in line or 'debian.org' in line or 'archive.ubuntu.com' in line or 'security' in line) -%}
+                    {%- set repo_data = {
+                        'name': filename,
+                        'source_file': filename + '.list',
+                        'repository': line.strip()
+                    } -%}
+                    {%- set _ = repos.append(repo_data) -%}
+                    {%- set signed_by_match = line | regex_findall('signed-by=([^\\s\\]]+)') -%}
+                    {%- if signed_by_match and signed_by_match[0] not in key_paths -%}
+                      {%- set _ = key_paths.append(signed_by_match[0]) -%}
+                    {%- endif -%}
+                  {%- endif -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ {'repos': repos, 'key_paths': key_paths} }}
 
-    - name: Get package origins for repository correlation
-      ansible.builtin.shell: |
-        apt-cache policy $(apt-mark showmanual) | grep -E "^\s+\d+\s+https?://" | head -1000
-      register: apt_package_origins
+    # Step 4: Check which GPG keys actually exist
+    - name: Check GPG key files exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: key_file_stats
+      loop: "{{ parsed_repos.key_paths }}"
       become: true
-      changed_when: false
-      failed_when: false
+      when: parsed_repos.key_paths | length > 0
 
-    - name: Identify packages from third-party repositories
-      ansible.builtin.shell: |
-        for pkg in $(apt-mark showmanual); do
-          origin=$(apt-cache policy "$pkg" | grep -E "^\s+\*\*\*" -A1 | tail -1 | \
-                   grep -o "https\?://[^[:space:]]*" | head -1 || echo "ubuntu-standard")
-          if [[ "$origin" != "ubuntu-standard" && "$origin" != *"ubuntu.com"* && \
-                "$origin" != *"debian.org"* ]]; then
-            echo "$pkg:$origin"
-          fi
-        done
-      register: third_party_packages
+    - name: Build list of existing keys
+      ansible.builtin.set_fact:
+        existing_keys: >-
+          {{
+            key_file_stats.results | default([])
+            | selectattr('stat.exists', 'equalto', true)
+            | map(attribute='item')
+            | list
+          }}
+
+    - name: Copy GPG key files to discovery output directory
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: "{{ discovery_paths.host_vars_dir }}/"
+        flat: true
+      loop: "{{ existing_keys }}"
       become: true
-      changed_when: false
-      failed_when: false
+      when: existing_keys | length > 0
+
+    # Step 5: Store final results in expected format
+    - name: Store APT discovery results
+      ansible.builtin.set_fact:
+        discovered_repositories:
+          apt:
+            third_party_repos: "{{ parsed_repos.repos }}"
+            manual_packages: "{{ manual_packages }}"
+            gpg_keys: "{{ existing_keys | default([]) }}"
+
+    - name: Debug key extraction
+      ansible.builtin.debug:
+        msg:
+          - "Raw key paths extracted: {{ parsed_repos.key_paths }}"
+          - "Key file check results: {{ key_file_stats.results | default([]) | map(attribute='item') | list }}"
+          - "Keys that exist: {{ existing_keys | default([]) }}"
+          - "Final discovered_repositories.apt.gpg_keys: {{ discovered_repositories.apt.gpg_keys | default('UNDEFINED') }}"
+      when: discovery_debug | default(false)
+
+    - name: Debug APT discovery results
+      ansible.builtin.debug:
+        msg:
+          - "Found {{ manual_packages | length }} manually installed packages"
+          - "Found {{ parsed_repos.repos | length }} third-party repositories"
+          - "Found {{ existing_keys | default([]) | length }} GPG keys"
+      when: discovery_debug | default(false)
+
   rescue:
     - name: Handle APT discovery errors
       ansible.builtin.debug:
-        msg: "APT repository discovery failed"
+        msg: "APT discovery failed, setting empty results"
 
-- name: Process third-party package information
-  ansible.builtin.set_fact:
-    third_party_package_map: >-
-      {%- set pkg_map = {} -%}
-      {%- for line in third_party_packages.stdout_lines | default([]) -%}
-        {%- set parts = line.split(':') -%}
-        {%- if parts | length >= 2 -%}
-          {%- set _ = pkg_map.update({parts[0]: parts[1]}) -%}
-        {%- endif -%}
-      {%- endfor -%}
-      {{ pkg_map }}
-
-- name: Store APT repository discovery results
-  ansible.builtin.set_fact:
-    discovered_repositories:
-      apt:
-        main_sources: "{{ apt_main_sources.content | default('') | b64decode }}"
-        additional_sources: "{{ apt_additional_sources.files | default([]) | map(attribute='path') | list }}"
-        source_contents: "{{ apt_source_contents.results | default([]) | selectattr('content', 'defined') | list }}"
-        keys: "{{ apt_keys.files | default([]) | map(attribute='path') | list }}"
-        package_origins: "{{ third_party_package_map | default({}) }}"
+    - name: Set empty APT results on failure
+      ansible.builtin.set_fact:
+        discovered_repositories:
+          apt:
+            third_party_repos: []
+            manual_packages: []
+            gpg_keys: []

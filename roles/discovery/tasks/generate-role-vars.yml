@@ -7,28 +7,25 @@
     - name: Generate basic_setup role variables
       ansible.builtin.set_fact:
         basic_setup_vars:
-          # Package management - use all discovered packages
-          "host_packages_install_{{ ansible_distribution }}": >-
-            {{ discovered_packages.all | default([]) | unique }}
+          # Package management - use discovered native packages
+          "host_packages_install_{{ ansible_distribution }}": "{{ discovered_packages.all_native | default([]) | unique }}"
 
-          # User management
-          user_details:
-            - name: "{{ discovered_users.current_user.name }}"
-              uid: "{{ discovered_users.current_user.uid }}"
-              shell: "{{ discovered_users.current_user.shell }}"
+          # User management - use all regular users discovered
+          user_details: "{{ discovered_users.system_users.regular_users_detailed | default([]) }}"
 
-          # System configuration
-          default_user_shell: "{{ discovered_users.shell_config.preferred_shell | default('/bin/bash') }}"
-
-          # Simple feature detection based on package count
-          install_development_packages: "{{ discovered_packages.total | default(0) > 100 }}"
+          # System configuration - use first regular user's shell as default
+          default_user_shell: >-
+            {{
+              (discovered_users.system_users.regular_users_detailed | default([]) | first).shell | default('/bin/bash') | basename
+              if discovered_users.system_users.regular_users_detailed | default([]) | length > 0
+              else '/bin/bash'
+            }}
 
     - name: Generate container_platform role variables
       ansible.builtin.set_fact:
         container_platform_vars:
-          # Docker configuration
-          docker_users:
-            - "{{ discovered_users.current_user.name }}"
+          # Docker configuration - add all regular users to docker group
+          docker_users: "{{ discovered_users.system_users.regular_users | default([]) }}"
 
           # Use geerlingguy.docker role for installation
           docker_install_compose: "{{ discovered_docker.compose.available }}"
@@ -50,28 +47,10 @@
     - name: Generate dotfiles role variables
       ansible.builtin.set_fact:
         dotfiles_vars:
-          # Use primary dotfiles (first user with repository, fallback to configs)
-          dotfiles_source_type: >-
-            {{
-              'repository' if discovered_dotfiles.primary_dotfiles.repository_detected | default(false)
-              else 'local_files' if discovered_dotfiles.primary_dotfiles.local_configs_detected | default(false)
-              else 'none'
-            }}
-          dotfiles_repository_url: "{{ discovered_dotfiles.primary_dotfiles.repository_url | default('') }}"
-          dotfiles_branch: "{{ discovered_dotfiles.primary_dotfiles.repository_branch | default('main') }}"
-          dotfiles_method: "{{ 'stow' if discovered_dotfiles.primary_dotfiles.uses_stow | default(false) else 'symlink' }}"
-
-          # Multi-user dotfiles information
-          dotfiles_users_scanned: "{{ discovered_dotfiles.total_users_scanned | default(0) }}"
-          dotfiles_users_with_configs: "{{ discovered_dotfiles.users_with_dotfiles | length | default(0) }}"
-          dotfiles_primary_user: "{{ discovered_dotfiles.primary_dotfiles.user | default('') }}"
-
-          # Backup configuration
-          dotfiles_backup_existing: true
-          dotfiles_backup_suffix: ".pre-ansible"
+          # Users with dotfiles repositories
+          discovered_users_config: "{{ discovered_users.system_users.regular_users_detailed | default([]) }}"
       when:
-        - discovered_dotfiles is defined
-        - discovered_dotfiles.users_with_dotfiles | default([]) | length > 0
+        - discovered_users.system_users.regular_users_detailed | default([]) | length > 0
 
     - name: Generate system_tuning role variables
       ansible.builtin.set_fact:
@@ -89,8 +68,8 @@
 
           # User permissions and groups
           system_tuning_sudo_nopasswd: false  # User can enable for convenience
-          # Use discovered user groups - no automatic additions
-          discovered_user_groups: "{{ discovered_users.current_user.groups | default([]) }}"
+          # Discovered users and their groups - ready for per-user configuration
+          discovered_user_details: "{{ discovered_users.system_users.regular_users_detailed | default([]) }}"
           system_tuning_user_groups_add: []  # User can add groups as needed
 
     - name: Generate maintenance role variables
@@ -104,32 +83,21 @@
           enable_automatic_updates: false    # User can enable as needed
 
           # Development environment detected - maintenance may be useful
-          maintain_dev_tools: "{{ discovered_packages.total | default(0) > 100 }}"  # Many packages detected
+          maintain_dev_tools: "{{ discovered_packages.all_native | default([]) | length > 100 }}"
 
     - name: Generate system_security role variables
       ansible.builtin.set_fact:
         system_security_vars:
           # Only configure security features that are currently detected
-          enable_firewall: "{{ discovered_services.security.firewall_detected | default(false) }}"
-          enable_fail2ban: "{{ discovered_services.security.fail2ban_detected | default(false) }}"
-
-          # Use discovered firewall type (only if firewall is detected)
-          firewall_type: >-
-            {%- if discovered_services.security.firewall_type | default('none') != 'none' -%}
-              {{ discovered_services.security.firewall_type }}
-            {%- else -%}
-              ""
-            {%- endif %}
-
-          # Configure ports only if SSH service is detected
-          firewall_allowed_ports: >-
-            {{
-              (['22'] if discovered_services.security.ssh_detected | default(false) else [])
-            }}
+          enable_firewall: "{{ discovered_security.firewall.detected | default(false) }}"
+          enable_fail2ban: "{{ discovered_security.fail2ban.service_enabled | default(false) }}"
+          firewall_type: "{{ discovered_security.firewall.type | default('') }}"
+          firewall_allowed_ports: "{{ discovered_security.firewall.allowed_ports | default([]) }}"
       when:
-        - discovered_services.security.firewall_detected | default(false) or
-          discovered_services.security.fail2ban_detected | default(false) or
-          discovered_services.security.ssh_detected | default(false)
+        - discovered_security is defined
+        - (discovered_security.firewall.detected | default(false) or
+           discovered_security.fail2ban.service_enabled | default(false) or
+           discovered_security.ssh.service_running | default(false))
 
     - name: Combine all role variables
       ansible.builtin.set_fact:

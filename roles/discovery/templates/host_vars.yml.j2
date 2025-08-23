@@ -130,22 +130,22 @@ ssh_port_custom: {{ discovered_security.ssh.settings.port | default('22') }}
 # system_tuning_bluetooth_enabled: false         # Uncomment for Bluetooth support
 
 # User Groups Configuration
-# Current user groups discovered on the system
-discovered_user_groups: {{ discovered_users.current_user.groups | default([]) }}
+# All regular users and their groups discovered on the system
+discovered_user_details: {{ discovered_users.system_users.regular_users_detailed | default([]) }}
 
 # System tuning groups (add user to additional groups as needed)
 # system_tuning_user_groups_add: []              # Uncomment to add user to additional groups
 
 # System Security Configuration
 # Based on discovered security services and configurations
-{% if discovered_services.security.firewall_detected | default(false) %}
+{% if discovered_security.firewall is defined and discovered_security.firewall.detected | default(false) %}
 enable_firewall: true                            # Firewall service detected
-firewall_type: "{{ discovered_services.security.firewall_type | default('') }}"  # Discovered: {{ discovered_services.security.firewall_type | default('') }}
+firewall_type: "{{ discovered_security.firewall.type | default('') }}"  # Discovered: {{ discovered_security.firewall.type | default('') }}
 {% else %}
 # enable_firewall: false                         # No firewall detected - uncomment to enable
 # firewall_type: "ufw"                           # Uncomment and set desired firewall type
 {% endif %}
-{% if discovered_services.security.fail2ban_detected | default(false) %}
+{% if discovered_security.fail2ban is defined and discovered_security.fail2ban.service_enabled | default(false) %}
 enable_fail2ban: true                            # fail2ban service detected
 {% else %}
 # enable_fail2ban: true                          # No fail2ban detected - uncomment to enable

@@ -63,6 +63,40 @@ validate-galaxy:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
+validate-templates:
+  stage: validate
+  image: python:3.11-slim
+  <<: *base-setup
+  script:
+    - echo "Validating all Jinja2 templates..."
+    - |
+      find roles -name "*.j2" -type f | while read template; do
+        echo "Checking: $template"
+        python3 -c "
+      from jinja2 import Environment, FileSystemLoader, StrictUndefined
+      import os
+      import sys
+      template_path = '$template'
+      template_dir = os.path.dirname(template_path)
+      template_name = os.path.basename(template_path)
+      try:
+          env = Environment(
+              loader=FileSystemLoader(template_dir),
+              undefined=StrictUndefined
+          )
+          # Attempt to parse the template
+          env.get_template(template_name)
+          print(f'✓ Template syntax valid: {template_path}')
+      except Exception as e:
+          print(f'✗ Template syntax error in {template_path}: {e}')
+          sys.exit(1)
+        "
+      done
+    - echo "All templates validated successfully!"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
 # Role Testing Stage
 test-basic-setup:
   stage: test-roles

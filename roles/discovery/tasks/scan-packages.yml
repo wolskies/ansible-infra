@@ -1,52 +1,60 @@
 ---
-# Package and Repository Discovery
-# Discovers installed packages and package sources
+# Simplified Package Discovery
+# Clean separation: Native packages vs Language ecosystem packages
 
-- name: Discover package repositories by distribution
+# Step 1: Discover native packages (OS-specific)
+- name: Discover native packages by OS
   ansible.builtin.include_tasks: "scan-packages-{{ ansible_os_family }}.yml"
   when: ansible_os_family in ['Debian', 'Archlinux', 'Darwin']
-  tags:
-    - repositories
-    - packages
 
-- name: Store discovered packages
+# Step 2: Discover language ecosystem packages (cross-platform)
+- name: Discover third-party language packages
+  ansible.builtin.include_tasks: scan-third-party-packages.yml
+
+# Step 3: Store results in clean, simple structure
+- name: Store package discovery results
   ansible.builtin.set_fact:
     discovered_packages:
-      total: >-
-        {%- if ansible_os_family == "Archlinux" -%}
-          {{- discovery_archlinux_explicit_packages | default([]) | length -}}
-        {%- else -%}
-          {{- ansible_facts.packages.keys() | length -}}
-        {%- endif -%}
-      all: >-
-        {%- if ansible_os_family == "Archlinux" -%}
-          {{- discovery_archlinux_explicit_packages | default([]) -}}
-        {%- else -%}
-          {{- ansible_facts.packages.keys() | list -}}
-        {%- endif -%}
-
-      # Separate standard vs third-party packages (for Debian/Ubuntu)
-      standard: >-
+      # Native package manager packages
+      native: >-
         {%- if ansible_os_family == "Debian" -%}
-          {{- ansible_facts.packages.keys() | difference(third_party_package_map.keys() | default([])) | list -}}
+          {{ discovered_repositories.apt.manual_packages | default([]) }}
         {%- elif ansible_os_family == "Archlinux" -%}
-          {{- discovery_archlinux_explicit_packages | default([]) -}}
+          {{ discovery_archlinux_explicit_packages | default([]) }}
+        {%- elif ansible_os_family == "Darwin" -%}
+          {{ (homebrew_packages_result.stdout_lines | default([])) + (homebrew_casks_result.stdout_lines | default([])) }}
         {%- else -%}
-          {{- ansible_facts.packages.keys() | list -}}
+          {{ ansible_facts.packages.keys() | list }}
         {%- endif -%}
-      third_party: "{{ third_party_package_map.keys() | default([]) | list }}"
 
-      # Package manager specific
-      homebrew_formulae: "{{ homebrew_packages_result.stdout_lines | default([]) }}"
-      homebrew_casks: "{{ homebrew_casks_result.stdout_lines | default([]) }}"
-      aur_packages: "{{ discovery_aur_packages_result.results | default([]) | selectattr('stdout_lines', 'defined') | map(attribute='stdout_lines') | flatten | list }}"
+      # Language ecosystem packages
+      languages: "{{ discovered_third_party_packages | default({}) }}"
 
-- name: Initialize empty repository results for unsupported distributions
+      # Simple consolidated list for templates
+      all_native: >-
+        {%- if ansible_os_family == "Debian" -%}
+          {{ discovered_repositories.apt.manual_packages | default([]) }}
+        {%- elif ansible_os_family == "Archlinux" -%}
+          {{ discovery_archlinux_explicit_packages | default([]) }}
+        {%- elif ansible_os_family == "Darwin" -%}
+          {{ (homebrew_packages_result.stdout_lines | default([])) + (homebrew_casks_result.stdout_lines | default([])) }}
+        {%- else -%}
+          {{ ansible_facts.packages.keys() | list }}
+        {%- endif -%}
+
+- name: Set empty package results for unsupported OS
   ansible.builtin.set_fact:
-    discovered_repositories: {}
-    third_party_package_map: {}
+    discovered_packages:
+      native: []
+      languages: {}
+      all_native: []
   when: ansible_os_family not in ['Debian', 'Archlinux', 'Darwin']
 
-  tags:
-    - repositories
-    - packages
+- name: Debug package discovery results
+  ansible.builtin.debug:
+    msg:
+      - "Native packages ({{ ansible_os_family }}): {{ discovered_packages.all_native | length }}"
+      - "Python packages: {{ discovered_packages.languages.python | default([]) | length }}"
+      - "Node.js packages: {{ discovered_packages.languages.nodejs.npm_global | default([]) | length }}"
+      - "Rust packages: {{ discovered_packages.languages.rust.cargo | default([]) | length }}"
+  when: discovery_debug | default(false)
