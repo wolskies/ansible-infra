@@ -30,18 +30,19 @@
           # Use geerlingguy.docker role for installation
           docker_install_compose: "{{ discovered_docker.compose.available }}"
 
-          # Compose directory configuration
-          docker_compose_dir: "{{ discovered_docker.compose_dir }}"
+          # Compose search paths configuration
+          docker_compose_search_paths: "{{ discovered_docker.compose_services.search_paths | default([]) }}"
 
           # Deploy Portainer if Docker is found
           deploy_portainer: true
 
           # Canned services to deploy with dedicated roles
-          docker_canned_services: "{{ discovered_docker.services.canned | default([]) }}"
-          docker_canned_roles: "{{ discovered_docker.services.canned_roles | default([]) }}"
+          docker_canned_services: "{{ discovered_docker.compose_services.canned | default([]) }}"
+          docker_canned_roles: >-
+            {{ discovered_docker.compose_services.canned | default([]) | map(attribute='role') | unique | list }}
 
           # Generic services to deploy
-          docker_generic_services: "{{ discovered_docker.services.generic | default([]) }}"
+          docker_generic_services: "{{ discovered_docker.compose_services.generic | default([]) }}"
       when: discovered_docker.installed | default(false)
 
     - name: Generate dotfiles role variables
@@ -92,7 +93,7 @@
           enable_firewall: "{{ discovered_security.firewall.detected | default(false) }}"
           enable_fail2ban: "{{ discovered_security.fail2ban.service_enabled | default(false) }}"
           firewall_type: "{{ discovered_security.firewall.type | default('') }}"
-          firewall_allowed_ports: "{{ discovered_security.firewall.allowed_ports | default([]) }}"
+          firewall_rules: "{{ discovered_security.firewall.rules | default([]) }}"
       when:
         - discovered_security is defined
         - (discovered_security.firewall.detected | default(false) or

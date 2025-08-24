@@ -6,7 +6,14 @@
   register: discovery_pacman_explicit_packages
   become: false
   changed_when: false
-  failed_when: false
+  failed_when: discovery_pacman_explicit_packages.rc not in [0, 127]
+
+- name: Validate pacman package discovery
+  ansible.builtin.fail:
+    msg: "Pacman package discovery failed - pacman command failed: {{ discovery_pacman_explicit_packages.stderr | default('Unknown error') }}"
+  when:
+    - discovery_pacman_explicit_packages.rc != 0
+    - discovery_pacman_explicit_packages.rc != 127
 
 - name: scan-packages-Archlinux | Pacman repository discovery
   block:
@@ -15,14 +22,14 @@
         src: "{{ repository_detection.pacman.config }}"
       register: discovery_pacman_config
       become: true
-      failed_when: false
+      # Let it fail if config file exists but can't be read
 
     - name: scan-packages-Archlinux | Read pacman mirrorlist
       ansible.builtin.slurp:
         src: "{{ repository_detection.pacman.mirrorlist }}"
       register: discovery_pacman_mirrorlist
       become: true
-      failed_when: false
+      # Let it fail if mirrorlist exists but can't be read
 
     - name: scan-packages-Archlinux | Check for AUR helpers
       ansible.builtin.stat:
@@ -43,6 +50,31 @@
       ansible.builtin.debug:
         msg: "Pacman repository discovery failed"
 
+- name: scan-packages-Archlinux | Get base system packages
+  ansible.builtin.command: "pacman -Qg base base-devel"
+  register: discovery_base_packages_result
+  become: false
+  changed_when: false
+  failed_when: false
+
+- name: scan-packages-Archlinux | Filter out base system and hardware-specific packages
+  ansible.builtin.set_fact:
+    filtered_packages: >-
+      {{
+        (discovery_pacman_explicit_packages.stdout_lines | default([])) 
+        | map('regex_replace', ' .*', '') 
+        | difference((discovery_base_packages_result.stdout_lines | default([])) | map('regex_replace', '^[^ ]+ ', ''))
+        | reject('match', '^(linux|linux-.*|.*-firmware|.*-microcode)$')
+        | reject('match', '^(nvidia|nvidia-.*|libva-nvidia.*|opencl-nvidia|cuda|cuda-.*)$')
+        | reject('match', '^(mesa|vulkan-.*|lib32-mesa|lib32-vulkan-.*)$')
+        | reject('match', '^(amd-ucode|intel-ucode)$')
+        | reject('match', '^(alsa-.*|pulseaudio|pipewire|wireplumber)$')
+        | reject('match', '^(systemd|glibc|gcc-libs|glibc-.*|lib32-glibc)$')
+        | reject('match', '^(grub|grub-.*|bootctl|systemd-boot)$')
+        | reject('match', '^lib(32-)?.*$')
+        | list
+      }}
+
 - name: scan-packages-Archlinux | Store Pacman repository discovery results
   ansible.builtin.set_fact:
     discovered_repositories:
@@ -51,5 +83,5 @@
         mirrorlist: "{{ discovery_pacman_mirrorlist.content | default('') | b64decode }}"
         aur_helpers: "{{ (discovery_aur_helpers_check.results | default([])) | selectattr('stat', 'defined') | selectattr('stat.exists') | map(attribute='item') | list }}"
     discovery_aur_packages_result: "{{ discovery_aur_packages }}"
-    # Override package facts with explicit packages only
-    discovery_archlinux_explicit_packages: "{{ (discovery_pacman_explicit_packages.stdout_lines | default([])) | map('regex_replace', ' .*', '') | list }}"
+    # Use filtered packages instead of all explicit packages
+    discovery_archlinux_explicit_packages: "{{ filtered_packages }}"

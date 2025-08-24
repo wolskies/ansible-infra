@@ -2,15 +2,18 @@
 # Configuration File Generation
 # Generates host_vars in user's inventory structure
 
-- name: Generate host variables for collection use
+# NOTE: vars.yml is now built progressively in main.yml
+# This file only generates the secrets template
+
+- name: Generate secrets template file
   ansible.builtin.template:
-    src: "host_vars_collection.yml.j2"
-    dest: "{{ discovery_paths.host_vars_file }}"
-    mode: '0644'
+    src: "host_secrets.yml.j2"
+    dest: "{{ discovery_paths.host_vars_dir }}/secrets.yml"
+    mode: '0600'  # Restricted permissions for secrets file
   delegate_to: localhost
   tags:
     - generation
-    - host_vars
+    - secrets
 
 
 - name: Create docker-compose directory
@@ -45,11 +48,17 @@
     msg:
       - "=== Configuration Files Generated ==="
       - "Host variables: {{ discovery_paths.host_vars_file }}"
+      - "Secrets template: {{ discovery_paths.host_vars_dir }}/secrets.yml"
       - "Host directory: {{ discovery_paths.host_vars_dir }}"
+      - ""
+      - "IMPORTANT: Next steps for secrets management:"
+      - "1. Edit {{ discovery_paths.host_vars_dir }}/secrets.yml with your passwords and keys"
+      - "2. Encrypt it: ansible-vault encrypt {{ discovery_paths.host_vars_dir }}/secrets.yml"
+      - "3. Use --ask-vault-pass when running playbooks"
       - ""
       - "Ready to use with wolskinet.infrastructure collection:"
       - "1. Review {{ discovery_paths.host_vars_file }}"
-      - "2. Run: ansible-playbook playbooks/your-playbook.yml -l {{ inventory_hostname }}"
+      - "2. Run: ansible-playbook playbooks/your-playbook.yml -l {{ inventory_hostname }} --ask-vault-pass"
       - "3. The basic_setup role will use the discovered packages automatically"
   tags:
     - generation

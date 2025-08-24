@@ -15,46 +15,79 @@
 docker_detected: true
 docker_version: "{{ discovered_docker.version | default('') }}"
 docker_compose_available: {{ discovered_docker.compose.available | default(false) }}
-docker_compose_dir: "{{ discovered_docker.compose_dir | default('/opt/docker') }}"
 
-{% if discovered_docker.services is defined and discovered_docker.services.canned is defined %}
-# Canned Services (will use dedicated collection roles)
-docker_canned_services:
-{% for service in discovered_docker.services.canned | default([]) %}
-  - name: "{{ service.name }}"
-    role: "{{ service.role }}"
-    image: "{{ service.image }}"
-    compose_file: "{{ service.compose_file }}"
-{% endfor %}
+# Docker Compose Search Paths
+docker_compose_search_paths: {{ discovered_docker.compose_services.search_paths | default([]) }}
 
-docker_canned_roles: {{ discovered_docker.services.canned_roles | default([]) }}
-{% endif %}
-
-{% if discovered_docker.services is defined and discovered_docker.services.generic is defined %}
-# Generic Services (will use generic deployment)
-docker_generic_services:
-{% for service in discovered_docker.services.generic | default([]) %}
-  - name: "{{ service.name }}"
-    image: "{{ service.image }}"
-    compose_file: "{{ service.compose_file }}"
-    compose_dir: "{{ service.compose_dir }}"
+{% if discovered_docker.containers.count > 0 %}
+# Running Docker Containers: {{ discovered_docker.containers.count }}
+docker_running_containers:
+{% for container in discovered_docker.containers.running | default([]) %}
+  - name: "{{ container.Names | default('') }}"
+    image: "{{ container.Image | default('') }}"
+    ports: "{{ container.Ports | default('') }}"
+    status: "{{ container.Status | default('') }}"
 {% endfor %}
 {% endif %}
 
-{% if discovered_docker.compose_files is defined %}
-# Discovered Compose Files
-docker_compose_files: {{ discovered_docker.compose_files | default([]) }}
+{% if discovered_docker.compose_services.total > 0 %}
+# Discovered Docker Compose Services: {{ discovered_docker.compose_services.total }}
+# Services are organized by folder, each with its own docker-compose.yml
+
+{% if discovered_docker.compose_services.canned | length > 0 %}
+# === Canned Services (with dedicated collection roles) ===
+docker_compose_canned_services:
+{% for service in discovered_docker.compose_services.canned %}
+  - name: "{{ service.name }}"  # Folder: {{ service.directory }}
+    directory: "{{ service.directory }}"
+    role: "{{ service.role }}"  # Collection role to use
+    compose_file: "{{ service.compose_file }}"
+{% if service.ports is defined and service.ports | length > 0 %}
+    ports: {{ service.ports }}
+{% endif %}
+{% if service.containers is defined %}
+    containers:
+{% for container in service.containers %}
+      - name: "{{ container.name }}"
+        image: "{{ container.image }}"
+{% endfor %}
+{% endif %}
+{% if service.env_files is defined and service.env_files | length > 0 %}
+    env_files: {{ service.env_files }}
 {% endif %}
 
-{% if discovered_docker.env_files is defined %}
-# Discovered Environment Files
-docker_env_files: {{ discovered_docker.env_files | default([]) }}
+{% endfor %}
 {% endif %}
 
-{% if discovered_docker.services is defined and discovered_docker.services.generic is defined %}
-# Generic compose files have been copied to:
-# ./host_vars/{{ inventory_hostname }}/docker_compose/
-# Review and customize these files, especially .env files for secrets
+{% if discovered_docker.compose_services.generic | length > 0 %}
+# === Generic Services (custom deployments) ===
+docker_compose_generic_services:
+{% for service in discovered_docker.compose_services.generic %}
+  - name: "{{ service.name }}"  # Folder: {{ service.directory }}
+    directory: "{{ service.directory }}"
+    compose_file: "{{ service.compose_file }}"
+{% if service.ports is defined and service.ports | length > 0 %}
+    ports: {{ service.ports }}
+{% endif %}
+{% if service.containers is defined %}
+    containers:
+{% for container in service.containers %}
+      - name: "{{ container.name }}"
+        image: "{{ container.image }}"
+{% endfor %}
+{% endif %}
+{% if service.env_files is defined and service.env_files | length > 0 %}
+    env_files: {{ service.env_files }}
+{% endif %}
+{% if service.volumes is defined and service.volumes | length > 0 %}
+    volumes: {{ service.volumes }}
+{% endif %}
+
+{% endfor %}
+
+# NOTE: Review these generic services and their configurations
+# Consider creating dedicated roles or using container_platform role
+{% endif %}
 {% endif %}
 
 {% endif %}
@@ -116,31 +149,76 @@ ssh_port_custom: {{ discovered_security.ssh.settings.port | default('22') }}
 {% endif %}
 
 {% endif %}
-# System Tuning Configuration
-# Placeholders for system-level optimizations and user permissions
-# system_tuning_network_enabled: false           # Uncomment to enable network performance tuning
-# system_tuning_security_enabled: false          # Uncomment to enable SSH hardening
-# system_tuning_sudo_nopasswd: false             # Uncomment to enable passwordless sudo for primary user
-# system_tuning_ssh_hardening_enabled: false     # Uncomment to harden SSH configuration
+# === SYSTEM TUNING CONFIGURATION ===
+# Hardware and performance optimizations with sensible defaults
 
-# Hardware and performance optimizations (enable as needed):
-# system_tuning_gaming_enabled: false            # Uncomment for gaming optimizations
-# system_tuning_gpu_enabled: false               # Uncomment for GPU-specific configurations
-# system_tuning_camera_support_enabled: false    # Uncomment for camera/webcam support
-# system_tuning_bluetooth_enabled: false         # Uncomment for Bluetooth support
+# Gaming optimizations
+gaming:
+  enabled: false                                # Enable gaming-specific optimizations
+  kernel_params: ["mitigations=off"]           # Kernel parameters for performance
+  cpu_governor: "performance"                   # CPU frequency governor
 
-# User Groups Configuration
+# GPU configuration  
+gpu:
+  enabled: false                                # Enable GPU-specific configurations
+  nvidia_support: false                        # NVIDIA driver support
+  amd_support: false                           # AMD driver support  
+  intel_support: false                         # Intel integrated graphics
+
+# Bluetooth support
+bluetooth:
+  enabled: false                                # Enable Bluetooth functionality
+  audio_codecs: ["aptx", "ldac", "aac"]        # Supported audio codecs
+
+# Camera/webcam support
+camera:
+  enabled: false                                # Enable camera/webcam support
+  v4l2_support: true                           # Video4Linux2 support
+
+# Audio system optimizations
+audio:
+  enabled: false                                # Enable audio optimizations
+  low_latency: false                           # Low-latency audio configuration
+  real_time_audio: false                       # Real-time audio processing
+
+# Security configuration
+security:
+  ssh_hardening: false                         # Enable SSH security hardening
+  firewall_strict: false                       # Enable strict firewall rules
+  fail2ban: false                              # Enable fail2ban intrusion prevention
+
+# Network performance tuning  
+network:
+  performance_tuning: false                    # Enable network performance optimizations
+  tcp_optimization: false                      # Enable TCP stack optimizations
+
+# Discovered Users and Groups  
 # All regular users and their groups discovered on the system
 discovered_user_details: {{ discovered_users.system_users.regular_users_detailed | default([]) }}
 
-# System tuning groups (add user to additional groups as needed)
-# system_tuning_user_groups_add: []              # Uncomment to add user to additional groups
+# User-specific configuration options (configure per user as needed):
+# For user management, create individual entries like:
+# users:
+#   - name: "username"
+#     sudo_nopasswd: false                     # Enable passwordless sudo for this user
+#     ssh_public_key: ""                       # SSH public key content to deploy for this user  
+#     ssh_password_auth: true                  # Allow password authentication for this user
 
-# System Security Configuration
+# === SECURITY CONFIGURATION ===
 # Based on discovered security services and configurations
 {% if discovered_security.firewall is defined and discovered_security.firewall.detected | default(false) %}
 enable_firewall: true                            # Firewall service detected
 firewall_type: "{{ discovered_security.firewall.type | default('') }}"  # Discovered: {{ discovered_security.firewall.type | default('') }}
+
+{% if discovered_security.firewall.rules is defined and discovered_security.firewall.rules | length > 0 %}
+# Discovered firewall rules (ready for community.general.ufw module)
+firewall_rules:
+{% for rule in discovered_security.firewall.rules %}
+  - rule: "{{ rule.rule }}"          # {{ rule.comment }}
+    port: "{{ rule.port }}"
+    proto: "{{ rule.proto }}"
+{% endfor %}
+{% endif %}
 {% else %}
 # enable_firewall: false                         # No firewall detected - uncomment to enable
 # firewall_type: "ufw"                           # Uncomment and set desired firewall type
@@ -150,12 +228,9 @@ enable_fail2ban: true                            # fail2ban service detected
 {% else %}
 # enable_fail2ban: true                          # No fail2ban detected - uncomment to enable
 {% endif %}
-{% if discovered_security.ssh.service_running | default(false) %}
-# firewall_allowed_ports:                        # SSH service detected
-#   - "22"                                        # Uncomment to configure firewall ports
-{% endif %}
 
-# System Information (for reference)
+# === SYSTEM INFORMATION ===
+# Discovery metadata and system details (for reference)
 discovered_info:
   os: "{{ discovered_system.os.distribution | default('unknown') }} {{ discovered_system.os.version | default('') }}"
   architecture: "{{ discovered_system.os.architecture | default('unknown') }}"

@@ -123,6 +123,30 @@ discovery:
    - File locations
    - Next steps
 
+## Package Filtering
+
+Discovery automatically filters out hardware-specific and system packages to focus on user-installed software:
+
+### Filtered Package Categories
+- **Hardware drivers**: nvidia, mesa, vulkan, GPU-specific packages
+- **GPU compute tools**: CUDA, OpenCL packages  
+- **Kernel packages**: linux kernels, firmware, microcode
+- **Audio systems**: ALSA, PulseAudio, PipeWire components
+- **Base system packages**: Core libraries and system components
+- **Boot loaders**: GRUB, systemd-boot
+
+### Distribution-Specific Filtering
+
+**Arch Linux**:
+- Excludes base/base-devel group packages
+- Filters hardware-specific packages
+- Preserves explicitly installed user packages
+
+**Debian/Ubuntu**:
+- Excludes required/important priority packages  
+- Filters hardware and system packages
+- Preserves manually installed packages
+
 ## Integration with Collection Roles
 
 Discovery generates variables compatible with collection roles:

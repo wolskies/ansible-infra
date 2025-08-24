@@ -9,26 +9,46 @@
       register: all_manual_packages_result
       become: true
       changed_when: false
-      failed_when: false
+      failed_when: all_manual_packages_result.rc not in [0, 127]  # Allow command not found, fail on real errors
 
-    - name: Get base system packages (required/important priority)
-      ansible.builtin.shell: |
-        # Use apt-cache policy instead of apt list for more reliable priority detection
-        dpkg-query -W -f='${Package} ${Priority}\n' | grep -E ' (required|important)$' | cut -d' ' -f1
-      register: base_packages_result
+    - name: Validate package discovery succeeded
+      ansible.builtin.fail:
+        msg: "Package discovery failed - apt-mark command failed with error: {{ all_manual_packages_result.stderr | default('Unknown error') }}"
+      when:
+        - all_manual_packages_result.rc != 0
+        - all_manual_packages_result.rc != 127  # 127 = command not found (OK)
+
+    - name: Get package facts for filtering base packages  
+      ansible.builtin.package_facts:
+        manager: apt
       become: true
-      changed_when: false
-      failed_when: false
 
-    - name: Filter out base system packages
+    - name: Define base system packages to filter out
+      ansible.builtin.set_fact:
+        base_system_packages:
+          - base-files
+          - base-passwd  
+          - debian-archive-keyring
+          - ubuntu-keyring
+          - grub-common
+          - initramfs-tools
+          - systemd-sysv
+          - libc6
+          - libgcc-s1
+          - libsystemd0
+          - amd64-microcode
+          - intel-microcode
+
+    - name: Filter out base system packages and hardware-specific packages
       ansible.builtin.set_fact:
         manual_packages: >-
           {{
             all_manual_packages_result.stdout_lines | default([])
-            | difference(base_packages_result.stdout_lines | default([]))
-            | reject('match', '^(base-files|base-passwd|debian-archive-keyring|ubuntu-keyring)$')
-            | reject('match', '^(grub-common|initramfs-tools|systemd-sysv)$')
-            | reject('match', '^lib(c6|gcc-s1|systemd0)$')
+            | difference(base_system_packages)
+            | reject('match', '^(linux-.*|.*-firmware|.*-microcode)$')
+            | reject('match', '^(nvidia-.*|libva-nvidia.*|opencl-nvidia|cuda.*|opencl-.*)$') 
+            | reject('match', '^(mesa-.*|vulkan-.*|lib32-mesa.*|lib32-vulkan-.*)$')
+            | reject('match', '^(alsa-.*|pulseaudio.*|pipewire.*|wireplumber.*)$')
             | list
           }}
 
@@ -47,7 +67,7 @@
       register: repo_contents
       loop: "{{ repo_files.files }}"
       become: true
-      failed_when: false
+      # Let it fail if files exist but can't be read (permission issues, corruption, etc.)
 
     # Step 3: Parse repositories and extract key paths
     - name: Parse third-party repositories

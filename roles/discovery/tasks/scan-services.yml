@@ -38,19 +38,41 @@
              ('fail2ban.service' in ansible_facts.services and
               ansible_facts.services['fail2ban.service'].get('status', '') == 'enabled') }}
         firewall_detected: >-
-          {{ 'ufw' in ansible_facts.services or
-             'ufw.service' in ansible_facts.services or
-             'firewalld' in ansible_facts.services or
-             'firewalld.service' in ansible_facts.services or
-             'iptables' in ansible_facts.services or
-             'iptables.service' in ansible_facts.services }}
+          {{ ('ufw' in ansible_facts.services and
+              ansible_facts.services['ufw'].get('status', '') == 'enabled') or
+             ('ufw.service' in ansible_facts.services and
+              ansible_facts.services['ufw.service'].get('status', '') == 'enabled') or
+             ('firewalld' in ansible_facts.services and
+              ansible_facts.services['firewalld'].get('status', '') == 'enabled') or
+             ('firewalld.service' in ansible_facts.services and
+              ansible_facts.services['firewalld.service'].get('status', '') == 'enabled') or
+             ('iptables' in ansible_facts.services and
+              ansible_facts.services['iptables'].get('status', '') == 'enabled') or
+             ('iptables.service' in ansible_facts.services and
+              ansible_facts.services['iptables.service'].get('status', '') == 'enabled') }}
         firewall_type: >-
-          {%- if 'ufw' in ansible_facts.services or 'ufw.service' in ansible_facts.services -%}
+          {%- if ('ufw' in ansible_facts.services and ansible_facts.services['ufw'].get('status', '') == 'enabled') or 
+                 ('ufw.service' in ansible_facts.services and ansible_facts.services['ufw.service'].get('status', '') == 'enabled') -%}
             ufw
-          {%- elif 'firewalld' in ansible_facts.services or 'firewalld.service' in ansible_facts.services -%}
+          {%- elif ('firewalld' in ansible_facts.services and ansible_facts.services['firewalld'].get('status', '') == 'enabled') or
+                   ('firewalld.service' in ansible_facts.services and ansible_facts.services['firewalld.service'].get('status', '') == 'enabled') -%}
             firewalld
-          {%- elif 'iptables' in ansible_facts.services or 'iptables.service' in ansible_facts.services -%}
+          {%- elif ('iptables' in ansible_facts.services and ansible_facts.services['iptables'].get('status', '') == 'enabled') or
+                   ('iptables.service' in ansible_facts.services and ansible_facts.services['iptables.service'].get('status', '') == 'enabled') -%}
             iptables
+          {%- else -%}
+            none
+          {%- endif %}
+        firewall_type_output: >-
+          {%- if ('ufw' in ansible_facts.services and ansible_facts.services['ufw'].get('status', '') == 'enabled') or 
+                 ('ufw.service' in ansible_facts.services and ansible_facts.services['ufw.service'].get('status', '') == 'enabled') -%}
+            ufw
+          {%- elif ('firewalld' in ansible_facts.services and ansible_facts.services['firewalld'].get('status', '') == 'enabled') or
+                   ('firewalld.service' in ansible_facts.services and ansible_facts.services['firewalld.service'].get('status', '') == 'enabled') -%}
+            firewalld
+          {%- elif ('iptables' in ansible_facts.services and ansible_facts.services['iptables'].get('status', '') == 'enabled') or
+                   ('iptables.service' in ansible_facts.services and ansible_facts.services['iptables.service'].get('status', '') == 'enabled') -%}
+            ufw
           {%- else -%}
             none
           {%- endif %}
@@ -85,37 +107,141 @@
              ('bluetooth.service' in ansible_facts.services and
               ansible_facts.services['bluetooth.service'].get('status', '') == 'enabled') }}
 
-- name: Get UFW firewall configuration
+- name: Get firewall configuration using proper modules
   block:
-    - name: Get UFW status and rules
-      ansible.builtin.shell: |
-        ufw --help > /dev/null 2>&1 && ufw status numbered || echo "ufw not available"
-      register: ufw_status
-      become: true
-      changed_when: false
-      failed_when: false
+    - name: Check if UFW binary exists
+      ansible.builtin.stat:
+        path: /usr/sbin/ufw
+      register: ufw_binary_exists
       when: discovered_services.collection_relevant.firewall_type == 'ufw'
 
-    - name: Parse UFW rules for allowed ports
-      ansible.builtin.set_fact:
-        ufw_allowed_ports: >-
-          {%- set ports = [] -%}
-          {%- if ufw_status.stdout is defined and 'ALLOW' in ufw_status.stdout -%}
-            {%- for line in ufw_status.stdout.split('\n') -%}
-              {%- if 'ALLOW' in line and not line.startswith('[') -%}
-                {%- set port_match = line | regex_findall('\\s+(\\d+)(?:/(tcp|udp))?\\s+ALLOW') -%}
-                {%- if port_match and port_match[0] and port_match[0][0] -%}
-                  {%- set _ = ports.append(port_match[0][0]) -%}
-                {%- endif -%}
-              {%- endif -%}
-            {%- endfor -%}
-          {%- endif -%}
-          {{ ports | unique | list }}
+    - name: Get UFW status output for parsing
+      ansible.builtin.command: ufw status
+      register: ufw_status_output
+      become: true
+      changed_when: false
       when:
         - discovered_services.collection_relevant.firewall_type == 'ufw'
-        - ufw_status.stdout is defined
+        - ufw_binary_exists.stat.exists
+      # Let this fail if UFW is installed but broken
+
+    - name: Parse UFW rules into structured format
+      ansible.builtin.set_fact:
+        firewall_rules: []
+        firewall_type_detected: "ufw"
+      when:
+        - discovered_services.collection_relevant.firewall_type == 'ufw'
+        - ufw_status_output.stdout_lines is defined
+
+    - name: Build UFW rules list
+      ansible.builtin.set_fact:
+        firewall_rules: "{{ firewall_rules + [simple_rule] }}"
+      vars:
+        line_parts: "{{ item.split() }}"
+        port_proto: "{{ line_parts[0] }}"
+        # Extract comment if it exists (UFW comments appear after #)
+        rule_comment: "{{ item.split('#')[1].strip() if '#' in item else '' }}"
+        simple_rule:
+          rule: "allow"
+          port: "{{ port_proto.split('/')[0] if '/' in port_proto else port_proto }}"
+          proto: "{{ port_proto.split('/')[1] if '/' in port_proto else 'any' }}"
+          comment: "{{ rule_comment }}"
+      loop: "{{ ufw_status_output.stdout_lines }}"
+      when:
+        - discovered_services.collection_relevant.firewall_type == 'ufw'
+        - ufw_status_output.stdout_lines is defined
+        - line_parts | length >= 3
+        - line_parts[1] == 'ALLOW'
+        - "'Status:' not in item"
+        - "'To' not in item"
+        - "not item.startswith('[')"
+
+    - name: Get firewalld info
+      ansible.posix.firewalld_info:
+        active_zones: true
+        zones: true
+        services: true
+        ports: true
+      register: firewalld_info
+      become: true
+      when: discovered_services.collection_relevant.firewall_type == 'firewalld'
+      # Let this fail if firewalld is enabled but broken
+
+    - name: Parse firewalld rules into structured format
+      ansible.builtin.set_fact:
+        firewall_rules: []
+        firewall_type_detected: "firewalld"
+      when:
+        - discovered_services.collection_relevant.firewall_type == 'firewalld'
+        - firewalld_info.zones is defined
+
+    - name: Build firewalld rules list from all zones
+      ansible.builtin.set_fact:
+        firewall_rules: "{{ firewall_rules + firewalld_parsed_rules }}"
+      vars:
+        firewalld_parsed_rules: >-
+          {%- set rules = [] -%}
+          {%- for zone_name, zone_data in firewalld_info.zones.items() -%}
+            {# Add port rules #}
+            {%- for port_spec in zone_data.ports | default([]) -%}
+              {%- set port_parts = port_spec.split('/') -%}
+              {%- set _ = rules.append({
+                'rule': 'allow',
+                'port': port_parts[0],
+                'proto': port_parts[1] if port_parts | length > 1 else 'any'
+              }) -%}
+            {%- endfor -%}
+            {# Add service rules #}
+            {%- for service_name in zone_data.services | default([]) -%}
+              {%- set _ = rules.append({
+                'rule': 'allow',
+                'port': service_name,
+                'proto': 'any'
+              }) -%}
+            {%- endfor -%}
+          {%- endfor -%}
+          {{ rules }}
+      when:
+        - discovered_services.collection_relevant.firewall_type == 'firewalld'
+        - firewalld_info.zones is defined
+
+    - name: Get iptables rules (simple)
+      ansible.builtin.shell: |
+        iptables -L INPUT -n | grep "ACCEPT.*dpt:" | grep -o "dpt:[0-9]*" | cut -d: -f2
+      register: iptables_ports_simple
+      become: true
+      changed_when: false
+      failed_when: iptables_ports_simple.rc not in [0, 1, 127]  # Allow grep no matches and command not found
+      when: discovered_services.collection_relevant.firewall_type == 'iptables'
+
+    - name: Parse iptables rules into structured format
+      ansible.builtin.set_fact:
+        firewall_rules: []
+        firewall_type_detected: "iptables"
+      when:
+        - discovered_services.collection_relevant.firewall_type == 'iptables'
+        - iptables_ports_simple.stdout_lines is defined
+
+    - name: Build iptables rules list
+      ansible.builtin.set_fact:
+        firewall_rules: "{{ firewall_rules + [firewall_rule] }}"
+      vars:
+        firewall_rule:
+          rule: "allow"
+          port: "{{ item }}"
+          proto: "tcp"
+      loop: "{{ iptables_ports_simple.stdout_lines | default([]) }}"
+      when:
+        - discovered_services.collection_relevant.firewall_type == 'iptables'
+        - iptables_ports_simple.stdout_lines is defined
 
   when: discovered_services.collection_relevant.firewall_detected | default(false)
+
+- name: Set empty firewall rules when no firewall detected
+  ansible.builtin.set_fact:
+    firewall_rules: []
+    firewall_type_detected: "none"
+  when: not (discovered_services.collection_relevant.firewall_detected | default(false))
 
 - name: Store security configuration discovery
   ansible.builtin.set_fact:
@@ -128,8 +254,9 @@
         service_enabled: "{{ discovered_services.collection_relevant.fail2ban_enabled }}"
       firewall:
         detected: "{{ discovered_services.collection_relevant.firewall_detected }}"
-        type: "{{ discovered_services.collection_relevant.firewall_type }}"
-        allowed_ports: "{{ ufw_allowed_ports | default([]) }}"
+        type: "{{ discovered_services.collection_relevant.firewall_type_output }}"
+        original_type: "{{ discovered_services.collection_relevant.firewall_type }}"
+        rules: "{{ firewall_rules | default([]) }}"
   tags:
     - services
     - security

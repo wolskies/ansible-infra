@@ -55,14 +55,20 @@
       when: regular_users | length > 0
 
 # Step 4: Get groups for each user
-- name: Get user groups
-  ansible.builtin.shell: |
-    groups {{ item }} 2>/dev/null | sed 's/^[^:]*: //' || echo ""
-  register: user_groups_result
-  become: true
-  changed_when: false
-  failed_when: false
-  loop: "{{ regular_users }}"
+- name: Build user group mapping using getent facts
+  ansible.builtin.set_fact:
+    user_groups_mapping: >-
+      {%- set user_groups = {} -%}
+      {%- for user in regular_users -%}
+        {%- set groups = [] -%}
+        {%- for group_name, group_data in ansible_facts.getent_group.items() -%}
+          {%- if user in group_data[2].split(',') or group_data[1] == ansible_facts.getent_passwd[user][2] -%}
+            {%- set _ = groups.append(group_name) -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {%- set _ = user_groups.update({user: groups}) -%}
+      {%- endfor -%}
+      {{ user_groups }}
   when: regular_users | length > 0
 
 # Step 5: Check for dotfiles for each user
@@ -112,13 +118,13 @@
     - user_homes.results | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
     - dotfiles_dir != ''
 
-- name: Get dotfiles repository URLs
-  ansible.builtin.command: git -C {{ ansible_facts.getent_passwd[item][4] }}/{{ dotfiles_dir }} remote get-url origin
+- name: Read git config to get repository URL
+  ansible.builtin.slurp:
+    src: "{{ ansible_facts.getent_passwd[item][4] }}/{{ dotfiles_dir }}/.git/config"
   register: dotfiles_repo_urls
   become: true
   become_user: "{{ item }}"
-  changed_when: false
-  failed_when: false
+  failed_when: false  # Config file may not exist
   vars:
     dotfiles_dir: >-
       {{
@@ -133,13 +139,13 @@
     - dotfiles_dir != ''
     - dotfiles_git_repos.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)
 
-- name: Get dotfiles repository branches
-  ansible.builtin.command: git -C {{ ansible_facts.getent_passwd[item][4] }}/{{ dotfiles_dir }} branch --show-current
+- name: Read current git branch from HEAD file
+  ansible.builtin.slurp:
+    src: "{{ ansible_facts.getent_passwd[item][4] }}/{{ dotfiles_dir }}/.git/HEAD"
   register: dotfiles_repo_branches
   become: true
   become_user: "{{ item }}"
-  changed_when: false
-  failed_when: false
+  failed_when: false  # HEAD file may not exist
   vars:
     dotfiles_dir: >-
       {{
@@ -166,11 +172,11 @@
           'gid': ansible_facts.getent_passwd[item][2],
           'home': ansible_facts.getent_passwd[item][4],
           'shell': ansible_facts.getent_passwd[item][5],
-          'groups': (user_groups_result.results | selectattr('item', 'equalto', item) | map(attribute='stdout') | first | default('')).split(),
+          'groups': user_groups_mapping.get(item, []),
           'dotfiles_repo': (dotfiles_git_repos.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false)),
           'dotfiles_dir': dotfiles_directory,
-          'dotfiles_repo_url': (dotfiles_repo_urls.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stdout') | first | default('')),
-          'dotfiles_repo_branch': (dotfiles_repo_branches.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stdout') | first | default('main'))
+          'dotfiles_repo_url': dotfiles_git_url,
+          'dotfiles_repo_branch': dotfiles_git_branch
         }]
       }}
   vars:
@@ -180,6 +186,23 @@
         else 'dotfiles' if (dotfiles_fallback_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
         else ''
       }}
+    dotfiles_git_config: >-
+      {{ dotfiles_repo_urls.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='content') | first | default('') | b64decode }}
+    dotfiles_git_url: >-
+      {% set config_lines = dotfiles_git_config.split('\n') %}
+      {% for line in config_lines %}
+        {% if line.strip().startswith('url = ') %}
+          {{ line.strip()[6:] }}
+        {% endif %}
+      {% endfor %}
+    dotfiles_git_head: >-
+      {{ dotfiles_repo_branches.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='content') | first | default('') | b64decode }}
+    dotfiles_git_branch: >-
+      {% if dotfiles_git_head.startswith('ref: refs/heads/') %}
+        {{ dotfiles_git_head[16:].strip() }}
+      {% else %}
+        main
+      {% endif %}
   loop: "{{ regular_users }}"
   when: regular_users | length > 0
 

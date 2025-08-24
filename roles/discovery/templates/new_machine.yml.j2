@@ -14,9 +14,18 @@
 {% if discovered_docker is defined and discovered_docker.installed | default(false) %}
     # - geerlingguy.docker  # Install Docker
     # - wolskinet.infrastructure.container_platform  # Basic Docker setup + Portainer
-{% for role in discovered_docker.services.canned_roles | default([]) %}
-    # - wolskinet.infrastructure.{{ role }}  # Discovered {{ role }} service
+{% if discovered_docker.compose_services.canned | default([]) | length > 0 %}
+    # Discovered services with dedicated roles:
+{% for service in discovered_docker.compose_services.canned %}
+    # - wolskinet.infrastructure.{{ service.role }}  # {{ service.name }} at {{ service.directory }}
 {% endfor %}
+{% endif %}
+{% if discovered_docker.compose_services.generic | default([]) | length > 0 %}
+    # Generic Docker Compose services discovered:
+{% for service in discovered_docker.compose_services.generic %}
+    # - wolskinet.infrastructure.generic_docker_service  # {{ service.name }} at {{ service.directory }}
+{% endfor %}
+{% endif %}
 {% endif %}
 {% if discovered_dotfiles.users_with_dotfiles | default([]) | length > 0 %}  
     # - wolskinet.infrastructure.dotfiles  # Found dotfiles for {{ discovered_dotfiles.users_with_dotfiles | length }} user(s)

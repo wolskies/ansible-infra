@@ -12,6 +12,16 @@ discovery:
   timeout: 300
 
 # Docker Compose discovery configuration
+# Search paths for Docker Compose services
+# Each service is expected to be in its own folder with docker-compose.yml and any .env files
+discovery_docker_compose_paths:
+  - "/opt"
+  - "/opt/docker"
+  - "/srv"
+  - "/srv/docker"
+  - "/home/*/docker"  # Will be expanded to search all user home directories
+
+# Legacy single directory support (for backward compatibility)
 discovery_docker_compose_dir: "/opt/docker"  # Default compose directory to scan
 
 # Docker service mapping - maps container images to collection roles
@@ -82,3 +92,66 @@ discovery_dotfiles_detection:
     - setup.sh
     - stow
     - .stow-local-ignore
+
+# System tuning default configurations
+# These are added as commented placeholders in the discovery output
+# Users can uncomment and modify as needed for their specific hardware/use case
+discovery_system_tuning_defaults:
+  # Performance and hardware optimization
+  gaming:
+    enabled: false
+    description: "Gaming optimizations (kernel parameters, CPU governor, etc.)"
+    kernel_params: ["mitigations=off"]
+    cpu_governor: "performance"
+    
+  gpu:
+    enabled: false
+    description: "GPU-specific configurations and drivers"
+    nvidia_support: false
+    amd_support: false
+    intel_support: false
+    
+  bluetooth:
+    enabled: false
+    description: "Bluetooth support and audio codecs"
+    audio_codecs: ["aptx", "ldac", "aac"]
+    
+  camera:
+    enabled: false
+    description: "Camera/webcam support and permissions"
+    v4l2_support: true
+    
+  audio:
+    enabled: false
+    description: "Audio system optimizations"
+    low_latency: false
+    real_time_audio: false
+    
+  # Security hardening
+  security:
+    ssh_hardening: false
+    firewall_strict: false
+    fail2ban: false
+    
+  # Network optimization
+  network:
+    performance_tuning: false
+    tcp_optimization: false
+
+# User configuration defaults
+# These control user permissions, groups, and access levels
+discovery_user_configuration_defaults:
+  # Primary user permissions and access
+  primary_user:
+    sudo_nopasswd: false              # Enable passwordless sudo
+    additional_groups: []             # Additional groups to add user to
+    docker_access: false              # Grant Docker socket access
+    
+  # Shell and environment
+  shell:
+    default_shell: "/bin/bash"        # Default shell for new users
+    
+  # SSH and remote access
+  ssh:
+    key_management: false             # Manage SSH keys
+    disable_password_auth: false      # Disable password authentication
