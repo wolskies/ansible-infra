@@ -75,14 +75,23 @@
   tags:
     - volumes
 
+- name: Merge discovered services with configured services
+  ansible.builtin.set_fact:
+    all_docker_services: >-
+      {{
+        (docker_services_deploy | default([])) +
+        (install_docker_services | default([]) | selectattr('role', 'defined') | map(attribute='role') | list)
+        | unique
+      }}
+
 - name: Deploy Docker services
   ansible.builtin.include_tasks: deploy-service.yml
-  loop: "{{ docker_services_deploy }}"
+  loop: "{{ all_docker_services }}"
   loop_control:
     loop_var: service_name
   when:
-    - docker_services_deploy is defined
-    - docker_services_deploy | length > 0
+    - all_docker_services is defined
+    - all_docker_services | length > 0
     - docker_enable_services | default(true)
   vars:
     service_vars: "{{ vars[service_name + '_config'] | default({}) }}"
@@ -133,6 +142,8 @@
   ansible.builtin.debug:
     msg:
       - "Container platform setup complete"
-      - "Services deployed: {{ docker_services_deploy | default([]) | length }}"
+      - "Services deployed: {{ all_docker_services | default([]) | length }}"
+      - "Discovered: {{ install_docker_services | default([]) | selectattr('role', 'defined') | list | length }}"
+      - "Configured: {{ docker_services_deploy | default([]) | length }}"
   tags:
     - summary
