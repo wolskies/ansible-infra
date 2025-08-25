@@ -14,11 +14,6 @@
   changed_when: false
   failed_when: false
 
-- name: Discover pipx packages
-  ansible.builtin.command: pipx list --short
-  register: pipx_packages
-  changed_when: false
-  failed_when: false
 
 # Node.js packages
 - name: Discover global npm packages
@@ -131,7 +126,6 @@
   ansible.builtin.set_fact:
     discovered_third_party_packages:
       python: "{{ cleaned_pip_packages | default([]) }}"
-      pipx: "{{ pipx_packages.stdout_lines if pipx_packages.rc | default(1) == 0 else [] }}"
       nodejs:
         npm_global: "{{ cleaned_npm_packages | default([]) }}"
         yarn_global: >-

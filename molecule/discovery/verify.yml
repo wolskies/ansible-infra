@@ -279,7 +279,7 @@
             discovered_packages:
               all_native: ['package1', 'package2']
               languages:
-                python: { pip_user: [], pipx: [] }
+                python: { pip_user: [] }
                 nodejs: { npm_global: [] }
                 rust: { cargo: [] }
             discovered_services:
