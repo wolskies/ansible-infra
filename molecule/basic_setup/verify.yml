@@ -52,32 +52,45 @@
             - wget
           ignore_errors: true  # Some test images may not have all packages
 
-    - name: Verify discovery-based user creation (Linux only)
+    - name: Verify discovery-based user creation from basic_setup role
       block:
         - name: Check if discovered users exist
           ansible.builtin.getent:
             database: passwd
           register: system_users
 
-        - name: Verify ed user was created from discovery data
+        - name: Verify ed user was created by basic_setup from discovery data
           ansible.builtin.assert:
             that:
               - "'ed' in ansible_facts.getent_passwd"
               - "ansible_facts.getent_passwd['ed'][1] == '1000'"  # UID check
-            fail_msg: "Discovery user 'ed' not created properly"
-            success_msg: "Discovery user creation verified"
+            fail_msg: "basic_setup did not create user 'ed' from discovery data"
+            success_msg: "basic_setup successfully created user from discovery data"
           when: ansible_os_family != 'Darwin'
 
-        - name: Check user shell assignment from discovery data
+        - name: Check workstation user shell (zsh) from discovery data
           ansible.builtin.assert:
             that:
               - "ansible_facts.getent_passwd['ed'][5] == '/usr/bin/zsh'"
-            fail_msg: "User shell not set to zsh from discovery data"
-            success_msg: "Discovery user shell configuration verified"
+            fail_msg: "basic_setup did not set zsh shell from discovery data"
+            success_msg: "basic_setup correctly set workstation shell from discovery"
           when:
             - ansible_os_family != 'Darwin'
             - "'ed' in ansible_facts.getent_passwd"
+            - inventory_hostname in groups.workstations
           ignore_errors: true  # zsh may not be available in test images
+
+        - name: Check server user shell (bash) from discovery data  
+          ansible.builtin.assert:
+            that:
+              - "ansible_facts.getent_passwd['ed'][5] == '/bin/bash'"
+            fail_msg: "basic_setup did not set bash shell from discovery data"
+            success_msg: "basic_setup correctly set server shell from discovery"
+          when:
+            - ansible_os_family != 'Darwin'
+            - "'ed' in ansible_facts.getent_passwd"
+            - inventory_hostname in groups.servers
+          ignore_errors: true
 
     - name: Verify OS-specific configurations
       block:
@@ -99,31 +112,66 @@
               ansible.builtin.debug:
                 msg: "Pacman package manager detected"
 
-            - name: Verify workstation packages from discovery data
+            - name: Verify basic_setup installed workstation packages from discovery data
               ansible.builtin.assert:
                 that:
                   - "item in ansible_facts.packages"
-                fail_msg: "Workstation package {{ item }} not installed"
-                success_msg: "Workstation package {{ item }} verified"
+                fail_msg: "basic_setup did not install workstation package {{ item }} from discovery"
+                success_msg: "basic_setup correctly installed {{ item }} from discovery data"
               loop:
                 - git
                 - curl
                 - htop
                 - neovim
                 - tmux
+                - zsh
               ignore_errors: true  # Some packages may not be available in test images
 
           when: 
             - ansible_distribution == 'Archlinux'
             - inventory_hostname in groups.workstations
 
-        - name: Check Debian specific settings
+        - name: Check Debian server specific settings
           block:
             - name: Verify apt packages
               ansible.builtin.debug:
                 msg: "APT package manager detected"
 
+            - name: Verify basic_setup installed server packages from discovery data
+              ansible.builtin.assert:
+                that:
+                  - "item in ansible_facts.packages"
+                fail_msg: "basic_setup did not install server package {{ item }} from discovery"
+                success_msg: "basic_setup correctly installed {{ item }} from discovery data"
+              loop:
+                - git
+                - curl
+                - htop
+              ignore_errors: true
+              when: inventory_hostname in groups.servers
+
           when: ansible_distribution == 'Debian'
+
+        - name: Check Ubuntu server specific settings
+          block:
+            - name: Verify apt packages
+              ansible.builtin.debug:
+                msg: "APT package manager detected"
+
+            - name: Verify basic_setup installed server packages from discovery data  
+              ansible.builtin.assert:
+                that:
+                  - "item in ansible_facts.packages"
+                fail_msg: "basic_setup did not install server package {{ item }} from discovery"
+                success_msg: "basic_setup correctly installed {{ item }} from discovery data"
+              loop:
+                - git
+                - curl
+                - htop
+              ignore_errors: true
+              when: inventory_hostname in groups.servers
+
+          when: ansible_distribution == 'Ubuntu'
 
     - name: Verify security configurations
       block:
