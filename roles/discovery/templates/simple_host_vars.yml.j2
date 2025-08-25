@@ -17,7 +17,7 @@
 # === {{ section_name }} ===
 {% if section_data is mapping %}
 {% for key, value in section_data.items() %}
-{% if value is iterable and value is not string and value is not mapping %}
+{% if value is sequence and value is not string %}
 {{ key }}:
 {{ value | to_nice_yaml(indent=2, width=1000) | indent(2, first=False) }}
 {% else %}
