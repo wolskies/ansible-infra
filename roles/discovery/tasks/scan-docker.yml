@@ -149,6 +149,7 @@
         paths: "{{ item.directory }}"
         patterns: ["*.env"]
         depth: 1
+        hidden: true
       register: env_files_find
       loop: "{{ compose_services_raw }}"
       when: compose_services_raw | length > 0
