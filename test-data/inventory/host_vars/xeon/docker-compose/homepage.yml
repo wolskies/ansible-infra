@@ -1,0 +1,20 @@
+---
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    restart: always
+    container_name: homepage
+    ports:
+      - 3000:3000
+    volumes:
+      - ./config:/app/config:rw
+      - ./images:/app/public/images:rw
+      - ./icons:/app/public/icons:rw
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      HOMEPAGE_ALLOWED_HOSTS: 192.168.100.20:3000,wolskinet.com,home.wolskinet.com,auth.wolskinet.com
+networks:
+  default:
+    external: true
+    name: proxy

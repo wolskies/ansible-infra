@@ -1,0 +1,16 @@
+services:
+  portainer:
+    image: portainer/portainer-ee:latest
+    ports:
+      - "9443:9443"
+      - "8001:8000"
+    networks:
+      - proxy
+    volumes:
+      - /portainer/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+networks:
+  proxy:
+    external: true
+

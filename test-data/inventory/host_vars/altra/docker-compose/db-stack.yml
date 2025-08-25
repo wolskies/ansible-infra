@@ -1,0 +1,85 @@
+services:
+  # mariadb:
+  #   image: mariadb:11
+  #   container_name: mariadb
+  #   restart: always
+  #   environment:
+  #     MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+  #     MARIADB_AUTO_UPGRADE: '1'
+  #   networks:
+  #     - proxy
+  #   ports:
+  #     - 3306:3306
+  #   volumes:
+  #     - ./mariadb/data:/var/lib/mysql
+
+  # mongo:
+  #   image: mongo:latest
+  #   container_name: mongodb
+  #   restart: always
+  #   networks:
+  #     - proxy
+  #   ports:
+  #     - 27017:27017
+  #   volumes:
+  #     - ./mongo/data:/data/db
+  #     - ./mongo/config/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+  #     MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    networks:
+      - proxy
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_EXPRESS_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_EXPRESS_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@192.168.100.42:27017/
+      ME_CONFIG_BASICAUTH: false
+
+  # minio:
+  #   image: minio/minio:latest
+  #   container_name: minio
+  #   command: ["server", "/data", "--console-address", ":9001"]
+  #   networks:
+  #     - proxy
+  #   ports:
+  #     - 9000:9000
+  #     # - 9001:9001
+  #   volumes:
+  #     - ./minio/data:/data
+  #   environment:
+  #     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+  #     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
+  # pgvector:
+  #   image: pgvector/pgvector:pg17 # PostgreSQL with pgvector support
+  #   container_name: pgvector
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #   networks:
+  #     - proxy
+  #   # ports:
+  #   #   - 5432:5432
+  #   volumes:
+  #     - ./postgres:/var/lib/postgresql/data
+
+  # adminer:
+  #   image: adminer
+  #   container_name: adminer
+  #   restart: always
+  #   networks:
+  #     - proxy
+  #   # ports:
+  #   #   - 8086:8080
+
+networks:
+  proxy:
+    external: True

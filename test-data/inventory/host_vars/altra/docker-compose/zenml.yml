@@ -1,0 +1,16 @@
+services:
+  zenml:
+    container_name: zenml_server
+    build: .
+    networks:
+      - proxy
+    ports:
+      - "8089:8080" #zenml dashboard
+    environment:
+      # - ZENML_STORE_URL=${ZENML_STORE_URL}
+      - ZENML_DEFAULT_USER_NAME=${ZENML_DEFAULT_USER_NAME}
+      - ZENML_DEFAULT_USER_PASSWORD=${ZENML_DEFAULT_USER_PASSWORD}
+    restart: always
+networks:
+  proxy:
+    external: True

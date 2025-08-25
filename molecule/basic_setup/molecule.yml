@@ -9,25 +9,7 @@ driver:
   name: docker
 
 platforms:
-  - name: ubuntu-basic
-    image: quay.io/ansible/ubuntu2404-test:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-
-  - name: debian-basic
-    image: quay.io/ansible/debian12-test:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-
-  - name: arch-basic
+  - name: arch1
     image: quay.io/ansible/archlinux-test:latest
     pre_build_image: true
     privileged: true
@@ -35,6 +17,30 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/usr/lib/systemd/systemd"
+    groups:
+      - workstations
+
+  - name: deb1
+    image: quay.io/ansible/debian12-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - servers
+
+  - name: ub1
+    image: quay.io/ansible/ubuntu2404-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - servers
 
 provisioner:
   name: ansible
@@ -45,22 +51,119 @@ provisioner:
         config_system_timezone: 'America/New_York'
         config_system_locale: 'en_US.UTF-8'
         config_system_language: 'en_US.UTF-8'
-        # Test multiple users
-        user_details:
-          - name: 'testuser1'
-            uid: 1001
-            gid: 1001
-            password: '$$6$$test1$$testhash1'
-          - name: 'testuser2'
-            uid: 1002
-            gid: 1002
-            password: '$$6$$test2$$testhash2'
+        # Discovered users from live data (north)
+        discovered_users_config:
+          - default_user_shell: zsh
+            dotfiles_branch: main
+            dotfiles_directory: /home/ed/.dotfiles
+            dotfiles_repo: true
+            dotfiles_repository_url: ssh://git@gitlab.wolskinet.com:2222/configs/dotfiles.git
+            dotfiles_source_type: repository
+            gid: '1000'
+            groups:
+              - wheel
+              - kvm
+              - ed
+              - docker
+              - libvirt
+            home: /home/ed
+            name: ed
+            password: vault_ed_password | default(omit)
+            shell: /usr/bin/zsh
+            ssh_password_auth: true
+            ssh_public_key: vault_ed_ssh_public_key | default("")
+            sudo_nopasswd: false
+            uid: '1000'
         # Test security settings
         enable_firewall: false  # Don't enable in container tests
         disable_unnecessary_services: true
-        # Ubuntu-specific test settings
-        disable_snapd_stop_service: true
-        disable_snapd_uninstall_snapd: false
+      workstations:
+        # Workstation packages from live discovery data (north - Arch Linux)
+        host_packages_install_Archlinux:
+          - alacritty
+          - ansible
+          - ansible-core
+          - ansible-lint
+          - base-devel
+          - bat
+          - btop
+          - cmake
+          - curl
+          - docker
+          - exa
+          - fd
+          - fish
+          - fzf
+          - git
+          - git-delta
+          - htop
+          - jq
+          - lazygit
+          - neovim
+          - nodejs
+          - npm
+          - python
+          - python-pip
+          - ripgrep
+          - starship
+          - tmux
+          - tree
+          - unzip
+          - vim
+          - wget
+          - zsh
+          - zoxide
+        third_party_packages:
+          nodejs:
+            npm_global:
+              - '@mermaid-js/mermaid-cli'
+              - neovim
+              - prettier
+              - tree-sitter-cli
+          python:
+            - ansible
+            - ansible-core
+            - bcrypt
+            - jinja2
+            - pyyaml
+    host_vars:
+      arch1:
+        # System tuning from live discovery data (north)
+        audio:
+          description: Audio system optimizations
+          enabled: false
+          low_latency: false
+          real_time_audio: false
+        bluetooth:
+          audio_codecs:
+            - aptx
+            - ldac
+            - aac
+          description: Bluetooth support and audio codecs
+          enabled: false
+        camera:
+          description: Camera/webcam support and permissions
+          enabled: false
+          v4l2_support: true
+        gaming:
+          cpu_governor: performance
+          description: Gaming optimizations (kernel parameters, CPU governor, etc.)
+          enabled: false
+          kernel_params:
+            - mitigations=off
+        gpu:
+          amd_support: false
+          description: GPU-specific configurations and drivers
+          enabled: false
+          intel_support: false
+          nvidia_support: false
+        network:
+          performance_tuning: false
+          tcp_optimization: false
+        security:
+          fail2ban: false
+          firewall_strict: false
+          ssh_hardening: false
   config_options:
     defaults:
       host_key_checking: false

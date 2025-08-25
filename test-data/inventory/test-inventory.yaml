@@ -1,0 +1,10 @@
+workstations:
+  hosts:
+    north:
+      ansible_host: localhost
+servers:
+  hosts:
+    altra:
+      ansible_host: 192.168.100.12
+    xeon:
+      ansible_host: 192.168.100.20
