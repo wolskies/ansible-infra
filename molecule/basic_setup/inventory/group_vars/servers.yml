@@ -1,0 +1,39 @@
+---
+# Server configuration from live discovery data (altra/xeon)
+
+# Override user shell for servers (bash instead of zsh)
+discovered_users_config:
+  - name: ed
+    uid: '1000'
+    gid: '1000'
+    shell: /bin/bash  # Servers use bash
+    home: /home/ed
+    groups:
+      - sudo
+      - docker
+    ssh_public_key: vault_ed_ssh_public_key | default("")
+    password: vault_ed_password | default(omit)
+    ssh_password_auth: true
+    sudo_nopasswd: false
+
+# Server packages (minimal set)
+host_packages_install_Ubuntu:
+  - git
+  - curl
+  - wget
+  - htop
+  - docker.io
+  - python3
+  - python3-pip
+
+host_packages_install_Debian:
+  - git
+  - curl
+  - wget
+  - htop
+  - docker.io
+  - python3
+  - python3-pip
+
+# Docker installation for servers
+install_docker: true
