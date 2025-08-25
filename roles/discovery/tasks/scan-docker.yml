@@ -162,7 +162,7 @@
           - "Found .env files: {{ item.files | length }}"
           - "Files: {{ item.files | map(attribute='path') | list }}"
       loop: "{{ env_files_find.results }}"
-      when: discovery_debug | default(false) | bool | bool
+      when: discovery_debug | default(false) | bool
 
     - name: Create flattened list of env files with service info
       ansible.builtin.set_fact:

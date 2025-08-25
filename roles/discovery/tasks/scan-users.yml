@@ -30,7 +30,7 @@
     - name: Debug regular users found
       ansible.builtin.debug:
         msg: "Found {{ regular_users | length }} regular users: {{ regular_users }}"
-      when: discovery_debug | default(true)
+      when: discovery_debug | default(true) | bool
 
     # Step 3: Gather user data for each regular user
     - name: Gather user data
