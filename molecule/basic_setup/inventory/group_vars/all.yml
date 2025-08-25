@@ -1,0 +1,36 @@
+---
+# Global configuration for all test hosts
+# Based on discovery data from live systems
+
+# Discovered users from live data (north)
+discovered_users_config:
+  - default_user_shell: zsh
+    dotfiles_branch: main
+    dotfiles_directory: /home/ed/.dotfiles
+    dotfiles_repo: true
+    dotfiles_repository_url: ssh://git@gitlab.wolskinet.com:2222/configs/dotfiles.git
+    dotfiles_source_type: repository
+    gid: '1000'
+    groups:
+      - wheel
+      - kvm
+      - ed
+      - docker
+      - libvirt
+    home: /home/ed
+    name: ed
+    password: vault_ed_password | default(omit)
+    shell: /usr/bin/zsh
+    ssh_password_auth: true
+    ssh_public_key: vault_ed_ssh_public_key | default("")
+    sudo_nopasswd: false
+    uid: '1000'
+
+# Basic system settings
+config_system_timezone: 'America/New_York'
+config_system_locale: 'en_US.UTF-8'
+config_system_language: 'en_US.UTF-8'
+
+# Test security settings (disabled for containers)
+enable_firewall: false
+disable_unnecessary_services: true
