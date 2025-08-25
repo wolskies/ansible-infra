@@ -22,8 +22,8 @@
     state: directory
     mode: '0755'
   when:
-    - discovered_docker.services is defined
-    - discovered_docker.services.generic is defined
+    - discovery_host_vars.docker is defined
+    - discovery_host_vars.docker.install_docker_services is defined
   delegate_to: localhost
   tags:
     - generation
@@ -34,10 +34,11 @@
     src: "{{ item.compose_file }}"
     dest: "{{ discovery_paths.host_vars_dir }}/docker_compose/{{ item.name }}.yml"
     mode: '0644'
-  loop: "{{ discovered_docker.services.generic | default([]) }}"
+  loop: "{{ discovery_host_vars.docker.install_docker_services | default([]) }}"
   when:
-    - discovered_docker.services is defined
-    - discovered_docker.services.generic is defined
+    - discovery_host_vars.docker is defined
+    - discovery_host_vars.docker.install_docker_services is defined
+    - item.compose_file is defined
   delegate_to: localhost
   tags:
     - generation

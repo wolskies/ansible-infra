@@ -1,188 +1,189 @@
 ---
-# Cross-platform third-party package discovery
-# Discovers packages installed via language-specific package managers
+# Simplified third-party package discovery with direct commands
 
-- name: Discover third-party language packages
-  block:
-    # Python packages
-    - name: Check for Python pip packages (user)
-      ansible.builtin.command: pip list --user --format=freeze
-      register: pip_user_packages
-      changed_when: false
-      failed_when: 
-        - pip_user_packages.rc != 0
-        - pip_user_packages.rc != 127  # Command not found is OK
-        - "'No module named pip' not in pip_user_packages.stderr | default('')"
+# Python packages
+- name: Discover Python pip packages (user)
+  ansible.builtin.command: pip list --user --format=freeze
+  register: pip_user_packages
+  changed_when: false
+  failed_when: false
 
-    - name: Check for Python pip packages (system)
-      ansible.builtin.command: pip list --format=freeze
-      register: pip_system_packages
-      changed_when: false
-      failed_when: 
-        - pip_system_packages.rc != 0
-        - pip_system_packages.rc != 127
-        - "'No module named pip' not in pip_system_packages.stderr | default('')"
+- name: Discover Python pip packages (system)
+  ansible.builtin.command: pip list --format=freeze
+  register: pip_system_packages
+  changed_when: false
+  failed_when: false
 
-    - name: Check for pipx packages
-      ansible.builtin.command: pipx list --short
-      register: pipx_packages
-      changed_when: false
-      failed_when:
-        - pipx_packages.rc != 0
-        - pipx_packages.rc != 127
+- name: Discover pipx packages
+  ansible.builtin.command: pipx list --short
+  register: pipx_packages
+  changed_when: false
+  failed_when: false
 
-    # Node.js packages
-    - name: Check for global npm packages
-      ansible.builtin.command: npm list -g --depth=0 --parseable
-      register: npm_global_packages
-      changed_when: false
-      failed_when:
-        - npm_global_packages.rc != 0
-        - npm_global_packages.rc != 127
+# Node.js packages
+- name: Discover global npm packages
+  ansible.builtin.command: npm list -g --depth=0 --parseable
+  register: npm_global_packages
+  become: true
+  changed_when: false
+  failed_when: false
 
-    - name: Check for yarn global packages
-      ansible.builtin.command: yarn global list --depth=0
-      register: yarn_global_packages
-      changed_when: false
-      failed_when:
-        - yarn_global_packages.rc != 0
-        - yarn_global_packages.rc != 127
+- name: Discover yarn global packages
+  ansible.builtin.command: yarn global list --depth=0
+  register: yarn_global_packages
+  become: true
+  changed_when: false
+  failed_when: false
 
-    # Go packages
-    - name: Check for Go installed packages
-      ansible.builtin.command: go list -m all
-      register: go_packages
-      changed_when: false
-      failed_when:
-        - go_packages.rc != 0
-        - go_packages.rc != 127
-      environment:
-        GO111MODULE: "on"
+# Go packages
+- name: Discover Go installed packages
+  ansible.builtin.command: go list -m all
+  register: go_packages
+  become: true
+  changed_when: false
+  failed_when: false
+  environment:
+    GO111MODULE: "on"
 
-    # Rust packages
-    - name: Check for Cargo installed packages
-      ansible.builtin.command: cargo install --list
-      register: cargo_packages
-      changed_when: false
-      failed_when:
-        - cargo_packages.rc != 0
-        - cargo_packages.rc != 127
+# Rust packages
+- name: Discover Cargo installed packages
+  ansible.builtin.command: cargo install --list
+  register: cargo_packages
+  become: true
+  changed_when: false
+  failed_when: false
 
-    # Ruby packages
-    - name: Check for Ruby gems
-      ansible.builtin.command: gem list --local
-      register: ruby_gems
-      changed_when: false
-      failed_when:
-        - ruby_gems.rc != 0
-        - ruby_gems.rc != 127
+# Ruby packages
+- name: Discover Ruby gems
+  ansible.builtin.command: gem list --local
+  register: ruby_gems
+  become: true
+  changed_when: false
+  failed_when: false
 
-    # Snap packages (Linux)
-    - name: Check for Snap packages
-      ansible.builtin.command: snap list
-      register: snap_packages
-      changed_when: false
-      failed_when:
-        - snap_packages.rc != 0
-        - snap_packages.rc != 127
-      when: ansible_system == "Linux"
+# Snap packages (Linux)
+- name: Discover Snap packages
+  ansible.builtin.command: snap list
+  register: snap_packages
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Linux"
 
-    # Flatpak packages (Linux)
-    - name: Check for Flatpak packages
-      ansible.builtin.command: flatpak list --app --columns=name,application
-      register: flatpak_packages
-      changed_when: false
-      failed_when:
-        - flatpak_packages.rc != 0
-        - flatpak_packages.rc != 127
-      when: ansible_system == "Linux"
+# Flatpak packages (Linux)
+- name: Discover Flatpak packages
+  ansible.builtin.command: flatpak list --app --columns=name,application
+  register: flatpak_packages
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Linux"
 
-    # Process results into clean lists
-    - name: Process third-party package results
-      ansible.builtin.set_fact:
-        discovered_third_party_packages:
-          python: >-
-            {{
-              (pip_user_packages.stdout_lines | default([]) | select('match', '^[^#].*') | list) +
-              (pipx_packages.stdout_lines | default([]) | list) | unique
-            }}
-          nodejs:
-            npm_global: >-
-              {{
-                npm_global_packages.stdout_lines | default([])
-                | select('match', '.*node_modules/[^/]+$')
-                | map('regex_replace', '.*/node_modules/([^/]+)$', '\1')
-                | list
-              }}
-            yarn_global: "{{ yarn_global_packages.stdout_lines | default([]) | select('match', '^[^info].*') | list }}"
-          go:
-            modules: "{{ go_packages.stdout_lines | default([]) | select('match', '^[^\\s].*') | list }}"
-          rust:
-            cargo: >-
-              {{
-                cargo_packages.stdout_lines | default([])
-                | select('match', '^[a-zA-Z].*')
-                | map('regex_replace', '\\s+v.*$', '')
-                | list
-              }}
-          ruby:
-            gems: >-
-              {{
-                ruby_gems.stdout_lines | default([])
-                | select('match', '^[a-zA-Z].*')
-                | map('regex_replace', '\\s+\\(.*\\)$', '')
-                | list
-              }}
-          system:
-            snap: >-
-              {{
-                snap_packages.stdout_lines | default([])
-                | select('match', '^[^Name].*')
-                | map('regex_replace', '\\s+.*$', '')
-                | list
-              }}
-            flatpak: >-
-              {{
-                flatpak_packages.stdout_lines | default([])
-                | map('regex_replace', '\\t.*$', '')
-                | list
-              }}
+# Process and clean results
+- name: Process pip packages
+  ansible.builtin.set_fact:
+    cleaned_pip_packages: >-
+      {%- set packages = [] -%}
+      {%- set user_lines = pip_user_packages.stdout_lines if pip_user_packages.rc | default(1) == 0 else [] -%}
+      {%- set system_lines = pip_system_packages.stdout_lines if pip_system_packages.rc | default(1) == 0 else [] -%}
+      {%- for line in (user_lines + system_lines) -%}
+        {%- if '==' in line and not line.startswith('pip==') -%}
+          {%- set pkg = line.split('==')[0] -%}
+          {%- if pkg not in packages -%}
+            {%- set _ = packages.append(pkg) -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ packages | sort }}
 
-    - name: Create consolidated third-party package list
-      ansible.builtin.set_fact:
-        third_party_packages_consolidated: >-
-          {{
-            (discovered_third_party_packages.python | default([])) +
-            (discovered_third_party_packages.nodejs.npm_global | default([])) +
-            (discovered_third_party_packages.rust.cargo | default([])) +
-            (discovered_third_party_packages.ruby.gems | default([])) +
-            (discovered_third_party_packages.system.snap | default([])) +
-            (discovered_third_party_packages.system.flatpak | default([]))
-          }}
+- name: Process npm packages
+  ansible.builtin.set_fact:
+    cleaned_npm_packages: >-
+      {%- set packages = [] -%}
+      {%- if npm_global_packages.rc | default(1) == 0 -%}
+        {%- for line in npm_global_packages.stdout_lines | default([]) -%}
+          {%- if '/node_modules/' in line and line.endswith('/node_modules') == false -%}
+            {%- set pkg = line.split('/node_modules/')[-1] -%}
+            {%- if pkg and '@' not in pkg[1:] -%}
+              {%- set _ = packages.append(pkg) -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ packages | sort }}
 
-    - name: Debug third-party packages
-      ansible.builtin.debug:
-        msg:
-          - "Found {{ third_party_packages_consolidated | length }} third-party packages"
-          - "Python: {{ discovered_third_party_packages.python | default([]) | length }}"
-          - "Node.js (npm): {{ discovered_third_party_packages.nodejs.npm_global | default([]) | length }}"
-          - "Rust (cargo): {{ discovered_third_party_packages.rust.cargo | default([]) | length }}"
-          - "Snap: {{ discovered_third_party_packages.system.snap | default([]) | length }}"
-          - "Flatpak: {{ discovered_third_party_packages.system.flatpak | default([]) | length }}"
-      when: discovery_debug | default(false)
+- name: Process cargo packages
+  ansible.builtin.set_fact:
+    cleaned_cargo_packages: >-
+      {%- set packages = [] -%}
+      {%- if cargo_packages.rc | default(1) == 0 -%}
+        {%- for line in cargo_packages.stdout_lines | default([]) -%}
+          {%- if line and not line.startswith(' ') -%}
+            {%- set pkg = line.split(' v')[0] -%}
+            {%- if pkg -%}
+              {%- set _ = packages.append(pkg) -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ packages | sort }}
 
-  rescue:
-    - name: Handle third-party package discovery errors
-      ansible.builtin.debug:
-        msg: "Third-party package discovery failed, setting empty results"
+# Store final results
+- name: Store third-party package discovery results
+  ansible.builtin.set_fact:
+    discovered_third_party_packages:
+      python: "{{ cleaned_pip_packages | default([]) }}"
+      pipx: "{{ pipx_packages.stdout_lines if pipx_packages.rc | default(1) == 0 else [] }}"
+      nodejs:
+        npm_global: "{{ cleaned_npm_packages | default([]) }}"
+        yarn_global: >-
+          {%- if yarn_global_packages.rc | default(1) == 0 -%}
+            {{ yarn_global_packages.stdout_lines | default([]) | select('match', '^\\S+@') | map('regex_replace', '@.*', '') | list }}
+          {%- else -%}
+            []
+          {%- endif -%}
+      go: >-
+        {%- if go_packages.rc | default(1) == 0 -%}
+          {{ go_packages.stdout_lines | default([]) | select('match', '^[^\\s]+') | list }}
+        {%- else -%}
+          []
+        {%- endif -%}
+      rust:
+        cargo: "{{ cleaned_cargo_packages | default([]) }}"
+      ruby:
+        gems: >-
+          {%- if ruby_gems.rc | default(1) == 0 -%}
+            {{ ruby_gems.stdout_lines | default([]) | select('match', '^\\S+') | map('regex_replace', ' \\(.*', '') | list }}
+          {%- else -%}
+            []
+          {%- endif -%}
+      snap: >-
+        {%- if snap_packages.rc | default(1) == 0 -%}
+          {{ snap_packages.stdout_lines | default([]) | select('match', '^\\S+') | list }}
+        {%- else -%}
+          []
+        {%- endif -%}
+      flatpak: "{{ flatpak_packages.stdout_lines if flatpak_packages.rc | default(1) == 0 else [] }}"
 
-    - name: Set empty third-party package results
-      ansible.builtin.set_fact:
-        discovered_third_party_packages:
-          python: []
-          nodejs: { npm_global: [], yarn_global: [] }
-          go: { modules: [] }
-          rust: { cargo: [] }
-          ruby: { gems: [] }
-          system: { snap: [], flatpak: [] }
-        third_party_packages_consolidated: []
+# Collect warnings for failed discoveries
+- name: Update discovery warnings for failed package managers
+  ansible.builtin.set_fact:
+    discovery_warnings: >-
+      {%- set warnings = discovery_warnings | default([]) -%}
+      {%- if pip_user_packages.rc | default(1) != 0 and pip_user_packages.rc != 127 -%}
+        {%- set _ = warnings.append('Python pip discovery failed: ' + pip_user_packages.stderr | default('Unknown error')) -%}
+      {%- endif -%}
+      {%- if npm_global_packages.rc | default(1) != 0 and npm_global_packages.rc != 127 -%}
+        {%- set _ = warnings.append('npm discovery failed: ' + npm_global_packages.stderr | default('Unknown error')) -%}
+      {%- endif -%}
+      {%- if cargo_packages.rc | default(1) != 0 and cargo_packages.rc != 127 -%}
+        {%- set _ = warnings.append('Cargo discovery failed: ' + cargo_packages.stderr | default('Unknown error')) -%}
+      {%- endif -%}
+      {{ warnings }}
+
+- name: Debug third-party package discovery results
+  ansible.builtin.debug:
+    msg:
+      - "Python packages: {{ cleaned_pip_packages | default([]) | length }}"
+      - "Node.js packages (npm): {{ cleaned_npm_packages | default([]) | length }}"
+      - "Rust packages: {{ cleaned_cargo_packages | default([]) | length }}"
+      - "Discovery warnings: {{ discovery_warnings | default([]) | length }}"
+  when: discovery_debug | default(false)

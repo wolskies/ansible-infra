@@ -1,6 +1,5 @@
 ---
-# Docker Compose-Centric Discovery
-# Discovers Docker installation and folder-based compose services
+# Simplified Docker discovery with better error handling
 
 - name: Discover Docker environment
   block:
@@ -9,285 +8,188 @@
         path: /usr/bin/docker
       register: docker_binary
 
-    - name: Discover Docker details
-      block:
-        - name: Get Docker system information using native module
-          community.docker.docker_info:
-          register: docker_host_info
-          become: true
-          # This provides version info, compose availability, and system details in one call
-
-        - name: Check for Docker daemon configuration
-          ansible.builtin.stat:
-            path: /etc/docker/daemon.json
-          register: docker_daemon_config
-          become: true
-
-        - name: Read Docker daemon configuration
-          ansible.builtin.slurp:
-            src: /etc/docker/daemon.json
-          register: docker_daemon_content
-          become: true
-          when: docker_daemon_config.stat.exists
-          # Let this fail if file exists but can't be read (permission/corruption)
-
-
+    - name: Get Docker system information
+      community.docker.docker_host_info:
+      register: docker_host
+      become: true
       when: docker_binary.stat.exists
-      rescue:
-        - name: Handle Docker discovery errors
-          ansible.builtin.debug:
-            msg: "Docker is installed but not accessible or not running"
+      failed_when: false
 
+    - name: Check for Docker daemon configuration
+      ansible.builtin.stat:
+        path: /etc/docker/daemon.json
+      register: docker_daemon_config
+      become: true
+      when: docker_binary.stat.exists
+
+    - name: Read Docker daemon configuration
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: docker_daemon_content
+      become: true
+      when: 
+        - docker_binary.stat.exists
+        - docker_daemon_config.stat.exists
+      failed_when: false
+
+    - name: Set Docker installation status
+      ansible.builtin.set_fact:
+        docker_discovered:
+          installed: "{{ docker_binary.stat.exists }}"
+          running: "{{ docker_host is not failed and docker_host.ServerVersion is defined }}"
+          version: "{{ docker_host.ServerVersion | default('') }}"
+          compose_available: "{{ docker_host.Plugins is defined and 'compose' in docker_host.Plugins }}"
+          daemon_config: >-
+            {%- if docker_daemon_content.content is defined -%}
+              {{ docker_daemon_content.content | b64decode | from_json }}
+            {%- else -%}
+              {}
+            {%- endif -%}
+
+  rescue:
+    - name: Set Docker discovery failure status
+      ansible.builtin.set_fact:
+        docker_discovered:
+          installed: "{{ docker_binary.stat.exists | default(false) }}"
+          running: false
+          error: "Docker discovery failed - Docker may not be running or accessible"
+
+    - name: Add Docker warning
+      ansible.builtin.set_fact:
+        discovery_warnings: "{{ discovery_warnings | default([]) + ['Docker is installed but not accessible or not running'] }}"
+
+# Discover Docker Compose services
 - name: Discover Docker Compose services
   block:
-    - name: Find actual user home directories
+    - name: Find home directories for path expansion
       ansible.builtin.find:
         paths: /home
         file_type: directory
         depth: 1
       register: home_directories
-      
-    - name: Build final search paths with proper home directory expansion
+
+    - name: Build search paths
       ansible.builtin.set_fact:
-        docker_search_paths: >-
+        docker_compose_search_paths: >-
           {%- set paths = [] -%}
-          {%- for path in discovery_docker_compose_paths -%}
-            {%- if '/home/*/' in path -%}
-              {%- for home_dir in home_directories.files -%}
-                {%- set user_name = home_dir.path.split('/')[-1] -%}
-                {%- set expanded_path = path.replace('/home/*/', '/home/' + user_name + '/') -%}
-                {%- set _ = paths.append(expanded_path) -%}
+          {%- for base_path in discovery_docker_compose_paths -%}
+            {%- if '/home/*/' in base_path -%}
+              {%- for home in home_directories.files -%}
+                {%- set expanded = base_path.replace('/home/*/', home.path + '/') -%}
+                {%- set _ = paths.append(expanded) -%}
               {%- endfor -%}
             {%- else -%}
-              {%- set _ = paths.append(path) -%}
+              {%- set _ = paths.append(base_path) -%}
             {%- endif -%}
           {%- endfor -%}
-          {{ paths | unique | list }}
+          {{ paths | unique }}
 
-    - name: Find Docker Compose service folders
+    - name: Find Docker Compose files
       ansible.builtin.find:
         paths: "{{ item }}"
-        patterns:
-          - "docker-compose.yml"
-          - "docker-compose.yaml"
-          - "compose.yml"
-          - "compose.yaml"
+        patterns: ["docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"]
         recurse: true
-        depth: 3  # Don't go too deep
-      register: compose_file_results
-      loop: "{{ docker_search_paths }}"
-      when: docker_binary.stat.exists
-      # Let it fail if directories exist but can't be read (permission issues)
+        depth: 3
+      register: compose_file_search
+      loop: "{{ docker_compose_search_paths }}"
+      failed_when: false
+      when: docker_discovered.installed | default(false)
 
-    - name: Process discovered compose services
+    - name: Process compose services
       ansible.builtin.set_fact:
-        docker_compose_services: >-
+        compose_services_raw: >-
           {%- set services = [] -%}
-          {%- for path_result in compose_file_results.results | default([]) -%}
-            {%- if path_result.files is defined -%}
-              {%- for file in path_result.files -%}
-                {%- set service_dir = file.path | dirname -%}
-                {%- set service_name = service_dir | basename -%}
-                {%- set existing = services | selectattr('directory', 'equalto', service_dir) | list -%}
-                {%- if not existing -%}
-                  {%- set _ = services.append({
-                      'name': service_name,
-                      'directory': service_dir,
-                      'compose_file': file.path
-                  }) -%}
-                {%- endif -%}
-              {%- endfor -%}
-            {%- endif -%}
+          {%- for result in compose_file_search.results | default([]) if result.files is defined -%}
+            {%- for file in result.files -%}
+              {%- set service_dir = file.path | dirname -%}
+              {%- set service_name = service_dir | basename -%}
+              {%- if not services | selectattr('directory', 'equalto', service_dir) | list -%}
+                {%- set _ = services.append({
+                  'name': service_name,
+                  'directory': service_dir,
+                  'compose_file': file.path
+                }) -%}
+              {%- endif -%}
+            {%- endfor -%}
           {%- endfor -%}
           {{ services }}
 
-    - name: Read compose files and gather service details
-      block:
-        - name: Read compose file contents
-          ansible.builtin.slurp:
-            src: "{{ item.compose_file }}"
-          register: compose_contents
-          loop: "{{ docker_compose_services }}"
-          failed_when: false
-
-        - name: Find .env files in service directories
-          ansible.builtin.find:
-            paths: "{{ item.directory }}"
-            patterns:
-              - ".env"
-              - "*.env"
-            hidden: true
-          register: env_file_results
-          loop: "{{ docker_compose_services }}"
-          failed_when: false
-
-        - name: Parse compose services with details
-          ansible.builtin.set_fact:
-            docker_services_detailed: >-
-              {%- set services = [] -%}
-              {%- for idx in range(docker_compose_services | length) -%}
-                {%- set service = docker_compose_services[idx] -%}
-                {%- set compose_result = compose_contents.results[idx] -%}
-                {%- set env_result = env_file_results.results[idx] -%}
-
-                {%- set service_info = {
-                    'name': service.name,
-                    'directory': service.directory,
-                    'compose_file': service.compose_file,
-                    'env_files': env_result.files | default([]) | map(attribute='path') | list
-                } -%}
-
-                {%- if compose_result.content is defined -%}
-                  {%- set compose_data = compose_result.content | b64decode | from_yaml -%}
-                  {%- if compose_data.services is defined -%}
-                    {%- set containers = [] -%}
-                    {%- set ports = [] -%}
-                    {%- for svc_name, svc_config in compose_data.services.items() -%}
-                      {%- set container_info = {
-                          'name': svc_name,
-                          'image': svc_config.get('image', 'build-context')
-                      } -%}
-                      {%- set _ = containers.append(container_info) -%}
-
-                      {# Extract ports #}
-                      {%- if svc_config.ports is defined -%}
-                        {%- for port in svc_config.ports -%}
-                          {%- if port is string -%}
-                            {%- set _ = ports.append(port) -%}
-                          {%- elif port is mapping and port.published is defined -%}
-                            {%- set _ = ports.append(port.published ~ ':' ~ port.target) -%}
-                          {%- endif -%}
-                        {%- endfor -%}
-                      {%- endif -%}
-                    {%- endfor -%}
-
-                    {%- set _ = service_info.update({
-                        'containers': containers,
-                        'ports': ports,
-                        'volumes': compose_data.get('volumes', {}).keys() | list,
-                        'networks': compose_data.get('networks', {}).keys() | list
-                    }) -%}
-                  {%- endif -%}
-                {%- endif -%}
-
-                {%- set _ = services.append(service_info) -%}
-              {%- endfor -%}
-              {{ services }}
-
-        - name: Map services to collection roles
-          ansible.builtin.set_fact:
-            docker_services_mapped: >-
-              {%- set mapped = {'canned': [], 'generic': []} -%}
-              {%- for service in docker_services_detailed -%}
-                {%- set is_canned = [] -%}
-                {%- for container in service.containers | default([]) if not is_canned -%}
-                  {%- if container.image != 'build-context' -%}
-                    {%- set image_base = container.image.split(':')[0] -%}
-                    {%- if image_base in discovery_docker_service_mapping -%}
-                      {%- set _ = service.update({'role': discovery_docker_service_mapping[image_base]}) -%}
-                      {%- set _ = mapped.canned.append(service) -%}
-                      {%- set _ = is_canned.append(true) -%}
-                    {%- endif -%}
-                  {%- endif -%}
-                {%- endfor -%}
-                {%- if not is_canned -%}
-                  {%- set _ = mapped.generic.append(service) -%}
-                {%- endif -%}
-              {%- endfor -%}
-              {{ mapped }}
-
-  when: docker_binary.stat.exists
-  tags:
-    - docker
-    - compose
-
-- name: Copy Docker Compose files to inventory structure
-  block:
-    - name: Create docker_compose directories for each service
-      ansible.builtin.file:
-        path: "{{ discovery_paths.host_vars_dir }}/docker_compose/{{ item.name }}"
-        state: directory
-        mode: '0755'
-      loop: "{{ docker_services_detailed | default([]) }}"
-      delegate_to: localhost
-      become: false
-
-    - name: Copy docker-compose.yml file for each service
-      ansible.builtin.fetch:
+    - name: Read compose files to identify services
+      ansible.builtin.slurp:
         src: "{{ item.compose_file }}"
-        dest: "{{ discovery_paths.host_vars_dir }}/docker_compose/{{ item.name }}/{{ item.compose_file | basename }}"
-        flat: true
-      loop: "{{ docker_services_detailed | default([]) }}"
-      loop_control:
-        label: "{{ item.name }}/{{ item.compose_file | basename }}"
+      register: compose_contents
+      loop: "{{ compose_services_raw }}"
+      failed_when: false
+      when: compose_services_raw | length > 0
 
-    - name: Copy .env files for each service
-      ansible.builtin.fetch:
-        src: "{{ env_file }}"
-        dest: "{{ discovery_paths.host_vars_dir }}/docker_compose/{{ item.name }}/{{ env_file | basename }}"
-        flat: true
-      loop: "{{ docker_services_detailed | default([]) }}"
-      loop_control:
-        label: "{{ item.name }}/.env files"
+    - name: Categorize Docker services
+      ansible.builtin.set_fact:
+        docker_canned_services: []
+        docker_generic_services: []
+
+    - name: Categorize each Docker service
+      ansible.builtin.set_fact:
+        docker_canned_services: "{{ docker_canned_services + [service_with_role] }}"
       vars:
-        env_file: "{{ item.env_files | first | default('') }}"
-      when: item.env_files | length > 0
+        service: "{{ compose_services_raw[item] }}"
+        content: "{{ compose_contents.results[item].content | default('') | b64decode | default('{}', true) }}"
+        matched_images: "{{ discovery_docker_service_mapping.keys() | select('in', content) | list }}"
+        service_with_role: "{{ service | combine({'role': discovery_docker_service_mapping[matched_images[0]]}) }}"
+      loop: "{{ range(compose_services_raw | length) | list }}"
+      when: 
+        - compose_contents.results[item].content is defined
+        - discovery_docker_service_mapping.keys() | select('in', content) | list | length > 0
 
-  when:
-    - docker_binary.stat.exists
-    - docker_services_detailed is defined
-    - docker_services_detailed | length > 0
-  tags:
-    - docker
-    - compose
-    - copy
+    - name: Add unmatched services to generic list
+      ansible.builtin.set_fact:
+        docker_generic_services: "{{ docker_generic_services + [compose_services_raw[item]] }}"
+      vars:
+        content: "{{ compose_contents.results[item].content | default('') | b64decode | default('{}', true) }}"
+      loop: "{{ range(compose_services_raw | length) | list }}"
+      when: 
+        - compose_contents.results[item].content is defined
+        - discovery_docker_service_mapping.keys() | select('in', content) | list | length == 0
 
+    - name: Combine Docker service categorization
+      ansible.builtin.set_fact:
+        docker_compose_categorized:
+          canned: "{{ docker_canned_services }}"
+          generic: "{{ docker_generic_services }}"
+
+  rescue:
+    - name: Set empty compose services on failure
+      ansible.builtin.set_fact:
+        docker_compose_categorized:
+          canned: []
+          generic: []
+
+    - name: Add compose discovery warning
+      ansible.builtin.set_fact:
+        discovery_warnings: "{{ discovery_warnings | default([]) + ['Docker Compose service discovery failed'] }}"
+
+# Build final Docker discovery results
 - name: Store Docker discovery results
   ansible.builtin.set_fact:
     discovered_docker:
-      installed: "{{ docker_binary.stat.exists }}"
-      version: "{{ docker_host_info.version.Version | default('') }}"
-      running: "{{ docker_host_info is succeeded | default(false) }}"
-
-      # Docker service status
-      service:
-        enabled: "{{ ansible_facts.services.get('docker.service', {}).get('status') == 'enabled' }}"
-        active: "{{ ansible_facts.services.get('docker.service', {}).get('state') == 'running' }}"
-
-      # Docker Compose - detected from plugins
+      installed: "{{ docker_discovered.installed | default(false) }}"
+      running: "{{ docker_discovered.running | default(false) }}"
+      version: "{{ docker_discovered.version | default('') }}"
       compose:
-        available: "{{ 'compose' in (docker_host_info.plugins | default({})) }}"
-        version: "{{ docker_host_info.plugins.compose.Version | default('') if 'compose' in (docker_host_info.plugins | default({})) else '' }}"
-        legacy: false  # Modern Docker includes compose as plugin
-
-
-      # Compose-based services
+        available: "{{ docker_discovered.compose_available | default(false) }}"
+      daemon_config: "{{ docker_discovered.daemon_config | default({}) }}"
       compose_services:
-        search_paths: "{{ docker_search_paths | default([]) }}"
-        all: "{{ docker_services_detailed | default([]) }}"
-        canned: "{{ docker_services_mapped.canned | default([]) }}"
-        generic: "{{ docker_services_mapped.generic | default([]) }}"
-        total: "{{ docker_services_detailed | default([]) | length }}"
+        search_paths: "{{ docker_compose_search_paths | default([]) }}"
+        canned: "{{ docker_compose_categorized.canned | default([]) }}"
+        generic: "{{ docker_compose_categorized.generic | default([]) }}"
+        total: "{{ (docker_compose_categorized.canned | default([]) | length) + (docker_compose_categorized.generic | default([]) | length) }}"
 
-      # Configuration
-      daemon_config:
-        exists: "{{ docker_daemon_config.stat.exists | default(false) }}"
-        content: "{{ docker_daemon_content.content | default('') | b64decode }}"
-
-  when: docker_binary.stat.exists
-  tags:
-    - docker
-
-- name: Set empty Docker facts when not installed
-  ansible.builtin.set_fact:
-    discovered_docker:
-      installed: false
-      version: ""
-      running: false
-      service: { enabled: false, active: false }
-      compose: { available: false, version: "", legacy: false }
-      compose_services: { search_paths: [], all: [], canned: [], generic: [], total: 0 }
-      daemon_config: { exists: false, content: "" }
-  when: not docker_binary.stat.exists
-  tags:
-    - docker
+- name: Debug Docker discovery results
+  ansible.builtin.debug:
+    msg:
+      - "Docker installed: {{ discovered_docker.installed }}"
+      - "Docker running: {{ discovered_docker.running }}"
+      - "Docker version: {{ discovered_docker.version }}"
+      - "Compose services found: {{ discovered_docker.compose_services.total }}"
+      - "  Canned services: {{ discovered_docker.compose_services.canned | length }}"
+      - "  Generic services: {{ discovered_docker.compose_services.generic | length }}"
+  when: discovery_debug | default(false)

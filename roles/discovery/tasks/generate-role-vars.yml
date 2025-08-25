@@ -1,77 +1,59 @@
 ---
 # Generate role-specific variables based on discovery results
-# Simplified to only use data that actually exists
+# Uses structured discovery_host_vars format
 
 - name: Generate role-specific variables
   block:
     - name: Generate basic_setup role variables
       ansible.builtin.set_fact:
         basic_setup_vars:
-          # Package management - use discovered native packages
-          "host_packages_install_{{ ansible_distribution }}": "{{ discovered_packages.all_native | default([]) | unique }}"
+          # Package management - use structured packages section
+          "host_packages_install_{{ ansible_distribution }}": "{{ discovery_host_vars.packages[('host_packages_install_' + ansible_distribution)] | default([]) | unique }}"
 
-          # User management - use all regular users discovered
-          user_details: "{{ discovered_users.system_users.regular_users_detailed | default([]) }}"
+          # User management - use structured users section
+          user_details: "{{ discovery_host_vars.users.discovered_users_config | default([]) }}"
 
-          # System configuration - use first regular user's shell as default
+          # System configuration - use first user's shell as default
           default_user_shell: >-
             {{
-              (discovered_users.system_users.regular_users_detailed | default([]) | first).shell | default('/bin/bash') | basename
-              if discovered_users.system_users.regular_users_detailed | default([]) | length > 0
-              else '/bin/bash'
+              (discovery_host_vars.users.discovered_users_config | default([]) | first).default_user_shell | default('bash')
+              if discovery_host_vars.users.discovered_users_config | default([]) | length > 0
+              else 'bash'
             }}
 
     - name: Generate container_platform role variables
       ansible.builtin.set_fact:
         container_platform_vars:
           # Docker configuration - add all regular users to docker group
-          docker_users: "{{ discovered_users.system_users.regular_users | default([]) }}"
+          docker_users: "{{ discovery_host_vars.users.discovered_users_config | default([]) | map(attribute='name') | list }}"
 
           # Use geerlingguy.docker role for installation
-          docker_install_compose: "{{ discovered_docker.compose.available }}"
-
-          # Compose search paths configuration
-          docker_compose_search_paths: "{{ discovered_docker.compose_services.search_paths | default([]) }}"
+          docker_install_compose: "{{ discovery_host_vars.docker.docker_compose_available | default(false) }}"
 
           # Deploy Portainer if Docker is found
           deploy_portainer: true
 
-          # Canned services to deploy with dedicated roles
-          docker_canned_services: "{{ discovered_docker.compose_services.canned | default([]) }}"
-          docker_canned_roles: >-
-            {{ discovered_docker.compose_services.canned | default([]) | map(attribute='role') | unique | list }}
-
-          # Generic services to deploy
-          docker_generic_services: "{{ discovered_docker.compose_services.generic | default([]) }}"
-      when: discovered_docker.installed | default(false)
+          # Services to deploy (both canned and generic from structured format)
+          docker_services: "{{ discovery_host_vars.docker.install_docker_services | default([]) }}"
+      when: discovery_host_vars.docker.install_docker | default(false)
 
     - name: Generate dotfiles role variables
       ansible.builtin.set_fact:
         dotfiles_vars:
           # Users with dotfiles repositories
-          discovered_users_config: "{{ discovered_users.system_users.regular_users_detailed | default([]) }}"
+          discovered_users_config: "{{ discovery_host_vars.users.discovered_users_config | default([]) }}"
       when:
-        - discovered_users.system_users.regular_users_detailed | default([]) | length > 0
+        - discovery_host_vars.users.discovered_users_config | default([]) | length > 0
 
     - name: Generate system_tuning role variables
       ansible.builtin.set_fact:
-        system_tuning_vars:
-          # Network and performance tuning
-          system_tuning_network_enabled: true
-          system_tuning_security_enabled: true
-          system_tuning_ssh_hardening_enabled: true
-
-          # Hardware and performance tuning (user configurable)
-          system_tuning_gaming_enabled: false            # User can enable for gaming optimizations
-          system_tuning_gpu_enabled: false               # User can enable for GPU support
-          system_tuning_camera_support_enabled: false    # User can enable for camera support
-          system_tuning_bluetooth_enabled: false         # User can enable for Bluetooth support
-
-          # User permissions and groups
-          system_tuning_sudo_nopasswd: false  # User can enable for convenience
-          # Discovered users and their groups - ready for per-user configuration
-          discovered_user_details: "{{ discovered_users.system_users.regular_users_detailed | default([]) }}"
-          system_tuning_user_groups_add: []  # User can add groups as needed
+        system_tuning_vars: >-
+          {{
+            discovery_host_vars.system_tuning | default({}) |
+            combine({
+              'discovered_user_details': discovery_host_vars.users.discovered_users_config | default([])
+            })
+          }}
 
     - name: Generate maintenance role variables
       ansible.builtin.set_fact:
@@ -84,21 +66,18 @@
           enable_automatic_updates: false    # User can enable as needed
 
           # Development environment detected - maintenance may be useful
-          maintain_dev_tools: "{{ discovered_packages.all_native | default([]) | length > 100 }}"
+          maintain_dev_tools: "{{ (discovery_host_vars.packages[('host_packages_install_' + ansible_distribution)] | default([]) | length) > 100 }}"
 
     - name: Generate system_security role variables
       ansible.builtin.set_fact:
         system_security_vars:
-          # Only configure security features that are currently detected
-          enable_firewall: "{{ discovered_security.firewall.detected | default(false) }}"
-          enable_fail2ban: "{{ discovered_security.fail2ban.service_enabled | default(false) }}"
-          firewall_type: "{{ discovered_security.firewall.type | default('') }}"
-          firewall_rules: "{{ discovered_security.firewall.rules | default([]) }}"
+          # Use structured security section
+          enable_firewall: "{{ discovery_host_vars.security.enable_firewall | default(false) }}"
+          firewall_type: "{{ discovery_host_vars.security.firewall_type | default('') }}"
+          firewall_rules: "{{ discovery_host_vars.security.firewall_rules | default([]) }}"
       when:
-        - discovered_security is defined
-        - (discovered_security.firewall.detected | default(false) or
-           discovered_security.fail2ban.service_enabled | default(false) or
-           discovered_security.ssh.service_running | default(false))
+        - discovery_host_vars.security is defined
+        - discovery_host_vars.security.enable_firewall | default(false)
 
     - name: Combine all role variables
       ansible.builtin.set_fact:

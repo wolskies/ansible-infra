@@ -1,102 +1,217 @@
 #SPDX-License-Identifier: MIT-0
 ---
-# Smart dotfiles role that discovers dependencies and uses system packages when possible
+# Simplified dotfiles role - all tasks consolidated for clarity
 
+# Multi-user dotfiles deployment (from discovery)
 - name: Deploy dotfiles for discovered users
-  ansible.builtin.include_tasks: deploy-user-dotfiles.yml
-  loop: "{{ discovered_users_config | default({}) | dict2items }}"
-  loop_control:
-    loop_var: user_config
-  when:
-    - discovered_users_config is defined
-    - user_config.value.dotfiles_source_type is defined
+  block:
+    - name: Process each discovered user
+      ansible.builtin.include_tasks: deploy-user-dotfiles.yml
+      loop: "{{ discovered_users_config | default({}) | dict2items }}"
+      loop_control:
+        loop_var: user_config
+      when:
+        - discovered_users_config is defined
+        - user_config.value.dotfiles_source_type is defined
   tags: dotfiles
 
-# Legacy single-user dotfiles deployment
-- name: Validate dotfiles configuration - repository method (legacy)
-  ansible.builtin.fail:
-    msg: "dotfiles_repository_url must be defined when using repository method"
-  when:
-    - discovered_users_config is not defined
-    - dotfiles_source_type == "repository"
-    - (not dotfiles_repository_url or dotfiles_repository_url == "")
-  tags: dotfiles
+# Single-user legacy deployment
+- name: Deploy dotfiles for single user (legacy)
+  block:
+    # Validation
+    - name: Validate repository configuration
+      ansible.builtin.fail:
+        msg: "dotfiles_repository_url must be defined when using repository method"
+      when:
+        - dotfiles_source_type == "repository"
+        - not dotfiles_repository_url
 
-- name: Validate dotfiles configuration - local files method (legacy)
-  ansible.builtin.fail:
-    msg: "dotfiles_local_files must be defined when using local_files method"
-  when:
-    - discovered_users_config is not defined
-    - dotfiles_source_type == "local_files"
-    - (not dotfiles_local_files or dotfiles_local_files | length == 0)
-  tags: dotfiles
+    - name: Validate local files configuration
+      ansible.builtin.fail:
+        msg: "dotfiles_local_files must be defined when using local_files method"
+      when:
+        - dotfiles_source_type == "local_files"
+        - not dotfiles_local_files
 
-- name: Install essential packages (legacy)
-  ansible.builtin.include_tasks: install-essentials.yml
-  when: discovered_users_config is not defined
-  tags:
-    - dotfiles
-    - packages
+    # Install essentials
+    - name: Install essential packages for dotfiles
+      ansible.builtin.package:
+        name: "{{ dotfiles_essential_packages }}"
+        state: present
+      become: true
 
-- name: Check if dotfiles directory exists (legacy)
-  ansible.builtin.stat:
-    path: "{{ dotfiles_directory }}"
-  register: dotfiles_directory_stat
-  when: discovered_users_config is not defined
-  tags: dotfiles
+    - name: Install stow if needed
+      ansible.builtin.package:
+        name: stow
+        state: present
+      become: true
+      when: dotfiles_method == "stow"
 
-- name: Clone or update dotfiles repository (legacy)
-  ansible.builtin.include_tasks: clone-dotfiles.yml
-  when:
-    - discovered_users_config is not defined
-    - dotfiles_source_type == "repository"
-    - dotfiles_repository_url is defined and dotfiles_repository_url != ""
-  tags: dotfiles
+    # Check existing directory
+    - name: Check if dotfiles directory exists
+      ansible.builtin.stat:
+        path: "{{ dotfiles_directory }}"
+      register: dotfiles_directory_stat
 
-- name: Deploy local files (legacy)
-  ansible.builtin.include_tasks: deploy-local-files.yml
-  when:
-    - discovered_users_config is not defined
-    - dotfiles_source_type == "local_files"
-    - dotfiles_local_files is defined and dotfiles_local_files | length > 0
-  tags: dotfiles
+    # Repository method
+    - name: Clone or update dotfiles repository
+      block:
+        - name: Clone dotfiles repository
+          ansible.builtin.git:
+            repo: "{{ dotfiles_repository_url }}"
+            dest: "{{ dotfiles_directory }}"
+            version: "{{ dotfiles_branch }}"
+            force: "{{ dotfiles_force_update }}"
+          become_user: "{{ dotfiles_user }}"
 
-- name: Discover dotfiles dependencies (legacy)
-  ansible.builtin.include_tasks: discover-dependencies.yml
-  when:
-    - discovered_users_config is not defined
-    - dotfiles_scan_for_dependencies | default(true)
-    - dotfiles_directory_stat.stat.exists
-  tags:
-    - dotfiles
-    - discovery
+        - name: Ensure correct ownership
+          ansible.builtin.file:
+            path: "{{ dotfiles_directory }}"
+            owner: "{{ dotfiles_user }}"
+            group: "{{ dotfiles_group }}"
+            recurse: true
+      when: dotfiles_source_type == "repository"
 
-- name: Install discovered dependencies (legacy)
-  ansible.builtin.include_tasks: install-dependencies.yml
-  when:
-    - discovered_users_config is not defined
-    - dotfiles_auto_install_dependencies | default(true)
-    - dotfiles_needed_tools is defined
-  tags:
-    - dotfiles
-    - packages
+    # Local files method
+    - name: Deploy local dotfiles
+      block:
+        - name: Create dotfiles directory
+          ansible.builtin.file:
+            path: "{{ dotfiles_directory }}"
+            state: directory
+            owner: "{{ dotfiles_user }}"
+            group: "{{ dotfiles_group }}"
+            mode: '0755'
 
-- name: Deploy dotfiles using stow (legacy)
-  ansible.builtin.include_tasks: deploy-dotfiles.yml
-  when:
-    - discovered_users_config is not defined
-    - dotfiles_source_type == "repository"
-    - dotfiles_directory_stat.stat.exists
-  tags: dotfiles
+        - name: Copy dotfiles to target
+          ansible.builtin.copy:
+            src: "{{ item.src }}"
+            dest: "{{ dotfiles_directory }}/{{ item.dest | default(item.src | basename) }}"
+            owner: "{{ dotfiles_user }}"
+            group: "{{ dotfiles_group }}"
+            mode: "{{ item.mode | default('0644') }}"
+          loop: "{{ dotfiles_local_files }}"
+      when: dotfiles_source_type == "local_files"
 
-- name: Display dotfiles deployment summary (legacy)
-  ansible.builtin.debug:
-    msg:
-      - "=== Dotfiles Deployment Summary ==="
-      - "Repository: {{ dotfiles_repository_url }}"
-      - "Directory: {{ dotfiles_directory }}"
-      - "Method: {{ dotfiles_method }}"
-      - "Dependencies installed: {{ dotfiles_installed_tools | default([]) | length }}"
-      - "Tools available: {{ dotfiles_available_tools | default([]) | join(', ') }}"
+    # Dependency discovery and installation
+    - name: Discover and install dependencies
+      block:
+        - name: Search for dependency files
+          ansible.builtin.find:
+            paths: "{{ dotfiles_directory }}"
+            patterns: "{{ dotfiles_dependency_files }}"
+            recurse: true
+          register: dependency_files
+
+        - name: Read dependency files
+          ansible.builtin.slurp:
+            src: "{{ item.path }}"
+          register: dependency_contents
+          loop: "{{ dependency_files.files }}"
+          when: dependency_files.matched > 0
+
+        - name: Extract required tools
+          ansible.builtin.set_fact:
+            dotfiles_needed_tools: >-
+              {%- set tools = [] -%}
+              {%- for file in dependency_contents.results | default([]) -%}
+                {%- set content = file.content | b64decode -%}
+                {%- for pattern in dotfiles_tool_patterns -%}
+                  {%- set matches = content | regex_findall(pattern.regex, multiline=True) -%}
+                  {%- for match in matches -%}
+                    {%- if match not in tools and match not in dotfiles_tools_ignore -%}
+                      {%- set _ = tools.append(match) -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                {%- endfor -%}
+              {%- endfor -%}
+              {{ tools | unique | sort }}
+
+        - name: Check tool availability
+          ansible.builtin.command: "which {{ item }}"
+          register: tool_checks
+          loop: "{{ dotfiles_needed_tools | default([]) }}"
+          changed_when: false
+          failed_when: false
+
+        - name: Install available tools via package manager
+          ansible.builtin.package:
+            name: "{{ item.item }}"
+            state: present
+          become: true
+          loop: "{{ tool_checks.results }}"
+          when:
+            - item.rc != 0
+            - item.item in dotfiles_package_map
+          register: package_installs
+          failed_when: false
+
+        - name: Set available tools fact
+          ansible.builtin.set_fact:
+            dotfiles_available_tools: >-
+              {{ tool_checks.results | selectattr('rc', 'equalto', 0) | map(attribute='item') | list +
+                 package_installs.results | default([]) | selectattr('changed', 'equalto', true) | map(attribute='item.item') | list }}
+      when:
+        - dotfiles_scan_for_dependencies | default(true)
+        - dotfiles_directory_stat.stat.exists
+
+    # Deploy with stow
+    - name: Deploy dotfiles using stow
+      block:
+        - name: Find stow packages
+          ansible.builtin.find:
+            paths: "{{ dotfiles_directory }}"
+            file_type: directory
+            depth: 1
+          register: stow_packages
+
+        - name: Stow dotfiles packages
+          ansible.builtin.command:
+            cmd: "stow -v -t {{ dotfiles_stow_target }} {{ item.path | basename }}"
+            chdir: "{{ dotfiles_directory }}"
+          loop: "{{ stow_packages.files }}"
+          become_user: "{{ dotfiles_user }}"
+          register: stow_results
+          changed_when: "'LINK' in stow_results.stderr"
+          failed_when: 
+            - stow_results.rc != 0
+            - "'conflict' not in stow_results.stderr"
+      when:
+        - dotfiles_method == "stow"
+        - dotfiles_directory_stat.stat.exists
+
+    # Deploy with symlinks
+    - name: Deploy dotfiles using symlinks
+      block:
+        - name: Find dotfiles to link
+          ansible.builtin.find:
+            paths: "{{ dotfiles_directory }}"
+            patterns: "{{ dotfiles_symlink_patterns }}"
+            hidden: true
+            recurse: false
+          register: files_to_link
+
+        - name: Create symlinks
+          ansible.builtin.file:
+            src: "{{ item.path }}"
+            dest: "{{ dotfiles_symlink_target }}/{{ item.path | basename }}"
+            state: link
+            force: "{{ dotfiles_force_symlinks }}"
+          loop: "{{ files_to_link.files }}"
+          become_user: "{{ dotfiles_user }}"
+      when:
+        - dotfiles_method == "symlink"
+        - dotfiles_directory_stat.stat.exists
+
+    # Summary
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Dotfiles Deployment Summary ==="
+          - "Method: {{ dotfiles_source_type }} / {{ dotfiles_method }}"
+          - "Directory: {{ dotfiles_directory }}"
+          - "User: {{ dotfiles_user }}"
+          - "Dependencies found: {{ dotfiles_needed_tools | default([]) | length }}"
+          - "Tools available: {{ dotfiles_available_tools | default([]) | length }}"
   when: discovered_users_config is not defined
   tags: dotfiles

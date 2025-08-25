@@ -1,56 +1,59 @@
 ---
-# Test playbook to validate discovery templates with minimal data
-- name: Test discovery templates with edge cases
+# Test playbook to validate current discovery templates with structured data
+- name: Test current discovery templates
   hosts: localhost
   gather_facts: true
   vars:
-    # Minimal discovered data structure to test templates
-    discovered_machine:
-      hostname: "test-host"
-      type: "unknown"
-    discovered_system:
-      os: {}
-    discovered_packages: {}
-    discovered_services: {}
-    discovered_docker: {}
-    discovered_dotfiles: {}
-    discovered_users: {}
-    discovered_repositories: {}
-    discovered_security: {}
+    # Structured discovery data for testing current templates
+    discovery_host_vars:
+      packages:
+        host_packages_install_Ubuntu: ["vim", "htop"]
+        third_party_packages:
+          python: ["requests", "flask"]
+          nodejs:
+            npm_global: ["typescript"]
+      docker:
+        install_docker: true
+        docker_version: "24.0.7"
+        install_docker_services: []
+      users:
+        discovered_users_config:
+          - name: "testuser"
+            uid: "1000"
+            home: "/home/testuser"
+            shell: "/bin/bash"
+      discovery_metadata:
+        source_hostname: "test-host"
+        discovery_date: "2024-01-01T00:00:00Z"
     discovery_paths:
       inventory_dir: "/tmp/test"
       playbooks_dir: "/tmp/test"
+      host_vars_dir: "/tmp/test/host_vars/test-host"
     inventory_hostname: "test-host"
     
   tasks:
-    - name: Test host_vars template rendering
+    - name: Test current simple_host_vars template rendering
       ansible.builtin.template:
-        src: "{{ playbook_dir }}/../../roles/discovery/templates/host_vars.yml.j2"
-        dest: "/tmp/test-host_vars.yml"
-      register: host_vars_result
+        src: "{{ playbook_dir }}/../../roles/discovery/templates/simple_host_vars.yml.j2"
+        dest: "/tmp/test-simple_host_vars.yml"
+      register: simple_host_vars_result
       
-    - name: Test README template rendering
+    - name: Test current host_secrets template rendering  
       ansible.builtin.template:
-        src: "{{ playbook_dir }}/../../roles/discovery/templates/README.md.j2"
-        dest: "/tmp/test-readme.md"
-      register: readme_result
+        src: "{{ playbook_dir }}/../../roles/discovery/templates/host_secrets.yml.j2"
+        dest: "/tmp/test-host_secrets.yml"
+      register: host_secrets_result
       
-    - name: Test new_machine template rendering
-      ansible.builtin.template:
-        src: "{{ playbook_dir }}/../../roles/discovery/templates/new_machine.yml.j2"
-        dest: "/tmp/test-new_machine.yml"
-      register: new_machine_result
-      
-    - name: Verify templates rendered successfully
+    - name: Verify current templates rendered successfully
       ansible.builtin.assert:
         that:
-          - host_vars_result is succeeded
-          - readme_result is succeeded
-          - new_machine_result is succeeded
-        fail_msg: "One or more templates failed to render with minimal data"
+          - simple_host_vars_result is succeeded
+          - host_secrets_result is succeeded
+        fail_msg: "One or more current templates failed to render"
         
     - name: Display test results
       ansible.builtin.debug:
         msg:
-          - "Template testing completed successfully"
-          - "All templates can handle missing/empty data structures"
+          - "Current template testing completed successfully"
+          - "simple_host_vars.yml.j2: {{ 'OK' if simple_host_vars_result is succeeded else 'FAILED' }}"
+          - "host_secrets.yml.j2: {{ 'OK' if host_secrets_result is succeeded else 'FAILED' }}"

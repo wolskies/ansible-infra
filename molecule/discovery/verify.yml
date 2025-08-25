@@ -131,7 +131,7 @@
       block:
         - name: Validate template with realistic discovery data structure
           ansible.builtin.template:
-            src: "{{ role_path }}/templates/host_vars_collection.yml.j2"
+            src: "{{ role_path }}/templates/simple_host_vars.yml.j2"
             dest: "/tmp/test-realistic-data.yml"
           vars:
             discovered_machine: { type: "workstation", hostname: "test-machine" }
@@ -259,10 +259,8 @@
             discovered_repositories: {}
             discovered_security: {}
           loop:
-            - "{{ role_path }}/templates/host_vars.yml.j2"
-            - "{{ role_path }}/templates/host_vars_collection.yml.j2"
-            - "{{ role_path }}/templates/README.md.j2"
-            - "{{ role_path }}/templates/new_machine.yml.j2"
+            - "{{ role_path }}/templates/simple_host_vars.yml.j2"
+            - "{{ role_path }}/templates/host_secrets.yml.j2"
           delegate_to: localhost
           
         - name: Verify templates handle missing data gracefully
@@ -273,7 +271,7 @@
       block:
         - name: Test templates with malformed data structures
           ansible.builtin.template:
-            src: "{{ role_path }}/templates/host_vars_collection.yml.j2"
+            src: "{{ role_path }}/templates/simple_host_vars.yml.j2"
             dest: "/tmp/test-edge-cases.yml"
           vars:
             discovered_machine: { type: "server" }
@@ -333,7 +331,7 @@
 
         - name: Test templates with undefined nested values
           ansible.builtin.template:
-            src: "{{ role_path }}/templates/host_vars_collection.yml.j2"
+            src: "{{ role_path }}/templates/simple_host_vars.yml.j2"
             dest: "/tmp/test-undefined.yml"
           vars:
             discovered_machine: {}

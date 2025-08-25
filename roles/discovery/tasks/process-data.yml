@@ -1,28 +1,15 @@
 ---
-# Data Processing - Simplified
-# Creates summary variables for role integration
+# Data Processing - Minimal
+# Most processing is now handled by build-host-vars.yml which creates structured discovery_host_vars
 
-- name: Create machine summary
-  ansible.builtin.set_fact:
-    discovered_machine:
-      hostname: "{{ discovered_system.hostname }}"
-      type: >-
-        {%- if discovered_docker.installed | default(false) -%}
-          docker_host
-        {%- else -%}
-          server
-        {%- endif %}
-      discovered_at: "{{ ansible_date_time.iso8601 }}"
-
-- name: Display discovery processing summary
+- name: Display discovery scanning summary
   ansible.builtin.debug:
     msg:
-      - "=== Discovery Processing Complete ==="
-      - "Hostname: {{ discovered_machine.hostname }}"
-      - "Machine Type: {{ discovered_machine.type }}"
-      - "Docker Detected: {{ discovered_docker.installed | default(false) }}"
+      - "=== Discovery Scanning Complete ==="
+      - "Raw data collection finished, processing into structured format..."
+      - "Docker Found: {{ discovered_docker.installed | default(false) }}"
       - "Packages Found: {{ discovered_packages.all_native | default([]) | length }}"
-      - "Services Running: {{ discovered_services.running | default([]) | length }}"
+      - "Third-party Languages: {{ discovered_packages.languages.keys() | list if discovered_packages.languages is defined else [] }}"
   tags:
     - processing
     - summary
