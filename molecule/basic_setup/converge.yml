@@ -1,10 +1,55 @@
 ---
-# Test basic_setup role specifically
-- name: Test basic_setup role
-  hosts: all
+# Test basic_setup role with discovery data
+- name: Test basic_setup role with workstation discovery data
+  hosts: workstations
   gather_facts: true
   collections:
     - wolskinet.infrastructure
+  vars:
+    # Discovery data from live workstation (north)
+    discovered_users_config:
+      - default_user_shell: zsh
+        dotfiles_branch: main
+        dotfiles_directory: /home/ed/.dotfiles
+        dotfiles_repo: true
+        dotfiles_repository_url: ssh://git@gitlab.wolskinet.com:2222/configs/dotfiles.git
+        dotfiles_source_type: repository
+        gid: '1000'
+        groups:
+          - wheel
+          - kvm
+          - ed
+          - docker
+          - libvirt
+        home: /home/ed
+        name: ed
+        password: vault_ed_password | default(omit)
+        shell: /usr/bin/zsh
+        ssh_password_auth: true
+        ssh_public_key: vault_ed_ssh_public_key | default("")
+        sudo_nopasswd: false
+        uid: '1000'
+    # Arch Linux workstation packages
+    host_packages_install_Archlinux:
+      - git
+      - curl
+      - wget
+      - htop
+      - neovim
+      - tmux
+      - zsh
+      - python
+      - python-pip
+    # System tuning from discovery
+    audio:
+      description: Audio system optimizations
+      enabled: false
+    bluetooth:
+      description: Bluetooth support and audio codecs
+      enabled: false
+    gaming:
+      description: Gaming optimizations
+      enabled: false
 
   pre_tasks:
     - name: Update package cache
@@ -16,6 +61,54 @@
     - name: wolskinet.infrastructure.basic_setup
 
   post_tasks:
-    - name: Verify role execution
+    - name: Verify workstation role execution
       ansible.builtin.debug:
-        msg: "basic_setup role completed on {{ ansible_distribution }}"
+        msg: "basic_setup role completed on workstation {{ ansible_distribution }}"
+
+- name: Test basic_setup role with server discovery data  
+  hosts: servers
+  gather_facts: true
+  collections:
+    - wolskinet.infrastructure
+  vars:
+    # Discovery data from live servers (altra/xeon)
+    discovered_users_config:
+      - name: ed
+        uid: '1000'
+        gid: '1000'
+        shell: /bin/bash
+        home: /home/ed
+        groups:
+          - sudo
+          - docker
+        ssh_public_key: vault_ed_ssh_public_key | default("")
+        password: vault_ed_password | default(omit)
+    # Server packages (minimal)
+    host_packages_install_Ubuntu:
+      - git
+      - curl
+      - wget
+      - htop
+      - docker.io
+    host_packages_install_Debian:
+      - git
+      - curl
+      - wget
+      - htop
+      - docker.io
+    # Docker installation for servers
+    install_docker: true
+
+  pre_tasks:
+    - name: Update package cache
+      ansible.builtin.package:
+        update_cache: true
+      when: ansible_pkg_mgr in ['apt', 'pacman']
+
+  roles:
+    - name: wolskinet.infrastructure.basic_setup
+
+  post_tasks:
+    - name: Verify server role execution
+      ansible.builtin.debug:
+        msg: "basic_setup role completed on server {{ ansible_distribution }}"
