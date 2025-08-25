@@ -75,28 +75,54 @@
   tags:
     - volumes
 
-- name: Merge discovered services with configured services
-  ansible.builtin.set_fact:
-    all_docker_services: >-
-      {{
-        (docker_services_deploy | default([])) +
-        (install_docker_services | default([]) | selectattr('role', 'defined') | map(attribute='role') | list)
-        | unique
-      }}
+- name: Deploy discovered Docker services with specific roles
+  ansible.builtin.include_role:
+    name: "wolskinet.infrastructure.{{ item.role }}"
+  vars:
+    compose_file: "{{ item.compose_file }}"
+    service_directory: "{{ item.directory }}"
+    service_name: "{{ item.name }}"
+  loop: "{{ install_docker_services | default([]) }}"
+  when:
+    - install_docker_services is defined
+    - item.role is defined
+    - docker_enable_services | default(true)
+  tags:
+    - services
+    - discovered
 
-- name: Deploy Docker services
+- name: Deploy discovered Docker services without specific roles (generic)
+  ansible.builtin.include_role:
+    name: "wolskinet.infrastructure.{{ item.role }}"
+  vars:
+    compose_file: "{{ item.compose_file }}"
+    service_directory: "{{ item.directory }}"
+    service_name: "{{ item.name }}"
+  loop: "{{ install_docker_services | default([]) }}"
+  when:
+    - install_docker_services is defined
+    - item.role is defined
+    - item.role == "generic_docker_compose"
+    - docker_enable_services | default(true)
+  tags:
+    - services
+    - discovered
+    - generic
+
+- name: Deploy manually configured Docker services (legacy)
   ansible.builtin.include_tasks: deploy-service.yml
-  loop: "{{ all_docker_services }}"
+  loop: "{{ docker_services_deploy }}"
   loop_control:
     loop_var: service_name
   when:
-    - all_docker_services is defined
-    - all_docker_services | length > 0
+    - docker_services_deploy is defined
+    - docker_services_deploy | length > 0
     - docker_enable_services | default(true)
   vars:
     service_vars: "{{ vars[service_name + '_config'] | default({}) }}"
   tags:
     - services
+    - configured
 
 - name: Set up Docker system cleanup cron job
   ansible.builtin.cron:

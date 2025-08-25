@@ -127,6 +127,24 @@
         docker_canned_services: []
         docker_generic_services: []
 
+    - name: Create compose files directory on controller
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/compose_files"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Save compose files to controller
+      ansible.builtin.copy:
+        content: "{{ compose_contents.results[item].content | b64decode }}"
+        dest: "{{ playbook_dir }}/compose_files/{{ compose_services_raw[item].name }}-docker-compose.yml"
+        mode: '0644'
+      delegate_to: localhost
+      loop: "{{ range(compose_services_raw | length) | list }}"
+      when: 
+        - compose_contents.results[item].content is defined
+
     - name: Categorize each Docker service
       ansible.builtin.set_fact:
         docker_canned_services: "{{ docker_canned_services + [service_with_role] }}"
@@ -134,7 +152,7 @@
         service: "{{ compose_services_raw[item] }}"
         content: "{{ compose_contents.results[item].content | default('') | b64decode | default('{}', true) }}"
         matched_images: "{{ discovery_docker_service_mapping.keys() | select('in', content) | list }}"
-        service_with_role: "{{ service | combine({'role': discovery_docker_service_mapping[matched_images[0]]}) }}"
+        service_with_role: "{{ service | combine({'role': discovery_docker_service_mapping[matched_images[0]], 'compose_file_local': playbook_dir + '/compose_files/' + service.name + '-docker-compose.yml'}) }}"
       loop: "{{ range(compose_services_raw | length) | list }}"
       when: 
         - compose_contents.results[item].content is defined
@@ -142,9 +160,11 @@
 
     - name: Add unmatched services to generic list
       ansible.builtin.set_fact:
-        docker_generic_services: "{{ docker_generic_services + [compose_services_raw[item]] }}"
+        docker_generic_services: "{{ docker_generic_services + [service_with_role] }}"
       vars:
+        service: "{{ compose_services_raw[item] }}"
         content: "{{ compose_contents.results[item].content | default('') | b64decode | default('{}', true) }}"
+        service_with_role: "{{ service | combine({'role': 'generic_docker_compose', 'compose_file_local': playbook_dir + '/compose_files/' + service.name + '-docker-compose.yml'}) }}"
       loop: "{{ range(compose_services_raw | length) | list }}"
       when: 
         - compose_contents.results[item].content is defined
