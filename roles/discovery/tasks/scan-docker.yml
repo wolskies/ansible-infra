@@ -153,25 +153,36 @@
       loop: "{{ compose_services_raw }}"
       when: compose_services_raw | length > 0
 
-    - name: Read all .env files from service directories
+    - name: Create flattened list of env files with service info
+      ansible.builtin.set_fact:
+        env_files_with_service: >-
+          {%- set result = [] -%}
+          {%- for service_idx in range(compose_services_raw | length) -%}
+            {%- set service = compose_services_raw[service_idx] -%}
+            {%- set env_files = env_files_find.results[service_idx].files | default([]) -%}
+            {%- for env_file in env_files -%}
+              {%- set _ = result.append({'service_name': service.name, 'env_file_path': env_file.path, 'env_filename': env_file.path | basename}) -%}
+            {%- endfor -%}
+          {%- endfor -%}
+          {{ result }}
+
+    - name: Read all .env files
       ansible.builtin.slurp:
-        src: "{{ item.1.path }}"
+        src: "{{ item.env_file_path }}"
       register: env_file_contents
-      loop: "{{ env_files_find.results | subelements('files', skip_missing=True) }}"
+      loop: "{{ env_files_with_service }}"
       failed_when: false
 
     - name: Save .env files to host_vars directory
       ansible.builtin.copy:
         content: "{{ item.content | b64decode }}"
-        dest: "{{ discovery_paths.host_vars_dir }}/docker-compose/{{ service_name }}-{{ env_filename }}"
+        dest: "{{ discovery_paths.host_vars_dir }}/docker-compose/{{ item.item.service_name }}-{{ item.item.env_filename }}"
         mode: '0600'
       delegate_to: localhost
       loop: "{{ env_file_contents.results }}"
-      vars:
-        service_name: "{{ item.item.0.item.name }}"
-        env_filename: "{{ item.item.1.path | basename }}"
       when: 
         - item.content is defined
+        - not item.failed | default(false)
 
     - name: Categorize each Docker service
       ansible.builtin.set_fact:
