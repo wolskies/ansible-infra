@@ -143,7 +143,7 @@
           - "Key file check results: {{ key_file_stats.results | default([]) | map(attribute='item') | list }}"
           - "Keys that exist: {{ existing_keys | default([]) }}"
           - "Final discovered_repositories.apt.gpg_keys: {{ discovered_repositories.apt.gpg_keys | default('UNDEFINED') }}"
-      when: discovery_debug | default(false)
+      when: discovery_debug | default(false) | bool
 
     - name: Debug APT discovery results
       ansible.builtin.debug:
@@ -151,7 +151,7 @@
           - "Found {{ manual_packages | length }} manually installed packages"
           - "Found {{ parsed_repos.repos | length }} third-party repositories"
           - "Found {{ existing_keys | default([]) | length }} GPG keys"
-      when: discovery_debug | default(false)
+      when: discovery_debug | default(false) | bool
 
   rescue:
     - name: Handle APT discovery errors

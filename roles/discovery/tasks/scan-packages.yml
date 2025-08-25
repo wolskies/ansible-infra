@@ -57,4 +57,4 @@
       - "Python packages: {{ discovered_packages.languages.python | default([]) | length }}"
       - "Node.js packages: {{ discovered_packages.languages.nodejs.npm_global | default([]) | length }}"
       - "Rust packages: {{ discovered_packages.languages.rust.cargo | default([]) | length }}"
-  when: discovery_debug | default(false)
+  when: discovery_debug | default(false) | bool

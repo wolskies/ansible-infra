@@ -153,6 +153,16 @@
       loop: "{{ compose_services_raw }}"
       when: compose_services_raw | length > 0
 
+    - name: Debug .env file discovery
+      ansible.builtin.debug:
+        msg:
+          - "Service: {{ item.item.name }}"
+          - "Directory: {{ item.item.directory }}"
+          - "Found .env files: {{ item.files | length }}"
+          - "Files: {{ item.files | map(attribute='path') | list }}"
+      loop: "{{ env_files_find.results }}"
+      when: discovery_debug | default(false) | bool
+
     - name: Create flattened list of env files with service info
       ansible.builtin.set_fact:
         env_files_with_service: >-

@@ -173,4 +173,4 @@
       - "Node.js packages (npm): {{ cleaned_npm_packages | default([]) | length }}"
       - "Rust packages: {{ cleaned_cargo_packages | default([]) | length }}"
       - "Discovery warnings: {{ discovery_warnings | default([]) | length }}"
-  when: discovery_debug | default(false)
+  when: discovery_debug | default(false) | bool
