@@ -52,31 +52,31 @@
             - wget
           ignore_errors: true  # Some test images may not have all packages
 
-    - name: Verify user creation (Linux only)
+    - name: Verify discovery-based user creation (Linux only)
       block:
-        - name: Check if test users exist
+        - name: Check if discovered users exist
           ansible.builtin.getent:
             database: passwd
           register: system_users
 
-        - name: Verify test users were created
+        - name: Verify ed user was created from discovery data
           ansible.builtin.assert:
             that:
-              - "'testuser1' in ansible_facts.getent_passwd"
-              - "'testuser2' in ansible_facts.getent_passwd"
-            fail_msg: "Test users not created properly"
-            success_msg: "User creation verified"
+              - "'ed' in ansible_facts.getent_passwd"
+              - "ansible_facts.getent_passwd['ed'][1] == '1000'"  # UID check
+            fail_msg: "Discovery user 'ed' not created properly"
+            success_msg: "Discovery user creation verified"
           when: ansible_os_family != 'Darwin'
 
-        - name: Check user shell assignment
+        - name: Check user shell assignment from discovery data
           ansible.builtin.assert:
             that:
-              - "ansible_facts.getent_passwd['testuser1'][5] == '/usr/bin/zsh'"
-            fail_msg: "User shell not set to zsh"
-            success_msg: "User shell configuration verified"
+              - "ansible_facts.getent_passwd['ed'][5] == '/usr/bin/zsh'"
+            fail_msg: "User shell not set to zsh from discovery data"
+            success_msg: "Discovery user shell configuration verified"
           when:
             - ansible_os_family != 'Darwin'
-            - "'testuser1' in ansible_facts.getent_passwd"
+            - "'ed' in ansible_facts.getent_passwd"
           ignore_errors: true  # zsh may not be available in test images
 
     - name: Verify OS-specific configurations
@@ -93,13 +93,29 @@
 
           when: ansible_distribution == 'Ubuntu'
 
-        - name: Check Arch Linux specific settings
+        - name: Check Arch Linux workstation specific settings
           block:
             - name: Verify pacman packages
               ansible.builtin.debug:
                 msg: "Pacman package manager detected"
 
-          when: ansible_distribution == 'Archlinux'
+            - name: Verify workstation packages from discovery data
+              ansible.builtin.assert:
+                that:
+                  - "item in ansible_facts.packages"
+                fail_msg: "Workstation package {{ item }} not installed"
+                success_msg: "Workstation package {{ item }} verified"
+              loop:
+                - git
+                - curl
+                - htop
+                - neovim
+                - tmux
+              ignore_errors: true  # Some packages may not be available in test images
+
+          when: 
+            - ansible_distribution == 'Archlinux'
+            - inventory_hostname in groups.workstations
 
         - name: Check Debian specific settings
           block:
@@ -121,9 +137,10 @@
     - name: Summary verification
       ansible.builtin.debug:
         msg:
-          - "basic_setup role verification completed"
+          - "basic_setup role verification completed with discovery data"
           - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
           - "Package manager: {{ ansible_pkg_mgr }}"
-          - "Users created: {{ ansible_facts.getent_passwd.keys() | intersect(['testuser1', 'testuser2']) | length if ansible_os_family != 'Darwin' else 'N/A (macOS)' }}"
+          - "Group: {{ group_names | join(', ') }}"
+          - "Discovery users: {{ ansible_facts.getent_passwd.keys() | intersect(['ed']) | length if ansible_os_family != 'Darwin' else 'N/A (macOS)' }}"
           - "Essential packages: Verified"
           - "System configuration: OK"
