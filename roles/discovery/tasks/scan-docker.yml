@@ -144,6 +144,32 @@
       when: 
         - compose_contents.results[item].content is defined
 
+    - name: Check for .env files in service directories
+      ansible.builtin.stat:
+        path: "{{ item.directory }}/.env"
+      register: env_file_check
+      loop: "{{ compose_services_raw }}"
+      when: compose_services_raw | length > 0
+
+    - name: Read .env files from service directories
+      ansible.builtin.slurp:
+        src: "{{ item.item.directory }}/.env"
+      register: env_file_contents
+      loop: "{{ env_file_check.results }}"
+      when: 
+        - item.stat.exists
+      failed_when: false
+
+    - name: Save .env files to host_vars directory
+      ansible.builtin.copy:
+        content: "{{ item.content | b64decode }}"
+        dest: "{{ discovery_paths.host_vars_dir }}/docker-compose/{{ item.item.item.name }}.env"
+        mode: '0600'
+      delegate_to: localhost
+      loop: "{{ env_file_contents.results }}"
+      when: 
+        - item.content is defined
+
     - name: Categorize each Docker service
       ansible.builtin.set_fact:
         docker_canned_services: "{{ docker_canned_services + [service_with_role] }}"
@@ -151,7 +177,8 @@
         service: "{{ compose_services_raw[item] }}"
         content: "{{ compose_contents.results[item].content | default('') | b64decode | default('{}', true) }}"
         matched_images: "{{ discovery_docker_service_mapping.keys() | select('in', content) | list }}"
-        service_with_role: "{{ service | combine({'role': discovery_docker_service_mapping[matched_images[0]], 'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml'}) }}"
+        has_env_file: "{{ env_file_check.results[item].stat.exists | default(false) }}"
+        service_with_role: "{{ service | combine({'role': discovery_docker_service_mapping[matched_images[0]], 'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml', 'env_file_local': (discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.env') if has_env_file else omit}) }}"
       loop: "{{ range(compose_services_raw | length) | list }}"
       when: 
         - compose_contents.results[item].content is defined
@@ -163,7 +190,8 @@
       vars:
         service: "{{ compose_services_raw[item] }}"
         content: "{{ compose_contents.results[item].content | default('') | b64decode | default('{}', true) }}"
-        service_with_role: "{{ service | combine({'role': 'generic_docker_compose', 'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml'}) }}"
+        has_env_file: "{{ env_file_check.results[item].stat.exists | default(false) }}"
+        service_with_role: "{{ service | combine({'role': 'generic_docker_compose', 'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml', 'env_file_local': (discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.env') if has_env_file else omit}) }}"
       loop: "{{ range(compose_services_raw | length) | list }}"
       when: 
         - compose_contents.results[item].content is defined
