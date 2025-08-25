@@ -1,13 +1,7 @@
 ---
 # Simplified third-party package discovery with direct commands
 
-# Python packages
-- name: Discover Python pip packages (user)
-  ansible.builtin.command: pip list --user --format=freeze
-  register: pip_user_packages
-  changed_when: false
-  failed_when: false
-
+# Python packages (system-level only)
 - name: Discover Python pip packages (system)
   ansible.builtin.command: pip list --format=freeze
   register: pip_system_packages
@@ -73,13 +67,12 @@
   when: ansible_system == "Linux"
 
 # Process and clean results
-- name: Process pip packages
+- name: Process pip packages (system only)
   ansible.builtin.set_fact:
     cleaned_pip_packages: >-
       {%- set packages = [] -%}
-      {%- set user_lines = pip_user_packages.stdout_lines if pip_user_packages.rc | default(1) == 0 else [] -%}
       {%- set system_lines = pip_system_packages.stdout_lines if pip_system_packages.rc | default(1) == 0 else [] -%}
-      {%- for line in (user_lines + system_lines) -%}
+      {%- for line in system_lines -%}
         {%- if '==' in line and not line.startswith('pip==') -%}
           {%- set pkg = line.split('==')[0] -%}
           {%- if pkg not in packages -%}
@@ -162,8 +155,8 @@
   ansible.builtin.set_fact:
     discovery_warnings: >-
       {%- set warnings = discovery_warnings | default([]) -%}
-      {%- if pip_user_packages.rc | default(1) != 0 and pip_user_packages.rc != 127 -%}
-        {%- set _ = warnings.append('Python pip discovery failed: ' + pip_user_packages.stderr | default('Unknown error')) -%}
+      {%- if pip_system_packages.rc | default(1) != 0 and pip_system_packages.rc != 127 -%}
+        {%- set _ = warnings.append('Python pip discovery failed: ' + pip_system_packages.stderr | default('Unknown error')) -%}
       {%- endif -%}
       {%- if npm_global_packages.rc | default(1) != 0 and npm_global_packages.rc != 127 -%}
         {%- set _ = warnings.append('npm discovery failed: ' + npm_global_packages.stderr | default('Unknown error')) -%}
