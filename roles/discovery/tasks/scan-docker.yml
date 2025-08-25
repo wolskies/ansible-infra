@@ -162,7 +162,7 @@
           - "Found .env files: {{ item.files | length }}"
           - "Files: {{ item.files | map(attribute='path') | list }}"
       loop: "{{ env_files_find.results }}"
-      when: discovery_debug | default(false) | bool
+      when: discovery_debug | default(false) | bool | bool
 
     - name: Create flattened list of env files with service info
       ansible.builtin.set_fact:
@@ -266,4 +266,4 @@
       - "Compose services found: {{ discovered_docker.compose_services.total }}"
       - "  Canned services: {{ discovered_docker.compose_services.canned | length }}"
       - "  Generic services: {{ discovered_docker.compose_services.generic | length }}"
-  when: discovery_debug | default(false)
+  when: discovery_debug | default(false) | bool
