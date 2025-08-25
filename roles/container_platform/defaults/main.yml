@@ -26,19 +26,15 @@ docker_registries: []
 #     username: "{{ vault_docker_username }}"
 #     password: "{{ vault_docker_password }}"
 
-# Container resource defaults
-docker_default_resources:
-  memory: "512m"
-  cpus: "0.5"
-  restart_policy: "unless-stopped"
+# Network configuration (optional)
+docker_networks: []
+# Example:
+# docker_networks:
+#   - name: "services"
+#     driver: "bridge"
+#     enable_ipv6: false
 
-# Network configuration
-docker_networks:
-  - name: "services"
-    driver: "bridge"
-    enable_ipv6: false
-
-# Volume configuration
+# Volume configuration (optional)
 docker_volumes: []
 # Example:
 # docker_volumes:
@@ -48,7 +44,4 @@ docker_volumes: []
 # Enable/disable features
 docker_enable_services: true
 docker_log_rotation: true
-
-# Enable docker system cleanup
-docker_system_prune: true
-docker_prune_schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM
+docker_system_prune: false

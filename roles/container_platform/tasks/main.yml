@@ -1,7 +1,7 @@
 ---
-# Docker Setup Main Tasks
-# Tags: always, debug, validation, install, config, users, compose, directories,
-#       registries, networks, volumes, services, maintenance, docker-setup
+# Container Platform Main Tasks
+# Manages Docker services, networks, volumes, and registries
+# Uses geerlingguy.docker for Docker installation
 
 - name: Validate supported OS
   ansible.builtin.fail:
@@ -10,19 +10,14 @@
   tags:
     - always
     - validation
-    - os-check
-    - docker-setup
 
 - name: Wait for Docker daemon to be ready
   ansible.builtin.wait_for:
     path: /var/run/docker.sock
     state: present
-    timeout: 60
+    timeout: 30
   tags:
-    - service
-    - verification
-    - daemon
-    - docker-setup
+    - validation
 
 
 - name: Create docker services directories
@@ -35,14 +30,9 @@
   loop:
     - "{{ docker_services_dir }}"
     - "{{ docker_compose_dir }}"
-    - "{{ docker_data_dir | default('/opt/docker/data') }}"
-    - "{{ docker_logs_dir | default('/opt/docker/logs') }}"
   become: true
   tags:
     - directories
-    - filesystem
-    - services
-    - docker-setup
 
 - name: Log in to Docker registries
   community.docker.docker_login:
@@ -57,10 +47,6 @@
   no_log: true
   tags:
     - registries
-    - authentication
-    - login
-    - security
-    - docker-setup
 
 - name: Create Docker networks
   community.docker.docker_network:
@@ -75,23 +61,6 @@
     - docker_networks | length > 0
   tags:
     - networks
-    - networking
-    - infrastructure
-    - docker-setup
-
-- name: Verify Docker networks
-  community.docker.docker_network_info:
-    name: "{{ item.name }}"
-  loop: "{{ docker_networks }}"
-  register: network_info
-  when:
-    - docker_networks is defined
-    - docker_networks | length > 0
-  tags:
-    - networks
-    - verification
-    - debug
-    - docker-setup
 
 - name: Create Docker volumes
   community.docker.docker_volume:
@@ -105,113 +74,34 @@
     - docker_volumes | length > 0
   tags:
     - volumes
-    - storage
-    - data-persistence
-    - docker-setup
 
-- name: Verify Docker volumes
-  community.docker.docker_volume_info:
-    name: "{{ item.name }}"
-  loop: "{{ docker_volumes }}"
-  register: volume_info
-  when:
-    - docker_volumes is defined
-    - docker_volumes | length > 0
-  tags:
-    - volumes
-    - verification
-    - debug
-    - docker-setup
-
-- name: Load service registry for deployment planning
-  ansible.builtin.include_vars: services.yml
-  tags:
-    - services
-    - registry
-    - docker-setup
-
-- name: Merge Docker service lists from hierarchical variables
-  ansible.builtin.set_fact:
-    final_docker_services: >-
-      {{
-        (global_docker_services | default([])) +
-        (group_docker_services | default([])) +
-        (host_docker_services | default([])) +
-        (discovered_docker_services | default([])) +
-        (docker_services_deploy | default([]))
-        | unique
-      }}
-  tags:
-    - services
-    - variables
-    - docker-setup
-
-- name: Display Docker services deployment plan
-  ansible.builtin.debug:
-    msg:
-      - "=== Docker Services Deployment Plan ==="
-      - "Global services: {{ global_docker_services | default([]) }}"
-      - "Group services: {{ group_docker_services | default([]) }}"
-      - "Host services: {{ host_docker_services | default([]) }}"
-      - "Discovered services: {{ discovered_docker_services | default([]) }}"
-      - "Legacy services: {{ docker_services_deploy | default([]) }}"
-      - ""
-      - "Final merged services ({{ final_docker_services | length }}): {{ final_docker_services }}"
-  tags:
-    - services
-    - info
-    - variables
-    - docker-setup
-
-- name: Validate all services exist in registry
-  ansible.builtin.fail:
-    msg: "Service '{{ item }}' not found in registry. Available: {{ docker_service_registry.keys() | list }}"
-  loop: "{{ final_docker_services }}"
-  when:
-    - final_docker_services | length > 0
-    - item not in docker_service_registry
-  tags:
-    - services
-    - validation
-    - docker-setup
-
-- name: Deploy Docker services from merged list
+- name: Deploy Docker services
   ansible.builtin.include_tasks: deploy-service.yml
-  loop: "{{ final_docker_services }}"
+  loop: "{{ docker_services_deploy }}"
   loop_control:
     loop_var: service_name
   when:
-    - final_docker_services is defined
-    - final_docker_services | length > 0
+    - docker_services_deploy is defined
+    - docker_services_deploy | length > 0
     - docker_enable_services | default(true)
   vars:
-    # Pass service-specific variables if defined
     service_vars: "{{ vars[service_name + '_config'] | default({}) }}"
   tags:
     - services
-    - deployment
-    - containers
-    - docker-setup
 
 - name: Set up Docker system cleanup cron job
   ansible.builtin.cron:
     name: "Docker system cleanup"
-    minute: "{{ docker_prune_schedule.split()[0] }}"
-    hour: "{{ docker_prune_schedule.split()[1] }}"
-    day: "{{ docker_prune_schedule.split()[2] }}"
-    month: "{{ docker_prune_schedule.split()[3] }}"
-    weekday: "{{ docker_prune_schedule.split()[4] }}"
-    job: "/usr/bin/docker system prune -f --volumes"
+    minute: "0"
+    hour: "2"
+    weekday: "0"
+    job: "/usr/bin/docker system prune -f"
     user: root
     state: present
   become: true
   when: docker_system_prune | default(false)
   tags:
     - maintenance
-    - cron
-    - cleanup
-    - automation
-    - docker-setup
 
 - name: Create Docker log rotation configuration
   ansible.builtin.copy:
@@ -231,10 +121,6 @@
   when: docker_log_rotation | default(true)
   tags:
     - maintenance
-    - logs
-    - logrotate
-    - disk-management
-    - docker-setup
 
 - name: Verify Docker installation
   ansible.builtin.command: docker version --format '{{.Server.Version}}'
@@ -242,25 +128,11 @@
   changed_when: false
   tags:
     - verification
-    - debug
-    - summary
-    - always
-    - docker-setup
 
 - name: Display Docker setup summary
   ansible.builtin.debug:
     msg:
-      - "Docker setup completed successfully!"
-      - "Docker version: {{ docker_version.stdout | default('unknown') }}"
-      - "Compose plugin: {{ 'installed via geerlingguy.docker' }}"
-      - "Users in docker group: {{ docker_users | default([]) | join(', ') }}"
-      - "Networks configured: {{ docker_networks | default([]) | length }}"
-      - "Volumes configured: {{ docker_volumes | default([]) | length }}"
-      - "Services deployed: {{ final_docker_services | default([]) | length }}"
-      - "System cleanup: {{ 'enabled' if docker_system_prune | default(false) else 'disabled' }}"
+      - "Container platform setup complete"
+      - "Services deployed: {{ docker_services_deploy | default([]) | length }}"
   tags:
-    - always
     - summary
-    - debug
-    - verification
-    - docker-setup
