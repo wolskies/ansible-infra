@@ -1,12 +1,13 @@
 # GitLab CI/CD Pipeline for wolskinet.infrastructure Ansible Collection
 # Supports self-hosted GitLab with GitHub sync
+# Updated to match current molecule scenarios and Makefile targets
 
 stages:
-  - validate
-  - test-roles
-  - test-integration
-  - build
-  - sync-github
+  - validate      # Quick validation, linting, template validation  
+  - test-roles    # Individual molecule scenario tests (basic_setup, container_platform, discovery, dotfiles, system_tuning)
+  - test-integration # Full integration and e2e testing
+  - build         # Collection package building
+  - sync-github   # GitHub synchronization
 
 variables:
   COLLECTION_NAMESPACE: wolskinet
@@ -25,14 +26,28 @@ cache:
 
 .base-setup: &base-setup
   before_script:
-    - apt-get update -qq && apt-get install -y -qq python3-pip docker.io
-    - pip3 install --cache-dir .pip-cache/ ansible molecule[docker] docker pytest-testinfra ansible-lint yamllint
+    - apt-get update -qq && apt-get install -y -qq python3-pip docker.io make
+    - pip3 install --cache-dir .pip-cache/ ansible molecule[docker] docker pytest-testinfra ansible-lint yamllint jinja2
     - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
     - docker --version
     - ansible --version
     - molecule --version
 
 # Validation Stage
+quick-validation:
+  stage: validate
+  image: python:3.11-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip make
+    - pip3 install --cache-dir .pip-cache/ ansible ansible-lint yamllint jinja2
+    - ansible --version
+  script:
+    - echo "Running quick validation (lint + syntax check)..."
+    - make test-quick
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
 lint-collection:
   stage: validate
   image: python:3.11-slim
@@ -66,38 +81,18 @@ validate-galaxy:
 validate-templates:
   stage: validate
   image: python:3.11-slim
-  <<: *base-setup
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip make
+    - pip3 install --cache-dir .pip-cache/ ansible jinja2
   script:
-    - echo "Validating all Jinja2 templates..."
-    - |
-      find roles -name "*.j2" -type f | while read template; do
-        echo "Checking: $template"
-        python3 -c "
-      from jinja2 import Environment, FileSystemLoader, StrictUndefined
-      import os
-      import sys
-      template_path = '$template'
-      template_dir = os.path.dirname(template_path)
-      template_name = os.path.basename(template_path)
-      try:
-          env = Environment(
-              loader=FileSystemLoader(template_dir),
-              undefined=StrictUndefined
-          )
-          # Attempt to parse the template
-          env.get_template(template_name)
-          print(f'✓ Template syntax valid: {template_path}')
-      except Exception as e:
-          print(f'✗ Template syntax error in {template_path}: {e}')
-          sys.exit(1)
-        "
-      done
-    - echo "All templates validated successfully!"
+    - echo "Validating all Jinja2 templates using script and edge cases..."
+    - make validate-templates
+    - make test-template-edge-cases
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# Role Testing Stage
+# Role Testing Stage - Test individual molecule scenarios
 test-basic-setup:
   stage: test-roles
   image: python:3.11-slim
@@ -109,7 +104,7 @@ test-basic-setup:
   <<: *base-setup
   script:
     - echo "Testing basic_setup role..."
-    - molecule test -s basic_setup
+    - cd molecule/basic_setup && molecule test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -117,7 +112,7 @@ test-basic-setup:
     max: 2
     when: runner_system_failure
 
-test-docker-setup:
+test-container-platform:
   stage: test-roles
   image: python:3.11-slim
   services:
@@ -128,7 +123,7 @@ test-docker-setup:
   <<: *base-setup
   script:
     - echo "Testing container_platform role..."
-    - molecule test -s container_platform
+    - cd molecule/container_platform && molecule test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -136,7 +131,7 @@ test-docker-setup:
     max: 2
     when: runner_system_failure
 
-test-discovery-utility:
+test-discovery:
   stage: test-roles
   image: python:3.11-slim
   services:
@@ -146,8 +141,27 @@ test-discovery-utility:
     DOCKER_TLS_CERTDIR: ""
   <<: *base-setup
   script:
-    - echo "Testing infrastructure discovery utility..."
-    - molecule test -s discovery
+    - echo "Testing discovery role..."
+    - cd molecule/discovery && molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-dotfiles:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing dotfiles role..."
+    - cd molecule/dotfiles && molecule test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -166,27 +180,7 @@ test-system-tuning:
   <<: *base-setup
   script:
     - echo "Testing system_tuning role..."
-    - molecule test -s system_tuning
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  retry:
-    max: 2
-    when: runner_system_failure
-
-test-hierarchical-variables:
-  stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-  <<: *base-setup
-  script:
-    - echo "Testing hierarchical variable system..."
-    - molecule test -s default --tags variables
-  allow_failure: false
+    - cd molecule/system_tuning && molecule test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -206,11 +200,12 @@ test-collection-integration:
   <<: *base-setup
   script:
     - echo "Running full collection integration tests..."
-    - molecule test -s default
+    - cd molecule/default && molecule test
   needs:
     - test-basic-setup
-    - test-docker-setup
-    - test-discovery-utility
+    - test-container-platform
+    - test-discovery
+    - test-dotfiles
     - test-system-tuning
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -234,6 +229,7 @@ build-collection:
       - "${COLLECTION_NAMESPACE}-${COLLECTION_NAME}-*.tar.gz"
     expire_in: 1 week
   needs:
+    - quick-validation
     - lint-collection
     - validate-galaxy
     - test-collection-integration
@@ -325,7 +321,7 @@ performance-test:
   <<: *base-setup
   script:
     - echo "Running performance tests..."
-    - time molecule test -s default
+    - time (cd molecule/default && molecule test)
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   allow_failure: true
@@ -349,7 +345,7 @@ test-ubuntu-discovery:
   <<: *os-matrix-test
   script:
     - echo "Testing discovery on Ubuntu 24.04..."
-    - molecule test -s discovery
+    - cd molecule/discovery && molecule test
   variables:
     MOLECULE_PLATFORM: ubuntu2404
 
@@ -357,7 +353,7 @@ test-debian-discovery:
   <<: *os-matrix-test
   script:
     - echo "Testing discovery on Debian 12..."
-    - molecule test -s discovery
+    - cd molecule/discovery && molecule test
   variables:
     MOLECULE_PLATFORM: debian12
 
@@ -365,7 +361,7 @@ test-cross-os-compatibility:
   <<: *os-matrix-test
   script:
     - echo "Testing cross-OS compatibility..."
-    - molecule test -s default --parallel
+    - cd molecule/default && molecule test --parallel
   variables:
     MOLECULE_PARALLEL: "true"
 
@@ -382,10 +378,10 @@ test-e2e-workflow:
   script:
     - echo "Running end-to-end workflow test..."
     - echo "1. Discovery -> 2. Configuration Generation -> 3. Infrastructure Setup"
-    - molecule test -s default
+    - cd molecule/default && molecule test
     - echo "Testing discovery-to-deployment pipeline..."
-    - molecule converge -s discovery
-    - molecule verify -s discovery
+    - cd ../discovery && molecule converge
+    - cd ../discovery && molecule verify
   needs:
     - test-collection-integration
   rules:
