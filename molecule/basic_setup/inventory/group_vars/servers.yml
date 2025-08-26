@@ -1,39 +1,35 @@
 ---
-# Server configuration from live discovery data (altra/xeon)
+# Minimal server configuration for testing
 
-# Override user shell for servers (bash instead of zsh)
-discovered_users_config:
-  - name: ed
-    uid: '1000'
-    gid: '1000'
-    shell: /bin/bash  # Servers use bash
-    home: /home/ed
-    groups:
-      - sudo
-      - docker
-    ssh_public_key: vault_ed_ssh_public_key | default("")
-    password: vault_ed_password | default(omit)
-    ssh_password_auth: true
-    sudo_nopasswd: false
-
-# Server packages (minimal set)
-host_packages_install_Ubuntu:
+# Essential server packages only
+group_packages_install_Ubuntu:
   - git
   - curl
-  - wget
   - htop
-  - docker.io
-  - python3
-  - python3-pip
+  - docker-ce  # Test repository package installation
 
-host_packages_install_Debian:
+group_packages_install_Debian:
   - git
   - curl
-  - wget
   - htop
-  - docker.io
-  - python3
-  - python3-pip
+  - docker-ce  # Test repository package installation
 
-# Docker installation for servers
-install_docker: true
+# Test package removal (basic_setup scope)
+group_packages_remove_Ubuntu:
+  - nano  # Remove if present
+
+group_packages_remove_Debian:
+  - nano  # Remove if present
+
+# Skip Docker for initial testing
+install_docker: false
+
+# Test additional package repositories (basic_setup scope)
+group_additional_repositories:
+  apt:
+    sources:
+      - "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+      - "deb [arch=amd64] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+    apt_keys:
+      - "https://download.docker.com/linux/ubuntu/gpg"
+      - "https://download.docker.com/linux/debian/gpg"

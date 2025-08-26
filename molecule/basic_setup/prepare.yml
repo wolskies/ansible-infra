@@ -1,0 +1,14 @@
+---
+# Prepare containers for testing
+- name: Prepare containers
+  hosts: all
+  gather_facts: false
+  
+  tasks:
+    - name: Install Python and dependencies on Debian container
+      ansible.builtin.raw: apt-get update && apt-get install -y python3 python3-apt sudo
+      when: inventory_hostname == "deb1"
+      
+    - name: Install Python and dependencies on Arch Linux container
+      ansible.builtin.raw: pacman -Sy --noconfirm python sudo
+      when: inventory_hostname == "arch1"

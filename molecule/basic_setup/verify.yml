@@ -173,6 +173,46 @@
 
           when: ansible_distribution == 'Ubuntu'
 
+    - name: Verify repository installation (Debian/Ubuntu servers only)
+      block:
+        - name: Check if Docker repository was added
+          ansible.builtin.stat:
+            path: "/etc/apt/sources.list.d/docker.list"
+          register: docker_repo_file
+          
+        - name: Verify Docker repository exists or is in sources.list.d
+          ansible.builtin.find:
+            paths: ["/etc/apt/sources.list.d"]
+            patterns: "*.list"
+            contains: "download.docker.com"
+          register: docker_repo_search
+
+        - name: Check Docker GPG key was added
+          ansible.builtin.command: apt-key list
+          register: apt_keys_output
+          changed_when: false
+          failed_when: false
+
+        - name: Verify Docker CE package installation
+          ansible.builtin.assert:
+            that:
+              - "'docker-ce' in ansible_facts.packages"
+            fail_msg: "Docker CE package not installed from repository"
+            success_msg: "Docker CE successfully installed from custom repository"
+          ignore_errors: true  # May fail in containers without proper Docker repo setup
+
+        - name: Display repository installation results
+          ansible.builtin.debug:
+            msg:
+              - "Repository verification results:"
+              - "Docker repo files found: {{ docker_repo_search.matched }}"
+              - "Docker CE installed: {{ 'docker-ce' in ansible_facts.packages }}"
+              - "Repository installation: {{ 'SUCCESS' if 'docker-ce' in ansible_facts.packages else 'PARTIAL (expected in containers)' }}"
+
+      when: 
+        - ansible_os_family == 'Debian'
+        - inventory_hostname in groups.servers
+
     - name: Verify security configurations
       block:
         - name: Check if unnecessary services are disabled

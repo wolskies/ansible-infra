@@ -1,0 +1,17 @@
+---
+# Test discovered repository data (simulating discovery output)
+discovered_repositories:
+  apt:
+    third_party_repos: []
+    manual_packages:
+      - curl
+      - wget
+      - tree
+    apt_keys: []
+
+# Test discovered users (simulating discovery output)  
+discovered_users_config:
+  - name: debuser
+    uid: 1002  
+    shell: /bin/bash
+    groups: ["sudo"]

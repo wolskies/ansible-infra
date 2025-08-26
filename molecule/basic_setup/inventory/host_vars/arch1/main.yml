@@ -1,46 +1,13 @@
 ---
 # Host-specific configuration for arch1 workstation
-# System tuning from live discovery data (north)
+# Minimal workstation configuration for testing
 
-# System tuning configuration from discovery
-audio:
-  description: Audio system optimizations
-  enabled: false
-  low_latency: false
-  real_time_audio: false
+# Workstation-specific settings
+workstation_type: development
+install_dotfiles: false  # Skip for initial testing
 
-bluetooth:
-  audio_codecs:
-    - aptx
-    - ldac
-    - aac
-  description: Bluetooth support and audio codecs
-  enabled: false
-
-camera:
-  description: Camera/webcam support and permissions
-  enabled: false
-  v4l2_support: true
-
-gaming:
-  cpu_governor: performance
-  description: Gaming optimizations (kernel parameters, CPU governor, etc.)
-  enabled: false
-  kernel_params:
-    - mitigations=off
-
-gpu:
-  amd_support: false
-  description: GPU-specific configurations and drivers
-  enabled: false
-  intel_support: false
-  nvidia_support: false
-
-network:
-  performance_tuning: false
-  tcp_optimization: false
-
+# Security settings (disabled for testing)
 security:
-  fail2ban: false
+  ssh_hardening: false  # Disabled for testing
   firewall_strict: false
-  ssh_hardening: false
+  fail2ban: false

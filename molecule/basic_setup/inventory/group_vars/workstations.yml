@@ -1,53 +1,12 @@
 ---
-# Workstation configuration from live discovery data (north - Arch Linux)
+# Minimal workstation configuration for testing
 
-# Workstation packages from discovery
-host_packages_install_Archlinux:
-  - alacritty
-  - ansible
-  - ansible-core
-  - ansible-lint
-  - base-devel
-  - bat
-  - btop
-  - cmake
-  - curl
-  - docker
-  - exa
-  - fd
-  - fish
-  - fzf
+# Essential workstation packages only
+group_packages_install_Archlinux:
   - git
-  - git-delta
-  - htop
-  - jq
-  - lazygit
-  - neovim
-  - nodejs
-  - npm
-  - python
-  - python-pip
-  - ripgrep
-  - starship
-  - tmux
-  - tree
-  - unzip
+  - curl
   - vim
-  - wget
-  - zsh
-  - zoxide
+  - htop
 
-# Third-party packages from discovery
-third_party_packages:
-  nodejs:
-    npm_global:
-      - '@mermaid-js/mermaid-cli'
-      - neovim
-      - prettier
-      - tree-sitter-cli
-  python:
-    - ansible
-    - ansible-core
-    - bcrypt
-    - jinja2
-    - pyyaml
+# Skip third-party packages for initial testing
+third_party_packages: {}

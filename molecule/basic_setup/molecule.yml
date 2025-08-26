@@ -9,38 +9,32 @@ driver:
   name: docker
 
 platforms:
-  - name: arch1
-    image: quay.io/ansible/archlinux-test:latest
+  - name: ub1
+    image: quay.io/ansible/ubuntu2404-test-container:10.0.0
     pre_build_image: true
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/usr/lib/systemd/systemd"
+    command: "/lib/systemd/systemd"
     groups:
-      - workstations
+      - servers
 
   - name: deb1
-    image: quay.io/ansible/debian12-test:latest
+    image: debian:12
     pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    privileged: false
+    command: "/bin/bash -c 'while true; do sleep 30; done'"
     groups:
       - servers
 
-  - name: ub1
-    image: quay.io/ansible/ubuntu2404-test:latest
+  - name: arch1
+    image: archlinux:latest
     pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    privileged: false
+    command: "/bin/bash -c 'while true; do sleep 30; done'"
     groups:
-      - servers
+      - workstations
 
 provisioner:
   name: ansible
@@ -49,9 +43,6 @@ provisioner:
       hosts: inventory/hosts.yml
       group_vars: inventory/group_vars
       host_vars: inventory/host_vars
-    group_vars:
-      all:
-        ansible_user: root
   config_options:
     defaults:
       host_key_checking: false

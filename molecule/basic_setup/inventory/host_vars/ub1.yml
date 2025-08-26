@@ -1,0 +1,21 @@
+---
+# Test discovered repository data (simulating discovery output)
+discovered_repositories:
+  apt:
+    third_party_repos: 
+      - name: docker
+        source_file: docker.list
+        repository: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable"
+    manual_packages:
+      - htop
+      - vim
+      - git
+    apt_keys:
+      - "https://download.docker.com/linux/ubuntu/gpg"
+
+# Test discovered users (simulating discovery output)  
+discovered_users_config:
+  - name: testuser
+    uid: 1001
+    shell: /bin/bash
+    groups: []
