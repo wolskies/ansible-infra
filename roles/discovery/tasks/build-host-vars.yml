@@ -50,7 +50,7 @@
         'third_party_packages': discovered_packages.languages | default({})
       }
     }) }}"
-  when: 
+  when:
     - discovered_packages.all_native | default([]) | length == 0
     - discovered_packages.languages | default({}) | length > 0
 
@@ -61,7 +61,7 @@
         'additional_apt_repositories': discovered_repositories.apt.third_party_repos | map(attribute='repository') | list
       })
     }) }}"
-  when: 
+  when:
     - discovered_repositories is defined
     - discovered_repositories.apt is defined
     - discovered_repositories.apt.third_party_repos | default([]) | length > 0
@@ -80,7 +80,7 @@
         if discovered_security.firewall.original_type | default('') == 'iptables' else {}
       )
     }) }}"
-  when: 
+  when:
     - discovered_security is defined
     - discovered_security.firewall.detected | default(false)
 
@@ -94,7 +94,7 @@
         'docker_compose_available': discovered_docker.compose.available | default(false)
       }
     }) }}"
-  when: 
+  when:
     - discovered_docker is defined
     - discovered_docker.installed | default(false)
 

@@ -51,7 +51,7 @@
              ('iptables.service' in ansible_facts.services and
               ansible_facts.services['iptables.service'].get('status', '') == 'enabled') }}
         firewall_type: >-
-          {%- if ('ufw' in ansible_facts.services and ansible_facts.services['ufw'].get('status', '') == 'enabled') or 
+          {%- if ('ufw' in ansible_facts.services and ansible_facts.services['ufw'].get('status', '') == 'enabled') or
                  ('ufw.service' in ansible_facts.services and ansible_facts.services['ufw.service'].get('status', '') == 'enabled') -%}
             ufw
           {%- elif ('firewalld' in ansible_facts.services and ansible_facts.services['firewalld'].get('status', '') == 'enabled') or
@@ -64,7 +64,7 @@
             none
           {%- endif %}
         firewall_type_output: >-
-          {%- if ('ufw' in ansible_facts.services and ansible_facts.services['ufw'].get('status', '') == 'enabled') or 
+          {%- if ('ufw' in ansible_facts.services and ansible_facts.services['ufw'].get('status', '') == 'enabled') or
                  ('ufw.service' in ansible_facts.services and ansible_facts.services['ufw.service'].get('status', '') == 'enabled') -%}
             ufw
           {%- elif ('firewalld' in ansible_facts.services and ansible_facts.services['firewalld'].get('status', '') == 'enabled') or

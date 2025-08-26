@@ -117,7 +117,7 @@
   block:
     - name: Ensure npm is installed
       ansible.builtin.package:
-        name: 
+        name:
           - nodejs
           - npm
         state: present

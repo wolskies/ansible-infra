@@ -173,7 +173,7 @@
           become_user: "{{ dotfiles_user }}"
           register: stow_results
           changed_when: "'LINK' in stow_results.stderr"
-          failed_when: 
+          failed_when:
             - stow_results.rc != 0
             - "'conflict' not in stow_results.stderr"
       when:
