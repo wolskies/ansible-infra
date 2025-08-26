@@ -1,0 +1,393 @@
+---
+# macOS basic setup and feature management
+# Tags: system, locale, timezone, packages, homebrew, xcode, security, optimization
+
+# System configuration (timezone - macOS handles locale differently)
+- name: Set system timezone
+  ansible.builtin.command: systemsetup -settimezone "{{ config_system_timezone }}"
+  become: true
+  register: timezone_result
+  changed_when: "'already set' not in timezone_result.stdout"
+  tags:
+    - system
+    - timezone
+
+- name: macOS Xcode Command Line Tools
+  block:
+    - name: Check if Xcode Command Line Tools are installed
+      ansible.builtin.command: xcode-select -p
+      register: xcode_check
+      failed_when: false
+      changed_when: false
+      tags:
+        - xcode
+        - development
+
+    - name: Install Xcode Command Line Tools
+      ansible.builtin.command: xcode-select --install
+      when:
+        - xcode_check.rc != 0
+        - macos_install_xcode_tools | default(true)
+      register: xcode_install
+      failed_when: false
+      tags:
+        - xcode
+        - development
+
+    - name: Accept Xcode license
+      ansible.builtin.command: xcodebuild -license accept
+      become: true
+      when:
+        - xcode_check.rc != 0 or xcode_install.changed
+        - macos_install_xcode_tools | default(true)
+      tags:
+        - xcode
+        - development
+
+  tags:
+    - macos
+    - xcode
+    - development
+
+- name: macOS Homebrew setup
+  block:
+    - name: Check if Homebrew is installed
+      ansible.builtin.command: which brew
+      register: brew_check
+      failed_when: false
+      changed_when: false
+      tags:
+        - homebrew
+        - package-management
+
+    - name: Install Homebrew
+      ansible.builtin.shell: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      when: brew_check.rc != 0
+      environment:
+        NONINTERACTIVE: "1"
+      tags:
+        - homebrew
+        - package-management
+
+    - name: Add Homebrew to PATH for Apple Silicon Macs
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_env.HOME }}/.zprofile"
+        line: 'eval "$(/opt/homebrew/bin/brew shellenv)"'
+        create: true
+        mode: '0644'
+      when:
+        - brew_check.rc != 0
+        - ansible_machine == "arm64"
+      tags:
+        - homebrew
+        - path
+
+    - name: Add Homebrew to PATH for Intel Macs
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_env.HOME }}/.zprofile"
+        line: 'eval "$(/usr/local/bin/brew shellenv)"'
+        create: true
+        mode: '0644'
+      when:
+        - brew_check.rc != 0
+        - ansible_machine == "x86_64"
+      tags:
+        - homebrew
+        - path
+
+    - name: Disable Homebrew analytics
+      ansible.builtin.command: brew analytics off
+      when: brew_check.rc == 0 or brew_check.rc != 0
+      tags:
+        - homebrew
+        - privacy
+
+  tags:
+    - macos
+    - homebrew
+
+- name: Package management
+  block:
+    - name: Add Homebrew taps (repositories)
+      community.general.homebrew_tap:
+        name: "{{ item }}"
+        state: present
+      become: true
+      become_user: "{{ ansible_user }}"
+      loop: "{{ final_homebrew_taps | default([]) }}"
+      when: final_homebrew_taps | default([]) | length > 0
+      tags:
+        - homebrew
+        - repositories
+        - taps
+
+    - name: Install merged Homebrew packages
+      community.general.homebrew:
+        name: "{{ final_homebrew_packages }}"
+        state: present
+      become: true
+      become_user: "{{ ansible_user }}"
+      when:
+        - final_homebrew_packages is defined
+        - final_homebrew_packages | length > 0
+      tags:
+        - packages
+        - homebrew
+        - package-install
+
+    - name: Install merged Homebrew casks
+      community.general.homebrew_cask:
+        name: "{{ final_homebrew_casks }}"
+        state: present
+      become: true
+      become_user: "{{ ansible_user }}"
+      when:
+        - final_homebrew_casks is defined
+        - final_homebrew_casks | length > 0
+      tags:
+        - packages
+        - homebrew
+        - casks
+
+    - name: Update/Upgrade all Homebrew packages
+      community.general.homebrew:
+        update_homebrew: true
+        upgrade_all: true
+      become: true
+      become_user: "{{ ansible_user }}"
+      when: macos_update_homebrew | default(true)
+      tags:
+        - packages
+        - homebrew
+        - updates
+
+  tags:
+    - macos
+    - packages
+    - homebrew
+
+- name: macOS security and privacy settings
+  block:
+    - name: Close system preferences
+      ansible.builtin.command: killall "System Preferences" ; sleep 1
+      register: command_result
+      changed_when: command_result.rc != 0
+      ignore_errors: true
+      become: true
+      tags:
+        - system-preferences
+
+    - name: Configure Gatekeeper
+      ansible.builtin.command: spctl --master-{{ 'enable' if not (macos_disable_gatekeeper | default(false)) else 'disable' }}
+      become: true
+      register: gatekeeper_result
+      changed_when: gatekeeper_result.rc == 0
+      tags:
+        - security
+        - gatekeeper
+
+
+    - name: Disable network whitelisting for Apple-signed apps
+      ansible.builtin.command: defaults -currentHost write /Library/Preferences/com.apple.alf allowsignedenabled -bool false
+      become: true
+      tags:
+        - firewall
+        - security
+
+    - name: Disable automatic software updates (if requested)
+      ansible.builtin.command: softwareupdate --schedule off
+      become: true
+      when: macos_disable_auto_updates | default(false)
+      register: updates_result
+      changed_when: updates_result.rc == 0
+      tags:
+        - updates
+        - security
+
+  tags:
+    - macos
+    - security
+
+- name: macOS System Preferences and UI Customization
+  block:
+    # Finder Customizations
+    - name: Show hidden files in Finder
+      community.general.osx_defaults:
+        domain: com.apple.finder
+        key: AppleShowAllFiles
+        type: bool
+        value: true
+      when: macos_show_hidden_files | default(false)
+
+    - name: Show filename extensions in Finder
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleShowAllExtensions
+        type: bool
+        value: true
+      when: macos_finder_show_extensions | default(true)
+
+    - name: Show status bar in Finder
+      community.general.osx_defaults:
+        domain: com.apple.finder
+        key: ShowStatusBar
+        type: bool
+        value: true
+      when: macos_finder_show_status_bar | default(true)
+
+    - name: Show path bar in Finder
+      community.general.osx_defaults:
+        domain: com.apple.finder
+        key: ShowPathbar
+        type: bool
+        value: true
+      when: macos_finder_show_path_bar | default(true)
+
+    - name: Set default Finder view to list
+      community.general.osx_defaults:
+        domain: com.apple.finder
+        key: FXPreferredViewStyle
+        type: string
+        value: "Nlsv"
+      when: macos_finder_default_view | default('list') == 'list'
+
+    # Dock Customizations
+    - name: Set Dock tile size
+      community.general.osx_defaults:
+        domain: com.apple.dock
+        key: tilesize
+        type: int
+        value: "{{ macos_dock_tile_size | default(64) }}"
+      when: macos_configure_dock | default(true)
+      notify: Restart Dock
+
+    - name: Set Dock position
+      community.general.osx_defaults:
+        domain: com.apple.dock
+        key: orientation
+        type: string
+        value: "{{ macos_dock_position | default('bottom') }}"
+      when: macos_configure_dock | default(true)
+      notify: Restart Dock
+
+    - name: Enable Dock autohide
+      community.general.osx_defaults:
+        domain: com.apple.dock
+        key: autohide
+        type: bool
+        value: "{{ macos_dock_autohide | default(false) }}"
+      when: macos_configure_dock | default(true)
+      notify: Restart Dock
+
+    - name: Minimize windows into app icon
+      community.general.osx_defaults:
+        domain: com.apple.dock
+        key: minimize-to-application
+        type: bool
+        value: true
+      when: macos_configure_dock | default(true)
+      notify: Restart Dock
+
+    # Keyboard and Input
+    - name: Enable full keyboard access
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleKeyboardUIMode
+        type: int
+        value: 3
+      when: macos_enable_full_keyboard_access | default(true)
+
+    - name: Set fast key repeat rate
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: KeyRepeat
+        type: int
+        value: "{{ macos_key_repeat_rate | default(2) }}"
+      when: macos_configure_keyboard | default(true)
+
+    - name: Set short delay until key repeat
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: InitialKeyRepeat
+        type: int
+        value: "{{ macos_key_repeat_delay | default(15) }}"
+      when: macos_configure_keyboard | default(true)
+
+    # Privacy and Security
+    - name: Disable iCloud drive for new documents
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: NSDocumentSaveNewDocumentsToCloud
+        type: bool
+        value: false
+      when: macos_disable_icloud_drive | default(false)
+
+    - name: Require password immediately after sleep/screensaver
+      community.general.osx_defaults:
+        domain: com.apple.screensaver
+        key: askForPassword
+        type: int
+        value: 1
+      when: macos_require_password_after_sleep | default(true)
+
+    - name: Set screensaver password delay
+      community.general.osx_defaults:
+        domain: com.apple.screensaver
+        key: askForPasswordDelay
+        type: int
+        value: 0
+      when: macos_require_password_after_sleep | default(true)
+
+    # Performance and UX
+    - name: Disable window animations
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: NSAutomaticWindowAnimationsEnabled
+        type: bool
+        value: false
+      when: macos_disable_window_animations | default(false)
+
+    - name: Expand save panel by default
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: NSNavPanelExpandedStateForSaveMode
+        type: bool
+        value: true
+      when: macos_expand_save_panel | default(true)
+
+    - name: Disable automatic termination of inactive apps
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: NSDisableAutomaticTermination
+        type: bool
+        value: true
+      when: macos_disable_auto_termination | default(true)
+
+  tags:
+    - macos
+    - system-preferences
+    - finder
+    - dock
+    - keyboard
+    - privacy
+
+- name: Enable macOS Application Firewall
+  ansible.builtin.command: defaults -currentHost write /Library/Preferences/com.apple.alf globalstate -bool true
+  become: true
+  when: install_firewall | default(true)
+  tags:
+    - firewall
+    - enable
+    - basic-security
+    - macos
+
+- name: Enable Stealth Mode
+  ansible.builtin.command: defaults write /Library/Preferences/com.apple.alf stealthenabled -bool true
+  become: true
+  when: install_firewall | default(true)
+  tags:
+    - firewall
+    - stealth
+    - basic-security
+    - macos

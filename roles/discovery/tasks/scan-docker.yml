@@ -204,7 +204,11 @@
         matched_images: "{{ discovery_docker_service_mapping.keys() | select('in', content) | list }}"
         env_files_list: "{{ env_files_find.results[item].files | map(attribute='path') | map('basename') | list }}"
         env_files_local: "{{ env_files_list | map('regex_replace', '^(.*)$', discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '-\\1') | list }}"
-        service_with_role: "{{ service | combine({'role': discovery_docker_service_mapping[matched_images[0]], 'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml', 'env_files_local': env_files_local if env_files_list | length > 0 else omit}) }}"
+        service_with_role: "{{ service | combine({
+          'role': discovery_docker_service_mapping[matched_images[0]],
+          'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml',
+          'env_files_local': env_files_local if env_files_list | length > 0 else omit
+        }) }}"
       loop: "{{ range(compose_services_raw | length) | list }}"
       when:
         - compose_contents.results[item].content is defined
@@ -217,8 +221,13 @@
         service: "{{ compose_services_raw[item] }}"
         content: "{{ compose_contents.results[item].content | default('') | b64decode | default('{}', true) }}"
         env_files_list: "{{ env_files_find.results[item].files | map(attribute='path') | map('basename') | list }}"
-        env_files_local: "{{ env_files_list | map('regex_replace', '^(.*)$', discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '-\\1') | list }}"
-        service_with_role: "{{ service | combine({'role': 'generic_docker_compose', 'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml', 'env_files_local': env_files_local if env_files_list | length > 0 else omit}) }}"
+        env_files_local: "{{ env_files_list | map('regex_replace', '^(.*)$',
+          discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '-\\1') | list }}"
+        service_with_role: "{{ service | combine({
+          'role': 'generic_docker_compose',
+          'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml',
+          'env_files_local': env_files_local if env_files_list | length > 0 else omit
+        }) }}"
       loop: "{{ range(compose_services_raw | length) | list }}"
       when:
         - compose_contents.results[item].content is defined

@@ -1,51 +1,19 @@
 ---
-# Default system configuration
+# System configuration defaults
 config_system_locale: 'en_US.UTF-8'
 config_system_language: 'en_US.UTF-8'
 config_system_timezone: 'UTC'
 
-# Default user shell
-default_user_shell: '/usr/bin/zsh'
-
-# Security defaults
-install_firewall: true  # Install and enable firewall with SSH access
-disable_unnecessary_services: true
+# Core feature toggles
+install_firewall: true              # Install and enable firewall with SSH access
+enable_system_updates: true         # Enable system updates for security
+install_shell_enhancements: false   # Modern shell tools (starship, zoxide, eza, fzf, etc.)
+install_dotfiles_support: true     # Install stow and other dotfiles management tools
 
 # OS-specific feature management
-ubuntu_disable_snap: true  # Disable snap by default on Ubuntu
-ubuntu_disable_cloud_init: false  # Keep cloud-init enabled by default
-archlinux_enable_reflector: true  # Enable mirror optimization on Arch
-macos_install_xcode_tools: true  # Install Xcode CLI tools on macOS
-
-# Package category controls (fine-grained control)
-install_development_packages: true   # Development tools, compilers, etc.
-install_desktop_packages: true      # GUI applications, themes, etc.
-install_media_packages: false       # Large media packages (manual review recommended)
-install_productivity_packages: true # Editors, terminals, productivity tools
+ubuntu_disable_snap: false          # Remove snap completely from Ubuntu systems
+archlinux_enable_reflector: true    # Enable mirror optimization on Arch
+macos_install_xcode_tools: true     # Install Xcode CLI tools on macOS
 
 # Repository management
-enable_additional_repositories: true   # Setup additional package repositories from inventory
-
-# Package manager specific controls
-install_aur_packages: true         # Arch Linux AUR packages (requires paru/yay)
-install_snap_packages: false      # Ubuntu/Debian snap packages
-install_flatpak_packages: false   # Flatpak packages
-install_pip_packages: true        # Python packages
-install_npm_packages: true        # Node.js packages
-install_homebrew_casks: true      # macOS GUI applications
-
-# Service processing
-process_additional_services: false   # Process additional services from inventory
-
-# Safety controls
-require_package_confirmation: false  # Prompt before installing large package sets
-skip_failed_packages: true          # Continue if individual packages fail
-backup_package_lists: true          # Create backup of current package state
-
-# Performance controls
-parallel_package_installs: true     # Install packages in parallel when possible
-update_package_cache: true          # Update package cache before installing
-upgrade_existing_packages: false    # Upgrade existing packages during install
-
-# System modification safeguards
-enable_system_updates: true  # Enable system updates by default for security
+enable_additional_repositories: true # Setup additional package repositories from inventory

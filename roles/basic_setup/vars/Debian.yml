@@ -42,4 +42,6 @@ packages_remove:
 # Debian-specific feature management
 debian_enable_non_free: false  # Keep non-free repos disabled by default
 
+# Note: Shell enhancement packages (starship, zoxide, eza, fzf, fastfetch) are now handled by merge logic
+# Enable with: install_shell_enhancements: true
 # Note: Nerd fonts are typically installed via package manager or external repositories

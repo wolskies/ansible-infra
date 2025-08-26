@@ -40,6 +40,37 @@
       ansible.builtin.debug:
         msg: "Homebrew discovery failed"
 
+- name: Discover macOS system configuration
+  block:
+    - name: Get current Dock preferences
+      ansible.builtin.command: defaults read com.apple.dock tilesize
+      register: dock_tile_size
+      failed_when: false
+      changed_when: false
+
+    - name: Get Dock position
+      ansible.builtin.command: defaults read com.apple.dock orientation
+      register: dock_position
+      failed_when: false
+      changed_when: false
+
+    - name: Get Finder preferences
+      ansible.builtin.command: defaults read com.apple.finder ShowStatusBar
+      register: finder_status_bar
+      failed_when: false
+      changed_when: false
+
+    - name: Check if Xcode Command Line Tools are installed
+      ansible.builtin.command: xcode-select -p
+      register: xcode_installed
+      failed_when: false
+      changed_when: false
+
+  rescue:
+    - name: Handle macOS system discovery errors
+      ansible.builtin.debug:
+        msg: "macOS system discovery had some failures (expected on older versions)"
+
 - name: Store Homebrew repository discovery results
   ansible.builtin.set_fact:
     discovered_repositories:
@@ -48,3 +79,12 @@
         taps: "{{ homebrew_taps.stdout_lines | default([]) }}"
     homebrew_packages_result: "{{ homebrew_packages }}"
     homebrew_casks_result: "{{ homebrew_casks }}"
+    discovered_macos_config:
+      xcode_tools_installed: "{{ xcode_installed.rc == 0 }}"
+      dock:
+        tile_size: "{{ dock_tile_size.stdout | default('64') | int }}"
+        position: "{{ dock_position.stdout | default('bottom') }}"
+      finder:
+        shows_status_bar: "{{ finder_status_bar.stdout | default('0') == '1' }}"
+      architecture: "{{ ansible_machine }}"
+      homebrew_path: "{{ homebrew_path | default('') }}"

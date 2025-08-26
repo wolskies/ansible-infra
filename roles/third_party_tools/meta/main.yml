@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Ed Wolski
-  description: Third-party packages and repositories (npm, pip, system packages from additional repos)
+  description: Third-party language ecosystem tools (npm, pip, cargo, go modules - no OS packages)
   company: wolskinet
   license: GPL-3.0-or-later
   min_ansible_version: "2.15"
@@ -18,12 +18,14 @@ galaxy_info:
         - all
 
   galaxy_tags:
-    - packages
-    - repositories
+    - tools
     - npm
     - pip
     - python
     - nodejs
+    - rust
+    - golang
     - development
+    - language-ecosystems
 
 dependencies: []

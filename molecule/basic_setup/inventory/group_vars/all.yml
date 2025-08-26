@@ -4,18 +4,30 @@
 # Ansible connection settings for containers
 ansible_user: root
 
-# Simple test user  
+# Comprehensive user testing with multiple users and all possible fields
 discovered_users_config:
-  - name: testuser
-    uid: '1001'
-    gid: '1001' 
+  # User 1: Basic user with minimal required fields
+  - name: basicuser
+    uid: 1001
     shell: /bin/bash
-    home: /home/testuser
+    groups: []
+
+  # User 2: Complete user with all possible fields (simulating discovery output)  
+  - name: fulluser
+    uid: 1002
+    shell: /bin/zsh
+    default_user_shell: /bin/zsh  # Test fallback shell logic
+    home: /home/fulluser
     groups:
       - sudo
-    password: '$6$test$testhash'
+      - docker
+    password: '$6$test$fulluser.hash.example'
     ssh_password_auth: true
     sudo_nopasswd: false
+    # Dotfiles configuration (optional)
+    dotfiles_repository_url: "https://github.com/example/dotfiles"
+    dotfiles_uses_stow: true
+    dotfiles_stow_packages: ["zsh", "git", "tmux"]
 
 # Basic system settings
 config_system_timezone: 'America/New_York'
@@ -26,3 +38,20 @@ config_system_language: 'en_US.UTF-8'
 enable_firewall: false  # UFW has iptables permission issues in containers
 enable_system_updates: false  # Skip package upgrades in tests
 enable_automatic_updates: false  # Skip unattended-upgrades template
+
+# Test hierarchical package merge (all-level packages)
+all_packages_install_Ubuntu:
+  - wget
+  - unzip
+
+all_packages_install_Debian: 
+  - wget
+  - unzip
+
+all_packages_install_Archlinux:
+  - wget
+  - unzip
+
+# Test dotfiles functionality
+install_dotfiles_support: true  # Enable stow installation and dotfiles processing
+install_shell_enhancements: true  # Test conditional package injection

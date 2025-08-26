@@ -37,7 +37,7 @@
       'packages': {
         ('host_packages_install_' + ansible_distribution): discovered_packages.all_native | sort,
         ('host_packages_remove_' + ansible_distribution): [],
-        'third_party_packages': discovered_packages.languages | default({})
+        'host_third_party_packages': discovered_packages.languages | default({})
       }
     }) }}"
   when: discovered_packages.all_native | default([]) | length > 0
@@ -47,7 +47,7 @@
   ansible.builtin.set_fact:
     discovery_host_vars: "{{ discovery_host_vars | combine({
       'packages': {
-        'third_party_packages': discovered_packages.languages | default({})
+        'host_third_party_packages': discovered_packages.languages | default({})
       }
     }) }}"
   when:
@@ -58,7 +58,12 @@
   ansible.builtin.set_fact:
     discovery_host_vars: "{{ discovery_host_vars | combine({
       'packages': discovery_host_vars.packages | combine({
-        'additional_apt_repositories': discovered_repositories.apt.third_party_repos | map(attribute='repository') | list
+        'host_additional_repositories': {
+          'apt': {
+            'sources': discovered_repositories.apt.third_party_repos | map(attribute='repository') | list,
+            'apt_keys': discovered_repositories.apt.third_party_repos | selectattr('key_url', 'defined') | map(attribute='key_url') | list
+          }
+        }
       })
     }) }}"
   when:
@@ -126,24 +131,22 @@
       {%- for user in discovered_users.system_users.regular_users_detailed | default([]) -%}
         {%- set user_data = {
           'name': user.name,
-          'uid': user.uid | string,
-          'gid': user.gid | string,
+          'uid': user.uid | int,
+          'gid': user.gid | int,
           'home': user.home,
           'shell': user.shell,
           'default_user_shell': user.shell.split('/') | last,
           'groups': user.groups | default([]),
           'sudo_nopasswd': false,
-          'ssh_public_key': 'vault_' + user.name + '_ssh_public_key | default("")',
+          'ssh_public_key': ('vault_' + user.name + '_ssh_public_key | default("")') | string,
           'ssh_password_auth': true,
-          'password': 'vault_' + user.name + '_password | default(omit)',
-          'dotfiles_repo': user.dotfiles_repo | default(false)
+          'password': ('vault_' + user.name + '_password | default("*")') | string
         } -%}
         {%- if user.dotfiles_repo | default(false) -%}
           {%- set _ = user_data.update({
-            'dotfiles_source_type': 'repository',
             'dotfiles_repository_url': user.dotfiles_repo_url | trim,
-            'dotfiles_branch': user.dotfiles_repo_branch | default('main') | trim,
-            'dotfiles_directory': user.home + '/' + user.dotfiles_dir
+            'dotfiles_uses_stow': user.dotfiles_uses_stow | default(true),
+            'dotfiles_stow_packages': user.dotfiles_stow_packages | default([])
           }) -%}
         {%- endif -%}
         {%- set _ = users.append(user_data) -%}

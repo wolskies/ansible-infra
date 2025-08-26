@@ -1,21 +1,49 @@
 ---
-# Test discovered repository data (simulating discovery output)
-discovered_repositories:
+# Test host-specific packages (simulating discovery output)
+host_packages_install_Ubuntu:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - htop
+  - vim
+
+# Test host-specific repository data (simulating discovery output)
+host_additional_repositories:
   apt:
-    third_party_repos: 
-      - name: docker
-        source_file: docker.list
-        repository: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable"
-    manual_packages:
-      - htop
-      - vim
-      - git
+    sources: 
+      - "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable"
     apt_keys:
       - "https://download.docker.com/linux/ubuntu/gpg"
 
-# Test discovered users (simulating discovery output)  
+# Override discovered_users_config to include host-specific users
+# (In real world, this would come from discovery role)
 discovered_users_config:
-  - name: testuser
+  # Global users from group_vars/all.yml
+  - name: basicuser
     uid: 1001
     shell: /bin/bash
     groups: []
+    
+  - name: fulluser
+    uid: 1002
+    shell: /bin/zsh
+    default_user_shell: /bin/zsh
+    home: /home/fulluser
+    groups:
+      - sudo
+      - docker
+    password: '$6$test$fulluser.hash.example'
+    ssh_password_auth: true
+    sudo_nopasswd: false
+    dotfiles_repository_url: "https://github.com/example/dotfiles"
+    dotfiles_uses_stow: true
+    dotfiles_stow_packages: ["zsh", "git", "tmux"]
+    
+  # Host-specific user (from discovery)
+  - name: ubuntuserver
+    uid: 1003
+    shell: /bin/bash
+    groups:
+      - sudo
+      - adm
+    password: '*'

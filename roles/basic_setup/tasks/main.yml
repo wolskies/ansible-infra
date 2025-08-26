@@ -20,23 +20,11 @@
 
 - name: Load OS-specific variables
   ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
-  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux'] or ansible_os_family == 'Darwin'
   tags:
     - always
     - variables
     - config
     - os-vars
-    - basic-setup
-
-- name: Load OS family variables as fallback
-  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
-  when: ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux'] and ansible_os_family != 'Darwin'
-  tags:
-    - always
-    - variables
-    - config
-    - os-vars
-    - fallback
     - basic-setup
 
 - name: Merge hierarchical variables
@@ -47,19 +35,8 @@
     - merge
     - basic-setup
 
-- name: Include OS-specific setup tasks for Debian family
-  ansible.builtin.include_tasks: "setup-Debian.yml"
-  when: ansible_os_family == 'Debian'
-  tags:
-    - always
-    - os-setup
-    - security
-    - system-config
-    - basic-setup
-
-- name: Include OS-specific setup tasks for other OS families
-  ansible.builtin.include_tasks: "setup-{{ ansible_os_family }}.yml"
-  when: ansible_os_family != 'Debian'
+- name: Include OS-specific setup tasks
+  ansible.builtin.include_tasks: "setup-{{ ansible_distribution }}.yml"
   tags:
     - always
     - os-setup
@@ -81,30 +58,28 @@
   when:
     - discovered_users_config is defined
     - discovered_users_config | length > 0
-    - ansible_os_family != 'Darwin'
+    - ansible_distribution != 'MacOSX'
   tags:
     - users
     - user-creation
     - security
     - basic-setup
 
-- name: Add users to system (Linux only) - from legacy user_details
-  become: true
-  ansible.builtin.user:
-    name: "{{ item.name }}"
-    uid: "{{ item.uid }}"
-    shell: "{{ default_user_shell | default('/bin/bash') }}"
-    password: "{{ item.password }}"
-    state: present
-    create_home: true
-    groups: "{{ item.groups | default([]) }}"
-  loop: "{{ user_details | default([]) }}"
+- name: Deploy dotfiles for configured users
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.dotfiles
+  vars:
+    dotfiles_user: "{{ item.name }}"
+    dotfiles_repository_url: "{{ item.dotfiles_repository_url }}"
+    dotfiles_uses_stow: "{{ item.dotfiles_uses_stow | default(true) }}"
+    dotfiles_stow_packages: "{{ item.dotfiles_stow_packages | default([]) }}"
+  loop: "{{ discovered_users_config | selectattr('dotfiles_repository_url', 'defined') }}"
   when:
-    - user_details is defined
-    - discovered_users_config is not defined
-    - ansible_os_family != 'Darwin'
+    - install_dotfiles_support | default(false)
+    - discovered_users_config is defined
+    - discovered_users_config | length > 0
+    - ansible_distribution != 'MacOSX'
   tags:
-    - users
-    - user-creation
-    - security
+    - dotfiles
+    - user-config
     - basic-setup

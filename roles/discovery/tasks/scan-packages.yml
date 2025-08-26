@@ -4,8 +4,8 @@
 
 # Step 1: Discover native packages (OS-specific)
 - name: Discover native packages by OS
-  ansible.builtin.include_tasks: "scan-packages-{{ ansible_os_family }}.yml"
-  when: ansible_os_family in ['Debian', 'Archlinux', 'Darwin']
+  ansible.builtin.include_tasks: "scan-packages-{{ ansible_distribution }}.yml"
+  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
 
 # Step 2: Discover language ecosystem packages (cross-platform)
 - name: Discover third-party language packages
@@ -17,11 +17,11 @@
     discovered_packages:
       # Native package manager packages
       native: >-
-        {%- if ansible_os_family == "Debian" -%}
+        {%- if ansible_distribution in ["Ubuntu", "Debian"] -%}
           {{ discovered_repositories.apt.manual_packages | default([]) }}
-        {%- elif ansible_os_family == "Archlinux" -%}
+        {%- elif ansible_distribution == "Archlinux" -%}
           {{ discovery_archlinux_explicit_packages | default([]) }}
-        {%- elif ansible_os_family == "Darwin" -%}
+        {%- elif ansible_distribution == "MacOSX" -%}
           {{ (homebrew_packages_result.stdout_lines | default([])) + (homebrew_casks_result.stdout_lines | default([])) }}
         {%- else -%}
           {{ ansible_facts.packages.keys() | list }}
@@ -32,11 +32,11 @@
 
       # Simple consolidated list for templates
       all_native: >-
-        {%- if ansible_os_family == "Debian" -%}
+        {%- if ansible_distribution in ["Ubuntu", "Debian"] -%}
           {{ discovered_repositories.apt.manual_packages | default([]) }}
-        {%- elif ansible_os_family == "Archlinux" -%}
+        {%- elif ansible_distribution == "Archlinux" -%}
           {{ discovery_archlinux_explicit_packages | default([]) }}
-        {%- elif ansible_os_family == "Darwin" -%}
+        {%- elif ansible_distribution == "MacOSX" -%}
           {{ (homebrew_packages_result.stdout_lines | default([])) + (homebrew_casks_result.stdout_lines | default([])) }}
         {%- else -%}
           {{ ansible_facts.packages.keys() | list }}
@@ -48,12 +48,12 @@
       native: []
       languages: {}
       all_native: []
-  when: ansible_os_family not in ['Debian', 'Archlinux', 'Darwin']
+  when: ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
 
 - name: Debug package discovery results
   ansible.builtin.debug:
     msg:
-      - "Native packages ({{ ansible_os_family }}): {{ discovered_packages.all_native | length }}"
+      - "Native packages ({{ ansible_distribution }}): {{ discovered_packages.all_native | length }}"
       - "Python packages: {{ discovered_packages.languages.python | default([]) | length }}"
       - "Node.js packages: {{ discovered_packages.languages.nodejs.npm_global | default([]) | length }}"
       - "Rust packages: {{ discovered_packages.languages.rust.cargo | default([]) | length }}"
