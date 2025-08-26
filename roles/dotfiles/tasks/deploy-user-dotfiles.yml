@@ -36,17 +36,32 @@
     - git
     - clone
 
-- name: Repository method - Install stow if needed
-  ansible.builtin.package:
-    name: stow
-    state: present
-  become: true
+- name: Repository method - Check if stow is available
+  ansible.builtin.command: which stow
+  register: stow_check
+  failed_when: false
+  changed_when: false
   when:
     - current_dotfiles_repo | bool
     - current_dotfiles_source_type == "repository"
     - user_config.value.dotfiles_uses_stow | default(false)
   tags:
-    - packages
+    - validation
+    - stow
+
+- name: Repository method - Warn if stow is not available and skip stow deployment
+  ansible.builtin.debug:
+    msg: |
+      WARNING: Stow is not installed but dotfiles configuration specifies stow usage.
+      Skipping stow-based deployment. To use stow, add 'stow' to your packages_install list in basic_setup.
+      Falling back to manual symlink deployment instead.
+  when:
+    - current_dotfiles_repo | bool
+    - current_dotfiles_source_type == "repository"
+    - user_config.value.dotfiles_uses_stow | default(false)
+    - stow_check.rc != 0
+  tags:
+    - warning
     - stow
 
 - name: Repository method - Find files that stow would deploy
@@ -61,6 +76,7 @@
     - current_dotfiles_repo | bool
     - current_dotfiles_source_type == "repository"
     - user_config.value.dotfiles_uses_stow | default(false)
+    - stow_check.rc == 0  # Only proceed if stow is available
 
 - name: Repository method - Backup existing files that would conflict with stow
   ansible.builtin.copy:
@@ -75,6 +91,7 @@
     - current_dotfiles_repo | bool
     - current_dotfiles_source_type == "repository"
     - user_config.value.dotfiles_uses_stow | default(false)
+    - stow_check.rc == 0  # Only proceed if stow is available
     - repo_files.files is defined
   failed_when: false  # Don't fail if file doesn't exist
   tags:

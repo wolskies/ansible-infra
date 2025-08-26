@@ -1,7 +1,42 @@
 ---
-# Test discovered users for Arch workstation (simulating discovery output)  
+# Test host-specific packages for Arch workstation (simulating discovery output)
+host_packages_install_Archlinux:
+  - git
+  - curl
+  - htop
+  - neovim
+  - tmux
+  - zsh
+
+# Test discovered users for Arch workstation (simulating discovery output)
 discovered_users_config:
-  - name: archuser
-    uid: 1003
+  # Global users from group_vars/all.yml
+  - name: basicuser
+    uid: 1001
+    shell: /bin/bash
+    groups: []
+    
+  - name: fulluser
+    uid: 1002
     shell: /bin/zsh
-    groups: ["wheel"]
+    default_user_shell: /bin/zsh
+    home: /home/fulluser
+    groups:
+      - sudo
+      - docker
+    password: '$6$test$fulluser.hash.example'
+    ssh_password_auth: true
+    sudo_nopasswd: false
+    dotfiles_repository_url: "https://github.com/example/dotfiles"
+    dotfiles_uses_stow: true
+    dotfiles_stow_packages: ["zsh", "git", "tmux"]
+
+  # Host-specific user (from discovery)
+  - name: archworkstation
+    uid: 1006
+    shell: /usr/bin/zsh  # Full path shell
+    groups:
+      - wheel
+      - audio
+      - video
+    password: '$6$arch$workstation.hash'

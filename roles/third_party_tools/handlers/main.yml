@@ -5,7 +5,7 @@
   ansible.builtin.apt:
     update_cache: true
   become: true
-  when: ansible_os_family == "Debian"
+  when: ansible_distribution in ["Ubuntu", "Debian"]
 
 - name: reload shell environment
   ansible.builtin.shell: |

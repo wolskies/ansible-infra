@@ -43,4 +43,6 @@ packages_remove:
 ubuntu_disable_snap: true  # Disable snap by default for consistency
 ubuntu_disable_cloud_init: false  # Keep cloud-init for cloud deployments
 
+# Note: Shell enhancement packages (starship, zoxide, eza, fzf, fastfetch) are now handled by merge logic
+# Enable with: install_shell_enhancements: true
 # Note: Nerd fonts are typically installed via package manager or external repositories

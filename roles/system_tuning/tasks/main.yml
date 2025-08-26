@@ -28,8 +28,8 @@
     - system-tuning
 
 - name: Include OS-specific system tuning tasks
-  ansible.builtin.include_tasks: "tuning-{{ ansible_os_family }}.yml"
-  when: ansible_os_family in ['Debian', 'Archlinux']
+  ansible.builtin.include_tasks: "tuning-{{ ansible_distribution }}.yml"
+  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux']
   tags:
     - always
     - system-tuning

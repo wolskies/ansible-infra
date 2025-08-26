@@ -1,0 +1,82 @@
+---
+- name: Check to see if basic packages are installed
+  ansible.builtin.package:
+    name:
+      - git
+      - stow
+      - gpg
+    state: present
+  become: true
+
+- name: Check for starship
+  ansible.builtin.stat:
+    path: /home/{{ ansible_user}}/.local/bin/starship
+  register: starship_binary
+
+# - name: Install starship
+#   ansible.builtin.include_role:
+#     name: starship
+#   when: not starship_binary.stat.exists
+
+- name: Check for zoxide
+  ansible.builtin.stat:
+    path: /home/{{ ansible_user}}/.local/bin/zoxide
+  register: zoxide_binary
+
+- name: Install zoxide if not present
+  ansible.builtin.script:
+    cmd: files/zoxide-install.sh
+  when: not zoxide_binary.stat.exists
+
+- name: Check for eza
+  ansible.builtin.stat:
+    path: /usr/bin/eza
+  register: eza_binary
+
+- name: Install eza
+  when: not eza_binary.stat.exists
+  block:
+    - name: Add eza GPG Key
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/eza-community/eza/main/deb.asc
+        dest: /etc/apt/trusted.gpg.d/gierens.asc
+        mode: '0644'
+        force: true
+    - name: Add eza Repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/trusted.gpg.d/gierens.asc] http://deb.gierens.de stable main"
+        state: present
+    - name: Update apt and install eza
+      ansible.builtin.package:
+        name:
+          - eza
+        state: latest
+        update_cache: true
+      become: true
+
+- name: Check for fzf
+  ansible.builtin.stat:
+    path: /home/{{ ansible_user}}/.fzf/bin/fzf
+  register: fzf_binary
+
+- name: Install fzf
+  when: not fzf_binary.stat.exists
+  block:
+    - name: Add fzf repo
+      ansible.builtin.git:
+        repo: https://github.com/junegunn/fzf.git
+        dest: /home/{{ ansible_user }}/.fzf
+        clone: true
+        depth: 1
+    - name: Install fzf
+      ansible.builtin.shell: yes | /home/{{ ansible_user }}/.fzf/install
+
+- name: Ensure fastfetch is present
+  ansible.builtin.apt:
+    deb: >-
+      https://github.com/fastfetch-cli/fastfetch/releases/download/2.44.0/fastfetch-linux-{{
+        'amd64' if ansible_architecture == 'x86_64' else
+        'arm64' if ansible_architecture == 'aarch64' else ansible_architecture
+      }}.deb
+    state: present
+  become: true

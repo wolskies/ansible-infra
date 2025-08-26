@@ -34,23 +34,102 @@
             success_msg: "Timezone configuration verified"
           when: current_timezone.rc == 0
 
-    - name: Verify essential packages installation
+    - name: Verify hierarchical package merge and installation
       block:
         - name: Get package facts
           ansible.builtin.package_facts:
             manager: auto
 
-        - name: Check essential packages are installed
+        - name: Verify all-level packages are installed (all hosts)
           ansible.builtin.assert:
             that:
               - "item in ansible_facts.packages"
-            fail_msg: "Essential package {{ item }} not installed"
-            success_msg: "Package {{ item }} verified"
+            fail_msg: "All-level package {{ item }} not installed"
+            success_msg: "All-level package {{ item }} verified"
+          loop:
+            - wget
+            - unzip
+          ignore_errors: true
+
+        - name: Verify group-level packages are installed
+          ansible.builtin.assert:
+            that:
+              - "item in ansible_facts.packages"
+            fail_msg: "Group-level package {{ item }} not installed"
+            success_msg: "Group-level package {{ item }} verified"
           loop:
             - git
             - curl
-            - wget
-          ignore_errors: true  # Some test images may not have all packages
+            - htop
+          ignore_errors: true
+
+        - name: Verify shell enhancement packages are installed
+          ansible.builtin.assert:
+            that:
+              - "item in ansible_facts.packages"
+            fail_msg: "Shell enhancement package {{ item }} not installed"
+            success_msg: "Shell enhancement package {{ item }} verified from conditional merge"
+          loop:
+            - zsh
+            - fzf
+          ignore_errors: true
+          when: install_shell_enhancements | default(false)
+
+        - name: Verify stow is installed when dotfiles support enabled
+          ansible.builtin.assert:
+            that:
+              - "'stow' in ansible_facts.packages"
+            fail_msg: "Stow package not installed despite dotfiles support being enabled"
+            success_msg: "Stow correctly installed for dotfiles support"
+          ignore_errors: true
+          when: 
+            - install_dotfiles_support | default(false)
+            - ansible_distribution != 'MacOSX'
+
+    - name: Verify dotfiles deployment for users with dotfiles configuration
+      block:
+        - name: Check if dotfiles directories exist for configured users
+          ansible.builtin.stat:
+            path: "{{ item.home | default('/home/' + item.name) }}/.dotfiles"
+          register: dotfiles_directories
+          loop: "{{ discovered_users_config | selectattr('dotfiles_repository_url', 'defined') }}"
+          when: 
+            - discovered_users_config is defined
+            - install_dotfiles_support | default(false)
+            - ansible_distribution != 'MacOSX'
+
+        - name: Verify dotfiles directories exist
+          ansible.builtin.assert:
+            that:
+              - "item.stat.exists"
+              - "item.stat.isdir"
+            fail_msg: "Dotfiles directory not found for user {{ item.item.name }}"
+            success_msg: "Dotfiles directory verified for user {{ item.item.name }}"
+          loop: "{{ dotfiles_directories.results | default([]) }}"
+          when: dotfiles_directories is defined
+          ignore_errors: true
+
+        - name: Check for stow deployment evidence (symlinks in home directories)
+          ansible.builtin.find:
+            paths: "{{ item.home | default('/home/' + item.name) }}"
+            file_type: link
+          register: dotfiles_symlinks
+          loop: "{{ discovered_users_config | selectattr('dotfiles_repository_url', 'defined') }}"
+          when: 
+            - discovered_users_config is defined
+            - install_dotfiles_support | default(false)
+            - ansible_distribution != 'MacOSX'
+
+        - name: Display dotfiles deployment status
+          ansible.builtin.debug:
+            msg:
+              - "Dotfiles deployment status for user {{ item.item.name }}:"
+              - "  Repository: {{ item.item.dotfiles_repository_url }}"
+              - "  Uses stow: {{ item.item.dotfiles_uses_stow | default(true) }}"
+              - "  Symlinks found: {{ item.matched }}"
+              - "  Status: {{ 'SUCCESS' if item.matched > 0 else 'NO SYMLINKS (repo may be empty/private)' }}"
+          loop: "{{ dotfiles_symlinks.results | default([]) }}"
+          when: dotfiles_symlinks is defined
 
     - name: Verify discovery-based user creation from basic_setup role
       block:
@@ -59,38 +138,136 @@
             database: passwd
           register: system_users
 
-        - name: Verify ed user was created by basic_setup from discovery data
+        - name: Verify global users were created (basicuser and fulluser)
           ansible.builtin.assert:
             that:
-              - "'ed' in ansible_facts.getent_passwd"
-              - "ansible_facts.getent_passwd['ed'][1] == '1000'"  # UID check
-            fail_msg: "basic_setup did not create user 'ed' from discovery data"
-            success_msg: "basic_setup successfully created user from discovery data"
-          when: ansible_os_family != 'Darwin'
+              - "'basicuser' in ansible_facts.getent_passwd"
+              - "'fulluser' in ansible_facts.getent_passwd"
+              - "ansible_facts.getent_passwd['basicuser'][1] == '1001'"  # UID check
+              - "ansible_facts.getent_passwd['fulluser'][1] == '1002'"   # UID check
+            fail_msg: "basic_setup did not create global users from discovery data"
+            success_msg: "basic_setup successfully created global users from discovery data"
+          when: ansible_distribution != 'MacOSX'
 
-        - name: Check workstation user shell (zsh) from discovery data
+        - name: Verify basicuser has correct shell (minimal user test)
           ansible.builtin.assert:
             that:
-              - "ansible_facts.getent_passwd['ed'][5] == '/usr/bin/zsh'"
-            fail_msg: "basic_setup did not set zsh shell from discovery data"
-            success_msg: "basic_setup correctly set workstation shell from discovery"
+              - "ansible_facts.getent_passwd['basicuser'][5] == '/bin/bash'"
+            fail_msg: "basic_setup did not set correct shell for basic user"
+            success_msg: "basic_setup correctly set shell for basic user"
           when:
-            - ansible_os_family != 'Darwin'
-            - "'ed' in ansible_facts.getent_passwd"
-            - inventory_hostname in groups.workstations
+            - ansible_distribution != 'MacOSX'
+            - "'basicuser' in ansible_facts.getent_passwd"
+
+        - name: Verify fulluser has comprehensive configuration
+          ansible.builtin.assert:
+            that:
+              - "ansible_facts.getent_passwd['fulluser'][5] == '/bin/zsh'"  # Should use default_user_shell
+              - "ansible_facts.getent_passwd['fulluser'][4] == '/home/fulluser'"  # Home directory
+            fail_msg: "basic_setup did not configure fulluser correctly"
+            success_msg: "basic_setup correctly configured comprehensive user"
+          when:
+            - ansible_distribution != 'MacOSX'
+            - "'fulluser' in ansible_facts.getent_passwd"
           ignore_errors: true  # zsh may not be available in test images
 
-        - name: Check server user shell (bash) from discovery data  
+        - name: Verify user group memberships
+          block:
+            - name: Get group information for test users
+              ansible.builtin.getent:
+                database: group
+              register: system_groups
+
+            - name: Check fulluser is in sudo and docker groups
+              ansible.builtin.assert:
+                that:
+                  - "'fulluser' in ansible_facts.getent_group.get('sudo', ['', '', '', ''])[2].split(',')"
+                  - "'fulluser' in ansible_facts.getent_group.get('docker', ['', '', '', ''])[2].split(',')"
+                fail_msg: "fulluser not properly added to specified groups (sudo, docker)"
+                success_msg: "fulluser correctly added to all specified groups"
+              when:
+                - ansible_distribution != 'MacOSX'
+                - "'fulluser' in ansible_facts.getent_passwd"
+              ignore_errors: true  # Groups may not exist in test containers
+
+            - name: Check ubuntuserver group membership (Ubuntu only)
+              ansible.builtin.assert:
+                that:
+                  - "'ubuntuserver' in ansible_facts.getent_group.get('sudo', ['', '', '', ''])[2].split(',')"
+                  - "'ubuntuserver' in ansible_facts.getent_group.get('adm', ['', '', '', ''])[2].split(',')"
+                fail_msg: "ubuntuserver not properly added to Ubuntu-specific groups"
+                success_msg: "ubuntuserver correctly added to Ubuntu-specific groups"
+              when:
+                - ansible_distribution != 'MacOSX'
+                - inventory_hostname == 'ub1'
+                - "'ubuntuserver' in ansible_facts.getent_passwd"
+              ignore_errors: true
+
+            - name: Check debianserver group membership (Debian only)
+              ansible.builtin.assert:
+                that:
+                  - "'debianserver' in ansible_facts.getent_group.get('sudo', ['', '', '', ''])[2].split(',')"
+                fail_msg: "debianserver not properly added to sudo group"
+                success_msg: "debianserver correctly added to sudo group"
+              when:
+                - ansible_distribution != 'MacOSX'
+                - inventory_hostname == 'deb1'
+                - "'debianserver' in ansible_facts.getent_passwd"
+              ignore_errors: true
+
+            - name: Check archworkstation group membership (Arch only)
+              ansible.builtin.assert:
+                that:
+                  - "'archworkstation' in ansible_facts.getent_group.get('wheel', ['', '', '', ''])[2].split(',')"
+                  - "'archworkstation' in ansible_facts.getent_group.get('audio', ['', '', '', ''])[2].split(',')"
+                  - "'archworkstation' in ansible_facts.getent_group.get('video', ['', '', '', ''])[2].split(',')"
+                fail_msg: "archworkstation not properly added to Arch-specific groups"
+                success_msg: "archworkstation correctly added to Arch-specific groups"
+              when:
+                - ansible_distribution != 'MacOSX'
+                - inventory_hostname == 'arch1'
+                - "'archworkstation' in ansible_facts.getent_passwd"
+              ignore_errors: true
+
+          when: ansible_distribution != 'MacOSX'
+
+        - name: Verify host-specific users (Ubuntu server)
           ansible.builtin.assert:
             that:
-              - "ansible_facts.getent_passwd['ed'][5] == '/bin/bash'"
-            fail_msg: "basic_setup did not set bash shell from discovery data"
-            success_msg: "basic_setup correctly set server shell from discovery"
+              - "'ubuntuserver' in ansible_facts.getent_passwd"
+              - "ansible_facts.getent_passwd['ubuntuserver'][1] == '1003'"
+            fail_msg: "basic_setup did not create Ubuntu-specific user"
+            success_msg: "basic_setup correctly created Ubuntu-specific user"
           when:
-            - ansible_os_family != 'Darwin'
-            - "'ed' in ansible_facts.getent_passwd"
-            - inventory_hostname in groups.servers
-          ignore_errors: true
+            - ansible_distribution != 'MacOSX'
+            - inventory_hostname == 'ub1'
+
+        - name: Verify host-specific users (Debian server)
+          ansible.builtin.assert:
+            that:
+              - "'debianserver' in ansible_facts.getent_passwd"
+              - "'debpower' in ansible_facts.getent_passwd"
+              - "ansible_facts.getent_passwd['debianserver'][1] == '1004'"
+              - "ansible_facts.getent_passwd['debpower'][1] == '1005'"
+              - "ansible_facts.getent_passwd['debpower'][5] == '/bin/bash'"  # Should use default_user_shell override
+            fail_msg: "basic_setup did not create Debian-specific users correctly"
+            success_msg: "basic_setup correctly created Debian-specific users"
+          when:
+            - ansible_distribution != 'MacOSX'
+            - inventory_hostname == 'deb1'
+
+        - name: Verify host-specific users (Arch workstation)
+          ansible.builtin.assert:
+            that:
+              - "'archworkstation' in ansible_facts.getent_passwd"
+              - "ansible_facts.getent_passwd['archworkstation'][1] == '1006'"
+              - "ansible_facts.getent_passwd['archworkstation'][5] == '/usr/bin/zsh'"
+            fail_msg: "basic_setup did not create Arch-specific user correctly"
+            success_msg: "basic_setup correctly created Arch-specific user"
+          when:
+            - ansible_distribution != 'MacOSX'
+            - inventory_hostname == 'arch1'
+          ignore_errors: true  # zsh may not be available in test images
 
     - name: Verify OS-specific configurations
       block:
@@ -229,6 +406,6 @@
           - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
           - "Package manager: {{ ansible_pkg_mgr }}"
           - "Group: {{ group_names | join(', ') }}"
-          - "Discovery users: {{ ansible_facts.getent_passwd.keys() | intersect(['ed']) | length if ansible_os_family != 'Darwin' else 'N/A (macOS)' }}"
+          - "Discovery users created: {{ ansible_facts.getent_passwd.keys() | intersect(['basicuser', 'fulluser', 'ubuntuserver', 'debianserver', 'debpower', 'archworkstation']) | length if ansible_distribution != 'MacOSX' else 'N/A (macOS)' }}"
           - "Essential packages: Verified"
           - "System configuration: OK"

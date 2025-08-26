@@ -1,71 +1,6 @@
 ---
-# Simplified third-party packages role - all tasks consolidated
-
-# Configure additional repositories
-- name: Configure additional repositories
-  block:
-    # APT repositories (Debian/Ubuntu)
-    - name: Add APT repositories
-      block:
-        - name: Add APT keys
-          ansible.builtin.apt_key:
-            url: "{{ item }}"
-            state: present
-          loop: "{{ additional_repositories.apt.keys | default([]) }}"
-          become: true
-
-        - name: Add APT sources
-          ansible.builtin.apt_repository:
-            repo: "{{ item }}"
-            state: present
-          loop: "{{ additional_repositories.apt.sources | default([]) }}"
-          become: true
-
-        - name: Update APT cache after adding repositories
-          ansible.builtin.apt:
-            update_cache: true
-          become: true
-          when: additional_repositories.apt.sources | default([]) | length > 0
-      when: ansible_os_family == "Debian"
-
-    # Homebrew taps (macOS)
-    - name: Add Homebrew taps
-      community.general.homebrew_tap:
-        name: "{{ item }}"
-        state: present
-      loop: "{{ additional_repositories.homebrew.taps | default([]) }}"
-      when: ansible_os_family == "Darwin"
-
-    # YUM/DNF repositories (RedHat family)
-    - name: Add YUM repositories
-      ansible.builtin.yum_repository:
-        name: "{{ item.name }}"
-        description: "{{ item.description | default(item.name) }}"
-        baseurl: "{{ item.baseurl }}"
-        gpgkey: "{{ item.gpgkey | default(omit) }}"
-        enabled: "{{ item.enabled | default(true) }}"
-      loop: "{{ additional_repositories.yum.repos | default([]) }}"
-      become: true
-      when: ansible_os_family == "RedHat"
-  when:
-    - enable_repositories | default(true)
-    - additional_repositories is defined
-  tags:
-    - repositories
-    - third-party-packages
-
-# Install third-party system packages
-- name: Install third-party system packages
-  ansible.builtin.package:
-    name: "{{ third_party_packages }}"
-    state: present
-  become: true
-  when:
-    - third_party_packages is defined
-    - third_party_packages | length > 0
-  tags:
-    - system-packages
-    - third-party-packages
+# Third-party tools role - Language ecosystem package management only
+# OS packages and repositories are handled by basic_setup role
 
 # Python packages via pip
 - name: Setup Python packages
@@ -208,7 +143,10 @@
   ansible.builtin.debug:
     msg:
       - "=== Third-Party Packages Summary ==="
-      - "Repositories configured: {{ (additional_repositories.apt.sources | default([]) | length) + (additional_repositories.homebrew.taps | default([]) | length) + (additional_repositories.yum.repos | default([]) | length) }}"
+      - "Repositories configured: {{
+          (additional_repositories.apt.sources | default([]) | length) +
+          (additional_repositories.homebrew.taps | default([]) | length) +
+          (additional_repositories.yum.repos | default([]) | length) }}"
       - "System packages: {{ third_party_packages | default([]) | length }}"
       - "Python packages: {{ pip_packages | default([]) | length }} (method: {{ pip_install_method | default('user') }})"
       - "Node.js packages: {{ npm_packages | default([]) | length }}"

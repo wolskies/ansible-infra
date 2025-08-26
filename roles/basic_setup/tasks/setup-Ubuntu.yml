@@ -1,5 +1,5 @@
 ---
-# Debian basic setup and feature management
+# Ubuntu basic setup and feature management
 # Tags: system, locale, timezone, packages, updates, firewall, security
 
 # System configuration (locale, timezone, language)
@@ -37,6 +37,93 @@
     - system
     - locale
 
+# Ubuntu snap removal (optional but thorough)
+- name: Remove snap packages completely (Ubuntu)
+  block:
+    - name: List installed snap packages
+      ansible.builtin.command: snap list
+      register: snap_packages
+      failed_when: false
+      changed_when: false
+
+    - name: Remove all installed snap packages
+      ansible.builtin.command: snap remove "{{ item.split()[0] }}"
+      loop: "{{ snap_packages.stdout_lines[1:] if snap_packages.rc == 0 else [] }}"
+      when:
+        - snap_packages.rc == 0
+        - snap_packages.stdout_lines | length > 1
+        - item.split()[0] not in ['core', 'core18', 'core20', 'core22', 'snapd']
+      become: true
+      ignore_errors: true
+
+    - name: Remove core snap packages (last)
+      ansible.builtin.command: snap remove "{{ item }}"
+      loop:
+        - core22
+        - core20
+        - core18
+        - core
+        - snapd
+      become: true
+      ignore_errors: true
+
+    - name: Stop and disable snapd services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+      loop:
+        - snapd.service
+        - snapd.socket
+        - snapd.seeded.service
+      become: true
+      ignore_errors: true
+
+    - name: Remove snapd package
+      ansible.builtin.apt:
+        name:
+          - snapd
+          - gnome-software-plugin-snap
+        state: absent
+        purge: true
+      become: true
+
+    - name: Remove snap directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /snap
+        - /var/snap
+        - /var/lib/snapd
+        - /var/cache/snapd
+        - /usr/lib/snapd
+        - /home/{{ ansible_user }}/snap
+      become: true
+      ignore_errors: true
+
+    - name: Remove snap from PATH (system-wide)
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        regexp: '.*snap.*'
+        state: absent
+      become: true
+
+    - name: Mark snapd package as hold to prevent reinstallation
+      ansible.builtin.dpkg_selections:
+        name: snapd
+        selection: hold
+      become: true
+      ignore_errors: true
+
+  when: ubuntu_disable_snap | default(false)
+  tags:
+    - ubuntu
+    - snap
+    - removal
+    - system-cleanup
+
 - name: Update package cache
   ansible.builtin.apt:
     update_cache: true
@@ -69,6 +156,7 @@
     - packages
     - cleanup
     - remove
+
 
 - name: Set package installation facts
   ansible.builtin.set_fact:

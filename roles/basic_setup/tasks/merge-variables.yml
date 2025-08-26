@@ -17,10 +17,13 @@
         condition: "{{ ansible_distribution == 'Archlinux' }}"
       - name: "homebrew_packages"
         result_var: "final_homebrew_packages"
-        condition: "{{ ansible_os_family == 'Darwin' }}"
+        condition: "{{ ansible_distribution == 'MacOSX' }}"
       - name: "homebrew_casks"
         result_var: "final_homebrew_casks"
-        condition: "{{ ansible_os_family == 'Darwin' }}"
+        condition: "{{ ansible_distribution == 'MacOSX' }}"
+      - name: "homebrew_taps"
+        result_var: "final_homebrew_taps"
+        condition: "{{ ansible_distribution == 'MacOSX' }}"
       # Language packages
       - name: "third_party_packages"
         result_var: "final_third_party_packages"
@@ -28,11 +31,6 @@
         result_var: "final_pip_packages"
       - name: "npm_packages"
         result_var: "final_npm_packages"
-      # Services
-      - name: "services_enable"
-        result_var: "final_services_enable"
-      - name: "services_disable"
-        result_var: "final_services_disable"
 
 # Merge all package variables using loop
 - name: Merge hierarchical package variables
@@ -78,11 +76,37 @@
           (additional_repositories.yum.repos | default([])) | unique
         }}"
 
+# Conditional package injection based on user preferences
+- name: Add shell enhancement packages if requested
+  ansible.builtin.set_fact:
+    final_packages_install: "{{ final_packages_install + shell_enhancement_packages_list }}"
+  vars:
+    shell_enhancement_packages_list: >-
+      {%- set packages = [] -%}
+      {%- if ansible_distribution in ['Ubuntu', 'Debian'] -%}
+        {%- set packages = packages + ['zoxide', 'fzf', 'zsh', 'fastfetch'] -%}
+      {%- elif ansible_distribution == 'Archlinux' -%}
+        {%- set packages = packages + ['zoxide', 'fzf', 'zsh', 'fastfetch', 'eza', 'starship'] -%}
+      {%- elif ansible_distribution == 'MacOSX' -%}
+        {%- set packages = packages + ['zoxide', 'fzf', 'zsh', 'fastfetch', 'eza', 'starship'] -%}
+      {%- endif -%}
+      {{ packages }}
+  when:
+    - install_shell_enhancements | default(false)
+    - final_packages_install is defined
+
+- name: Add stow package if dotfiles are enabled
+  ansible.builtin.set_fact:
+    final_packages_install: "{{ final_packages_install + ['stow'] }}"
+  when:
+    - install_dotfiles_support | default(false)
+    - final_packages_install is defined
+    - ansible_distribution != 'MacOSX'  # stow not available on macOS via homebrew
+
 # Apply exclusions
-- name: Apply package and service exclusions
+- name: Apply package exclusions
   ansible.builtin.set_fact:
     final_packages_install: "{{ final_packages_install | default([]) | difference(final_packages_remove | default([])) }}"
-    final_services_enable: "{{ final_services_enable | default([]) | difference(final_services_disable | default([])) }}"
 
 # Export variables for other roles
 - name: Export merged variables for other roles
@@ -106,10 +130,14 @@
       - "Third-party packages: {{ final_third_party_packages | default([]) | length }}"
       - "Python packages: {{ final_pip_packages | default([]) | length }}"
       - "Node.js packages: {{ final_npm_packages | default([]) | length }}"
-      - "Services: {{ final_services_enable | default([]) | length }} to enable, {{ final_services_disable | default([]) | length }} to disable"
       - ""
       - "Platform-specific:"
       - "  AUR packages: {{ final_aur_packages | default([]) | length if ansible_distribution == 'Archlinux' else 'N/A' }}"
-      - "  Homebrew packages: {{ final_homebrew_packages | default([]) | length if ansible_os_family == 'Darwin' else 'N/A' }}"
-      - "  Homebrew casks: {{ final_homebrew_casks | default([]) | length if ansible_os_family == 'Darwin' else 'N/A' }}"
+      - "  Homebrew packages: {{ final_homebrew_packages | default([]) | length if ansible_distribution == 'MacOSX' else 'N/A' }}"
+      - "  Homebrew casks: {{ final_homebrew_casks | default([]) | length if ansible_distribution == 'MacOSX' else 'N/A' }}"
+      - "  Homebrew taps: {{ final_homebrew_taps | default([]) | length if ansible_distribution == 'MacOSX' else 'N/A' }}"
+      - ""
+      - "Conditional packages:"
+      - "  Shell enhancements: {{ 'Enabled' if install_shell_enhancements | default(false) else 'Disabled' }}"
+      - "  Dotfiles support: {{ 'Enabled' if install_dotfiles_support | default(false) else 'Disabled' }}"
   when: ansible_verbosity >= 1

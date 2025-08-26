@@ -1,6 +1,43 @@
 ---
 # Arch Linux basic setup and feature management
-# Tags: packages, updates, aur, firewall, optimization
+# Tags: system, locale, timezone, packages, updates, aur, firewall, optimization
+
+# System configuration (locale, timezone, language)
+- name: Set system timezone
+  ansible.builtin.timezone:
+    name: "{{ config_system_timezone }}"
+  become: true
+  tags:
+    - system
+    - timezone
+    - locale
+
+- name: Generate system locale
+  ansible.builtin.lineinfile:
+    path: /etc/locale.gen
+    regexp: "^#{{ config_system_locale }}"
+    line: "{{ config_system_locale }}"
+  become: true
+  when: config_system_locale != 'C'
+  notify: generate locales
+  tags:
+    - system
+    - locale
+
+- name: Set system locale
+  ansible.builtin.lineinfile:
+    path: /etc/locale.conf
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+    create: true
+    mode: '0644'
+  loop:
+    - { key: "LANG", value: "{{ config_system_language }}" }
+    - { key: "LC_ALL", value: "{{ config_system_locale }}" }
+  become: true
+  tags:
+    - system
+    - locale
 
 - name: Update package cache and system
   community.general.pacman:

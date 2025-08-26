@@ -42,7 +42,7 @@
             {{ firewall_type }}
           {%- elif ansible_distribution in firewall_tool_preference -%}
             {{ firewall_tool_preference[ansible_distribution] }}
-          {%- elif ansible_os_family == 'Debian' -%}
+          {%- elif ansible_distribution in ['Ubuntu', 'Debian'] -%}
             ufw
           {%- elif ansible_os_family == 'RedHat' -%}
             firewalld
@@ -60,11 +60,7 @@
 
     - name: Include firewall tasks
       ansible.builtin.include_tasks: "firewall-{{ ansible_distribution }}.yml"
-      when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux']
-
-    - name: Include Darwin firewall tasks
-      ansible.builtin.include_tasks: "firewall-Darwin.yml"
-      when: ansible_os_family == 'Darwin'
+      when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
 
   when: enable_firewall | default(true)
   tags:

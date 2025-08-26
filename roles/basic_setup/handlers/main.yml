@@ -1,2 +1,11 @@
 ---
-# handlers file for basic_config
+# handlers file for basic_setup
+
+- name: generate locales
+  ansible.builtin.command: locale-gen
+  become: true
+
+- name: Restart Dock
+  ansible.builtin.command: killall Dock
+  ignore_errors: true
+  when: ansible_distribution == 'MacOSX'

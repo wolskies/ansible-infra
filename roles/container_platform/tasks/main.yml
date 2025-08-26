@@ -6,7 +6,7 @@
 - name: Validate supported OS
   ansible.builtin.fail:
     msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported for Docker setup. macOS Docker Desktop should be installed manually."
-  when: ansible_os_family == 'Darwin'
+  when: ansible_distribution == 'MacOSX'
   tags:
     - always
     - validation
