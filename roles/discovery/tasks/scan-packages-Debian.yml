@@ -18,7 +18,7 @@
         - all_manual_packages_result.rc != 0
         - all_manual_packages_result.rc != 127  # 127 = command not found (OK)
 
-    - name: Get package facts for filtering base packages  
+    - name: Get package facts for filtering base packages
       ansible.builtin.package_facts:
         manager: apt
       become: true
@@ -27,7 +27,7 @@
       ansible.builtin.set_fact:
         base_system_packages:
           - base-files
-          - base-passwd  
+          - base-passwd
           - debian-archive-keyring
           - ubuntu-keyring
           - grub-common
@@ -46,7 +46,7 @@
             all_manual_packages_result.stdout_lines | default([])
             | difference(base_system_packages)
             | reject('match', '^(linux-.*|.*-firmware|.*-microcode)$')
-            | reject('match', '^(nvidia-.*|libva-nvidia.*|opencl-nvidia|cuda.*|opencl-.*)$') 
+            | reject('match', '^(nvidia-.*|libva-nvidia.*|opencl-nvidia|cuda.*|opencl-.*)$')
             | reject('match', '^(mesa-.*|vulkan-.*|lib32-mesa.*|lib32-vulkan-.*)$')
             | reject('match', '^(alsa-.*|pulseaudio.*|pipewire.*|wireplumber.*)$')
             | list
@@ -69,12 +69,12 @@
       become: true
       # Let it fail if files exist but can't be read (permission issues, corruption, etc.)
 
-    # Step 3: Parse repositories and extract key paths
-    - name: Parse third-party repositories
+    # Step 3: Parse repositories and extract key URLs for secure re-download
+    - name: Parse third-party repositories and map keys to URLs
       ansible.builtin.set_fact:
         parsed_repos: >-
           {%- set repos = [] -%}
-          {%- set key_paths = [] -%}
+          {%- set key_urls = [] -%}
           {%- for file in repo_contents.results | default([]) -%}
             {%- if file.content is defined -%}
               {%- set content = file.content | b64decode -%}
@@ -88,44 +88,41 @@
                         'repository': line.strip()
                     } -%}
                     {%- set _ = repos.append(repo_data) -%}
-                    {%- set signed_by_match = line | regex_findall('signed-by=([^\\s\\]]+)') -%}
-                    {%- if signed_by_match and signed_by_match[0] not in key_paths -%}
-                      {%- set _ = key_paths.append(signed_by_match[0]) -%}
+                    {%- if 'docker.com' in line -%}
+                      {%- if 'ubuntu' in line -%}
+                        {%- set docker_key = 'https://download.docker.com/linux/ubuntu/gpg' -%}
+                      {%- elif 'debian' in line -%}
+                        {%- set docker_key = 'https://download.docker.com/linux/debian/gpg' -%}
+                      {%- else -%}
+                        {%- set docker_key = 'https://download.docker.com/linux/ubuntu/gpg' -%}
+                      {%- endif -%}
+                      {%- if docker_key not in key_urls -%}
+                        {%- set _ = key_urls.append(docker_key) -%}
+                      {%- endif -%}
+                    {%- elif 'nodesource.com' in line -%}
+                      {%- set nodejs_key = 'https://deb.nodesource.com/gpgkey/nodesource.gpg.key' -%}
+                      {%- if nodejs_key not in key_urls -%}
+                        {%- set _ = key_urls.append(nodejs_key) -%}
+                      {%- endif -%}
+                    {%- elif 'google.com' in line and ('chrome' in line or 'cloud-sdk' in line) -%}
+                      {%- set google_key = 'https://dl.google.com/linux/linux_signing_key.pub' -%}
+                      {%- if google_key not in key_urls -%}
+                        {%- set _ = key_urls.append(google_key) -%}
+                      {%- endif -%}
+                    {%- elif 'microsoft.com' in line -%}
+                      {%- set microsoft_key = 'https://packages.microsoft.com/keys/microsoft.asc' -%}
+                      {%- if microsoft_key not in key_urls -%}
+                        {%- set _ = key_urls.append(microsoft_key) -%}
+                      {%- endif -%}
                     {%- endif -%}
                   {%- endif -%}
                 {%- endif -%}
               {%- endfor -%}
             {%- endif -%}
           {%- endfor -%}
-          {{ {'repos': repos, 'key_paths': key_paths} }}
+          {{ {'repos': repos, 'key_urls': key_urls} }}
 
-    # Step 4: Check which GPG keys actually exist
-    - name: Check GPG key files exist
-      ansible.builtin.stat:
-        path: "{{ item }}"
-      register: key_file_stats
-      loop: "{{ parsed_repos.key_paths }}"
-      become: true
-      when: parsed_repos.key_paths | length > 0
-
-    - name: Build list of existing keys
-      ansible.builtin.set_fact:
-        existing_keys: >-
-          {{
-            key_file_stats.results | default([])
-            | selectattr('stat.exists', 'equalto', true)
-            | map(attribute='item')
-            | list
-          }}
-
-    - name: Copy GPG key files to discovery output directory
-      ansible.builtin.fetch:
-        src: "{{ item }}"
-        dest: "{{ discovery_paths.host_vars_dir }}/"
-        flat: true
-      loop: "{{ existing_keys }}"
-      become: true
-      when: existing_keys | length > 0
+    # Step 4: Store key URLs for secure re-download (no file copying)
 
     # Step 5: Store final results in expected format
     - name: Store APT discovery results
@@ -134,15 +131,14 @@
           apt:
             third_party_repos: "{{ parsed_repos.repos }}"
             manual_packages: "{{ manual_packages }}"
-            gpg_keys: "{{ existing_keys | default([]) }}"
+            apt_keys: "{{ parsed_repos.key_urls }}"
 
     - name: Debug key extraction
       ansible.builtin.debug:
         msg:
-          - "Raw key paths extracted: {{ parsed_repos.key_paths }}"
-          - "Key file check results: {{ key_file_stats.results | default([]) | map(attribute='item') | list }}"
-          - "Keys that exist: {{ existing_keys | default([]) }}"
-          - "Final discovered_repositories.apt.gpg_keys: {{ discovered_repositories.apt.gpg_keys | default('UNDEFINED') }}"
+          - "Repository URLs found: {{ parsed_repos.repos | map(attribute='repository') | list }}"
+          - "Key URLs extracted: {{ parsed_repos.key_urls }}"
+          - "Final discovered_repositories.apt.apt_keys: {{ discovered_repositories.apt.apt_keys | default('UNDEFINED') }}"
       when: discovery_debug | default(false) | bool
 
     - name: Debug APT discovery results
@@ -150,7 +146,7 @@
         msg:
           - "Found {{ manual_packages | length }} manually installed packages"
           - "Found {{ parsed_repos.repos | length }} third-party repositories"
-          - "Found {{ existing_keys | default([]) | length }} GPG keys"
+          - "Found {{ parsed_repos.key_urls | length }} GPG key URLs"
       when: discovery_debug | default(false) | bool
 
   rescue:
@@ -164,4 +160,4 @@
           apt:
             third_party_repos: []
             manual_packages: []
-            gpg_keys: []
+            apt_keys: []

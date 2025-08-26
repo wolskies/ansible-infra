@@ -1,0 +1,7 @@
+---
+# Test discovered users for Arch workstation (simulating discovery output)  
+discovered_users_config:
+  - name: archuser
+    uid: 1003
+    shell: /bin/zsh
+    groups: ["wheel"]

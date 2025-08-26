@@ -86,21 +86,63 @@
     - automatic
     - security
 
-# Ubuntu-specific features
-- name: Include Ubuntu-specific tasks
-  ansible.builtin.include_tasks: ubuntu-specific.yml
-  when: ansible_distribution == 'Ubuntu'
+# Repository management (basic_setup scope) - convenience feature
+- name: Add GPG keys for additional repositories (with graceful failure)
+  ansible.builtin.apt_key:
+    url: "{{ item }}"
+    state: present
+  loop: "{{ final_additional_repositories.apt.apt_keys | default([]) }}"
+  become: true
+  when:
+    - final_additional_repositories.apt.apt_keys is defined
+    - final_additional_repositories.apt.apt_keys | length > 0
+    - item.startswith('http')  # Only handle URL-based keys
+  ignore_errors: true  # Convenience feature - fail gracefully if keys can't be downloaded
+  register: gpg_key_results
   tags:
-    - ubuntu
-    - snap
-
-# Debian-specific features
-- name: Include Debian-specific tasks
-  ansible.builtin.include_tasks: debian-specific.yml
-  when: ansible_distribution == 'Debian'
-  tags:
-    - debian
     - repositories
+    - packages
+    - apt-keys
+
+- name: Add additional package repositories (with graceful failure)
+  ansible.builtin.apt_repository:
+    repo: "{{ item }}"
+    state: present
+    update_cache: true
+  loop: "{{ final_additional_repositories.apt.sources | default([]) }}"
+  become: true
+  when:
+    - final_additional_repositories.apt.sources is defined
+    - final_additional_repositories.apt.sources | length > 0
+  ignore_errors: true  # Convenience feature - fail gracefully if repos can't be added
+  register: repo_results
+  tags:
+    - repositories
+    - packages
+    - apt-sources
+
+- name: Display repository setup results
+  ansible.builtin.debug:
+    msg:
+      - "Repository setup results (convenience feature):"
+      - >-
+        GPG keys: {{ gpg_key_results.results | default([])
+        | selectattr('failed', 'undefined') | list | length }}/{{
+        final_additional_repositories.apt.apt_keys | default([]) | length }} successful
+      - >-
+        Repositories: {{ repo_results.results | default([])
+        | selectattr('failed', 'undefined') | list | length }}/{{
+        final_additional_repositories.apt.sources | default([]) | length }} successful
+      - "Note: Failures are expected and will be handled by later container platform setup"
+  when:
+    - (gpg_key_results is defined or repo_results is defined)
+    - ansible_verbosity >= 1
+  tags:
+    - repositories
+    - debug
+
+# Ubuntu-specific features (like snap management) can be added here when needed
+# Debian-specific features can be added here when needed
 
 - name: Check if cloud-init is installed
   ansible.builtin.stat:

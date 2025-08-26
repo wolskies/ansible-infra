@@ -57,11 +57,11 @@
           (host_additional_repositories.apt.sources | default([])) +
           (additional_repositories.apt.sources | default([])) | unique
         }}"
-        keys: "{{
-          (all_additional_repositories.apt.keys | default([])) +
-          (group_additional_repositories.apt.keys | default([])) +
-          (host_additional_repositories.apt.keys | default([])) +
-          (additional_repositories.apt.keys | default([])) | unique
+        apt_keys: "{{
+          (all_additional_repositories.apt.apt_keys | default([])) +
+          (group_additional_repositories.apt.apt_keys | default([])) +
+          (host_additional_repositories.apt.apt_keys | default([])) +
+          (additional_repositories.apt.apt_keys | default([])) | unique
         }}"
       homebrew:
         taps: "{{

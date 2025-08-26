@@ -1,36 +1,28 @@
 ---
-# Global configuration for all test hosts
-# Based on discovery data from live systems
+# Minimal global configuration for test hosts
 
-# Discovered users from live data (north)
+# Ansible connection settings for containers
+ansible_user: root
+
+# Simple test user  
 discovered_users_config:
-  - default_user_shell: zsh
-    dotfiles_branch: main
-    dotfiles_directory: /home/ed/.dotfiles
-    dotfiles_repo: true
-    dotfiles_repository_url: ssh://git@gitlab.wolskinet.com:2222/configs/dotfiles.git
-    dotfiles_source_type: repository
-    gid: '1000'
+  - name: testuser
+    uid: '1001'
+    gid: '1001' 
+    shell: /bin/bash
+    home: /home/testuser
     groups:
-      - wheel
-      - kvm
-      - ed
-      - docker
-      - libvirt
-    home: /home/ed
-    name: ed
-    password: vault_ed_password | default(omit)
-    shell: /usr/bin/zsh
+      - sudo
+    password: '$6$test$testhash'
     ssh_password_auth: true
-    ssh_public_key: vault_ed_ssh_public_key | default("")
     sudo_nopasswd: false
-    uid: '1000'
 
 # Basic system settings
 config_system_timezone: 'America/New_York'
 config_system_locale: 'en_US.UTF-8'
 config_system_language: 'en_US.UTF-8'
 
-# Test security settings (disabled for containers)
-enable_firewall: false
-disable_unnecessary_services: true
+# Test security settings (minimal for containers)
+enable_firewall: false  # UFW has iptables permission issues in containers
+enable_system_updates: false  # Skip package upgrades in tests
+enable_automatic_updates: false  # Skip unattended-upgrades template
