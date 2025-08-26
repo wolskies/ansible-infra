@@ -1,19 +1,118 @@
 ---
-# System configuration defaults
-config_system_locale: 'en_US.UTF-8'
-config_system_language: 'en_US.UTF-8'
-config_system_timezone: 'UTC'
+# basic_setup role defaults - Foundation for all machine types
+# This role provides essential system configuration, package management, and user setup
+# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS (Intel/Apple Silicon)
 
-# Core feature toggles
-install_firewall: true              # Install and enable firewall with SSH access
-enable_system_updates: true         # Enable system updates for security
-install_shell_enhancements: false   # Modern shell tools (starship, zoxide, eza, fzf, etc.)
-install_dotfiles_support: true     # Install stow and other dotfiles management tools
+# =============================================================================
+# SYSTEM CONFIGURATION
+# =============================================================================
 
-# OS-specific feature management
-ubuntu_disable_snap: false          # Remove snap completely from Ubuntu systems
-archlinux_enable_reflector: true    # Enable mirror optimization on Arch
-macos_install_xcode_tools: true     # Install Xcode CLI tools on macOS
+# Base system settings (applied on all platforms)
+config_system_locale: 'en_US.UTF-8'    # System locale for all platforms
+config_system_language: 'en_US.UTF-8'  # Language setting (Linux only)
+config_system_timezone: 'UTC'          # System timezone
+
+# =============================================================================
+# CORE FEATURE TOGGLES
+# =============================================================================
+
+# Security and system management
+install_firewall: true                 # Install and configure platform firewall (UFW/macOS)
+enable_system_updates: true            # Enable automatic security updates
+enable_automatic_updates: true         # Enable unattended package updates (Linux)
+
+# Development and productivity features
+install_shell_enhancements: false      # Modern shell tools (zsh, starship, zoxide, eza, fzf, bat)
+install_dotfiles_support: false        # Enable dotfiles management with stow + role integration
+
+# =============================================================================
+# PLATFORM-SPECIFIC FEATURES
+# =============================================================================
+
+# Ubuntu-specific settings
+ubuntu_disable_snap: false             # Completely remove snap packages and snapd service
+
+# Arch Linux-specific settings  
+archlinux_enable_reflector: true       # Enable automated mirror optimization
+
+# macOS-specific settings
+macos_install_xcode_tools: true        # Install Xcode Command Line Tools
+macos_update_homebrew: true            # Update/upgrade Homebrew packages
+macos_disable_auto_updates: false      # Keep macOS automatic updates enabled
+
+# =============================================================================
+# macOS SYSTEM PREFERENCES (inspired by geerlingguy/mac-dev-playbook)
+# =============================================================================
+
+# Dock configuration
+macos_configure_dock: true             # Enable Dock customization
+macos_dock_tile_size: 64               # Dock icon size (16-128 pixels)
+macos_dock_position: 'bottom'          # Dock position: bottom, left, right  
+macos_dock_autohide: false             # Auto-hide Dock when not in use
+
+# Finder configuration
+macos_finder_show_extensions: true     # Show file extensions in Finder
+macos_finder_show_status_bar: true     # Show status bar in Finder windows
+macos_finder_show_path_bar: true       # Show path bar in Finder windows
+macos_finder_default_view: 'list'      # Default view: list, icon, column, gallery
+macos_show_hidden_files: false         # Show hidden/dotfiles in Finder
+
+# Keyboard and input settings
+macos_configure_keyboard: true         # Enable keyboard customization
+macos_enable_full_keyboard_access: true # Tab through all UI controls
+macos_key_repeat_rate: 2               # Key repeat speed (1=fastest, 8=slowest)
+macos_key_repeat_delay: 15             # Initial repeat delay (lower=faster)
+
+# Privacy and security settings
+macos_disable_icloud_drive: false      # Disable iCloud for new documents
+macos_require_password_after_sleep: true # Require password immediately after sleep
+macos_disable_gatekeeper: false        # Keep Gatekeeper enabled (recommended)
+
+# Performance and user experience
+macos_disable_window_animations: false # Disable window animations for speed
+macos_expand_save_panel: true          # Expand save/open dialogs by default
+macos_disable_auto_termination: true   # Prevent automatic app termination
+
+# =============================================================================
+# PACKAGE MANAGEMENT
+# =============================================================================
 
 # Repository management
-enable_additional_repositories: true # Setup additional package repositories from inventory
+enable_additional_repositories: true   # Setup additional package repositories from discovery
+
+# Variable merging system (hierarchical package management)
+# Packages are merged in order: all_ + group_ + host_ + conditional packages
+# 
+# Examples:
+#   all_packages_install_Ubuntu: [wget, curl]        # All Ubuntu machines  
+#   group_packages_install_Ubuntu: [docker-ce]       # Server group only
+#   host_packages_install_Ubuntu: [redis-server]     # Single host (from discovery)
+#   
+# Final result: [wget, curl, docker-ce, redis-server] + shell enhancements (if enabled)
+
+# =============================================================================
+# USER MANAGEMENT  
+# =============================================================================
+
+# User configuration is handled via discovered_users_config variable
+# This is typically populated by the discovery role and includes:
+#
+# discovered_users_config:
+#   - name: username
+#     uid: 1001
+#     shell: /bin/bash
+#     groups: [sudo, docker]
+#     # Optional dotfiles configuration:
+#     dotfiles_repository_url: "https://github.com/user/dotfiles"
+#     dotfiles_uses_stow: true
+#     dotfiles_stow_packages: ["zsh", "git", "tmux"]
+
+# =============================================================================
+# INTEGRATION NOTES
+# =============================================================================
+
+# This role integrates with:
+# - discovery: Provides host_packages_install_* and discovered_users_config
+# - dotfiles: Called per-user when install_dotfiles_support=true
+# - system_security: Inherits firewall settings
+# - container_platform: Uses merged package variables
