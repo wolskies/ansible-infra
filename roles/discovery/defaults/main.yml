@@ -103,36 +103,36 @@ discovery_system_tuning_defaults:
     description: "Gaming optimizations (kernel parameters, CPU governor, etc.)"
     kernel_params: ["mitigations=off"]
     cpu_governor: "performance"
-    
+
   gpu:
     enabled: false
     description: "GPU-specific configurations and drivers"
     nvidia_support: false
     amd_support: false
     intel_support: false
-    
+
   bluetooth:
     enabled: false
     description: "Bluetooth support and audio codecs"
     audio_codecs: ["aptx", "ldac", "aac"]
-    
+
   camera:
     enabled: false
     description: "Camera/webcam support and permissions"
     v4l2_support: true
-    
+
   audio:
     enabled: false
     description: "Audio system optimizations"
     low_latency: false
     real_time_audio: false
-    
+
   # Security hardening
   security:
     ssh_hardening: false
     firewall_strict: false
     fail2ban: false
-    
+
   # Network optimization
   network:
     performance_tuning: false
@@ -146,11 +146,11 @@ discovery_user_configuration_defaults:
     sudo_nopasswd: false              # Enable passwordless sudo
     additional_groups: []             # Additional groups to add user to
     docker_access: false              # Grant Docker socket access
-    
+
   # Shell and environment
   shell:
     default_shell: "/bin/bash"        # Default shell for new users
-    
+
   # SSH and remote access
   ssh:
     key_management: false             # Manage SSH keys

@@ -27,7 +27,7 @@
         src: /etc/docker/daemon.json
       register: docker_daemon_content
       become: true
-      when: 
+      when:
         - docker_binary.stat.exists
         - docker_daemon_config.stat.exists
       failed_when: false
@@ -141,7 +141,7 @@
         mode: '0644'
       delegate_to: localhost
       loop: "{{ range(compose_services_raw | length) | list }}"
-      when: 
+      when:
         - compose_contents.results[item].content is defined
 
     - name: Find all .env files in service directories
@@ -191,7 +191,7 @@
         mode: '0600'
       delegate_to: localhost
       loop: "{{ env_file_contents.results }}"
-      when: 
+      when:
         - item.content is defined
         - not item.failed | default(false)
 
@@ -206,7 +206,7 @@
         env_files_local: "{{ env_files_list | map('regex_replace', '^(.*)$', discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '-\\1') | list }}"
         service_with_role: "{{ service | combine({'role': discovery_docker_service_mapping[matched_images[0]], 'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml', 'env_files_local': env_files_local if env_files_list | length > 0 else omit}) }}"
       loop: "{{ range(compose_services_raw | length) | list }}"
-      when: 
+      when:
         - compose_contents.results[item].content is defined
         - discovery_docker_service_mapping.keys() | select('in', content) | list | length > 0
 
@@ -220,7 +220,7 @@
         env_files_local: "{{ env_files_list | map('regex_replace', '^(.*)$', discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '-\\1') | list }}"
         service_with_role: "{{ service | combine({'role': 'generic_docker_compose', 'compose_file_local': discovery_paths.host_vars_dir + '/docker-compose/' + service.name + '.yml', 'env_files_local': env_files_local if env_files_list | length > 0 else omit}) }}"
       loop: "{{ range(compose_services_raw | length) | list }}"
-      when: 
+      when:
         - compose_contents.results[item].content is defined
         - discovery_docker_service_mapping.keys() | select('in', content) | list | length == 0
 

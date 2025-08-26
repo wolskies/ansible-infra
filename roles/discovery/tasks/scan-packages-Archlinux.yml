@@ -61,8 +61,8 @@
   ansible.builtin.set_fact:
     filtered_packages: >-
       {{
-        (discovery_pacman_explicit_packages.stdout_lines | default([])) 
-        | map('regex_replace', ' .*', '') 
+        (discovery_pacman_explicit_packages.stdout_lines | default([]))
+        | map('regex_replace', ' .*', '')
         | difference((discovery_base_packages_result.stdout_lines | default([])) | map('regex_replace', '^[^ ]+ ', ''))
         | reject('match', '^(linux|linux-.*|.*-firmware|.*-microcode)$')
         | reject('match', '^(nvidia|nvidia-.*|libva-nvidia.*|opencl-nvidia|cuda|cuda-.*)$')
