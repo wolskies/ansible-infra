@@ -32,7 +32,7 @@ install_dotfiles_support: false        # Enable dotfiles management with stow + 
 # Ubuntu-specific settings
 ubuntu_disable_snap: false             # Completely remove snap packages and snapd service
 
-# Arch Linux-specific settings  
+# Arch Linux-specific settings
 archlinux_enable_reflector: true       # Enable automated mirror optimization
 
 # macOS-specific settings
@@ -47,7 +47,7 @@ macos_disable_auto_updates: false      # Keep macOS automatic updates enabled
 # Dock configuration
 macos_configure_dock: true             # Enable Dock customization
 macos_dock_tile_size: 64               # Dock icon size (16-128 pixels)
-macos_dock_position: 'bottom'          # Dock position: bottom, left, right  
+macos_dock_position: 'bottom'          # Dock position: bottom, left, right
 macos_dock_autohide: false             # Auto-hide Dock when not in use
 
 # Finder configuration
@@ -82,16 +82,16 @@ enable_additional_repositories: true   # Setup additional package repositories f
 
 # Variable merging system (hierarchical package management)
 # Packages are merged in order: all_ + group_ + host_ + conditional packages
-# 
+#
 # Examples:
-#   all_packages_install_Ubuntu: [wget, curl]        # All Ubuntu machines  
+#   all_packages_install_Ubuntu: [wget, curl]        # All Ubuntu machines
 #   group_packages_install_Ubuntu: [docker-ce]       # Server group only
 #   host_packages_install_Ubuntu: [redis-server]     # Single host (from discovery)
-#   
+#
 # Final result: [wget, curl, docker-ce, redis-server] + shell enhancements (if enabled)
 
 # =============================================================================
-# USER MANAGEMENT  
+# USER MANAGEMENT
 # =============================================================================
 
 # User configuration is handled via discovered_users_config variable

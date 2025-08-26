@@ -18,7 +18,7 @@ discovery:
 #
 # Example override:
 #   discovery:
-#     inventory_dir: "/path/to/my/inventory" 
+#     inventory_dir: "/path/to/my/inventory"
 #     playbooks_dir: "/path/to/my/playbooks"
 #
 # Default: ./inventory and ./playbooks from current working directory
@@ -32,7 +32,7 @@ discovery:
 discovery_docker_compose_paths:
   - "/opt"                          # Common system service location
   - "/opt/docker"                   # Docker-specific directory
-  - "/srv"                          # Service directory (FHS standard)  
+  - "/srv"                          # Service directory (FHS standard)
   - "/srv/docker"                   # Docker services in /srv
   - "/home/*/docker"                # User docker directories (auto-expanded)
 
@@ -44,17 +44,17 @@ discovery_docker_compose_dir: "/opt/docker"
 discovery_docker_service_mapping:
   # Content management and collaboration
   "gitlab/gitlab-ce": "gitlab"                           # GitLab Community Edition
-  "gitlab/gitlab-ee": "gitlab"                           # GitLab Enterprise Edition  
+  "gitlab/gitlab-ee": "gitlab"                           # GitLab Enterprise Edition
   "ghcr.io/paperless-ngx/paperless-ngx": "paperless"     # Paperless-ngx document management
   "paperless-ngx/paperless-ngx": "paperless"             # Paperless-ngx (Docker Hub)
 
   # Media and entertainment
   "jellyfin/jellyfin": "jellyfin"                        # Jellyfin media server
-  
+
   # Web services and proxying
   "jc21/nginx-proxy-manager": "nginx_proxy_manager"      # Nginx Proxy Manager
-  
-  # Dashboards and monitoring  
+
+  # Dashboards and monitoring
   "ghcr.io/gethomepage/homepage": "homepage"             # Homepage dashboard
   "benphelps/homepage": "homepage"                       # Homepage dashboard (legacy)
   "portainer/portainer-ce": "portainer"                  # Portainer Community Edition
@@ -72,12 +72,12 @@ discovery_docker_service_mapping:
 discovery_shell_configuration:
   supported_shells:                   # Shells to detect and configure
     - /bin/bash
-    - /bin/zsh  
+    - /bin/zsh
     - /usr/bin/fish
-  
+
   config_files:                       # Config files to scan per shell
     bash: [.bashrc, .bash_profile, .profile]
-    zsh: [.zshrc, .zsh_profile, .profile] 
+    zsh: [.zshrc, .zsh_profile, .profile]
     fish: [.config/fish/config.fish]
 
 # Package repository detection paths and tools
@@ -92,7 +92,7 @@ repository_detection:
       - "/usr/local/bin/brew"         # Intel Mac default
 
 discovery_repository_detection:
-  apt:                                # Debian/Ubuntu repository detection  
+  apt:                                # Debian/Ubuntu repository detection
     keys_paths:                       # Where to find GPG keys
       - "/etc/apt/trusted.gpg.d"
       - "/usr/share/keyrings"
@@ -104,7 +104,7 @@ discovery_dotfiles_detection:
     - .config
   management_tools:                   # Files that indicate dotfiles management
     - Makefile                        # Make-based installation
-    - install.sh                      # Shell script installation  
+    - install.sh                      # Shell script installation
     - bootstrap.sh                    # Bootstrap script
     - setup.sh                        # Setup script
     - stow                            # GNU Stow usage
@@ -123,36 +123,36 @@ discovery_system_tuning_defaults:
     description: "Gaming optimizations (kernel parameters, CPU governor, etc.)"
     kernel_params: ["mitigations=off"] # Kernel security vs performance tradeoffs
     cpu_governor: "performance"       # CPU scaling governor
-    
+
   gpu:                                # Graphics acceleration support
     enabled: false
     description: "GPU-specific configurations and drivers"
     nvidia_support: false             # NVIDIA proprietary drivers
-    amd_support: false                # AMD graphics support  
+    amd_support: false                # AMD graphics support
     intel_support: false              # Intel integrated graphics
-    
+
   bluetooth:                          # Bluetooth and audio codec support
     enabled: false
     description: "Bluetooth support and audio codecs"
     audio_codecs: ["aptx", "ldac", "aac"] # High-quality audio codecs
-    
+
   camera:                             # Camera/webcam configuration
-    enabled: false  
+    enabled: false
     description: "Camera/webcam support and permissions"
     v4l2_support: true                # Video4Linux2 support
-    
+
   audio:                              # Professional audio optimizations
     enabled: false
-    description: "Audio system optimizations" 
+    description: "Audio system optimizations"
     low_latency: false                # Low-latency audio for recording
     real_time_audio: false            # Real-time audio kernel optimizations
 
-  # Security hardening options  
+  # Security hardening options
   security:                           # Security-focused configurations
     ssh_hardening: false              # Advanced SSH security settings
     firewall_strict: false            # Restrictive firewall rules
     fail2ban: false                   # Intrusion prevention system
-    
+
   # Network performance tuning
   network:                            # Network stack optimizations
     performance_tuning: false         # High-throughput network tuning
@@ -162,14 +162,14 @@ discovery_system_tuning_defaults:
 # Controls how discovered users are configured in the output
 discovery_user_configuration_defaults:
   primary_user:                       # Primary/admin user configuration
-    sudo_nopasswd: false              # Enable passwordless sudo access  
+    sudo_nopasswd: false              # Enable passwordless sudo access
     additional_groups: []             # Extra groups beyond discovery results
     docker_access: false              # Add to docker group for container access
-    
+
   shell:                              # Shell configuration defaults
     default_shell: "/bin/bash"        # Default shell for discovered users
-    
-  ssh:                                # SSH access configuration  
+
+  ssh:                                # SSH access configuration
     key_management: false             # Enable SSH key management
     disable_password_auth: false      # Force SSH key-only authentication
 
@@ -179,7 +179,7 @@ discovery_user_configuration_defaults:
 
 # BASIC DISCOVERY USAGE:
 #   ansible-playbook playbooks/run-discovery.yml -i inventory/hosts.yml -l target-host
-#   
+#
 # OUTPUT LOCATIONS:
 #   - inventory/host_vars/target-host.yml (discovered configuration)
 #   - playbooks/target-host_discovered.yml (deployment playbook)
@@ -193,6 +193,6 @@ discovery_user_configuration_defaults:
 # CUSTOMIZING DISCOVERY BEHAVIOR:
 #   Override these defaults in your discovery playbook or inventory to:
 #   - Change Docker search paths (discovery_docker_compose_paths)
-#   - Add custom service mappings (discovery_docker_service_mapping) 
+#   - Add custom service mappings (discovery_docker_service_mapping)
 #   - Modify shell detection (discovery_shell_configuration)
 #   - Control system tuning templates (discovery_system_tuning_defaults)

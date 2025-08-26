@@ -9,7 +9,7 @@
 # =============================================================================
 
 # 1. STANDALONE USAGE (manual role call):
-#    - include_role: 
+#    - include_role:
 #        name: wolskinet.infrastructure.dotfiles
 #      vars:
 #        dotfiles_user: "myuser"
@@ -40,7 +40,7 @@ dotfiles_stow_packages: []                     # Specific stow packages ([] = de
 
 # Examples of dotfiles_stow_packages:
 # dotfiles_stow_packages: []                   # Deploy all directories in repo
-# dotfiles_stow_packages: ["zsh"]              # Deploy only zsh directory  
+# dotfiles_stow_packages: ["zsh"]              # Deploy only zsh directory
 # dotfiles_stow_packages: ["zsh", "git", "tmux"] # Deploy multiple specific directories
 
 # =============================================================================
@@ -57,7 +57,7 @@ dotfiles_stow_packages: []                     # Specific stow packages ([] = de
 # Users can recover original files if needed: ~/.bashrc.dotfiles-backup
 
 # =============================================================================
-# REPOSITORY STRUCTURE REQUIREMENTS  
+# REPOSITORY STRUCTURE REQUIREMENTS
 # =============================================================================
 
 # For stow-based deployment, your dotfiles repository should be structured like:
@@ -84,7 +84,7 @@ dotfiles_stow_packages: []                     # Specific stow packages ([] = de
 
 # BASIC_SETUP INTEGRATION:
 # When basic_setup role has install_dotfiles_support=true:
-# - Installs stow package automatically (Linux only, macOS users install manually)  
+# - Installs stow package automatically (Linux only, macOS users install manually)
 # - Calls this dotfiles role per-user for users with dotfiles_repository_url
 # - Maps discovery variables to dotfiles role variables
 
@@ -121,7 +121,7 @@ dotfiles_stow_packages: []                     # Specific stow packages ([] = de
 # Issue: "stow: WARNING! stowing ... would cause conflicts"
 # Solution: Role automatically backs up conflicting files and retries
 
-# Issue: "Permission denied" errors  
+# Issue: "Permission denied" errors
 # Solution: Ensure dotfiles_user exists and has proper home directory permissions
 
 # Issue: Git clone fails
