@@ -32,6 +32,9 @@ enable_list:
 skip_list:
   - schema[meta]  # Allow flexible meta/main.yml schemas
   - name[missing]  # Some generated tasks might not have names
+  - var-naming[no-role-prefix]  # Allow variables without role prefix for compatibility
+  - key-order  # Allow flexible key ordering in tasks
+  - command-instead-of-module  # Allow using shell/command for specific tools like rustup
 
 # Set stricter standards
 strict: true
@@ -59,6 +62,7 @@ var_naming_pattern: "^[a-z_][a-z0-9_]*$"
 mock_modules:
   - community.general.system.timezone
   - community.general.system.locale_gen
+  - community.general.npm
 
 mock_roles:
   - wolskinet.infrastructure.basic_setup

@@ -85,8 +85,10 @@
 
     - name: Install Rust if not present
       ansible.builtin.shell: |
+        set -o pipefail
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
       args:
+        executable: /bin/bash
         creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo"
       when: cargo_check.rc != 0
 

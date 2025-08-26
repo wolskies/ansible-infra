@@ -26,6 +26,6 @@ galaxy_info:
     - rust
     - golang
     - development
-    - language-ecosystems
+    - languageecosystems
 
 dependencies: []
