@@ -68,7 +68,7 @@
         force: false
       become: true
       become_user: "{{ dotfiles_user }}"
-      when: 
+      when:
         - dotfiles_repo_exists.stat.exists
         - dotfiles_update_repo | default(false)
 
@@ -138,7 +138,7 @@
           become: true
           become_user: "{{ dotfiles_user }}"
           loop: "{{ backup_check.results }}"
-          when: 
+          when:
             - conflicting_files.stdout_lines | length > 0
             - not item.stat.exists
 

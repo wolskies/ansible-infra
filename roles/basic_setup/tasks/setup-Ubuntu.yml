@@ -72,7 +72,7 @@
         - item.split()[0] not in ['lxd', 'multipass']  # Don't remove critical infrastructure snaps
       become: true
       register: snap_removal
-      failed_when: 
+      failed_when:
         - snap_removal.rc != 0
         - "'cannot remove' not in snap_removal.stderr | default('')"
 
@@ -87,7 +87,7 @@
       become: true
       when: snap_binary.stat.exists
       register: core_snap_removal
-      failed_when: 
+      failed_when:
         - core_snap_removal.rc != 0
         - "'cannot remove' not in core_snap_removal.stderr | default('')"
         - "'is not installed' not in core_snap_removal.stderr | default('')"
@@ -110,7 +110,7 @@
         enabled: false
         daemon_reload: true
       loop: "{{ snapd_service_status.results }}"
-      when: 
+      when:
         - item.status is defined
         - item.status.LoadState == "loaded"
       become: true
@@ -141,7 +141,7 @@
         path: "{{ item.item }}"
         state: absent
       loop: "{{ snap_dirs.results }}"
-      when: 
+      when:
         - item.stat.exists
         - item.stat.isdir
       become: true
@@ -316,48 +316,6 @@
 
 # Ubuntu-specific features (like snap management) can be added here when needed
 # Debian-specific features can be added here when needed
-
-- name: Check if cloud-init is installed
-  ansible.builtin.stat:
-    path: /etc/cloud/cloud.cfg
-  register: cloud_init_config
-  tags:
-    - cloud-init
-    - detection
-
-- name: Disable cloud-init network management
-  ansible.builtin.lineinfile:
-    path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-    line: "network: {config: disabled}"
-    create: true
-    owner: root
-    group: root
-    mode: '0644'
-  become: true
-  when:
-    - cloud_init_config.stat.exists
-    - disable_cloud_init_network | default(true)
-  tags:
-    - cloud-init
-    - network
-    - configuration
-
-- name: Create cloud-init disable file
-  ansible.builtin.file:
-    path: /etc/cloud/cloud-init.disabled
-    state: file
-    owner: root
-    group: root
-    mode: '0644'
-    modification_time: preserve
-    access_time: preserve
-  become: true
-  when:
-    - cloud_init_config.stat.exists
-    - disable_cloud_init | default(false)
-  tags:
-    - cloud-init
-    - disable
 
 - name: Install UFW firewall
   ansible.builtin.package:
