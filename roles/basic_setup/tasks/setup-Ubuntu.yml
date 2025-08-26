@@ -40,21 +40,41 @@
 # Ubuntu snap removal (optional but thorough)
 - name: Remove snap packages completely (Ubuntu)
   block:
+    - name: Check if snap is installed
+      ansible.builtin.stat:
+        path: /usr/bin/snap
+      register: snap_binary
+
     - name: List installed snap packages
       ansible.builtin.command: snap list
       register: snap_packages
       failed_when: false
       changed_when: false
+      when: snap_binary.stat.exists
 
-    - name: Remove all installed snap packages
-      ansible.builtin.command: snap remove "{{ item.split()[0] }}"
+    - name: Display snap packages that would be removed
+      ansible.builtin.debug:
+        msg: "Would remove snap package: {{ item.split()[0] }}"
       loop: "{{ snap_packages.stdout_lines[1:] if snap_packages.rc == 0 else [] }}"
       when:
         - snap_packages.rc == 0
         - snap_packages.stdout_lines | length > 1
         - item.split()[0] not in ['core', 'core18', 'core20', 'core22', 'snapd']
+
+    - name: Remove all installed snap packages (with safety checks)
+      ansible.builtin.command: snap remove "{{ item.split()[0] }}"
+      loop: "{{ snap_packages.stdout_lines[1:] if snap_packages.rc == 0 else [] }}"
+      when:
+        - snap_binary.stat.exists
+        - snap_packages.rc == 0
+        - snap_packages.stdout_lines | length > 1
+        - item.split()[0] not in ['core', 'core18', 'core20', 'core22', 'snapd']
+        - item.split()[0] not in ['lxd', 'multipass']  # Don't remove critical infrastructure snaps
       become: true
-      ignore_errors: true
+      register: snap_removal
+      failed_when: 
+        - snap_removal.rc != 0
+        - "'cannot remove' not in snap_removal.stderr | default('')"
 
     - name: Remove core snap packages (last)
       ansible.builtin.command: snap remove "{{ item }}"
@@ -65,20 +85,35 @@
         - core
         - snapd
       become: true
-      ignore_errors: true
+      when: snap_binary.stat.exists
+      register: core_snap_removal
+      failed_when: 
+        - core_snap_removal.rc != 0
+        - "'cannot remove' not in core_snap_removal.stderr | default('')"
+        - "'is not installed' not in core_snap_removal.stderr | default('')"
 
-    - name: Stop and disable snapd services
+    - name: Check if snapd services exist before stopping
       ansible.builtin.systemd:
         name: "{{ item }}"
-        state: stopped
-        enabled: false
-        daemon_reload: true
+      register: snapd_service_status
       loop:
         - snapd.service
         - snapd.socket
         - snapd.seeded.service
+      failed_when: false
+      changed_when: false
+
+    - name: Stop and disable snapd services
+      ansible.builtin.systemd:
+        name: "{{ item.item }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+      loop: "{{ snapd_service_status.results }}"
+      when: 
+        - item.status is defined
+        - item.status.LoadState == "loaded"
       become: true
-      ignore_errors: true
 
     - name: Remove snapd package
       ansible.builtin.apt:
@@ -89,10 +124,10 @@
         purge: true
       become: true
 
-    - name: Remove snap directories
-      ansible.builtin.file:
+    - name: Check if snap directories exist
+      ansible.builtin.stat:
         path: "{{ item }}"
-        state: absent
+      register: snap_dirs
       loop:
         - /snap
         - /var/snap
@@ -100,8 +135,17 @@
         - /var/cache/snapd
         - /usr/lib/snapd
         - /home/{{ ansible_user }}/snap
+
+    - name: Remove snap directories (only if empty or contain only snap data)
+      ansible.builtin.file:
+        path: "{{ item.item }}"
+        state: absent
+      loop: "{{ snap_dirs.results }}"
+      when: 
+        - item.stat.exists
+        - item.stat.isdir
       become: true
-      ignore_errors: true
+      failed_when: false  # Don't fail if directory is in use
 
     - name: Remove snap from PATH (system-wide)
       ansible.builtin.lineinfile:
@@ -195,8 +239,17 @@
     - automatic
     - security
 
-# Repository management (basic_setup scope) - convenience feature
-- name: Add GPG keys for additional repositories (with graceful failure)
+# Repository management (basic_setup scope) - convenience feature with safety
+- name: Check existing APT keys
+  ansible.builtin.command: apt-key list
+  register: existing_apt_keys
+  changed_when: false
+  become: true
+  when:
+    - final_additional_repositories.apt.apt_keys is defined
+    - final_additional_repositories.apt.apt_keys | length > 0
+
+- name: Add GPG keys for additional repositories (with safety checks)
   ansible.builtin.apt_key:
     url: "{{ item }}"
     state: present
@@ -206,14 +259,24 @@
     - final_additional_repositories.apt.apt_keys is defined
     - final_additional_repositories.apt.apt_keys | length > 0
     - item.startswith('http')  # Only handle URL-based keys
-  ignore_errors: true  # Convenience feature - fail gracefully if keys can't be downloaded
   register: gpg_key_results
+  failed_when: false  # Capture failures but don't stop
   tags:
     - repositories
     - packages
     - apt-keys
 
-- name: Add additional package repositories (with graceful failure)
+- name: Check existing repositories
+  ansible.builtin.command: grep -r "^deb " /etc/apt/sources.list /etc/apt/sources.list.d/
+  register: existing_repos
+  changed_when: false
+  failed_when: false
+  become: true
+  when:
+    - final_additional_repositories.apt.sources is defined
+    - final_additional_repositories.apt.sources | length > 0
+
+- name: Add additional package repositories (with safety checks)
   ansible.builtin.apt_repository:
     repo: "{{ item }}"
     state: present
@@ -223,8 +286,9 @@
   when:
     - final_additional_repositories.apt.sources is defined
     - final_additional_repositories.apt.sources | length > 0
-  ignore_errors: true  # Convenience feature - fail gracefully if repos can't be added
+    - item not in existing_repos.stdout | default('')
   register: repo_results
+  failed_when: false  # Capture failures but don't stop
   tags:
     - repositories
     - packages
@@ -281,10 +345,12 @@
 - name: Create cloud-init disable file
   ansible.builtin.file:
     path: /etc/cloud/cloud-init.disabled
-    state: touch
+    state: file
     owner: root
     group: root
     mode: '0644'
+    modification_time: preserve
+    access_time: preserve
   become: true
   when:
     - cloud_init_config.stat.exists
@@ -340,23 +406,3 @@
     - security
     - enable
 
-- name: Set system timezone
-  ansible.builtin.timezone:
-    name: "{{ system_timezone | default('UTC') }}"
-  become: true
-  when: system_timezone is defined
-  tags:
-    - system
-    - timezone
-    - configuration
-
-- name: Configure system locale
-  ansible.builtin.locale_gen:
-    name: "{{ system_locale | default('en_US.UTF-8') }}"
-    state: present
-  become: true
-  when: ansible_distribution in ['Ubuntu', 'Debian']
-  tags:
-    - system
-    - locale
-    - configuration

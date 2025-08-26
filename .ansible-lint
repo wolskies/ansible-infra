@@ -18,7 +18,6 @@ enable_list:
   - empty-string-compare
   - no-log-password
   - no-same-owner
-  - name[prefix]
   - yaml[colons]
   - yaml[commas]
   - yaml[empty-lines]

@@ -42,8 +42,25 @@
       ansible.builtin.set_fact:
         dotfiles_directory: "{{ getent_passwd[dotfiles_user][4] }}/.dotfiles"
 
+    # Check if dotfiles repository exists
+    - name: Check if dotfiles repository already exists
+      ansible.builtin.stat:
+        path: "{{ dotfiles_directory }}/.git"
+      register: dotfiles_repo_exists
+
     # Clone dotfiles repository
-    - name: Clone or update dotfiles repository
+    - name: Clone dotfiles repository (first time)
+      ansible.builtin.git:
+        repo: "{{ dotfiles_repository_url }}"
+        dest: "{{ dotfiles_directory }}"
+        update: false
+        force: false
+      become: true
+      become_user: "{{ dotfiles_user }}"
+      when: not dotfiles_repo_exists.stat.exists
+
+    # Update repository only if requested
+    - name: Update dotfiles repository (if requested)
       ansible.builtin.git:
         repo: "{{ dotfiles_repository_url }}"
         dest: "{{ dotfiles_directory }}"
@@ -51,11 +68,27 @@
         force: false
       become: true
       become_user: "{{ dotfiles_user }}"
+      when: 
+        - dotfiles_repo_exists.stat.exists
+        - dotfiles_update_repo | default(false)
 
     - name: Check if dotfiles directory exists
       ansible.builtin.stat:
         path: "{{ dotfiles_directory }}"
       register: dotfiles_directory_stat
+
+    # Check if stow links already exist
+    - name: Check stow status
+      ansible.builtin.shell: |
+        cd {{ dotfiles_directory }}
+        stow -n -v {{ dotfiles_stow_packages | default(['*']) | join(' ') }} 2>&1 | grep -E "(LINK:|WARNING:)" || true
+      become: true
+      become_user: "{{ dotfiles_user }}"
+      register: stow_status
+      changed_when: false
+      when:
+        - dotfiles_uses_stow | default(true)
+        - dotfiles_directory_stat.stat.exists
 
     # Deploy dotfiles using stow
     - name: Deploy dotfiles using stow (first attempt)
@@ -67,9 +100,10 @@
       when:
         - dotfiles_uses_stow | default(true)
         - dotfiles_directory_stat.stat.exists
+        - "'LINK:' in stow_status.stdout or stow_status.stdout == ''"
       register: stow_results
       failed_when: false
-      changed_when: stow_results.rc == 0
+      changed_when: "'LINK:' in stow_status.stdout"
 
     # Handle conflicts by backing up existing files
     - name: Handle stow conflicts by backing up existing files
@@ -87,15 +121,26 @@
           changed_when: false
           failed_when: false
 
-        - name: Backup conflicting files
+        - name: Check if backup already exists
+          ansible.builtin.stat:
+            path: "{{ item }}.dotfiles-backup"
+          register: backup_check
+          loop: "{{ conflicting_files.stdout_lines }}"
+          when: conflicting_files.stdout_lines | length > 0
+          become: true
+          become_user: "{{ dotfiles_user }}"
+
+        - name: Backup conflicting files (only if backup doesn't exist)
           ansible.builtin.copy:
-            src: "{{ item }}"
-            dest: "{{ item }}.dotfiles-backup"
+            src: "{{ item.item }}"
+            dest: "{{ item.item }}.dotfiles-backup"
             remote_src: true
           become: true
           become_user: "{{ dotfiles_user }}"
-          loop: "{{ conflicting_files.stdout_lines }}"
-          when: conflicting_files.stdout_lines | length > 0
+          loop: "{{ backup_check.results }}"
+          when: 
+            - conflicting_files.stdout_lines | length > 0
+            - not item.stat.exists
 
         - name: Remove original conflicting files
           ansible.builtin.file:
