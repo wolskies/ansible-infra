@@ -3,7 +3,7 @@
 # Updated to match current molecule scenarios and Makefile targets
 
 stages:
-  - validate      # Quick validation, linting, template validation  
+  - validate      # Quick validation, linting, template validation
   - test-roles    # Individual molecule scenario tests (basic_setup, container_platform, discovery, dotfiles, system_tuning)
   - test-integration # Full integration and e2e testing
   - build         # Collection package building
@@ -332,9 +332,6 @@ performance-test:
   image: python:3.11-slim
   services:
     - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
   <<: *base-setup
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -347,6 +344,8 @@ test-ubuntu-discovery:
     - echo "Testing discovery on Ubuntu 24.04..."
     - cd molecule/discovery && molecule test
   variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
     MOLECULE_PLATFORM: ubuntu2404
 
 test-debian-discovery:
@@ -355,6 +354,8 @@ test-debian-discovery:
     - echo "Testing discovery on Debian 12..."
     - cd molecule/discovery && molecule test
   variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
     MOLECULE_PLATFORM: debian12
 
 test-cross-os-compatibility:
@@ -363,6 +364,8 @@ test-cross-os-compatibility:
     - echo "Testing cross-OS compatibility..."
     - cd molecule/default && molecule test --parallel
   variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
     MOLECULE_PARALLEL: "true"
 
 # End-to-End Testing (full workflow)

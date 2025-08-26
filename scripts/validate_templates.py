@@ -26,7 +26,7 @@ def validate_template(template_path):
         # These just return empty strings but allow syntax validation
         ansible_filters = [
             'basename', 'dirname', 'expanduser', 'realpath',
-            'b64decode', 'b64encode', 'from_yaml', 'to_yaml',
+            'b64decode', 'b64encode', 'from_yaml', 'to_yaml', 'to_nice_yaml',
             'from_json', 'to_json', 'regex_replace', 'regex_search',
             'dict2items', 'items2dict', 'unique', 'difference',
             'intersect', 'union', 'selectattr', 'rejectattr',
