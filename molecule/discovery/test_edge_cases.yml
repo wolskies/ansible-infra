@@ -25,7 +25,6 @@
             firewall_enable: true
             config_hostname: "test"
             ansible_distribution: "Ubuntu"
-            inventory_hostname: "test"
           ignore_errors: true
           register: bad_keys_result
           
@@ -47,7 +46,6 @@
         # config_hostname is intentionally missing
         config_system_timezone: "UTC"
         ansible_distribution: "Debian"
-        inventory_hostname: "missing-nested-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
       register: missing_nested_result
@@ -70,7 +68,6 @@
         config_hostname: null
         config_system_timezone: null
         ansible_distribution: "Ubuntu"
-        inventory_hostname: "null-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
       register: null_values_result
@@ -87,7 +84,6 @@
         dest: "/tmp/test-undefined-vars.yml"
       vars:
         ansible_distribution: "Ubuntu"
-        inventory_hostname: "undefined-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
         # All discovery variables are intentionally not defined
