@@ -29,10 +29,13 @@ cache:
     # Install Docker client for docker:dind service
     - apt-get update -qq
     - apt-get install -y -qq python3-pip make docker.io
-    - pip3 install --cache-dir .pip-cache/ ansible molecule molecule-plugins[docker] docker pytest-testinfra ansible-lint yamllint jinja2
+    - pip3 install --cache-dir .pip-cache/ ansible molecule molecule-plugins docker pytest-testinfra ansible-lint yamllint jinja2
     - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
+    # Wait for Docker daemon to be ready
+    - until docker info >/dev/null 2>&1; do echo "Waiting for Docker daemon..."; sleep 1; done
     # Verify setup
     - docker --version
+    - docker info
     - ansible --version
     - molecule --version
 
@@ -107,6 +110,8 @@ test-configure-host:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Testing configure_host role..."
@@ -126,6 +131,8 @@ test-manage-packages:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Testing manage_packages role..."
@@ -145,6 +152,8 @@ test-manage-users:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Testing manage_users role..."
@@ -164,6 +173,8 @@ test-manage-firewall:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Testing manage_firewall role..."
@@ -183,6 +194,8 @@ test-manage-language-packages:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Testing manage_language_packages role..."
@@ -202,6 +215,8 @@ test-manage-system-settings:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Testing manage_system_settings role..."
@@ -221,6 +236,8 @@ test-discovery:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Testing discovery role..."
@@ -240,6 +257,8 @@ test-dotfiles:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Testing dotfiles role..."
@@ -260,6 +279,8 @@ test-collection-integration:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Running full collection integration tests..."
@@ -384,6 +405,8 @@ performance-test:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Running performance tests..."
@@ -443,6 +466,8 @@ test-e2e-workflow:
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
   <<: *base-setup
   script:
     - echo "Running end-to-end workflow test..."
