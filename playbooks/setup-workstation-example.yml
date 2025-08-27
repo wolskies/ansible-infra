@@ -15,9 +15,7 @@
   hosts: all
   gather_facts: true
 
-  collections:
-    - wolskinet.infrastructure
-    - community.general
+  # Collections are referenced by FQCN in role names
 
   vars_files:
     - all.yml          # Global defaults (group_vars/all/all.yml)
@@ -54,26 +52,26 @@
 
   roles:
     # 1. Core system setup with standard OS packages
-    - name: wolskinet.infrastructure.configure_host
+    - role: wolskinet.infrastructure.configure_host
       tags:
         - basic
         - system
         - configuration
 
-    - name: wolskinet.infrastructure.manage_packages
+    - role: wolskinet.infrastructure.manage_packages
       tags:
         - basic
         - system
         - packages
 
-    - name: wolskinet.infrastructure.manage_users
+    - role: wolskinet.infrastructure.manage_users
       tags:
         - basic
         - system
         - users
 
     # 2. Language packages (npm, pip, cargo, go)
-    - name: wolskinet.infrastructure.manage_language_packages
+    - role: wolskinet.infrastructure.manage_language_packages
       when: >
         (pip_packages is defined and pip_packages | length > 0) or
         (npm_packages is defined and npm_packages | length > 0) or
@@ -85,7 +83,7 @@
         - repositories
 
     # 3. User configuration and dotfiles
-    - name: wolskinet.infrastructure.dotfiles
+    - role: wolskinet.infrastructure.dotfiles
       become: false
       when: dotfiles_repository_url is defined and dotfiles_repository_url != ""
       tags:
@@ -105,7 +103,7 @@
       when:
         - ansible_os_family != 'Darwin'
         - ansible_service_mgr == 'systemd'
-      ignore_errors: true
+      failed_when: false  # Services might not exist on all systems
 
     - name: Display workstation setup summary
       ansible.builtin.debug:
