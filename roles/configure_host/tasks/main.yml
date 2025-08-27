@@ -119,7 +119,7 @@
 - name: Configure system locale (Debian/Ubuntu)
   block:
     - name: Generate locale
-      ansible.builtin.locale_gen:
+      community.general.locale_gen:
         name: "{{ config_system_locale }}"
         state: present
       become: true

@@ -9,7 +9,7 @@
 
 # Discovered packages for Ubuntu
 # These packages were found installed on the source machine
-host_packages_install_ubuntu:
+host_packages_install_Ubuntu:
   - curl
   - git
   - htop
