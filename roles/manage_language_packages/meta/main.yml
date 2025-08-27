@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Ed Wolski
-  description: Language ecosystem package management (npm, pip, cargo, go modules with dependency checking)
+  description: Language ecosystem package management (npm, uv Python, cargo, go modules with dependency checking)
   company: wolskinet
   license: GPL-3.0-or-later
   min_ansible_version: "2.15"

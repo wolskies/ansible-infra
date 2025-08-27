@@ -1,6 +1,6 @@
 ---
 # Language ecosystem package management
-# Handles npm, pip, cargo, go modules with dependency checking
+# Handles npm, uv (Python), cargo, go modules with dependency checking
 
 - name: Install missing language tools via system package manager
   block:
@@ -11,9 +11,9 @@
       failed_when: false
       loop:
         - tool: "python3"
-          packages_ubuntu: ["python3", "python3-pip"]
-          packages_debian: ["python3", "python3-pip"]
-          packages_archlinux: ["python", "python-pip"]
+          packages_ubuntu: ["python3"]
+          packages_debian: ["python3"]
+          packages_archlinux: ["python"]
           packages_darwin: []
           condition: "{{ language_python_enable and (language_python_packages | default([]) | length > 0) }}"
         - tool: "npm"
@@ -45,49 +45,98 @@
         packages_archlinux: "{{ result.item.packages_archlinux }}"
         packages_darwin: "{{ result.item.packages_darwin }}"
 
-# Python packages via pip
+# Python packages via uv
 - name: Setup Python packages
   block:
-    - name: Validate pip installation method
+    - name: Validate uv installation method
       ansible.builtin.fail:
-        msg: "Invalid language_python_install_method: {{ language_python_install_method }}. Must be 'user', 'virtualenv', or 'global'"
-      when: language_python_install_method not in ['user', 'virtualenv', 'global']
+        msg: "Invalid language_python_install_method: {{ language_python_install_method }}. Must be 'user', 'global', or 'project'"
+      when: language_python_install_method not in ['user', 'global', 'project']
 
-    - name: Warn about global pip installation
+    - name: Warn about global uv installation
       ansible.builtin.debug:
         msg: |
-          WARNING: Global pip installation can conflict with system packages.
-          Consider using 'user' or 'virtualenv' method instead.
+          WARNING: Global Python package installation can conflict with system packages.
+          Consider using 'user' or 'project' method instead.
       when: language_python_install_method == 'global'
 
-    - name: Ensure pip is available
-      ansible.builtin.command: "python3 -m pip --version"
-      register: pip_check
+    - name: Check if uv is installed
+      ansible.builtin.command: "which uv"
+      register: uv_check
       changed_when: false
-      failed_when: pip_check.rc != 0
+      failed_when: false
 
-    - name: Create virtual environment if needed
-      ansible.builtin.command:
-        cmd: "python3 -m venv {{ language_python_virtualenv_path }}"
-        creates: "{{ language_python_virtualenv_path }}/bin/activate"
+    - name: Install uv if not present
+      ansible.builtin.shell: |
+        set -o pipefail
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+      args:
+        executable: /bin/bash
+        creates: "{{ ansible_env.HOME }}/.local/bin/uv"
+      when:
+        - uv_check.rc != 0
+        - language_install_missing_tools | default(true)
+
+    - name: Fail if uv is not installed and auto-install disabled
+      ansible.builtin.fail:
+        msg: "uv is not installed. Please install uv first or set language_install_missing_tools: true"
+      when:
+        - uv_check.rc != 0
+        - not (language_install_missing_tools | default(true))
+
+    - name: Create project directory for project-based installs
+      ansible.builtin.file:
+        path: "{{ language_python_project_path }}"
+        state: directory
+        mode: '0755'
       become: false
-      when: language_python_install_method == 'virtualenv'
+      when: language_python_install_method == 'project'
 
-    - name: Install Python packages
-      ansible.builtin.pip:
-        name: "{{ language_python_packages }}"
-        state: present
-        virtualenv: "{{ language_python_virtualenv_path if language_python_install_method == 'virtualenv' else omit }}"
-        extra_args: "{{ '--user' if language_python_install_method == 'user' else '' }}"
-      become: "{{ language_python_install_method == 'global' }}"
-      become_user: "{{ ansible_user if language_python_install_method in ['user', 'virtualenv'] else omit }}"
+    - name: Initialize uv project for project-based installs
+      ansible.builtin.command:
+        cmd: "{{ ansible_env.HOME }}/.local/bin/uv init"
+        chdir: "{{ language_python_project_path }}"
+        creates: "{{ language_python_project_path }}/pyproject.toml"
+      when: language_python_install_method == 'project'
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
+
+    - name: Install Python packages with uv (user method)
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/uv tool install {{ item }}"
+      loop: "{{ language_python_packages }}"
+      register: uv_user_install
+      changed_when: "'already installed' not in uv_user_install.stdout"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
+      when: language_python_install_method == 'user'
+
+    - name: Install Python packages with uv (global method)
+      ansible.builtin.command: "uv tool install --global {{ item }}"
+      loop: "{{ language_python_packages }}"
+      register: uv_global_install
+      changed_when: "'already installed' not in uv_global_install.stdout"
+      become: true
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
+      when: language_python_install_method == 'global'
+
+    - name: Install Python packages with uv (project method)
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/uv add {{ item }}"
+      loop: "{{ language_python_packages }}"
+      register: uv_project_install
+      changed_when: uv_project_install.rc == 0
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
+      args:
+        chdir: "{{ language_python_project_path }}"
+      when: language_python_install_method == 'project'
   when:
     - language_python_enable | default(true)
     - language_python_packages is defined
     - language_python_packages | length > 0
   tags:
     - python
-    - pip
+    - uv
     - language-packages
 
 # Node.js packages via npm
@@ -209,7 +258,7 @@
   ansible.builtin.debug:
     msg:
       - "=== Language Packages Summary ==="
-      - "Python packages: {{ language_python_packages | default([]) | length }} (method: {{ language_python_install_method | default('user') }})"
+      - "Python packages: {{ language_python_packages | default([]) | length }} (uv method: {{ language_python_install_method | default('user') }})"
       - "Node.js packages: {{ language_nodejs_packages | default([]) | length }}"
       - "Rust packages: {{ language_rust_packages | default([]) | length }}"
       - "Go packages: {{ language_go_packages | default([]) | length }}"

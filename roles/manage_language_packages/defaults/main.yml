@@ -1,11 +1,11 @@
 ---
 # Language ecosystem package management
-# Handles npm, pip, cargo, go modules with dependency checking
+# Handles npm, uv (Python), cargo, go modules with dependency checking
 
-# Python packages (pip)
+# Python packages (uv)
 language_python_packages: []
-language_python_install_method: "user"  # user, global, virtualenv
-language_python_virtualenv_path: "{{ ansible_env.HOME }}/.local/venv"
+language_python_install_method: "user"  # user, global, project
+language_python_project_path: "{{ ansible_env.HOME }}/python-project"  # Path for project-based installs
 
 # Node.js packages (npm)
 language_nodejs_packages: []
