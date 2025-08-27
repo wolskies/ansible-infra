@@ -279,7 +279,7 @@
 # Include OS-specific tasks only for unique platform features
 - name: Include OS-specific configuration tasks
   ansible.builtin.include_tasks: "configure-{{ ansible_distribution }}.yml"
-  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'Darwin']
+  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
   tags:
     - always
     - os-config

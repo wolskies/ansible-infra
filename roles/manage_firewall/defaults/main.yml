@@ -49,5 +49,5 @@ firewall_tool_preference:
   Ubuntu: "ufw"
   Debian: "ufw"
   Archlinux: "ufw"                 # UFW is commonly used on Arch as iptables frontend
-  Darwin: "macos_alf"              # macOS Application Layer Firewall
+  MacOSX: "macos_alf"              # macOS Application Layer Firewall
 

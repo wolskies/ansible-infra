@@ -174,7 +174,7 @@ All lists are merged with duplicates removed. Package names are distribution-spe
 ### Supported Distributions
 - `packages_install_Ubuntu` / `packages_install_Debian`
 - `packages_install_Archlinux`
-- `packages_install_Darwin` (macOS)
+- `packages_install_MacOSX` (macOS)
 
 ## Security and Secrets
 
