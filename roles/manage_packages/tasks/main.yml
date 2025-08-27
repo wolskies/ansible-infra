@@ -1,84 +1,45 @@
 ---
-# tasks file for manage_packages
-# This role handles package management with hierarchical configuration
-# Architecture: 1) Ensure package managers 2) Add repos 3) Update sources 4) Install/Remove packages 5) Handlers
-# Supports: APT, YUM/DNF, Pacman, Homebrew with AUR (paru), Homebrew Taps
+# Simplified package management - trust Ansible built-ins
 
-- name: Load OS-specific variables
-  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
-  tags:
-    - always
-    - variables
-    - packages
-
-- name: Merge package lists
-  ansible.builtin.include_tasks: merge-packages.yml
-  tags:
-    - always
-    - variables
-    - merge
-    - packages
-
-# =============================================================================
-# STEP 1: ENSURE PACKAGE MANAGERS ARE INSTALLED
-# =============================================================================
-
-- name: Ensure package managers are installed
-  ansible.builtin.include_tasks: "install-package-managers.yml"
-  tags:
-    - package-managers
-    - setup
-    - packages
-
-# =============================================================================
-# STEP 2: ADD REPOSITORIES, TAPS, AND KEYRINGS
-# =============================================================================
-
-- name: Add repositories and taps
-  ansible.builtin.include_tasks: "setup-repositories.yml"
-  tags:
-    - repositories
-    - taps
-    - keys
-    - packages
-
-# =============================================================================
-# STEP 3: UPDATE PACKAGE SOURCES
-# =============================================================================
-
-- name: Update package sources
-  ansible.builtin.include_tasks: "update-sources.yml"
-  tags:
-    - cache
-    - updates
-    - sources
-    - packages
-
-# =============================================================================
-# STEP 4: INSTALL AND REMOVE PACKAGES
-# =============================================================================
-
-- name: Install packages
-  ansible.builtin.include_tasks: "install-packages.yml"
-  tags:
-    - install
-    - packages
+- name: Install packages (hierarchical merge handled by Ansible precedence)
+  ansible.builtin.package:
+    name: "{{ merged_packages_install }}"
+    state: present
+  become: true
+  vars:
+    merged_packages_install: >-
+      {{
+        (vars.get('all_packages_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_install_' + ansible_distribution, []) | default([]))
+        | unique | list
+      }}
+  when: merged_packages_install | length > 0
 
 - name: Remove packages
-  ansible.builtin.include_tasks: "remove-packages.yml"
-  tags:
-    - remove
-    - cleanup
-    - packages
+  ansible.builtin.package:
+    name: "{{ merged_packages_remove }}"
+    state: absent
+  become: true
+  vars:
+    merged_packages_remove: >-
+      {{
+        (vars.get('all_packages_remove_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_remove_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_remove_' + ansible_distribution, []) | default([]))
+        | unique | list
+      }}
+  when: merged_packages_remove | length > 0
 
-# =============================================================================
-# STEP 5: SYSTEM UPGRADE (OPTIONAL)
-# =============================================================================
+- name: Update package cache
+  ansible.builtin.package:
+    update_cache: true
+  become: true
+  when: packages_update_cache | default(true)
 
-- name: System upgrade and cleanup
-  ansible.builtin.include_tasks: "system-upgrade.yml"
+- name: Upgrade all packages
+  ansible.builtin.package:
+    name: "*"
+    state: latest
+  become: true
   when: packages_perform_system_upgrade | default(false)
-  tags:
-    - upgrade
-    - maintenance
-    - cleanup

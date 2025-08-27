@@ -1,76 +1,34 @@
 ---
-# tasks file for manage_users
-# This role manages system users and handles dotfiles deployment
+# Simplified user management - trust Ansible built-ins
 
-# User management
-- name: Add users to system (Linux only)
+- name: Add users to system
   become: true
   ansible.builtin.user:
     name: "{{ item.name }}"
     uid: "{{ item.uid | default(omit) }}"
-    shell: "{{ item.shell | default(users_default_shell) }}"
-    password: "{{ item.password | default('*') }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
     state: present
-    create_home: "{{ item.create_home | default(users_create_home) }}"
-    groups: "{{ item.groups | default(users_default_groups_linux) }}"
+    create_home: true
+    groups: "{{ item.groups | default([]) }}"
     append: true
-  loop: "{{ users_config }}"
-  when:
-    - users_config | length > 0
-    - ansible_system == 'Linux'
-  tags:
-    - users
-    - user-creation
-    - security
-
-- name: Add users to system (macOS)
-  become: true
-  ansible.builtin.user:
-    name: "{{ item.name }}"
-    uid: "{{ item.uid | default(omit) }}"
-    shell: "{{ item.shell | default(users_default_shell) }}"
-    state: present
-    create_home: "{{ item.create_home | default(users_create_home) }}"
-    groups: "{{ item.groups | default(users_default_groups_macos) }}"
-  loop: "{{ users_config }}"
-  when:
-    - users_config | length > 0
-    - ansible_distribution == 'MacOSX'
-  tags:
-    - users
-    - user-creation
-    - security
+  loop: "{{ users_config | default([]) }}"
+  when: users_config | default([]) | length > 0
 
 - name: Remove users from system
   become: true
   ansible.builtin.user:
     name: "{{ item }}"
     state: absent
-    remove: true  # Also remove home directory
-  loop: "{{ users_remove }}"
-  when:
-    - users_remove is defined
-    - users_remove | length > 0
-  tags:
-    - users
-    - user-removal
-    - cleanup
+    remove: true
+  loop: "{{ users_remove | default([]) }}"
+  when: users_remove | default([]) | length > 0
 
-# Dotfiles deployment
 - name: Deploy dotfiles for configured users
   ansible.builtin.include_role:
     name: wolskinet.infrastructure.dotfiles
   vars:
     dotfiles_user: "{{ item.name }}"
-    dotfiles_repository_url: "{{ item.dotfiles_repository_url }}"
-    dotfiles_uses_stow: "{{ item.dotfiles_uses_stow | default(users_default_dotfiles_uses_stow) }}"
-    dotfiles_stow_packages: "{{ item.dotfiles_stow_packages | default(users_default_dotfiles_stow_packages) }}"
-    dotfiles_update_repo: "{{ item.dotfiles_update_repo | default(false) }}"
-  loop: "{{ users_config | selectattr('dotfiles_repository_url', 'defined') }}"
-  when:
-    - users_config | selectattr('dotfiles_repository_url', 'defined') | list | length > 0
-  tags:
-    - dotfiles
-    - user-config
-    - users
+    dotfiles_repository_url: "{{ item.dotfiles_repo_url }}"
+  loop: "{{ users_config | default([]) | selectattr('dotfiles_repo', 'equalto', true) | list }}"
+  when: users_config | default([]) | selectattr('dotfiles_repo', 'equalto', true) | list | length > 0
 
