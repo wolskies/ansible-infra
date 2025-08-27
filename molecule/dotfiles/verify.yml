@@ -104,18 +104,22 @@
     - name: Test dotfiles role error handling
       block:
         - name: Test invalid repository handling
-          ansible.builtin.include_role:
-            name: wolskinet.infrastructure.dotfiles
-          vars:
-            dotfiles_user: "testuser1"
-            dotfiles_repository_url: "https://github.com/nonexistent/invalid-repo-12345.git"
-            dotfiles_uses_stow: true
-          failed_when: false
-          register: invalid_repo_result
+          block:
+            - name: Include dotfiles role with invalid repo
+              ansible.builtin.include_role:
+                name: wolskinet.infrastructure.dotfiles
+              vars:
+                dotfiles_user: "testuser1"
+                dotfiles_repository_url: "https://github.com/nonexistent/invalid-repo-12345.git"
+                dotfiles_uses_stow: true
+          rescue:
+            - name: Capture invalid repository error
+              ansible.builtin.set_fact:
+                invalid_repo_handled: true
 
         - name: Verify role handles invalid repositories gracefully
           ansible.builtin.debug:
-            msg: "Role handled invalid repository appropriately: {{ invalid_repo_result.failed | default(false) }}"
+            msg: "Role handled invalid repository appropriately: {{ invalid_repo_handled | default(false) }}"
 
     - name: Summary verification
       ansible.builtin.debug:

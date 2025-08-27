@@ -15,23 +15,23 @@
 
   roles:
     # Test core roles on all machines
-    - name: wolskinet.infrastructure.configure_host
+    - role: wolskinet.infrastructure.configure_host
       when: "'configure_host' in (group_roles_install | default([]))"
 
-    - name: wolskinet.infrastructure.manage_packages
+    - role: wolskinet.infrastructure.manage_packages
       when: "'manage_packages' in (group_roles_install | default([]))"
 
-    - name: wolskinet.infrastructure.manage_users
+    - role: wolskinet.infrastructure.manage_users
       when: "'manage_users' in (group_roles_install | default([]))"
 
     # Test dotfiles role on workstations
-    - name: wolskinet.infrastructure.dotfiles
+    - role: wolskinet.infrastructure.dotfiles
       when:
         - "'dotfiles' in (group_roles_install | default([]))"
         - inventory_hostname in groups.get('workstations', [])
 
     # Test firewall role
-    - name: wolskinet.infrastructure.manage_firewall
+    - role: wolskinet.infrastructure.manage_firewall
       when: "'manage_firewall' in (group_roles_install | default([]))"
 
   post_tasks:

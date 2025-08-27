@@ -232,7 +232,7 @@
               fail2ban:
                 service_enabled: false
             ansible_distribution: "Ubuntu"
-            inventory_hostname: "test-realistic-host"
+            test_hostname: "test-realistic-host"
             ansible_architecture: "x86_64"
             ansible_date_time: { iso8601: "2024-01-01T12:00:00Z" }
           delegate_to: localhost
@@ -317,7 +317,7 @@
               fail2ban:
                 service_enabled: false
             ansible_distribution: "Debian"
-            inventory_hostname: "edge-case-host"
+            test_hostname: "edge-case-host"
             ansible_architecture: "x86_64"
             ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
           delegate_to: localhost
@@ -344,7 +344,7 @@
             discovered_repositories: {}  # No apt key at all
             discovered_security: {}
             ansible_distribution: "Ubuntu"
-            inventory_hostname: "undefined-test"
+            test_hostname: "undefined-test"
             ansible_architecture: "x86_64"
             ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
           delegate_to: localhost

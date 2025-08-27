@@ -32,6 +32,7 @@ skip_list:
   - schema[meta]  # Allow flexible meta/main.yml schemas
   - name[missing]  # Some generated tasks might not have names
   - var-naming[no-role-prefix]  # Allow variables without role prefix for compatibility
+  - var-naming[pattern]  # Allow distribution-based variable names like host_packages_install_Ubuntu
   - key-order  # Allow flexible key ordering in tasks
   - command-instead-of-module  # Allow using shell/command for specific tools like rustup
   - risky-shell-pipe  # Allow shell pipes for legitimate use cases
@@ -85,6 +86,8 @@ mock_roles:
   - wolskinet.infrastructure.manage_firewall
   - wolskinet.infrastructure.discovery
   - wolskinet.infrastructure.dotfiles
+  - wolskinet.infrastructure.manage_language_packages
+  - wolskinet.infrastructure.manage_system_settings
 
 # Offline mode - don't download schemas
 offline: true
