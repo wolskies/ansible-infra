@@ -12,4 +12,4 @@
   become: true
   when: firewall_logging is defined
   changed_when: true
-  ignore_errors: true
+  failed_when: false  # Log configuration might not be available on all macOS versions

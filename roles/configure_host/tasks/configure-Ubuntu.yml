@@ -124,7 +124,7 @@
         name: snapd
         selection: hold
       become: true
-      ignore_errors: true
+      failed_when: false  # Package might not exist after removal
 
   when: config_ubuntu_disable_snap | default(false)
   tags:
