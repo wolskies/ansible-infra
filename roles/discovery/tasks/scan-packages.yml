@@ -25,7 +25,7 @@
       - '^coreutils'    # basic utilities
       - '^util-linux'   # basic utilities
       - '^procps'       # process utilities
-      
+
       # Package suffixes
       - '-dev$'         # development packages
       - '-dbg$'         # debug packages
@@ -37,7 +37,7 @@
       - '-common$'      # common files
       - '-data$'        # data files
       - '-tools$'       # Often system tools
-      
+
       # Arch Linux specific system packages
       - '^arch'         # arch-specific packages
       - '^pacman'       # package manager
@@ -68,7 +68,7 @@
       - '^iana'         # standards data
       - '^mime'         # mime data
       - '^shared-mime'  # mime data
-      
+
       # Desktop environment internals
       - '^gdk'          # graphics toolkit
       - '^gtk'          # graphics toolkit internals
@@ -84,13 +84,47 @@
       - '^xorg'         # X11 internals
       - '^libx'         # X11 libraries
       - '^libdrm'       # graphics
-      
+
       # Network/system internals
       - '^iptables'     # firewall (managed separately)
       - '^iproute'      # network tools
       - '^dhcp'         # network
       - '^net-tools'    # network utilities
       - '^wireless'     # wifi utilities
+
+      # Additional system packages that should be filtered
+      - '^apt'          # package manager
+      - '^dpkg'         # package system
+      - '^debconf'      # debian config
+      - '^debianutils'  # debian utilities
+      - '^bash'         # system shell
+      - '^dash'         # system shell
+      - '^login'        # login system
+      - '^passwd'       # user system
+      - '^sudo'         # privilege escalation
+      - '^mount'        # filesystem tools
+      - '^hostname'     # system utilities
+      - '^sysvinit'     # init system
+      - '^init-system'  # init helpers
+      - '^lsb-'         # distro info
+      - '^ubuntu-'      # distro specific
+      - '^debian-'      # distro specific
+      - '^perl'         # unless explicitly needed
+      - '^python3$'     # base python (keep python3-something)
+      - '^python3\.'    # specific python versions
+      - '^python3-minimal' # minimal python
+      - '^mawk'         # text processing
+      - '^diffutils'    # diff tools
+      - '^bsdutils'     # utilities
+      - '^e2fsprogs'    # filesystem tools
+      - '^gpgv'         # crypto verification
+      - '^iso-codes'    # locale data
+      - '^logsave'      # logging utilities
+      - '^media-types'  # mime data
+      - '^netbase'      # network data
+      - '^sensible-utils' # utilities
+      - '^unminimize'   # system setup
+      - 'keyring$'      # key management
     filtered_packages: >-
       {{
         ansible_facts.packages.keys() |
