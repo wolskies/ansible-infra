@@ -34,8 +34,20 @@
           - discovered_vars | length > 0
         fail_msg: "Discovery failed to create valid output"
 
+    - name: Verify user discovery filtering
+      ansible.builtin.assert:
+        that:
+          - discovered_vars.users_config is defined
+          - discovered_vars.users_config is sequence
+          # Should find testuser1 and testuser2 (UID 1500+) but not sysuser (UID 999)
+          - discovered_vars.users_config | selectattr('name', 'equalto', 'testuser1') | list | length == 1
+          - discovered_vars.users_config | selectattr('name', 'equalto', 'sysuser') | list | length == 0
+        fail_msg: "User UID filtering not working correctly"
+      when: discovered_vars.users_config is defined
+
     - name: Display discovery results
       ansible.builtin.debug:
         msg:
           - "Discovery verification completed"
           - "Variables discovered: {{ discovered_vars.keys() | list }}"
+          - "Users found: {{ discovered_vars.users_config | length if discovered_vars.users_config is defined else 0 }}"

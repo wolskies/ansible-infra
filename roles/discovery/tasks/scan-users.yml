@@ -9,13 +9,26 @@
     - passwd
     - group
 
+- name: Filter regular users (UID 1000-59999)
+  ansible.builtin.set_fact:
+    regular_users: >-
+      {{
+        ansible_facts.getent_passwd | dict2items |
+        selectattr('value') |
+        rejectattr('value.1', 'match', '^[^0-9]') |
+        selectattr('value.1', 'int', '>=', 1000) |
+        selectattr('value.1', 'int', '<', 60000) |
+        list
+      }}
+  when: ansible_facts.getent_passwd is defined
+
 - name: Check for dotfiles directories
   ansible.builtin.stat:
     path: "{{ item.value[4] }}/.dotfiles"
   register: dotfiles_dirs
   become: true
-  loop: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', 1000) | selectattr('value.1', '<', 60000) | list }}"
-  when: ansible_facts.getent_passwd is defined
+  loop: "{{ regular_users }}"
+  when: regular_users | length > 0
 
 - name: Build users_config for regular users (UID 1000-59999)
   ansible.builtin.set_fact:
@@ -34,5 +47,5 @@
       dotfiles_repo_branch: "main"
     # Check if this user has dotfiles
     has_dotfiles: "{{ dotfiles_dirs.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stat.exists') | first | default(false) }}"
-  loop: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', 1000) | selectattr('value.1', '<', 60000) | list }}"
-  when: ansible_facts.getent_passwd is defined
+  loop: "{{ regular_users }}"
+  when: regular_users | length > 0

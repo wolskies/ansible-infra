@@ -12,16 +12,24 @@
           - vim
         state: present
 
-    - name: Create test user
+    - name: Create test users with different UIDs
       ansible.builtin.user:
-        name: testuser
-        uid: 1500
-        shell: /bin/bash
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        shell: "{{ item.shell }}"
         create_home: true
+      loop:
+        - { name: testuser1, uid: 1500, shell: /bin/bash }
+        - { name: testuser2, uid: 1501, shell: /bin/zsh }
+        - { name: sysuser, uid: 999, shell: /bin/false }  # Below UID threshold
 
-    - name: Create .dotfiles directory for test user
+    - name: Create .dotfiles directories for test users
       ansible.builtin.file:
-        path: "/home/testuser/.dotfiles"
+        path: "/home/{{ item }}/.dotfiles"
         state: directory
-        owner: testuser
+        owner: "{{ item }}"
         mode: '0755'
+      loop:
+        - testuser1
+        - testuser2
+      ignore_errors: true
