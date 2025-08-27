@@ -1,0 +1,17 @@
+---
+# Test playbook for manage_packages role
+- name: Test manage_packages role
+  hosts: all
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Update package cache
+      ansible.builtin.package:
+        update_cache: true
+      when: ansible_pkg_mgr in ['apt']
+
+  tasks:
+    - name: Include manage_packages role
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.manage_packages

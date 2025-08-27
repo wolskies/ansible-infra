@@ -1,0 +1,59 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  - name: ubuntu-configure-host
+    image: quay.io/ansible/ubuntu2404-test:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    tmpfs:
+      - /tmp
+      - /run
+    groups:
+      - servers
+
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        # Test variables for configure_host
+        config_hostname: "test-host"
+        config_fqdn: "test-host.example.com"
+        config_system_timezone: "America/New_York"
+        config_system_locale: "en_US.UTF-8"
+        config_ntp_enabled: true
+        config_system_limits: true
+        config_motd: true
+        config_create_directories:
+          - "/opt/test"
+          - "/var/log/test"
+  playbooks:
+    converge: converge.yml
+    verify: verify.yml
+
+verifier:
+  name: ansible
+
+scenario:
+  name: configure_host
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - cleanup
+    - destroy

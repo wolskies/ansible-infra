@@ -105,8 +105,122 @@ test-default:
     DOCKER_TLS_CERTDIR: ""
   <<: *base-setup
   script:
-    - echo "Testing default scenario..."
+    - echo "Testing default integration scenario..."
     - cd molecule/default && molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-configure-host:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing configure_host role..."
+    - cd molecule/configure_host && molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-packages:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing manage_packages role..."
+    - cd molecule/manage_packages && molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-users:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing manage_users role..."
+    - cd molecule/manage_users && molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-firewall:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing manage_firewall role..."
+    - cd molecule/manage_firewall && molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-language-packages:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing manage_language_packages role..."
+    - cd molecule/manage_language_packages && molecule test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-system-settings:
+  stage: test-roles
+  image: python:3.11-slim
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: ""
+  <<: *base-setup
+  script:
+    - echo "Testing manage_system_settings role..."
+    - cd molecule/manage_system_settings && molecule test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -152,8 +266,6 @@ test-dotfiles:
     max: 2
     when: runner_system_failure
 
-# Additional molecule scenario tests can be added here
-
 # Integration Testing Stage
 test-collection-integration:
   stage: test-integration
@@ -169,6 +281,12 @@ test-collection-integration:
     - cd molecule/default && molecule test
   needs:
     - test-default
+    - test-configure-host
+    - test-manage-packages
+    - test-manage-users
+    - test-manage-firewall
+    - test-manage-language-packages
+    - test-manage-system-settings
     - test-discovery
     - test-dotfiles
   rules:
