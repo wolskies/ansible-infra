@@ -11,50 +11,30 @@
 - name: Discover third-party language packages
   ansible.builtin.include_tasks: scan-third-party-packages.yml
 
-# Step 3: Store results in clean, simple structure
-- name: Store package discovery results
+# Step 3: Store results in final variable names (manage_packages role format)
+- name: Set host packages install variable
   ansible.builtin.set_fact:
-    discovered_packages:
-      # Native package manager packages
-      native: >-
-        {%- if ansible_distribution in ["Ubuntu", "Debian"] -%}
-          {{ discovered_repositories.apt.manual_packages | default([]) }}
-        {%- elif ansible_distribution == "Archlinux" -%}
-          {{ discovery_archlinux_explicit_packages | default([]) }}
-        {%- elif ansible_distribution == "MacOSX" -%}
-          {{ (homebrew_packages_result.stdout_lines | default([])) + (homebrew_casks_result.stdout_lines | default([])) }}
-        {%- else -%}
-          {{ ansible_facts.packages.keys() | list }}
-        {%- endif -%}
-
-      # Language ecosystem packages
-      languages: "{{ discovered_third_party_packages | default({}) }}"
-
-      # Simple consolidated list for templates
-      all_native: >-
-        {%- if ansible_distribution in ["Ubuntu", "Debian"] -%}
-          {{ discovered_repositories.apt.manual_packages | default([]) }}
-        {%- elif ansible_distribution == "Archlinux" -%}
-          {{ discovery_archlinux_explicit_packages | default([]) }}
-        {%- elif ansible_distribution == "MacOSX" -%}
-          {{ (homebrew_packages_result.stdout_lines | default([])) + (homebrew_casks_result.stdout_lines | default([])) }}
-        {%- else -%}
-          {{ ansible_facts.packages.keys() | list }}
-        {%- endif -%}
+    "host_packages_install_{{ ansible_distribution }}": >-
+      {%- if ansible_distribution in ["Ubuntu", "Debian"] -%}
+        {{ discovered_repositories.apt.manual_packages | default([]) | sort }}
+      {%- elif ansible_distribution == "Archlinux" -%}
+        {{ discovery_archlinux_explicit_packages | default([]) | sort }}
+      {%- elif ansible_distribution == "MacOSX" -%}
+        {{ ((homebrew_packages_result.stdout_lines | default([])) + (homebrew_casks_result.stdout_lines | default([]))) | sort }}
+      {%- else -%}
+        {{ ansible_facts.packages.keys() | list | sort }}
+      {%- endif -%}
 
 - name: Set empty package results for unsupported OS
   ansible.builtin.set_fact:
-    discovered_packages:
-      native: []
-      languages: {}
-      all_native: []
+    "host_packages_install_{{ ansible_distribution }}": []
   when: ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
 
 - name: Debug package discovery results
   ansible.builtin.debug:
     msg:
-      - "Native packages ({{ ansible_distribution }}): {{ discovered_packages.all_native | length }}"
-      - "Python packages: {{ discovered_packages.languages.python | default([]) | length }}"
-      - "Node.js packages: {{ discovered_packages.languages.nodejs.npm_global | default([]) | length }}"
-      - "Rust packages: {{ discovered_packages.languages.rust.cargo | default([]) | length }}"
+      - "Native packages ({{ ansible_distribution }}): {{ vars['host_packages_install_' + ansible_distribution] | default([]) | length }}"
+      - "Python packages: {{ discovered_third_party_packages.python | default([]) | length }}"
+      - "Node.js packages: {{ discovered_third_party_packages.nodejs.npm_global | default([]) | length }}"
+      - "Rust packages: {{ discovered_third_party_packages.rust.cargo | default([]) | length }}"
   when: discovery_debug | default(false) | bool
