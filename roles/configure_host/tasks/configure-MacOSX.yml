@@ -19,7 +19,7 @@
   when:
     - macos_install_xcode_tools | default(true)
     - not xcode_cli_tools.stat.exists
-  ignore_errors: true  # User might need to interact with GUI
+  failed_when: false  # User might need to interact with GUI
   tags:
     - macos
     - xcode
