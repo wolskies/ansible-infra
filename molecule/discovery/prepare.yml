@@ -4,14 +4,6 @@
   hosts: discovery_targets
   gather_facts: true
   tasks:
-    - name: Install basic packages for testing
-      ansible.builtin.package:
-        name:
-          - git
-          - curl
-          - vim
-        state: present
-
     - name: Create test users with different UIDs
       ansible.builtin.user:
         name: "{{ item.name }}"
