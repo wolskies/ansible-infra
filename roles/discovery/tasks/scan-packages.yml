@@ -1,40 +1,10 @@
 ---
-# Simplified Package Discovery
-# Clean separation: Native packages vs Language ecosystem packages
+# Simplified package discovery using built-in package_facts
 
-# Step 1: Discover native packages (OS-specific)
-- name: Discover native packages by OS
-  ansible.builtin.include_tasks: "scan-packages-{{ ansible_distribution }}.yml"
-  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
+- name: Get package facts
+  ansible.builtin.package_facts:
+    manager: auto
 
-# Step 2: Discover language ecosystem packages (cross-platform)
-- name: Discover third-party language packages
-  ansible.builtin.include_tasks: scan-third-party-packages.yml
-
-# Step 3: Store results in final variable names (manage_packages role format)
-- name: Set host packages install variable
+- name: Set host packages install variable (manage_packages role format)
   ansible.builtin.set_fact:
-    "host_packages_install_{{ ansible_distribution }}": >-
-      {%- if ansible_distribution in ["Ubuntu", "Debian"] -%}
-        {{ discovered_repositories.apt.manual_packages | default([]) | sort }}
-      {%- elif ansible_distribution == "Archlinux" -%}
-        {{ discovery_archlinux_explicit_packages | default([]) | sort }}
-      {%- elif ansible_distribution == "MacOSX" -%}
-        {{ ((homebrew_packages_result.stdout_lines | default([])) + (homebrew_casks_result.stdout_lines | default([]))) | sort }}
-      {%- else -%}
-        {{ ansible_facts.packages.keys() | list | sort }}
-      {%- endif -%}
-
-- name: Set empty package results for unsupported OS
-  ansible.builtin.set_fact:
-    "host_packages_install_{{ ansible_distribution }}": []
-  when: ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
-
-- name: Debug package discovery results
-  ansible.builtin.debug:
-    msg:
-      - "Native packages ({{ ansible_distribution }}): {{ vars['host_packages_install_' + ansible_distribution] | default([]) | length }}"
-      - "Python packages: {{ discovered_third_party_packages.python | default([]) | length }}"
-      - "Node.js packages: {{ discovered_third_party_packages.nodejs.npm_global | default([]) | length }}"
-      - "Rust packages: {{ discovered_third_party_packages.rust.cargo | default([]) | length }}"
-  when: discovery_debug | default(false) | bool
+    "host_packages_install_{{ ansible_distribution }}": "{{ ansible_facts.packages.keys() | list | sort }}"

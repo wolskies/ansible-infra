@@ -1,137 +1,51 @@
 ---
-# Discovery Role Main Tasks - Simplified
+# Simplified Discovery Role - trust Ansible's built-ins
 
-- name: Initialize discovery environment
-  block:
-    - name: Validate supported OS
-      ansible.builtin.fail:
-        msg: >-
-          {{ ansible_distribution }} {{ ansible_distribution_version }} not supported.
-          Need: Ubuntu 24+, Debian 12+, Arch, macOS
-      when:
-        - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
-          (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
+- name: Set output path
+  ansible.builtin.set_fact:
+    discovery_paths:
+      host_vars_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}"
+      host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.yml"
+  delegate_to: localhost
 
-    - name: Set discovery output paths using Ansible inventory location
-      ansible.builtin.set_fact:
-        discovery_paths:
-          host_vars_dir: "{{ discovery.inventory_dir | default((inventory_file | dirname) if inventory_file is defined else 'inventory') }}/host_vars/{{ inventory_hostname }}"
-          host_vars_file: "{{ discovery.inventory_dir | default((inventory_file | dirname) if inventory_file is defined else 'inventory') }}/host_vars/{{ inventory_hostname }}/vars.yml"
-      delegate_to: localhost
+- name: Create output directory
+  ansible.builtin.file:
+    path: "{{ discovery_paths.host_vars_dir }}"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
 
-    - name: Display discovery start message
-      ansible.builtin.debug:
-        msg:
-          - "=== Infrastructure Discovery Starting ==="
-          - "Target: {{ inventory_hostname }}"
-          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
-          - "Host vars output: {{ discovery_paths.host_vars_file }}"
+- name: Get system facts
+  ansible.builtin.setup:
 
-    - name: Create discovery output directories on Ansible controller
-      ansible.builtin.file:
-        path: "{{ discovery_paths.host_vars_dir }}"
-        state: directory
-        mode: '0755'
-      delegate_to: localhost
-
-    - name: Initialize discovery tracking
-      ansible.builtin.set_fact:
-        discovery_failures: []
-        discovery_warnings: []
-  tags:
-    - discovery
-    - setup
-
-# Discovery tasks organized by role execution order:
-# 1. configure_host -> 2. manage_packages -> 3. manage_users ->
-# 4. manage_firewall -> 5. dotfiles -> 6. manage_language_packages -> 7. manage_system_settings
-
-- name: "Step 1-7: Discover system information (configure_host + manage_system_settings)"
-  ansible.builtin.include_tasks: scan-system.yml
-  tags:
-    - discovery
-    - configure_host
-    - manage_system_settings
-    - system
-
-- name: "Step 2: Discover packages and repositories (manage_packages)"
+- name: Discover packages
   ansible.builtin.include_tasks: scan-packages.yml
-  tags:
-    - discovery
-    - manage_packages
-    - packages
 
-- name: "Step 3+5: Discover users and dotfiles (manage_users + dotfiles)"
+- name: Discover users
   ansible.builtin.include_tasks: scan-users.yml
-  tags:
-    - discovery
-    - manage_users
-    - dotfiles
-    - users
 
-- name: "Step 4: Discover firewall and security (manage_firewall)"
-  ansible.builtin.include_tasks: scan-services.yml
-  tags:
-    - discovery
-    - manage_firewall
-    - services
-    - security
+- name: Set basic host variables (same variable names as before)
+  ansible.builtin.set_fact:
+    config_hostname: "{{ ansible_hostname }}"
+    config_system_timezone: "{{ ansible_date_time.tz }}"
+    firewall_enable: false
 
-- name: "Step 6: Discover language packages (manage_language_packages)"
-  ansible.builtin.include_tasks: scan-third-party-packages.yml
-  tags:
-    - discovery
-    - manage_language_packages
-    - third-party
-    - languages
-
-- name: "Additional: Discover Docker environment"
-  ansible.builtin.include_tasks: scan-docker.yml
-  tags:
-    - discovery
-    - docker
-
-- name: Process discovery data
-  ansible.builtin.include_tasks: process-data.yml
-  tags:
-    - discovery
-    - processing
-
-# Variables are now set directly by individual scan tasks in final format
-
-# Generate the vars.yml file with a simple template
 - name: Generate host variables file
   ansible.builtin.template:
     src: simple_host_vars.yml.j2
     dest: "{{ discovery_paths.host_vars_file }}"
     mode: '0644'
   delegate_to: localhost
-  when: discovery.generate_configs
-  tags:
-    - discovery
-    - generation
 
-# Generate additional configuration files
 - name: Generate secrets template file
   ansible.builtin.template:
     src: host_secrets.yml.j2
     dest: "{{ discovery_paths.host_vars_dir }}/secrets.yml"
     mode: '0600'
   delegate_to: localhost
-  when: discovery.generate_configs
-  tags:
-    - discovery
-    - generation
-    - secrets
 
-# Display simple completion message
 - name: Show discovery completion
   ansible.builtin.debug:
     msg:
       - "=== Infrastructure Discovery Completed ==="
-      - "Generated files:"
-      - "  Host vars: {{ discovery_paths.host_vars_file }}"
-      - "  Secrets template: {{ discovery_paths.host_vars_dir }}/secrets.yml"
-  tags:
-    - discovery
-    - summary
+      - "Generated: {{ discovery_paths.host_vars_file }}"
