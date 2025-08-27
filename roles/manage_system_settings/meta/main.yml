@@ -1,32 +1,33 @@
 ---
 galaxy_info:
-  author: wolskinet
+  role_name: manage_system_settings
+  author: Ed Wolski
   description: >-
-    System-level tuning and optimization for performance,
-    security, and hardware support
+    System performance tuning and hardware configurations for
+    gaming, GPU support, network optimization, and service management
   company: wolskinet
   license: GPL-3.0-or-later
-  min_ansible_version: "2.12"
+  min_ansible_version: "2.15"
   platforms:
     - name: Ubuntu
       versions:
-        - jammy
-        - noble
+        - "24.04"
     - name: Debian
       versions:
-        - bookworm
-        - trixie
+        - "12"
+        - "13"
     - name: ArchLinux
       versions:
         - all
   galaxy_tags:
     - system
-    - tuning
-    - optimization
     - performance
-    - security
+    - optimization
     - gpu
     - gaming
     - network
+    - hardware
+    - services
 
 dependencies: []
+

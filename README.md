@@ -79,7 +79,7 @@ Independent firewall configuration and intrusion prevention:
 - **Standalone Operation**: No dependencies on other roles
 
 
-### **system_tuning** - Performance Optimization
+### **manage_system_settings** - Performance Optimization
 Hardware and performance optimization:
 - **Gaming Optimization**: Kernel parameters, CPU governor settings
 - **Media Support**: GPU drivers, codec installation

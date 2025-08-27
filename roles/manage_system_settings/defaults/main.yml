@@ -1,0 +1,41 @@
+---
+# manage_system_settings role defaults
+# System performance tuning and hardware configurations requiring root privileges
+
+# Enable/disable system setting categories
+system_settings_network_enabled: true
+system_settings_gaming_enabled: false
+system_settings_gpu_enabled: false
+system_settings_services_enabled: true
+system_settings_hardware_enabled: true
+
+# Network performance tuning
+system_settings_network_optimizations:
+  sysctl:
+    net.core.default_qdisc: "fq"
+    net.ipv4.tcp_congestion_control: "bbr"
+    net.ipv4.ip_unprivileged_port_start: "80"
+
+# Gaming performance optimizations
+system_settings_gaming_optimizations:
+  sysctl:
+    vm.max_map_count: "2097152"
+
+# GPU-specific configurations
+system_settings_gpu_nvidia_enabled: false
+system_settings_gpu_nvidia_modules:
+  - "nvidia"
+  - "nvidia_modeset"
+  - "nvidia_uvm"
+  - "nvidia_drm"
+
+# System services to manage
+system_settings_services_enable: []
+system_settings_services_disable: []
+
+# Hardware-specific configurations
+system_settings_camera_support_enabled: false
+system_settings_bluetooth_enabled: false
+
+# Custom sysctl parameters (merged with above)
+system_settings_custom_sysctl: {}

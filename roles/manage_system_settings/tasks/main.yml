@@ -1,6 +1,6 @@
 ---
-# tasks file for system_tuning
-# System-level tuning and optimization requiring root privileges
+# manage_system_settings role main tasks
+# System-level performance tuning and hardware configurations
 
 - name: Validate supported OS versions
   ansible.builtin.fail:
@@ -17,7 +17,7 @@
   tags:
     - always
     - validation
-    - system-tuning
+    - system-settings
 
 - name: Load OS-specific variables
   ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
@@ -25,12 +25,12 @@
   tags:
     - always
     - variables
-    - system-tuning
+    - system-settings
 
-- name: Include OS-specific system tuning tasks
-  ansible.builtin.include_tasks: "tuning-{{ ansible_distribution }}.yml"
+- name: Include OS-specific system settings tasks
+  ansible.builtin.include_tasks: "settings-{{ ansible_distribution }}.yml"
   when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux']
   tags:
     - always
-    - system-tuning
+    - system-settings
     - optimization
