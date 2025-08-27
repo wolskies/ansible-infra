@@ -36,26 +36,26 @@
     system_categories:
       # Common system packages across distros
       - '^base$'           # base group itself
-      - '^base-devel$'     # development tools group  
+      - '^base-devel$'     # development tools group
       - '^linux$'          # kernel (managed separately)
-      - '^linux-firmware$' # firmware (managed separately)  
+      - '^linux-firmware$' # firmware (managed separately)
       - '^linux-headers$'  # kernel headers (managed separately)
       - '^nvidia-'         # NVIDIA drivers (hardware specific)
       - '^amd-'            # AMD drivers (hardware specific)
       - '^cuda'            # CUDA (hardware specific)
-      
+
       # Desktop environment meta-packages (user can add individual components)
       - '^plasma-meta$'    # KDE meta package
       - '^plasma-workspace$' # KDE workspace
       - '^ubuntu-desktop'  # Ubuntu desktop meta-package
       - '^ubuntu-minimal'  # Ubuntu minimal meta-package
-      
+
       # Audio system (managed by dedicated roles)
       - '^pipewire$'       # audio system
       - '^pipewire-'       # audio system components
       - '^wireplumber$'    # audio session manager
       - '^pulseaudio$'     # audio system
-      
+
       # Package manager tools (system level)
       - '^apt$'            # package manager itself
       - '^dpkg$'           # package system
@@ -76,7 +76,7 @@
     # Simplified patterns for other distros
     system_package_patterns:
       - '^lib'          # Most libraries
-      - '^systemd'      # systemd components  
+      - '^systemd'      # systemd components
       - '^kernel'       # kernel packages
       - '^linux-'       # linux kernel packages
       - '^glibc'        # core system libs
