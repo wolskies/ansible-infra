@@ -9,8 +9,9 @@
   ansible.builtin.set_fact:
     "host_packages_install_{{ ansible_distribution }}": "{{ filtered_packages }}"
   vars:
-    # Aggressively filter out base/system packages by common patterns
+    # Very aggressive filtering - only keep obvious user applications
     system_package_patterns:
+      # System/core packages
       - '^lib'          # Most libraries
       - '^systemd'      # systemd components
       - '^kernel'       # kernel packages
@@ -24,9 +25,72 @@
       - '^coreutils'    # basic utilities
       - '^util-linux'   # basic utilities
       - '^procps'       # process utilities
+      
+      # Package suffixes
       - '-dev$'         # development packages
       - '-dbg$'         # debug packages
       - '-doc$'         # documentation
+      - '-docs$'        # documentation
+      - '-headers$'     # header files
+      - '-devel$'       # development files
+      - '-static$'      # static libraries
+      - '-common$'      # common files
+      - '-data$'        # data files
+      - '-tools$'       # Often system tools
+      
+      # Arch Linux specific system packages
+      - '^arch'         # arch-specific packages
+      - '^pacman'       # package manager
+      - '^makepkg'      # build tools
+      - '^archlinux'    # arch branding
+      - '^hwdata'       # hardware data
+      - '^kbd'          # keyboard data
+      - '^kmod'         # kernel modules
+      - '^which'        # basic utilities
+      - '^findutils'    # basic utilities
+      - '^gawk'         # text processing
+      - '^grep'         # text processing
+      - '^sed'          # text processing
+      - '^tar'          # compression
+      - '^gzip'         # compression
+      - '^xz'           # compression
+      - '^bzip2'        # compression
+      - '^zlib'         # compression library
+      - '^ncurses'      # terminal library
+      - '^readline'     # input library
+      - '^openssl'      # crypto library
+      - '^curl'         # unless user explicitly wants it
+      - '^wget'         # unless user explicitly wants it
+      - '^shadow'       # user management
+      - '^pam'          # authentication
+      - '^dbus'         # system messaging
+      - '^udev'         # device management
+      - '^iana'         # standards data
+      - '^mime'         # mime data
+      - '^shared-mime'  # mime data
+      
+      # Desktop environment internals
+      - '^gdk'          # graphics toolkit
+      - '^gtk'          # graphics toolkit internals
+      - '^qt'           # Qt internals
+      - '^cairo'        # graphics library
+      - '^pango'        # text rendering
+      - '^fontconfig'   # font system
+      - '^freetype'     # font rendering
+      - '^harfbuzz'     # text shaping
+      - '^pixman'       # graphics
+      - '^mesa'         # graphics drivers
+      - '^wayland'      # display protocol internals
+      - '^xorg'         # X11 internals
+      - '^libx'         # X11 libraries
+      - '^libdrm'       # graphics
+      
+      # Network/system internals
+      - '^iptables'     # firewall (managed separately)
+      - '^iproute'      # network tools
+      - '^dhcp'         # network
+      - '^net-tools'    # network utilities
+      - '^wireless'     # wifi utilities
     filtered_packages: >-
       {{
         ansible_facts.packages.keys() |
