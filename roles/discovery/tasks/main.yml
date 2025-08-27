@@ -124,40 +124,14 @@
     - generation
     - secrets
 
-# Display discovery completion with status
-- name: Display discovery completion
-  block:
-    - name: Show discovery summary
-      ansible.builtin.debug:
-        msg:
-          - "=== Infrastructure Discovery Completed ==="
-          - "Hostname: {{ inventory_hostname }}"
-          - "Status Summary:"
-          - "  Packages: {{ 'Success' if discovery_status.packages.success else 'Failed' }} ({{ discovery_status.packages.count }} found)"
-          - "  Docker: {{ 'Installed' if discovery_status.docker.installed else 'Not installed' }} ({{ discovery_status.docker.services }} services)"
-          - "  Security: {{ 'Firewall detected' if discovery_status.security.firewall_detected else 'No firewall detected' }}"
-          - "  Users: {{ 'Success' if discovery_status.users.success else 'Failed' }} ({{ discovery_status.users.count }} found)"
-          - ""
-          - "Generated files:"
-          - "  Host vars: {{ discovery_paths.host_vars_file }}"
-          - "  Secrets template: {{ discovery_paths.host_vars_dir }}/secrets.yml"
-
-    - name: Show any warnings or failures
-      ansible.builtin.debug:
-        msg:
-          - "Discovery Warnings:"
-          - "{{ discovery_warnings }}"
-      when: discovery_warnings | length > 0
-
-    - name: Show usage instructions
-      ansible.builtin.debug:
-        msg:
-          - ""
-          - "Next steps:"
-          - "1. Review {{ discovery_paths.host_vars_file }}"
-          - "2. Edit {{ discovery_paths.host_vars_dir }}/secrets.yml with passwords/keys"
-          - "3. Encrypt: ansible-vault encrypt {{ discovery_paths.host_vars_dir }}/secrets.yml"
-          - "4. Deploy: ansible-playbook playbooks/deploy.yml -l {{ inventory_hostname }} --ask-vault-pass"
+# Display simple completion message
+- name: Show discovery completion
+  ansible.builtin.debug:
+    msg:
+      - "=== Infrastructure Discovery Completed ==="
+      - "Generated files:"
+      - "  Host vars: {{ discovery_paths.host_vars_file }}"
+      - "  Secrets template: {{ discovery_paths.host_vars_dir }}/secrets.yml"
   tags:
     - discovery
     - summary
