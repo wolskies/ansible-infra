@@ -14,13 +14,13 @@
           packages_ubuntu: ["python3"]
           packages_debian: ["python3"]
           packages_archlinux: ["python"]
-          packages_darwin: []
+          packages_macosx: []
           condition: "{{ language_python_enable and (language_python_packages | default([]) | length > 0) }}"
         - tool: "npm"
           packages_ubuntu: ["nodejs", "npm"]
           packages_debian: ["nodejs", "npm"]
           packages_archlinux: ["nodejs", "npm"]
-          packages_darwin: []
+          packages_macosx: []
           condition: "{{ language_nodejs_enable and (language_nodejs_packages | default([]) | length > 0) }}"
       when:
         - language_check_dependencies | default(true)
@@ -43,7 +43,7 @@
         packages_ubuntu: "{{ result.item.packages_ubuntu }}"
         packages_debian: "{{ result.item.packages_debian }}"
         packages_archlinux: "{{ result.item.packages_archlinux }}"
-        packages_darwin: "{{ result.item.packages_darwin }}"
+        packages_macosx: "{{ result.item.packages_macosx }}"
 
 # Python packages via uv
 - name: Setup Python packages

@@ -58,7 +58,7 @@ packages_homebrew_casks_remove: []     # List of Homebrew casks to remove
 #   host_packages_install_Ubuntu: [redis-server]
 #   host_packages_remove_Ubuntu: [mysql-server]
 #
-# Supported distributions: Ubuntu, Debian, Archlinux, Darwin (macOS)
+# Supported distributions: Ubuntu, Debian, Archlinux, MacOSX (macOS)
 # Variables follow the pattern: {level}_packages_{action}_{Distribution}
 #
 # Note: Do not define these variables in this defaults file as they will
