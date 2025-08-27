@@ -67,8 +67,8 @@ var_naming_pattern: "^[a-z_][a-z0-9_]*$"
 
 # Mock modules and roles to prevent missing module errors
 mock_modules:
-  - community.general.system.timezone
-  - community.general.system.locale_gen
+  - community.general.timezone
+  - community.general.locale_gen
   - community.general.npm
   - community.general.pacman
   - community.general.homebrew

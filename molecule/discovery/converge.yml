@@ -3,8 +3,6 @@
 - name: Test infrastructure discovery
   hosts: discovery_targets
   gather_facts: true
-  collections:
-    - wolskinet.infrastructure
 
   tasks:
     - name: Create discovery output directory

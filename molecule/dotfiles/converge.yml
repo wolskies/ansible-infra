@@ -3,8 +3,6 @@
 - name: Test dotfiles role deployment scenarios
   hosts: all
   gather_facts: true
-  collections:
-    - wolskinet.infrastructure
 
   vars:
     # Test users for different dotfiles scenarios
@@ -55,7 +53,7 @@
         dotfiles_uses_stow: "{{ item.dotfiles_uses_stow }}"
         dotfiles_stow_packages: "{{ item.dotfiles_stow_packages | default([]) }}"
       loop: "{{ test_users }}"
-      ignore_errors: true  # Don't fail test if repositories are unavailable
+      failed_when: false  # Don't fail test if repositories are unavailable
 
   post_tasks:
     - name: Display test completion
