@@ -13,9 +13,9 @@
   ansible.builtin.set_fact:
     regular_users: "{{ regular_users | default([]) + [item] }}"
   loop: "{{ ansible_facts.getent_passwd | dict2items }}"
-  when: 
+  when:
     - ansible_facts.getent_passwd is defined
-    - item.value[1] | int >= 1000 
+    - item.value[1] | int >= 1000
     - item.value[1] | int < 60000
 
 - name: Check for dotfiles directories

@@ -4,9 +4,15 @@
   hosts: discovery_targets
   gather_facts: false
   tasks:
+    - name: Set expected output paths (same logic as discovery role)
+      ansible.builtin.set_fact:
+        expected_host_vars_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}"
+        expected_host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.yml"
+      delegate_to: localhost
+
     - name: Check for host vars file
       ansible.builtin.stat:
-        path: "/home/ed/.ansible/tmp/molecule.n-wI.discovery/inventory/host_vars/{{ inventory_hostname }}/vars.yml"
+        path: "{{ expected_host_vars_file }}"
       register: host_vars_file
       delegate_to: localhost
 
@@ -14,11 +20,11 @@
       ansible.builtin.assert:
         that:
           - host_vars_file.stat.exists
-        fail_msg: "Host vars file not created"
+        fail_msg: "Host vars file not created at {{ expected_host_vars_file }}"
 
     - name: Read generated host vars file
       ansible.builtin.slurp:
-        src: "/home/ed/.ansible/tmp/molecule.n-wI.discovery/inventory/host_vars/{{ inventory_hostname }}/vars.yml"
+        src: "{{ expected_host_vars_file }}"
       register: host_vars_content
       delegate_to: localhost
 
