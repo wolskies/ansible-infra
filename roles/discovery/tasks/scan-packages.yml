@@ -1,133 +1,99 @@
 ---
-# Aggressive package filtering - only keep likely user-installed packages
+# Smart package filtering using native package manager knowledge
 
 - name: Get package facts
   ansible.builtin.package_facts:
     manager: auto
 
-- name: Filter to user-installed packages only
+# Use the package manager's own knowledge of base system packages
+- name: Get user-installed packages (Arch Linux)
+  ansible.builtin.shell: |
+    comm -23 <(pacman -Qqe | sort) <(pacman -Qqg base | sort)
+  register: arch_user_packages
+  become: true
+  when: ansible_distribution == "Archlinux"
+  changed_when: false
+
+- name: Get user-installed packages (Ubuntu/Debian)
+  ansible.builtin.shell: |
+    apt-mark showmanual | sort
+  register: ubuntu_user_packages
+  become: true
+  when: ansible_distribution in ["Ubuntu", "Debian"]
+  changed_when: false
+
+- name: Set user-installed packages list
+  ansible.builtin.set_fact:
+    user_explicit_packages: "{{ arch_user_packages.stdout_lines if ansible_distribution == 'Archlinux' else ubuntu_user_packages.stdout_lines | default([]) }}"
+  when: ansible_distribution in ["Archlinux", "Ubuntu", "Debian"]
+
+# Filter out additional system categories we don't want to manage
+- name: Filter user-installed packages
+  ansible.builtin.set_fact:
+    "host_packages_install_{{ ansible_distribution }}": "{{ filtered_user_packages }}"
+  vars:
+    # Additional patterns to filter out even from user-installed packages
+    system_categories:
+      # Common system packages across distros
+      - '^base$'           # base group itself
+      - '^base-devel$'     # development tools group  
+      - '^linux$'          # kernel (managed separately)
+      - '^linux-firmware$' # firmware (managed separately)  
+      - '^linux-headers$'  # kernel headers (managed separately)
+      - '^nvidia-'         # NVIDIA drivers (hardware specific)
+      - '^amd-'            # AMD drivers (hardware specific)
+      - '^cuda'            # CUDA (hardware specific)
+      
+      # Desktop environment meta-packages (user can add individual components)
+      - '^plasma-meta$'    # KDE meta package
+      - '^plasma-workspace$' # KDE workspace
+      - '^ubuntu-desktop'  # Ubuntu desktop meta-package
+      - '^ubuntu-minimal'  # Ubuntu minimal meta-package
+      
+      # Audio system (managed by dedicated roles)
+      - '^pipewire$'       # audio system
+      - '^pipewire-'       # audio system components
+      - '^wireplumber$'    # audio session manager
+      - '^pulseaudio$'     # audio system
+      
+      # Package manager tools (system level)
+      - '^apt$'            # package manager itself
+      - '^dpkg$'           # package system
+      - '^snapd$'          # snap package system
+    filtered_user_packages: >-
+      {{
+        user_explicit_packages |
+        reject('regex', system_categories | join('|')) |
+        list
+      }}
+  when: ansible_distribution in ["Archlinux", "Ubuntu", "Debian"]
+
+# Fallback for non-Arch systems - use the old pattern-based filtering but simplified
+- name: Filter packages for other distributions
   ansible.builtin.set_fact:
     "host_packages_install_{{ ansible_distribution }}": "{{ filtered_packages }}"
   vars:
-    # Very aggressive filtering - only keep obvious user applications
+    # Simplified patterns for other distros
     system_package_patterns:
-      # System/core packages
       - '^lib'          # Most libraries
-      - '^systemd'      # systemd components
+      - '^systemd'      # systemd components  
       - '^kernel'       # kernel packages
       - '^linux-'       # linux kernel packages
       - '^glibc'        # core system libs
       - '^gcc'          # compiler internals
-      - '^base'         # base system (Arch)
-      - '^filesystem'   # core filesystem
-      - '^tzdata'       # timezone data
-      - '^ca-certificates' # certificates
-      - '^coreutils'    # basic utilities
-      - '^util-linux'   # basic utilities
-      - '^procps'       # process utilities
-
-      # Package suffixes
+      - '^apt'          # package manager
+      - '^dpkg'         # package system
+      - '^bash$'        # system shell
+      - '^dash$'        # system shell
+      - '^python3$'     # base python
+      - '^python3\.'    # python versions
       - '-dev$'         # development packages
       - '-dbg$'         # debug packages
       - '-doc$'         # documentation
-      - '-docs$'        # documentation
-      - '-headers$'     # header files
-      - '-devel$'       # development files
-      - '-static$'      # static libraries
-      - '-common$'      # common files
-      - '-data$'        # data files
-      - '-tools$'       # Often system tools
-
-      # Arch Linux specific system packages
-      - '^arch'         # arch-specific packages
-      - '^pacman'       # package manager
-      - '^makepkg'      # build tools
-      - '^archlinux'    # arch branding
-      - '^hwdata'       # hardware data
-      - '^kbd'          # keyboard data
-      - '^kmod'         # kernel modules
-      - '^which'        # basic utilities
-      - '^findutils'    # basic utilities
-      - '^gawk'         # text processing
-      - '^grep'         # text processing
-      - '^sed'          # text processing
-      - '^tar'          # compression
-      - '^gzip'         # compression
-      - '^xz'           # compression
-      - '^bzip2'        # compression
-      - '^zlib'         # compression library
-      - '^ncurses'      # terminal library
-      - '^readline'     # input library
-      - '^openssl'      # crypto library
-      - '^curl'         # unless user explicitly wants it
-      - '^wget'         # unless user explicitly wants it
-      - '^shadow'       # user management
-      - '^pam'          # authentication
-      - '^dbus'         # system messaging
-      - '^udev'         # device management
-      - '^iana'         # standards data
-      - '^mime'         # mime data
-      - '^shared-mime'  # mime data
-
-      # Desktop environment internals
-      - '^gdk'          # graphics toolkit
-      - '^gtk'          # graphics toolkit internals
-      - '^qt'           # Qt internals
-      - '^cairo'        # graphics library
-      - '^pango'        # text rendering
-      - '^fontconfig'   # font system
-      - '^freetype'     # font rendering
-      - '^harfbuzz'     # text shaping
-      - '^pixman'       # graphics
-      - '^mesa'         # graphics drivers
-      - '^wayland'      # display protocol internals
-      - '^xorg'         # X11 internals
-      - '^libx'         # X11 libraries
-      - '^libdrm'       # graphics
-
-      # Network/system internals
-      - '^iptables'     # firewall (managed separately)
-      - '^iproute'      # network tools
-      - '^dhcp'         # network
-      - '^net-tools'    # network utilities
-      - '^wireless'     # wifi utilities
-
-      # Additional system packages that should be filtered
-      - '^apt'          # package manager
-      - '^dpkg'         # package system
-      - '^debconf'      # debian config
-      - '^debianutils'  # debian utilities
-      - '^bash'         # system shell
-      - '^dash'         # system shell
-      - '^login'        # login system
-      - '^passwd'       # user system
-      - '^sudo'         # privilege escalation
-      - '^mount'        # filesystem tools
-      - '^hostname'     # system utilities
-      - '^sysvinit'     # init system
-      - '^init-system'  # init helpers
-      - '^lsb-'         # distro info
-      - '^ubuntu-'      # distro specific
-      - '^debian-'      # distro specific
-      - '^perl'         # unless explicitly needed
-      - '^python3$'     # base python (keep python3-something)
-      - '^python3\.'    # specific python versions
-      - '^python3-minimal' # minimal python
-      - '^mawk'         # text processing
-      - '^diffutils'    # diff tools
-      - '^bsdutils'     # utilities
-      - '^e2fsprogs'    # filesystem tools
-      - '^gpgv'         # crypto verification
-      - '^iso-codes'    # locale data
-      - '^logsave'      # logging utilities
-      - '^media-types'  # mime data
-      - '^netbase'      # network data
-      - '^sensible-utils' # utilities
-      - '^unminimize'   # system setup
-      - 'keyring$'      # key management
     filtered_packages: >-
       {{
         ansible_facts.packages.keys() |
         reject('regex', system_package_patterns | join('|')) |
         list | sort
       }}
+  when: ansible_distribution != "Archlinux"

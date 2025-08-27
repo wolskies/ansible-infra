@@ -73,7 +73,10 @@ lint-collection:
 validate-galaxy:
   stage: validate
   image: python:3.11-slim
-  <<: *base-setup
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip make
+    - pip3 install --cache-dir .pip-cache/ ansible
+    - ansible --version
   script:
     - echo "Validating galaxy.yml..."
     - ansible-galaxy collection build . --force
