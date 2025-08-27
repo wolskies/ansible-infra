@@ -5,22 +5,9 @@
   gather_facts: true
 
   tasks:
-    - name: Create discovery output directory
-      ansible.builtin.file:
-        path: "{{ discovery_output_path }}"
-        state: directory
-        mode: '0755'
-      delegate_to: localhost
-
     - name: Run infrastructure discovery role
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.discovery
-      vars:
-        discovery:
-          output_dir: "{{ discovery_output_path }}"
-          generate_configs: true
-          include_sensitive: false
-          timeout: 120
 
     - name: Display discovery completion
       ansible.builtin.debug:
