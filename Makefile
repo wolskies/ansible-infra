@@ -60,13 +60,11 @@ test: ## Run all molecule tests
 
 .PHONY: test-discovery
 test-discovery: ## Run molecule tests for discovery role
-	cd molecule/discovery && molecule test
+	molecule test -s discovery
 
 # Note: test-basic removed - basic_setup role has been split into configure_host, manage_packages, manage_users
 
-.PHONY: test-container
-test-container: ## Run molecule tests for container_platform role
-	cd molecule/container_platform && molecule test
+# Note: test-container removed - container_platform role not implemented yet
 
 .PHONY: test-quick
 test-quick: lint syntax-check ## Quick validation (lint + syntax check)

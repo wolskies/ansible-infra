@@ -42,37 +42,54 @@
     - discovery
     - setup
 
-# Run all discovery tasks
-- name: Discover system information
+# Discovery tasks organized by role execution order:
+# 1. configure_host -> 2. manage_packages -> 3. manage_users ->
+# 4. manage_firewall -> 5. dotfiles -> 6. manage_language_packages -> 7. manage_system_settings
+
+- name: "Step 1-7: Discover system information (configure_host + manage_system_settings)"
   ansible.builtin.include_tasks: scan-system.yml
   tags:
     - discovery
+    - configure_host
+    - manage_system_settings
     - system
 
-- name: Discover packages and repositories
+- name: "Step 2: Discover packages and repositories (manage_packages)"
   ansible.builtin.include_tasks: scan-packages.yml
   tags:
     - discovery
+    - manage_packages
     - packages
 
-- name: Discover services and security configurations
+- name: "Step 3+5: Discover users and dotfiles (manage_users + dotfiles)"
+  ansible.builtin.include_tasks: scan-users.yml
+  tags:
+    - discovery
+    - manage_users
+    - dotfiles
+    - users
+
+- name: "Step 4: Discover firewall and security (manage_firewall)"
   ansible.builtin.include_tasks: scan-services.yml
   tags:
     - discovery
+    - manage_firewall
     - services
     - security
 
-- name: Discover Docker environment
+- name: "Step 6: Discover language packages (manage_language_packages)"
+  ansible.builtin.include_tasks: scan-third-party-packages.yml
+  tags:
+    - discovery
+    - manage_language_packages
+    - third-party
+    - languages
+
+- name: "Additional: Discover Docker environment"
   ansible.builtin.include_tasks: scan-docker.yml
   tags:
     - discovery
     - docker
-
-- name: Discover user environment
-  ansible.builtin.include_tasks: scan-users.yml
-  tags:
-    - discovery
-    - users
 
 - name: Process discovery data
   ansible.builtin.include_tasks: process-data.yml

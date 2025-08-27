@@ -95,24 +95,6 @@ validate-templates:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 # Role Testing Stage - Test individual molecule scenarios
-test-default:
-  stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-  <<: *base-setup
-  script:
-    - echo "Testing default integration scenario..."
-    - cd molecule/default && molecule test
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  retry:
-    max: 2
-    when: runner_system_failure
 
 test-configure-host:
   stage: test-roles
@@ -125,7 +107,7 @@ test-configure-host:
   <<: *base-setup
   script:
     - echo "Testing configure_host role..."
-    - cd molecule/configure_host && molecule test
+    - molecule test -s configure_host
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -144,7 +126,7 @@ test-manage-packages:
   <<: *base-setup
   script:
     - echo "Testing manage_packages role..."
-    - cd molecule/manage_packages && molecule test
+    - molecule test -s manage_packages
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -163,7 +145,7 @@ test-manage-users:
   <<: *base-setup
   script:
     - echo "Testing manage_users role..."
-    - cd molecule/manage_users && molecule test
+    - molecule test -s manage_users
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -182,7 +164,7 @@ test-manage-firewall:
   <<: *base-setup
   script:
     - echo "Testing manage_firewall role..."
-    - cd molecule/manage_firewall && molecule test
+    - molecule test -s manage_firewall
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -201,7 +183,7 @@ test-manage-language-packages:
   <<: *base-setup
   script:
     - echo "Testing manage_language_packages role..."
-    - cd molecule/manage_language_packages && molecule test
+    - molecule test -s manage_language_packages
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -220,7 +202,7 @@ test-manage-system-settings:
   <<: *base-setup
   script:
     - echo "Testing manage_system_settings role..."
-    - cd molecule/manage_system_settings && molecule test
+    - molecule test -s manage_system_settings
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -239,7 +221,7 @@ test-discovery:
   <<: *base-setup
   script:
     - echo "Testing discovery role..."
-    - cd molecule/discovery && molecule test
+    - molecule test -s discovery
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -258,7 +240,7 @@ test-dotfiles:
   <<: *base-setup
   script:
     - echo "Testing dotfiles role..."
-    - cd molecule/dotfiles && molecule test
+    - molecule test -s dotfiles
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -278,9 +260,8 @@ test-collection-integration:
   <<: *base-setup
   script:
     - echo "Running full collection integration tests..."
-    - cd molecule/default && molecule test
+    - molecule test -s default
   needs:
-    - test-default
     - test-configure-host
     - test-manage-packages
     - test-manage-users
@@ -403,7 +384,7 @@ performance-test:
   <<: *base-setup
   script:
     - echo "Running performance tests..."
-    - time (cd molecule/default && molecule test)
+    - time molecule test -s default
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   allow_failure: true
@@ -424,7 +405,7 @@ test-ubuntu-discovery:
   <<: *os-matrix-test
   script:
     - echo "Testing discovery on Ubuntu 24.04..."
-    - cd molecule/discovery && molecule test
+    - molecule test -s discovery
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
@@ -434,7 +415,7 @@ test-debian-discovery:
   <<: *os-matrix-test
   script:
     - echo "Testing discovery on Debian 12..."
-    - cd molecule/discovery && molecule test
+    - molecule test -s discovery
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
@@ -444,7 +425,7 @@ test-cross-os-compatibility:
   <<: *os-matrix-test
   script:
     - echo "Testing cross-OS compatibility..."
-    - cd molecule/default && molecule test --parallel
+    - molecule test -s default --parallel
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
@@ -463,10 +444,10 @@ test-e2e-workflow:
   script:
     - echo "Running end-to-end workflow test..."
     - echo "1. Discovery -> 2. Configuration Generation -> 3. Infrastructure Setup"
-    - cd molecule/default && molecule test
+    - molecule test -s default
     - echo "Testing discovery-to-deployment pipeline..."
-    - cd ../discovery && molecule converge
-    - cd ../discovery && molecule verify
+    - molecule converge -s discovery
+    - molecule verify -s discovery
   needs:
     - test-collection-integration
   rules:
