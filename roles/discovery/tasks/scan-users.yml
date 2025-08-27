@@ -11,16 +11,12 @@
 
 - name: Filter regular users (UID 1000-59999)
   ansible.builtin.set_fact:
-    regular_users: >-
-      {{
-        ansible_facts.getent_passwd | dict2items |
-        selectattr('value') |
-        rejectattr('value.1', 'match', '^[^0-9]') |
-        selectattr('value.1', 'int', '>=', 1000) |
-        selectattr('value.1', 'int', '<', 60000) |
-        list
-      }}
-  when: ansible_facts.getent_passwd is defined
+    regular_users: "{{ regular_users | default([]) + [item] }}"
+  loop: "{{ ansible_facts.getent_passwd | dict2items }}"
+  when: 
+    - ansible_facts.getent_passwd is defined
+    - item.value[1] | int >= 1000 
+    - item.value[1] | int < 60000
 
 - name: Check for dotfiles directories
   ansible.builtin.stat:

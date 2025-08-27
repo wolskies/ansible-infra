@@ -9,11 +9,8 @@ platforms:
   - name: ubuntu-discovery
     image: ubuntu:24.04
     pre_build_image: false
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    privileged: false
+    command: "sleep infinity"
     groups:
       - discovery_targets
 

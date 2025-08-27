@@ -6,7 +6,7 @@
   tasks:
     - name: Check for host vars file
       ansible.builtin.stat:
-        path: "inventory/host_vars/{{ inventory_hostname }}/vars.yml"
+        path: "/home/ed/.ansible/tmp/molecule.n-wI.discovery/inventory/host_vars/{{ inventory_hostname }}/vars.yml"
       register: host_vars_file
       delegate_to: localhost
 
@@ -18,7 +18,7 @@
 
     - name: Read generated host vars file
       ansible.builtin.slurp:
-        src: "inventory/host_vars/{{ inventory_hostname }}/vars.yml"
+        src: "/home/ed/.ansible/tmp/molecule.n-wI.discovery/inventory/host_vars/{{ inventory_hostname }}/vars.yml"
       register: host_vars_content
       delegate_to: localhost
 
