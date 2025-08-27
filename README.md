@@ -87,7 +87,7 @@ Hardware and performance optimization:
 
 ### **manage_language_packages** - Language Ecosystems
 Language ecosystem package management with dependency checking:
-- **Python**: pip packages with virtualenv support
+- **Python**: uv package management with user/global/project methods
 - **Node.js**: npm global package management
 - **Rust**: cargo package installation with rustup
 - **Go**: go module installation
