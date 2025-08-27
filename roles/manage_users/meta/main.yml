@@ -1,0 +1,33 @@
+---
+galaxy_info:
+  author: Ed Wolski
+  description: Manage system users, groups, and dotfiles deployment
+  company: wolskinet
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+    - name: Darwin
+      versions:
+        - all
+
+  galaxy_tags:
+    - users
+    - system
+    - usermanagement
+    - groups
+    - dotfiles
+    - security
+
+dependencies:
+  - role: wolskinet.infrastructure.dotfiles
+    when: install_dotfiles_support | default(false)

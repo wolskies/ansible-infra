@@ -1,0 +1,53 @@
+---
+# manage_firewall role defaults
+# Independent firewall and fail2ban management across operating systems
+
+# Core firewall features
+firewall_enable: true              # Enable firewall management
+firewall_enable_fail2ban: false    # Install and configure fail2ban
+
+# Firewall configuration
+firewall_type: "auto"              # auto, ufw, firewalld, iptables
+firewall_manage_ports: true        # Whether to manage firewall ports
+firewall_reset_to_defaults: false  # Reset firewall before applying rules
+firewall_default_policy: "deny"    # Default policy for incoming connections
+firewall_logging: false            # Enable firewall logging
+firewall_docker_integration: false # Let Docker manage its iptables rules
+
+# Simple port lists (strings)
+firewall_allowed_ports: []         # List of ports to allow (e.g., ["80", "443"])
+firewall_allowed_services: []      # List of service names (e.g., ["http", "https"])
+                                    # Note: SSH is always allowed automatically to prevent lockout
+
+# Advanced port configuration
+firewall_custom_rules: []          # Complex rules with source restrictions
+# Example:
+# firewall_custom_rules:
+#   - port: 3306
+#     protocol: tcp
+#     source: "10.0.1.0/24"
+#     comment: "MySQL from app subnet"
+#   - port: 6379
+#     protocol: tcp
+#     source: "192.168.1.0/24"
+#     comment: "Redis from local network"
+
+# Fail2ban configuration
+firewall_fail2ban_services:
+  - name: sshd
+    enabled: true
+    maxretry: 5
+    bantime: 3600                  # 1 hour
+    findtime: 600                  # 10 minutes
+
+firewall_fail2ban_ignoreips:
+  - "127.0.0.1/8"
+  - "::1"
+
+# OS-specific tool preferences
+firewall_tool_preference:
+  Ubuntu: "ufw"
+  Debian: "ufw"
+  Archlinux: "ufw"                 # UFW is commonly used on Arch as iptables frontend
+  Darwin: "macos_alf"              # macOS Application Layer Firewall
+

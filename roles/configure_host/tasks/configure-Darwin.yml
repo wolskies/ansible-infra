@@ -1,0 +1,82 @@
+---
+# macOS (Darwin) host configuration tasks
+# Platform-unique features only - common tasks handled in main.yml
+
+# macOS Xcode Command Line Tools
+- name: Check if Xcode Command Line Tools are installed
+  ansible.builtin.stat:
+    path: /Library/Developer/CommandLineTools
+  register: xcode_cli_tools
+  when: config_macos_install_xcode_tools | default(true)
+  tags:
+    - macos
+    - xcode
+    - development
+
+- name: Install Xcode Command Line Tools
+  ansible.builtin.command: xcode-select --install
+  become: true
+  when:
+    - macos_install_xcode_tools | default(true)
+    - not xcode_cli_tools.stat.exists
+  ignore_errors: true  # User might need to interact with GUI
+  tags:
+    - macos
+    - xcode
+    - development
+
+# macOS System Preferences
+- name: Configure macOS Dock
+  block:
+    - name: Set Dock size
+      community.general.osx_defaults:
+        domain: com.apple.dock
+        key: tilesize
+        type: int
+        value: "{{ config_macos_dock_tile_size }}"
+
+    - name: Set Dock position
+      community.general.osx_defaults:
+        domain: com.apple.dock
+        key: orientation
+        type: string
+        value: "{{ config_macos_dock_position }}"
+
+    - name: Restart Dock to apply changes
+      ansible.builtin.command: killall Dock
+      changed_when: false
+
+  when: config_macos_configure_dock | default(true)
+  tags:
+    - macos
+    - dock
+    - preferences
+
+# macOS Firewall configuration
+- name: Enable macOS firewall
+  ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+  become: true
+  when:
+    - configure_firewall | default(true)
+    - enable_firewall | default(true)
+  changed_when: false
+  tags:
+    - firewall
+    - security
+    - macos
+
+- name: Configure macOS automatic updates
+  community.general.osx_defaults:
+    domain: /Library/Preferences/com.apple.SoftwareUpdate
+    key: "{{ item.key }}"
+    type: bool
+    value: "{{ item.value }}"
+  loop:
+    - { key: "AutomaticCheckEnabled", value: "{{ not config_macos_disable_auto_updates | default(false) }}" }
+    - { key: "AutomaticDownload", value: "{{ not config_macos_disable_auto_updates | default(false) }}" }
+  become: true
+  when: config_macos_configure_system | default(true)
+  tags:
+    - macos
+    - updates
+    - system

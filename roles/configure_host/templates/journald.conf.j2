@@ -1,0 +1,27 @@
+# {{ ansible_managed }}
+# systemd-journald configuration
+
+[Journal]
+# Storage settings
+Storage=persistent
+
+# Size limits
+SystemMaxUse={{ config_journal_max_size }}
+RuntimeMaxUse={{ config_journal_max_size }}
+
+# Retention settings
+MaxRetentionSec={{ config_journal_max_retention }}
+
+# Compression
+Compress=yes
+
+# Rate limiting
+RateLimitInterval=30s
+RateLimitBurst=1000
+
+# Additional journal settings
+ForwardToSyslog=no
+ForwardToKMsg=no
+ForwardToConsole=no
+MaxLevelStore=info
+MaxLevelSyslog=info

@@ -79,8 +79,8 @@ group_third_party_packages:
   - discord            # Discord (requires Discord repository)
   - spotify-client     # Spotify (requires Spotify repository)
 
-# AUR packages for Arch Linux workstations (handled by basic_setup role)
-group_aur_packages:
+# AUR packages for Arch Linux workstations (handled by manage_packages role)
+packages_aur_packages:
   - visual-studio-code-bin  # VS Code from AUR
   - discord                 # Discord from AUR
   - spotify                 # Spotify from AUR

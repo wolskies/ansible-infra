@@ -65,13 +65,15 @@ provisioner:
         dotfiles_repository_url: 'https://github.com/test/dotfiles.git'
       servers:
         group_roles_install:
-          - basic_setup
-          - maintenance
-        enable_firewall: false  # Don't enable firewall in tests
+          - configure_host
+          - manage_packages
+          - manage_users
+        firewall_enable: false  # Don't enable firewall in tests
       docker_hosts:
         group_roles_install:
-          - basic_setup
-          - maintenance
+          - configure_host
+          - manage_packages
+          - manage_users
           - container_platform
         docker_services_deploy:
           - portainer
@@ -83,8 +85,9 @@ provisioner:
             driver: "bridge"
       workstations:
         group_roles_install:
-          - basic_setup
-          - maintenance
+          - configure_host
+          - manage_packages
+          - manage_users
           - dotfiles
         install_dotfiles: false  # Don't actually clone in tests
   config_options:

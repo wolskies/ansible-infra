@@ -1,0 +1,28 @@
+---
+# Language ecosystem package management
+# Handles npm, pip, cargo, go modules with dependency checking
+
+# Python packages (pip)
+language_python_packages: []
+language_python_install_method: "user"  # user, global, virtualenv
+language_python_virtualenv_path: "{{ ansible_env.HOME }}/.local/venv"
+
+# Node.js packages (npm)
+language_nodejs_packages: []
+language_nodejs_install_global: true
+
+# Rust packages (cargo install)
+language_rust_packages: []
+
+# Go packages (go install)
+language_go_packages: []
+
+# Feature toggles
+language_python_enable: true
+language_nodejs_enable: true
+language_rust_enable: false    # Requires Rust toolchain
+language_go_enable: false      # Requires Go toolchain
+
+# Dependency checking
+language_check_dependencies: true      # Check for required tools before installing packages
+language_install_missing_tools: true   # Install missing language tools via system package manager

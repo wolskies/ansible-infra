@@ -62,9 +62,7 @@ test: ## Run all molecule tests
 test-discovery: ## Run molecule tests for discovery role
 	cd molecule/discovery && molecule test
 
-.PHONY: test-basic
-test-basic: ## Run molecule tests for basic_setup role
-	cd molecule/basic_setup && molecule test
+# Note: test-basic removed - basic_setup role has been split into configure_host, manage_packages, manage_users
 
 .PHONY: test-container
 test-container: ## Run molecule tests for container_platform role

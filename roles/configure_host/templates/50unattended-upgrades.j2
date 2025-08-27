@@ -1,0 +1,37 @@
+// {{ ansible_managed }}
+// Unattended Upgrades Configuration
+// Configured by wolskinet.infrastructure.configure_host
+
+Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+        "${distro_id}ESMApps:${distro_codename}-apps-security";
+        "${distro_id}ESM:${distro_codename}-infra-security";
+{% if enable_system_updates | default(true) %}
+        "${distro_id}:${distro_codename}-updates";
+{% endif %}
+};
+
+// Automatically upgrade packages from these origins
+Unattended-Upgrade::Package-Blacklist {
+};
+
+// Automatically reboot if required
+Unattended-Upgrade::Automatic-Reboot "false";
+
+// Automatically reboot at specific time
+Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+
+// Send email to this address for problems or packages upgrades
+Unattended-Upgrade::Mail "";
+
+// Remove unused kernel packages when safe
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+
+// Automatically remove unused dependencies
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+// Automatically reboot even if users are logged in
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+
+// Keep debs after install
+Unattended-Upgrade::Keep-Debs-After-Install "false";

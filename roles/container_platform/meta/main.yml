@@ -32,5 +32,9 @@ dependencies:
       docker_service_manage: true
       docker_service_state: started
       docker_service_enabled: true
-  - role: wolskinet.infrastructure.basic_setup
-    when: container_platform_require_basic_setup | default(true)
+  - role: wolskinet.infrastructure.configure_host
+    when: container_platform_require_host_config | default(false)
+  - role: wolskinet.infrastructure.manage_packages
+    when: container_platform_require_packages | default(false)
+  - role: wolskinet.infrastructure.manage_users
+    when: container_platform_require_users | default(false)

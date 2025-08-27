@@ -1,15 +1,5 @@
 ---
 # Server Setup Example
-# Clean architecture: devsec.hardening → basic_setup → third_party_packages → dotfiles
-#
-# This playbook demonstrates the recommended flow for setting up hardened servers
-# with security hardening as the first step, followed by system packages and services.
-#
-# VARIABLE HIERARCHY (packages are merged, others follow precedence):
-# 1. all.yml (global defaults) - minimal universal settings
-# 2. group_vars/servers/server.yml (group defaults) - security and server packages
-# 3. host_vars/ (machine-specific) - discovery output and unique packages
-# 4. playbook vars: (runtime overrides) - deployment-specific settings
 
 - name: Setup Hardened Server
   hosts: all
@@ -22,8 +12,6 @@
 
   vars_files:
     - all.yml  # Global defaults (group_vars/all/all.yml)
-    # Note: Server group variables would be in group_vars/servers/server.yml
-    # Note: host_vars/ files are loaded automatically by Ansible
 
   # Example: Server-specific runtime overrides
   vars:
@@ -74,11 +62,23 @@
         - ssh-hardening
 
     # 2. Core system setup with standard OS packages
-    - name: wolskinet.infrastructure.basic_setup
+    - name: wolskinet.infrastructure.configure_host
+      tags:
+        - basic
+        - system
+        - configuration
+
+    - name: wolskinet.infrastructure.manage_packages
       tags:
         - basic
         - system
         - packages
+
+    - name: wolskinet.infrastructure.manage_users
+      tags:
+        - basic
+        - system
+        - users
 
     # 3. Third-party packages (repositories, docker, pip, npm)
     - name: wolskinet.infrastructure.third_party_packages

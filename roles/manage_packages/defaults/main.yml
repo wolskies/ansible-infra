@@ -1,0 +1,73 @@
+---
+# manage_packages role defaults - System package management
+# Supports hierarchical package configuration and multi-OS package managers
+# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+
+# =============================================================================
+# PACKAGE MANAGEMENT SETTINGS
+# =============================================================================
+
+# Cache management
+packages_update_cache: true            # Update package cache before operations
+packages_cache_valid_time: 3600        # APT cache validity time in seconds
+
+# System updates
+packages_perform_system_upgrade: false # Perform full system upgrade
+packages_upgrade_type: safe            # safe, full, or dist (APT only)
+
+
+# =============================================================================
+# REPOSITORY AND PACKAGE MANAGER VARIABLES
+# =============================================================================
+
+# APT repositories and keys (Ubuntu/Debian)
+packages_apt_repositories: []          # List of APT repositories to add
+packages_apt_keys: []                  # List of APT GPG key URLs
+
+# Homebrew taps (macOS)
+packages_homebrew_taps: []             # List of Homebrew taps to add
+
+# AUR packages (Arch Linux)
+packages_aur_packages: []              # List of AUR packages to install via paru
+
+# Homebrew casks (macOS)
+packages_homebrew_casks: []            # List of Homebrew casks to install
+packages_homebrew_casks_remove: []     # List of Homebrew casks to remove
+
+# =============================================================================
+# HIERARCHICAL PACKAGE VARIABLES
+# =============================================================================
+
+# This role allows packages to be aggregated from the all, group, and host levels
+# while respecting Ansible's built-in variable precedence. In order for the
+# functionality to work, package variables must be prepended by the level at
+# which they are defined in the inventory (all_, group_, host_).
+#
+# Package lists are merged in this order: all_ + group_ + host_
+# Define them in your inventory structure:
+#
+# group_vars/all/packages.yml:
+#   all_packages_install_Ubuntu: [curl, wget, git]
+#   all_packages_remove_Ubuntu: [snapd]
+#
+# group_vars/servers/packages.yml:
+#   group_packages_install_Ubuntu: [nginx, certbot]
+#   group_packages_remove_Ubuntu: [apache2]
+#
+# host_vars/web-01/packages.yml:
+#   host_packages_install_Ubuntu: [redis-server]
+#   host_packages_remove_Ubuntu: [mysql-server]
+#
+# Supported distributions: Ubuntu, Debian, Archlinux, Darwin (macOS)
+# Variables follow the pattern: {level}_packages_{action}_{Distribution}
+#
+# Note: Do not define these variables in this defaults file as they will
+# apply to ALL machines. Always define them in the appropriate inventory
+# level (group_vars/all, group_vars/{group}, host_vars/{host}).
+
+
+# =============================================================================
+# MACOS SPECIFIC SETTINGS
+# =============================================================================
+
+packages_macos_update_homebrew: true   # Update Homebrew before installing

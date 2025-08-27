@@ -6,7 +6,7 @@ Cross-platform infrastructure automation collection with discovery-driven deploy
 
 ### Group-Based Configuration
 Machines are configured through inventory group membership with role combinations:
-- **`servers`**: Security hardening + basic setup + system maintenance  
+- **`servers`**: Security hardening + basic setup + system packages  
 - **`docker_hosts`**: Server features + Docker installation + container services
 - **`workstations`**: Basic setup + dotfiles + desktop configurations + shell enhancements
 - **Custom groups**: User-defined role combinations
@@ -25,12 +25,32 @@ Supported distributions: `Ubuntu`, `Debian`, `Archlinux`, `MacOSX`
 
 ## Core Roles
 
-### **basic_setup** - System Foundation
-Essential system configuration and package management:
-- **System Config**: Locale, timezone, firewall installation
-- **Package Management**: Hierarchical variable merging with conditional injection
-- **User Management**: Account creation with dotfiles integration  
-- **Platform Features**: Ubuntu snap removal, Arch mirror optimization, macOS system preferences
+### **basic_setup** - System Foundation (Meta Role)
+Coordinates foundational setup by delegating to specialized roles:
+- **configure_host**: System configuration (timezone, locale, firewall, repositories)
+- **manage_system_packages**: Hierarchical package management with OS-specific support
+- **manage_users**: User and group management with optional dotfiles integration
+
+### **configure_host** - System Configuration
+Host-level system configuration and settings:
+- **System Config**: Locale, timezone settings
+- **Firewall Setup**: UFW/firewalld installation and basic configuration
+- **Repository Management**: Additional APT sources and GPG keys
+- **Platform Features**: Ubuntu snap removal, Arch mirror optimization, macOS preferences
+
+### **manage_system_packages** - Package Management  
+Advanced hierarchical package management:
+- **Variable Merging**: all_ + group_ + host_ package lists
+- **Conditional Packages**: Shell enhancements, dotfiles support
+- **Multi-OS Support**: APT, Pacman, Homebrew package managers
+- **System Updates**: Configurable package upgrades via manage_packages role
+
+### **manage_users** - User Management
+User and group administration:
+- **User Creation**: With UID, shell, groups, password management
+- **Group Management**: Create and remove system groups  
+- **Dotfiles Integration**: Automatic deployment for users with repositories
+- **Multi-Platform**: Linux and macOS user management
 
 ### **discovery** - Infrastructure Scanning
 Automated discovery and inventory generation:
@@ -51,17 +71,13 @@ Automated dotfiles deployment with conflict resolution:
 - **Conflict Resolution**: Intelligent backup of existing files
 - **Multi-User Support**: Integration with basic_setup for per-user deployment
 
-### **system_security** - Security Configuration
-Firewall configuration and intrusion prevention:
+### **manage_firewall** - Firewall and Security Configuration
+Independent firewall configuration and intrusion prevention:
 - **Firewall Management**: UFW (Ubuntu/Debian), firewalld (Arch), macOS firewall
 - **Fail2ban Integration**: Intrusion detection and prevention
 - **Rule Management**: Port-based and custom firewall rules
+- **Standalone Operation**: No dependencies on other roles
 
-### **maintenance** - System Maintenance
-Automated system updates and cleanup:
-- **Update Management**: Configurable automatic updates
-- **System Cleanup**: Package cache, logs, temporary files
-- **Health Monitoring**: System status and maintenance reporting
 
 ### **system_tuning** - Performance Optimization
 Hardware and performance optimization:
@@ -69,12 +85,13 @@ Hardware and performance optimization:
 - **Media Support**: GPU drivers, codec installation
 - **Hardware Support**: Bluetooth, camera, audio optimizations
 
-### **third_party_tools** - Language Ecosystems
-Non-OS package management for development tools:
+### **manage_language_packages** - Language Ecosystems
+Language ecosystem package management with dependency checking:
 - **Python**: pip packages with virtualenv support
 - **Node.js**: npm global package management
 - **Rust**: cargo package installation with rustup
 - **Go**: go module installation
+- **Dependency Checking**: Automatic installation of missing language tools
 
 ## Installation & Quick Start
 
@@ -139,7 +156,7 @@ group_packages_install_Ubuntu:
   roles:
     - devsec.hardening.os_hardening
     - devsec.hardening.ssh_hardening  
-    - wolskinet.infrastructure.system_security
+    - wolskinet.infrastructure.manage_firewall
 ```
 
 ## Discovery-Driven Deployment
@@ -256,7 +273,7 @@ This collection complements the devsec.hardening collection:
     - wolskinet.infrastructure.basic_setup      # Foundation + firewall install
     - devsec.hardening.os_hardening            # OS-level security hardening
     - devsec.hardening.ssh_hardening           # SSH security configuration
-    - wolskinet.infrastructure.system_security  # Firewall rules + fail2ban
+    - wolskinet.infrastructure.manage_firewall  # Firewall rules + fail2ban
 ```
 
 ## Dependencies
