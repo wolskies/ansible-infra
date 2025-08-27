@@ -3,8 +3,6 @@
 - name: Syntax check for discovery role
   hosts: localhost
   gather_facts: false
-  collections:
-    - wolskinet.infrastructure
   tasks:
     - name: Include discovery role
       ansible.builtin.include_role:

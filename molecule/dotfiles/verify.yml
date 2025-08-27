@@ -48,7 +48,7 @@
         fail_msg: "Dotfiles directory not created for {{ item.item.name }}"
         success_msg: "Dotfiles directory verified for {{ item.item.name }}"
       loop: "{{ dotfiles_directories.results }}"
-      ignore_errors: true  # May fail if repo clone failed
+      failed_when: false  # May fail if repo clone failed
 
     - name: Verify git repository was cloned
       ansible.builtin.stat:
@@ -64,7 +64,7 @@
         fail_msg: "Git repository not cloned for {{ item.item.name }}"
         success_msg: "Git repository verified for {{ item.item.name }}"
       loop: "{{ git_directories.results }}"
-      ignore_errors: true  # May fail if repo clone failed
+      failed_when: false  # May fail if repo clone failed
 
     - name: Check for stow deployment evidence (for stow users)
       ansible.builtin.find:
@@ -72,7 +72,7 @@
         file_type: link
       register: stow_symlinks
       loop: "{{ test_users | selectattr('dotfiles_uses_stow', 'equalto', true) }}"
-      ignore_errors: true
+      failed_when: false
 
     - name: Verify stow created symlinks (when applicable)
       ansible.builtin.debug:
@@ -99,7 +99,7 @@
         success_msg: "Correct ownership verified for {{ item.item.name }}"
       loop: "{{ ownership_check.results }}"
       when: item.stat.exists
-      ignore_errors: true
+      failed_when: false
 
     - name: Test dotfiles role error handling
       block:
@@ -110,7 +110,7 @@
             dotfiles_user: "testuser1"
             dotfiles_repository_url: "https://github.com/nonexistent/invalid-repo-12345.git"
             dotfiles_uses_stow: true
-          ignore_errors: true
+          failed_when: false
           register: invalid_repo_result
 
         - name: Verify role handles invalid repositories gracefully

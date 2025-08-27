@@ -11,8 +11,6 @@
 - name: Infrastructure Discovery
   hosts: all
   gather_facts: true
-  collections:
-    - wolskinet.infrastructure
 
   tasks:
     - name: Run infrastructure discovery

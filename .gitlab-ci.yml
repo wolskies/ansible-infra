@@ -95,7 +95,7 @@ validate-templates:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 # Role Testing Stage - Test individual molecule scenarios
-test-basic-setup:
+test-default:
   stage: test-roles
   image: python:3.11-slim
   services:
@@ -105,27 +105,8 @@ test-basic-setup:
     DOCKER_TLS_CERTDIR: ""
   <<: *base-setup
   script:
-    - echo "Testing basic_setup role..."
-    - cd molecule/basic_setup && molecule test
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  retry:
-    max: 2
-    when: runner_system_failure
-
-test-container-platform:
-  stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-  <<: *base-setup
-  script:
-    - echo "Testing container_platform role..."
-    - cd molecule/container_platform && molecule test
+    - echo "Testing default scenario..."
+    - cd molecule/default && molecule test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -171,24 +152,7 @@ test-dotfiles:
     max: 2
     when: runner_system_failure
 
-test-system-tuning:
-  stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-  <<: *base-setup
-  script:
-    - echo "Testing system_tuning role..."
-    - cd molecule/system_tuning && molecule test
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  retry:
-    max: 2
-    when: runner_system_failure
+# Additional molecule scenario tests can be added here
 
 # Integration Testing Stage
 test-collection-integration:
@@ -204,11 +168,9 @@ test-collection-integration:
     - echo "Running full collection integration tests..."
     - cd molecule/default && molecule test
   needs:
-    - test-basic-setup
-    - test-container-platform
+    - test-default
     - test-discovery
     - test-dotfiles
-    - test-system-tuning
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

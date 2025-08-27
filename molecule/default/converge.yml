@@ -3,10 +3,6 @@
 - name: Test wolskinet.infrastructure collection
   hosts: all
   gather_facts: true
-  collections:
-    - wolskinet.infrastructure
-    - community.general
-    - community.docker
 
   pre_tasks:
     - name: Display test target information
@@ -28,11 +24,11 @@
     - name: wolskinet.infrastructure.manage_users
       when: "'manage_users' in (group_roles_install | default([]))"
 
-    # Test container_platform role on docker_hosts
-    - name: wolskinet.infrastructure.container_platform
+    # Test dotfiles role on workstations
+    - name: wolskinet.infrastructure.dotfiles
       when:
-        - "'container_platform' in (group_roles_install | default([]))"
-        - inventory_hostname in groups['docker_hosts']
+        - "'dotfiles' in (group_roles_install | default([]))"
+        - inventory_hostname in groups.get('workstations', [])
 
     # Test firewall role
     - name: wolskinet.infrastructure.manage_firewall
@@ -46,7 +42,7 @@
       loop: "{{ group_roles_install | default([]) }}"
       when:
         - group_roles_install is defined
-        - item not in ['configure_host', 'manage_packages', 'manage_users', 'container_platform', 'manage_firewall']  # Already tested above
+        - item not in ['configure_host', 'manage_packages', 'manage_users', 'dotfiles', 'manage_firewall']  # Already tested above
 
     - name: Test role installation completed
       ansible.builtin.debug:

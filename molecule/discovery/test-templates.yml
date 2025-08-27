@@ -29,7 +29,7 @@
       inventory_dir: "/tmp/test"
       playbooks_dir: "/tmp/test"
       host_vars_dir: "/tmp/test/host_vars/test-host"
-    inventory_hostname: "test-host"
+    test_inventory_hostname: "test-host"
     
   tasks:
     - name: Test current simple_host_vars template rendering

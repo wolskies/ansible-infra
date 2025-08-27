@@ -4,7 +4,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    role_path: "{{ playbook_dir }}/../../roles/discovery"
+    test_role_path: "{{ playbook_dir }}/../../roles/discovery"
   
   tasks:
     - name: Test case 1 - apt_keys as function instead of dict
@@ -17,7 +17,7 @@
                 
         - name: Try to render template with bad keys
           ansible.builtin.template:
-            src: "{{ role_path }}/templates/simple_host_vars.yml.j2"
+            src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
             dest: "/tmp/test-bad-keys.yml"
           vars:
             discovered_repositories: "{{ test_repositories }}"
@@ -29,7 +29,7 @@
             discovered_security: {}
             ansible_distribution: "Ubuntu"
             ansible_distribution_version: "24.04"
-            inventory_hostname: "test"
+            test_inventory_hostname: "test"
             ansible_architecture: "x86_64"
             ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
           ignore_errors: true
@@ -43,7 +43,7 @@
 
     - name: Test case 2 - Missing nested attributes
       ansible.builtin.template:
-        src: "{{ role_path }}/templates/simple_host_vars.yml.j2"
+        src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
         dest: "/tmp/test-missing-nested.yml"
       vars:
         discovered_repositories:
@@ -64,7 +64,7 @@
           # missing firewall, fail2ban
         ansible_distribution: "Debian"
         ansible_distribution_version: "12"
-        inventory_hostname: "missing-nested-test"
+        test_inventory_hostname: "missing-nested-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
       register: missing_nested_result
@@ -77,7 +77,7 @@
 
     - name: Test case 3 - Null and undefined values
       ansible.builtin.template:
-        src: "{{ role_path }}/templates/simple_host_vars.yml.j2"
+        src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
         dest: "/tmp/test-null-values.yml"
       vars:
         discovered_repositories:
@@ -95,7 +95,7 @@
         discovered_security: null
         ansible_distribution: "Ubuntu"
         ansible_distribution_version: "24.04"
-        inventory_hostname: "null-test"
+        test_inventory_hostname: "null-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
       register: null_values_result
