@@ -20,16 +20,16 @@
             src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
             dest: "/tmp/test-bad-keys.yml"
           vars:
-            discovered_repositories: "{{ test_repositories }}"
-            discovered_packages: { all_native: [], languages: {} }
-            discovered_services: { running: [], enabled: [] }
-            discovered_docker: {}
-            discovered_dotfiles: {}
-            discovered_users: { system_users: {} }
-            discovered_security: {}
+            discovery_host_vars:
+              repositories: "{{ test_repositories }}"
+              packages: { all_native: [], languages: {} }
+              services: { running: [], enabled: [] }
+              docker: {}
+              dotfiles: {}
+              users: { system_users: {} }
+              security: {}
             ansible_distribution: "Ubuntu"
             ansible_distribution_version: "24.04"
-            test_inventory_hostname: "test"
             ansible_architecture: "x86_64"
             ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
           ignore_errors: true
@@ -46,25 +46,25 @@
         src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
         dest: "/tmp/test-missing-nested.yml"
       vars:
-        discovered_repositories:
-          apt:  # apt exists but has no keys attribute
-            manual_packages: ['vim']
-        discovered_packages: { all: [] }
-        discovered_services: 
-          running: []
-          enabled: []
-          # missing collection_relevant
-        discovered_docker: {}
-        discovered_dotfiles: {}
-        discovered_users: 
-          system_users: {}
-          # missing current_user
-        discovered_security: 
-          ssh: {}  # missing service_running
-          # missing firewall, fail2ban
+        discovery_host_vars:
+          repositories:
+            apt:  # apt exists but has no keys attribute
+              manual_packages: ['vim']
+          packages: { all: [] }
+          services: 
+            running: []
+            enabled: []
+            # missing collection_relevant
+          docker: {}
+          dotfiles: {}
+          users: 
+            system_users: {}
+            # missing current_user
+          security: 
+            ssh: {}  # missing service_running
+            # missing firewall, fail2ban
         ansible_distribution: "Debian"
         ansible_distribution_version: "12"
-        test_inventory_hostname: "missing-nested-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
       register: missing_nested_result
@@ -80,22 +80,22 @@
         src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
         dest: "/tmp/test-null-values.yml"
       vars:
-        discovered_repositories:
-          apt:
-            keys: null
-            third_party_repos: null
-            manual_packages: null
-        discovered_packages:
-          all_native: null
-          languages: null
-        discovered_services: null
-        discovered_docker: null
-        discovered_dotfiles: null
-        discovered_users: null
-        discovered_security: null
+        discovery_host_vars:
+          repositories:
+            apt:
+              keys: null
+              third_party_repos: null
+              manual_packages: null
+          packages:
+            all_native: null
+            languages: null
+          services: null
+          docker: null
+          dotfiles: null
+          users: null
+          security: null
         ansible_distribution: "Ubuntu"
         ansible_distribution_version: "24.04"
-        test_inventory_hostname: "null-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
       register: null_values_result
@@ -106,6 +106,24 @@
           - null_values_result is succeeded
         fail_msg: "Template must handle null values"
 
+    - name: Test case 4 - Completely undefined discovery_host_vars
+      ansible.builtin.template:
+        src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
+        dest: "/tmp/test-undefined-vars.yml"
+      vars:
+        ansible_distribution: "Ubuntu"
+        ansible_distribution_version: "24.04"
+        ansible_architecture: "x86_64"
+        ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
+        # discovery_host_vars is intentionally not defined
+      register: undefined_vars_result
+      
+    - name: Verify undefined discovery_host_vars handled
+      ansible.builtin.assert:
+        that:
+          - undefined_vars_result is succeeded
+        fail_msg: "Template must handle undefined discovery_host_vars"
+
     - name: Summary of edge case tests
       ansible.builtin.debug:
         msg:
@@ -113,3 +131,4 @@
           - "Bad keys test: {{ 'PASSED' if (bad_keys_result is succeeded or 'sequence' in (bad_keys_result.msg | default(''))) else 'FAILED' }}"
           - "Missing nested test: {{ 'PASSED' if missing_nested_result is succeeded else 'FAILED' }}"
           - "Null values test: {{ 'PASSED' if null_values_result is succeeded else 'FAILED' }}"
+          - "Undefined vars test: {{ 'PASSED' if undefined_vars_result is succeeded else 'FAILED' }}"

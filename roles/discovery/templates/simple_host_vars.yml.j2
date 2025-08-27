@@ -1,2 +1,2 @@
 ---
-{{ discovery_host_vars | to_nice_yaml(indent=2) }}
+{{ discovery_host_vars | default({}) | to_nice_yaml(indent=2) }}
