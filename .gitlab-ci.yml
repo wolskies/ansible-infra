@@ -29,7 +29,7 @@ cache:
     # Install Docker client for docker:dind service
     - apt-get update -qq
     - apt-get install -y -qq python3-pip make docker.io
-    - pip3 install --cache-dir .pip-cache/ ansible molecule[docker] docker pytest-testinfra ansible-lint yamllint jinja2
+    - pip3 install --cache-dir .pip-cache/ ansible molecule molecule-plugins[docker] docker pytest-testinfra ansible-lint yamllint jinja2
     - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
     # Verify setup
     - docker --version
