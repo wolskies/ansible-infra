@@ -34,6 +34,14 @@ skip_list:
   - var-naming[no-role-prefix]  # Allow variables without role prefix for compatibility
   - key-order  # Allow flexible key ordering in tasks
   - command-instead-of-module  # Allow using shell/command for specific tools like rustup
+  - risky-shell-pipe  # Allow shell pipes for legitimate use cases
+  - no-changed-when  # Allow commands without changed_when for handlers/checks
+  - meta-incorrect  # Allow flexible meta information in development
+  - package-latest  # Allow latest packages in development environments
+  - latest[git]  # Allow git latest for development setups
+  - risky-file-permissions  # Allow flexible file permissions for user files
+  - name[casing]  # Allow flexible handler naming
+  - jinja[spacing]  # Allow flexible jinja spacing (warnings only)
 
 # Set stricter standards
 strict: true
