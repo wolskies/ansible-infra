@@ -44,21 +44,14 @@
       loop: "{{ test_users }}"
 
   tasks:
-    - name: Test dotfiles role with stow method
-      block:
-        - name: Include dotfiles role for user
-          ansible.builtin.include_role:
-            name: wolskinet.infrastructure.dotfiles
-          vars:
-            dotfiles_user: "{{ item.name }}"
-            dotfiles_repository_url: "{{ item.dotfiles_repository_url }}"
-            dotfiles_uses_stow: "{{ item.dotfiles_uses_stow }}"
-            dotfiles_stow_packages: "{{ item.dotfiles_stow_packages | default([]) }}"
-      rescue:
-        - name: Handle dotfiles deployment failure
-          ansible.builtin.debug:
-            msg: "Dotfiles deployment failed for {{ item.name }} - repository may be unavailable"
+    - name: Deploy dotfiles for test user
+      ansible.builtin.include_tasks:
+        file: deploy_user_dotfiles.yml
+      vars:
+        current_user: "{{ item }}"
       loop: "{{ test_users }}"
+      loop_control:
+        loop_var: item
 
   post_tasks:
     - name: Display test completion

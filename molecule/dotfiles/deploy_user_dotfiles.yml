@@ -1,0 +1,16 @@
+---
+# Task file for deploying dotfiles for a single user
+- name: Test dotfiles role for {{ current_user.name }}
+  block:
+    - name: Include dotfiles role
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.dotfiles
+      vars:
+        dotfiles_user: "{{ current_user.name }}"
+        dotfiles_repository_url: "{{ current_user.dotfiles_repository_url }}"
+        dotfiles_uses_stow: "{{ current_user.dotfiles_uses_stow }}"
+        dotfiles_stow_packages: "{{ current_user.dotfiles_stow_packages | default([]) }}"
+  rescue:
+    - name: Handle dotfiles deployment failure
+      ansible.builtin.debug:
+        msg: "Dotfiles deployment failed for {{ current_user.name }} - repository may be unavailable"
