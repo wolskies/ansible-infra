@@ -70,11 +70,21 @@ mock_modules:
   - community.general.system.timezone
   - community.general.system.locale_gen
   - community.general.npm
+  - community.general.pacman
+  - community.general.homebrew
+  - community.general.homebrew_cask
+  - community.general.homebrew_tap
+  - community.general.osx_defaults
+  - community.general.pam_limits
+  - community.general.ufw
 
 mock_roles:
-  - wolskinet.infrastructure.basic_setup
-  - wolskinet.infrastructure.container_platform
+  - wolskinet.infrastructure.configure_host
+  - wolskinet.infrastructure.manage_packages
+  - wolskinet.infrastructure.manage_users
+  - wolskinet.infrastructure.manage_firewall
   - wolskinet.infrastructure.discovery
+  - wolskinet.infrastructure.dotfiles
 
 # Offline mode - don't download schemas
-offline: false
+offline: true
