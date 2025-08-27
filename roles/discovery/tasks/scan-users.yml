@@ -186,23 +186,10 @@
         else 'dotfiles' if (dotfiles_fallback_dirs.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='stat.exists') | first | default(false))
         else ''
       }}
-    dotfiles_git_config: >-
-      {{ dotfiles_repo_urls.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='content') | first | default('') | b64decode }}
-    dotfiles_git_url: >-
-      {% set config_lines = dotfiles_git_config.split('\n') %}
-      {% for line in config_lines %}
-        {% if line.strip().startswith('url = ') %}
-          {{ line.strip()[6:] }}
-        {% endif %}
-      {% endfor %}
-    dotfiles_git_head: >-
-      {{ dotfiles_repo_branches.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='content') | first | default('') | b64decode }}
-    dotfiles_git_branch: >-
-      {% if dotfiles_git_head.startswith('ref: refs/heads/') %}
-        {{ dotfiles_git_head[16:].strip() }}
-      {% else %}
-        main
-      {% endif %}
+    dotfiles_git_config: "{{ dotfiles_repo_urls.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='content') | first | default('') | b64decode }}"
+    dotfiles_git_url: "{{ dotfiles_git_config | regex_search('url = (.+)', '\\1') | first | default('') | trim }}"
+    dotfiles_git_head: "{{ dotfiles_repo_branches.results | default([]) | selectattr('item', 'equalto', item) | map(attribute='content') | first | default('') | b64decode }}"
+    dotfiles_git_branch: "{{ dotfiles_git_head | regex_replace('^ref: refs/heads/', '') | trim if dotfiles_git_head.startswith('ref: refs/heads/') else 'main' }}"
   loop: "{{ regular_users }}"
   when: regular_users | length > 0
 
