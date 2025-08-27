@@ -1,8 +1,8 @@
 ---
 # Pacman/AUR Package and Repository Discovery (Arch Linux)
 
-- name: scan-packages-Archlinux | Get explicitly installed packages (not dependencies)
-  ansible.builtin.command: "pacman -Qet"
+- name: scan-packages-Archlinux | Get explicitly installed packages excluding base packages
+  ansible.builtin.shell: "comm -23 <(pacman -Qqen | sort) <(pacman -Qqg base | sort)"
   register: discovery_pacman_explicit_packages
   become: false
   changed_when: false
@@ -50,20 +50,11 @@
       ansible.builtin.debug:
         msg: "Pacman repository discovery failed"
 
-- name: scan-packages-Archlinux | Get base system packages
-  ansible.builtin.command: "pacman -Qg base base-devel"
-  register: discovery_base_packages_result
-  become: false
-  changed_when: false
-  failed_when: false
-
-- name: scan-packages-Archlinux | Filter out base system and hardware-specific packages
+- name: scan-packages-Archlinux | Filter out additional hardware-specific and system packages
   ansible.builtin.set_fact:
     filtered_packages: >-
       {{
         (discovery_pacman_explicit_packages.stdout_lines | default([]))
-        | map('regex_replace', ' .*', '')
-        | difference((discovery_base_packages_result.stdout_lines | default([])) | map('regex_replace', '^[^ ]+ ', ''))
         | reject('match', '^(linux|linux-.*|.*-firmware|.*-microcode)$')
         | reject('match', '^(nvidia|nvidia-.*|libva-nvidia.*|opencl-nvidia|cuda|cuda-.*)$')
         | reject('match', '^(mesa|vulkan-.*|lib32-mesa|lib32-vulkan-.*)$')

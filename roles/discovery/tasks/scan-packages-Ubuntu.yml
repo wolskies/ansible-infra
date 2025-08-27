@@ -23,32 +23,30 @@
         manager: apt
       become: true
 
-    - name: Define base system packages to filter out
-      ansible.builtin.set_fact:
-        base_system_packages:
-          - base-files
-          - base-passwd
-          - debian-archive-keyring
-          - ubuntu-keyring
-          - grub-common
-          - initramfs-tools
-          - systemd-sysv
-          - libc6
-          - libgcc-s1
-          - libsystemd0
-          - amd64-microcode
-          - intel-microcode
+    - name: Get packages installed by default (Priority required, important, standard)
+      ansible.builtin.shell: |
+        apt-cache --no-all-versions show $(dpkg-query -f '${Package}\n' -W) | \
+        awk '/^Package:|^Priority:/ {print}' | \
+        paste - - | \
+        awk '/Priority: (required|important|standard)/ {print $2}'
+      register: priority_packages_result
+      become: true
+      changed_when: false
+      failed_when: false
 
-    - name: Filter out base system packages and hardware-specific packages
+    - name: Filter out system packages, libraries, and hardware-specific packages
       ansible.builtin.set_fact:
         manual_packages: >-
           {{
             all_manual_packages_result.stdout_lines | default([])
-            | difference(base_system_packages)
+            | difference(priority_packages_result.stdout_lines | default([]))
             | reject('match', '^(linux-.*|.*-firmware|.*-microcode)$')
             | reject('match', '^(nvidia-.*|libva-nvidia.*|opencl-nvidia|cuda.*|opencl-.*)$')
             | reject('match', '^(mesa-.*|vulkan-.*|lib32-mesa.*|lib32-vulkan-.*)$')
             | reject('match', '^(alsa-.*|pulseaudio.*|pipewire.*|wireplumber.*)$')
+            | reject('match', '^lib.*$')
+            | reject('match', '^(.*-dev|.*-dbg|.*-doc|.*-common)$')
+            | reject('match', '^(grub-.*|initramfs-.*|systemd.*|udev|dbus)$')
             | list
           }}
 

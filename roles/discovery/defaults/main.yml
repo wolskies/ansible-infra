@@ -185,10 +185,13 @@ discovery_user_configuration_defaults:
 #   - playbooks/target-host_discovered.yml (deployment playbook)
 #
 # INTEGRATION WITH OTHER ROLES:
-#   Discovery output is consumed by basic_setup role via:
+#   Discovery output is consumed by collection roles via:
 #   - host_packages_install_* variables (package hierarchical merging)
-#   - discovered_users_config (user configuration)
-#   - host_additional_repositories (custom repositories)
+#   - users_config (user configuration list)
+#   - configure_* variables (system configuration)
+#   - firewall_* variables (firewall configuration)
+#   - languages_* variables (language package flags)
+#   - system_settings_* variables (system optimization flags)
 #
 # CUSTOMIZING DISCOVERY BEHAVIOR:
 #   Override these defaults in your discovery playbook or inventory to:
