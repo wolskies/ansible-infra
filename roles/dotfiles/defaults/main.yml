@@ -1,8 +1,8 @@
-#SPDX-License-Identifier: MIT-0
+#SPDX-License-Identifier: MIT
 ---
 # dotfiles role defaults - Single-user dotfiles management
 # This role handles automated dotfiles deployment with conflict resolution
-# Integrates seamlessly with basic_setup role when install_dotfiles_support=true
+# Integrates seamlessly with manage_users role when install_dotfiles_support=true
 
 # =============================================================================
 # USAGE PATTERNS
@@ -15,8 +15,8 @@
 #        dotfiles_user: "myuser"
 #        dotfiles_repository_url: "https://github.com/myuser/dotfiles"
 
-# 2. INTEGRATED USAGE (via basic_setup):
-#    Set install_dotfiles_support=true in basic_setup, then configure users:
+# 2. INTEGRATED USAGE (via manage_users):
+#    Set install_dotfiles_support=true in manage_users, then configure users:
 #    discovered_users_config:
 #      - name: myuser
 #        dotfiles_repository_url: "https://github.com/myuser/dotfiles"
@@ -83,7 +83,7 @@ dotfiles_stow_packages: []                     # Specific stow packages ([] = de
 # =============================================================================
 
 # BASIC_SETUP INTEGRATION:
-# When basic_setup role has install_dotfiles_support=true:
+# When manage_users role has install_dotfiles_support=true:
 # - Installs stow package automatically (Linux only, macOS users install manually)
 # - Calls this dotfiles role per-user for users with dotfiles_repository_url
 # - Maps discovery variables to dotfiles role variables
@@ -100,7 +100,7 @@ dotfiles_stow_packages: []                     # Specific stow packages ([] = de
 
 # Linux (Ubuntu, Debian, Arch): Full support with automatic stow installation
 # macOS: Supported (requires manual stow installation via Homebrew)
-#   Note: basic_setup macOS setup doesn't auto-install stow due to Homebrew limitations
+#   Note: manage_users macOS setup doesn't auto-install stow due to Homebrew limitations
 #   Users should run: brew install stow
 
 # =============================================================================
