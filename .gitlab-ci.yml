@@ -33,7 +33,7 @@ cache:
     - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
     # Verify setup
     - docker --version
-    - ansible --version  
+    - ansible --version
     - molecule --version
 
 # Validation Stage
