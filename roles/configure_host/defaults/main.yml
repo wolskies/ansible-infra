@@ -1,0 +1,118 @@
+---
+# configure_host role defaults - Comprehensive host configuration
+# Handles all basic host housekeeping without package management
+# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+
+# =============================================================================
+# HOSTNAME CONFIGURATION
+# =============================================================================
+
+# Set hostname (leave empty to skip)
+config_hostname: ""
+
+# Set FQDN (fully qualified domain name)
+config_fqdn: ""
+
+# Update /etc/hosts with hostname
+config_update_hosts: true
+
+# =============================================================================
+# TIME & LOCALE CONFIGURATION
+# =============================================================================
+
+# Timezone configuration
+config_system_timezone: 'UTC'          # System timezone
+
+# NTP configuration
+config_ntp_enabled: true               # Enable NTP time synchronization
+config_ntp_servers:                    # NTP servers (empty = use OS defaults)
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
+  - 2.pool.ntp.org
+  - 3.pool.ntp.org
+
+# Locale configuration
+config_system_locale: 'en_US.UTF-8'    # System locale for all platforms
+config_system_language: 'en_US.UTF-8'  # Language setting (Linux only)
+
+# =============================================================================
+# SYSTEM CONFIGURATION
+# =============================================================================
+
+# System limits configuration
+config_system_limits: true             # Configure system limits
+config_limits:
+  - domain: '*'
+    limit_type: soft
+    limit_item: nofile
+    value: 65536
+  - domain: '*'
+    limit_type: hard
+    limit_item: nofile
+    value: 65536
+
+# Kernel parameters (sysctl)
+config_sysctl: true                    # Configure kernel parameters
+config_sysctl_params:
+  # Network performance
+  net.core.somaxconn: 65535
+  net.ipv4.tcp_max_syn_backlog: 65535
+  # Swap behavior
+  vm.swappiness: 10
+  # File system
+  fs.file-max: 2097152
+
+# =============================================================================
+# MOTD & SYSTEM IDENTIFICATION
+# =============================================================================
+
+# Message of the day configuration
+config_motd: true                      # Configure MOTD
+config_motd_template: motd.j2          # MOTD template to use
+config_motd_custom_content: ""         # Additional custom content for MOTD
+
+# SSH banner configuration
+config_ssh_banner: true                # Configure SSH banner
+config_ssh_banner_text: |
+  ********************************************************************
+  * This system is for authorized use only. All activity is logged. *
+  ********************************************************************
+
+# =============================================================================
+# LOGGING & JOURNAL CONFIGURATION
+# =============================================================================
+
+# Systemd journal configuration
+config_journal: true                   # Configure systemd journal
+config_journal_max_size: "500M"        # Maximum journal size
+config_journal_max_retention: "30d"    # Maximum retention time
+
+# Rsyslog configuration (if installed)
+config_rsyslog: false                  # Configure rsyslog
+config_rsyslog_remote_host: ""         # Remote syslog host
+config_rsyslog_remote_port: 514        # Remote syslog port
+
+# =============================================================================
+# PLATFORM-SPECIFIC FEATURES
+# =============================================================================
+
+# Ubuntu/Debian specific
+config_ubuntu_disable_snap: false      # Remove snap (moved from basic_setup)
+config_ubuntu_unattended_upgrades: true # Configure unattended upgrades (Ubuntu)
+config_debian_unattended_upgrades: true # Configure unattended upgrades (Debian)
+config_unattended_email: ""            # Email for unattended upgrade notifications
+config_unattended_reboot: false        # Allow automatic reboots
+config_unattended_reboot_with_users: false # Reboot even with users logged in
+config_unattended_reboot_time: "02:00"  # Time for automatic reboots
+
+# Arch Linux specific
+config_archlinux_reflector: true       # Configure reflector for mirror optimization
+
+# macOS specific
+config_macos_computer_name: ""          # Computer name (empty = use hostname)
+config_macos_configure_system: true    # Apply macOS system preferences
+config_macos_install_xcode_tools: true # Install Xcode Command Line Tools
+config_macos_configure_dock: true      # Configure Dock preferences
+config_macos_dock_tile_size: 48        # Dock tile size
+config_macos_dock_position: "bottom"   # Dock position (bottom, left, right)
+config_macos_disable_auto_updates: false # Disable automatic macOS updates

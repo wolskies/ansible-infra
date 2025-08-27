@@ -54,11 +54,23 @@
 
   roles:
     # 1. Core system setup with standard OS packages
-    - name: wolskinet.infrastructure.basic_setup
+    - name: wolskinet.infrastructure.configure_host
+      tags:
+        - basic
+        - system
+        - configuration
+
+    - name: wolskinet.infrastructure.manage_packages
       tags:
         - basic
         - system
         - packages
+
+    - name: wolskinet.infrastructure.manage_users
+      tags:
+        - basic
+        - system
+        - users
 
     # 2. Third-party packages (repositories, npm, pip, additional system packages)
     - name: wolskinet.infrastructure.third_party_packages

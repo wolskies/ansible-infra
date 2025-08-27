@@ -1,0 +1,31 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for roles/configure_host
+
+- name: restart timesyncd
+  ansible.builtin.systemd:
+    name: systemd-timesyncd
+    state: restarted
+  become: true
+
+- name: restart sshd
+  ansible.builtin.systemd:
+    name: "{{ 'ssh' if ansible_distribution in ['Ubuntu', 'Debian'] else 'sshd' }}"
+    state: restarted
+  become: true
+
+- name: restart journald
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: restarted
+  become: true
+
+- name: restart reflector
+  ansible.builtin.systemd:
+    name: reflector.timer
+    state: restarted
+  become: true
+
+- name: generate locales
+  ansible.builtin.command: locale-gen
+  become: true

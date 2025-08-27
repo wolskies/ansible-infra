@@ -1,0 +1,53 @@
+---
+# manage_users role defaults - User management and dotfiles deployment
+# Manages system users and handles dotfiles deployment automatically
+# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+
+# =============================================================================
+# USER MANAGEMENT SETTINGS
+# =============================================================================
+
+# Default shell for new users
+users_default_shell: /bin/bash
+
+# Create home directories by default
+users_create_home: true
+
+# Default groups for new users (OS-specific)
+# Empty by default - specify groups per user or override these defaults
+# Common examples: [sudo] for Linux, [admin] for macOS
+users_default_groups_linux: []
+users_default_groups_macos: []
+
+# =============================================================================
+# DOTFILES INTEGRATION
+# =============================================================================
+
+# Default dotfiles settings (can be overridden per user)
+# Dotfiles are automatically deployed for users that have dotfiles_repository_url defined
+users_default_dotfiles_uses_stow: true
+users_default_dotfiles_stow_packages: []  # Empty list means stow all packages in repo
+
+# =============================================================================
+# USER CONFIGURATION
+# =============================================================================
+
+# List of users to manage on the system
+# Format:
+# users_config:
+#   - name: username
+#     uid: 1001                    # Optional: specific UID
+#     shell: /bin/bash             # Optional: user shell
+#     groups: [sudo, docker]      # Optional: additional groups
+#     password: "*"                # Optional: password hash or "*" for locked
+#     create_home: true            # Optional: create home directory
+#     dotfiles_repository_url: https://github.com/user/dotfiles  # Optional
+#     dotfiles_uses_stow: true     # Optional: use GNU Stow
+#     dotfiles_stow_packages: [zsh, git, tmux]  # Optional: stow packages
+#     dotfiles_update_repo: false  # Optional: update existing dotfiles
+
+users_config: []
+
+# Users to remove from the system
+users_remove: []
+

@@ -1,0 +1,219 @@
+---
+# Language ecosystem package management
+# Handles npm, pip, cargo, go modules with dependency checking
+
+- name: Install missing language tools via system package manager
+  block:
+    - name: Check for required tools
+      ansible.builtin.command: "which {{ item.tool }}"
+      register: tool_check
+      changed_when: false
+      failed_when: false
+      loop:
+        - tool: "python3"
+          packages_ubuntu: ["python3", "python3-pip"]
+          packages_debian: ["python3", "python3-pip"]
+          packages_archlinux: ["python", "python-pip"]
+          packages_darwin: []
+          condition: "{{ language_python_enable and (language_python_packages | default([]) | length > 0) }}"
+        - tool: "npm"
+          packages_ubuntu: ["nodejs", "npm"]
+          packages_debian: ["nodejs", "npm"]
+          packages_archlinux: ["nodejs", "npm"]
+          packages_darwin: []
+          condition: "{{ language_nodejs_enable and (language_nodejs_packages | default([]) | length > 0) }}"
+      when:
+        - language_check_dependencies | default(true)
+        - language_install_missing_tools | default(true)
+        - item.condition | bool
+
+    - name: Install missing tools via system package manager
+      ansible.builtin.package:
+        name: "{{ vars['packages_' + ansible_distribution | lower] }}"
+        state: present
+      become: true
+      loop: "{{ tool_check.results }}"
+      loop_control:
+        loop_var: result
+      when:
+        - language_install_missing_tools | default(true)
+        - result.rc != 0
+        - result.item.condition | bool
+      vars:
+        packages_ubuntu: "{{ result.item.packages_ubuntu }}"
+        packages_debian: "{{ result.item.packages_debian }}"
+        packages_archlinux: "{{ result.item.packages_archlinux }}"
+        packages_darwin: "{{ result.item.packages_darwin }}"
+
+# Python packages via pip
+- name: Setup Python packages
+  block:
+    - name: Validate pip installation method
+      ansible.builtin.fail:
+        msg: "Invalid language_python_install_method: {{ language_python_install_method }}. Must be 'user', 'virtualenv', or 'global'"
+      when: language_python_install_method not in ['user', 'virtualenv', 'global']
+
+    - name: Warn about global pip installation
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Global pip installation can conflict with system packages.
+          Consider using 'user' or 'virtualenv' method instead.
+      when: language_python_install_method == 'global'
+
+    - name: Ensure pip is available
+      ansible.builtin.command: "python3 -m pip --version"
+      register: pip_check
+      changed_when: false
+      failed_when: pip_check.rc != 0
+
+    - name: Create virtual environment if needed
+      ansible.builtin.command:
+        cmd: "python3 -m venv {{ language_python_virtualenv_path }}"
+        creates: "{{ language_python_virtualenv_path }}/bin/activate"
+      become: false
+      when: language_python_install_method == 'virtualenv'
+
+    - name: Install Python packages
+      ansible.builtin.pip:
+        name: "{{ language_python_packages }}"
+        state: present
+        virtualenv: "{{ language_python_virtualenv_path if language_python_install_method == 'virtualenv' else omit }}"
+        extra_args: "{{ '--user' if language_python_install_method == 'user' else '' }}"
+      become: "{{ language_python_install_method == 'global' }}"
+      become_user: "{{ ansible_user if language_python_install_method in ['user', 'virtualenv'] else omit }}"
+  when:
+    - language_python_enable | default(true)
+    - language_python_packages is defined
+    - language_python_packages | length > 0
+  tags:
+    - python
+    - pip
+    - language-packages
+
+# Node.js packages via npm
+- name: Setup Node.js packages
+  block:
+    - name: Ensure npm is installed
+      ansible.builtin.fail:
+        msg: "npm is not installed. Please install Node.js and npm first or set language_install_missing_tools: true"
+      when:
+        - not (language_install_missing_tools | default(true))
+        - ansible_facts['packages']['npm'] is not defined
+
+    - name: Install npm packages globally
+      community.general.npm:
+        name: "{{ item }}"
+        global: "{{ language_nodejs_install_global }}"
+        state: present
+      loop: "{{ language_nodejs_packages }}"
+      become: "{{ language_nodejs_install_global }}"
+  when:
+    - language_nodejs_enable | default(true)
+    - language_nodejs_packages is defined
+    - language_nodejs_packages | length > 0
+  tags:
+    - nodejs
+    - npm
+    - language-packages
+
+# Rust packages via cargo
+- name: Setup Rust packages
+  block:
+    - name: Check if cargo is installed
+      ansible.builtin.command: which cargo
+      register: cargo_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Rust if not present
+      ansible.builtin.shell: |
+        set -o pipefail
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      args:
+        executable: /bin/bash
+        creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo"
+      when:
+        - cargo_check.rc != 0
+        - language_install_missing_tools | default(true)
+
+    - name: Fail if Rust is not installed and auto-install disabled
+      ansible.builtin.fail:
+        msg: "Rust is not installed. Please install Rust first or set language_install_missing_tools: true"
+      when:
+        - cargo_check.rc != 0
+        - not (language_install_missing_tools | default(true))
+
+    - name: Install Rust packages
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.cargo/bin/cargo install {{ item }}"
+      loop: "{{ language_rust_packages }}"
+      register: cargo_install
+      changed_when: "'Installed' in cargo_install.stdout"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.cargo/bin"
+  when:
+    - language_rust_enable | default(false)
+    - language_rust_packages is defined
+    - language_rust_packages | length > 0
+  tags:
+    - rust
+    - cargo
+    - language-packages
+
+# Go packages
+- name: Setup Go packages
+  block:
+    - name: Check if go is installed
+      ansible.builtin.command: which go
+      register: go_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Go via system package manager if missing
+      ansible.builtin.package:
+        name: "{{ go_package_name }}"
+        state: present
+      become: true
+      when:
+        - go_check.rc != 0
+        - language_install_missing_tools | default(true)
+      vars:
+        go_package_name: "{{ 'go' if ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux'] else 'golang' }}"
+
+    - name: Fail if Go is not installed and auto-install disabled
+      ansible.builtin.fail:
+        msg: "Go is not installed. Please install Go first or set language_install_missing_tools: true"
+      when:
+        - go_check.rc != 0
+        - not (language_install_missing_tools | default(true))
+
+    - name: Install Go packages
+      ansible.builtin.command: "go install {{ item }}"
+      loop: "{{ language_go_packages }}"
+      environment:
+        GO111MODULE: "on"
+        GOPATH: "{{ ansible_env.HOME }}/go"
+        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/go/bin"
+      register: go_install
+      changed_when: go_install.rc == 0
+  when:
+    - language_go_enable | default(false)
+    - language_go_packages is defined
+    - language_go_packages | length > 0
+  tags:
+    - golang
+    - go
+    - language-packages
+
+# Display summary
+- name: Display language packages summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Language Packages Summary ==="
+      - "Python packages: {{ language_python_packages | default([]) | length }} (method: {{ language_python_install_method | default('user') }})"
+      - "Node.js packages: {{ language_nodejs_packages | default([]) | length }}"
+      - "Rust packages: {{ language_rust_packages | default([]) | length }}"
+      - "Go packages: {{ language_go_packages | default([]) | length }}"
+  tags:
+    - always
+    - summary
+    - language-packages

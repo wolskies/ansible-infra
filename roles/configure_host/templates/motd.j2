@@ -1,0 +1,24 @@
+{{ ansible_managed }}
+
+Welcome to {{ config_hostname | default(inventory_hostname) }}
+
+System Information:
+  OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+  Kernel: {{ ansible_kernel }}
+  Architecture: {{ ansible_architecture }}
+  Uptime: {{ ansible_uptime_seconds | int | int_to_human_readable }}
+
+Hardware:
+  CPU: {{ ansible_processor_vcpus }} vCPUs
+  Memory: {{ ansible_memtotal_mb | int // 1024 }}GB
+  Storage: {{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_total') | first | int // (1024**3) }}GB available
+
+Network:
+  Hostname: {{ ansible_fqdn | default(ansible_hostname) }}
+  IP Address: {{ ansible_default_ipv4.address | default('N/A') }}
+
+Last login: {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+
+{% if config_motd_custom_content is defined %}
+{{ config_motd_custom_content }}
+{% endif %}

@@ -1,0 +1,84 @@
+---
+# tasks file for manage_packages
+# This role handles package management with hierarchical configuration
+# Architecture: 1) Ensure package managers 2) Add repos 3) Update sources 4) Install/Remove packages 5) Handlers
+# Supports: APT, YUM/DNF, Pacman, Homebrew with AUR (paru), Homebrew Taps
+
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags:
+    - always
+    - variables
+    - packages
+
+- name: Merge package lists
+  ansible.builtin.include_tasks: merge-packages.yml
+  tags:
+    - always
+    - variables
+    - merge
+    - packages
+
+# =============================================================================
+# STEP 1: ENSURE PACKAGE MANAGERS ARE INSTALLED
+# =============================================================================
+
+- name: Ensure package managers are installed
+  ansible.builtin.include_tasks: "install-package-managers.yml"
+  tags:
+    - package-managers
+    - setup
+    - packages
+
+# =============================================================================
+# STEP 2: ADD REPOSITORIES, TAPS, AND KEYRINGS
+# =============================================================================
+
+- name: Add repositories and taps
+  ansible.builtin.include_tasks: "setup-repositories.yml"
+  tags:
+    - repositories
+    - taps
+    - keys
+    - packages
+
+# =============================================================================
+# STEP 3: UPDATE PACKAGE SOURCES
+# =============================================================================
+
+- name: Update package sources
+  ansible.builtin.include_tasks: "update-sources.yml"
+  tags:
+    - cache
+    - updates
+    - sources
+    - packages
+
+# =============================================================================
+# STEP 4: INSTALL AND REMOVE PACKAGES
+# =============================================================================
+
+- name: Install packages
+  ansible.builtin.include_tasks: "install-packages.yml"
+  tags:
+    - install
+    - packages
+
+- name: Remove packages
+  ansible.builtin.include_tasks: "remove-packages.yml"
+  tags:
+    - remove
+    - cleanup
+    - packages
+
+# =============================================================================
+# STEP 5: SYSTEM UPGRADE (OPTIONAL)
+# =============================================================================
+
+- name: System upgrade and cleanup
+  ansible.builtin.include_tasks: "system-upgrade.yml"
+  when: packages_perform_system_upgrade | default(false)
+  tags:
+    - upgrade
+    - maintenance
+    - cleanup

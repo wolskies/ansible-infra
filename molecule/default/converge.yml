@@ -18,9 +18,15 @@
           - "Roles to test: {{ group_roles_install | default([]) }}"
 
   roles:
-    # Test basic_setup role on all machines
-    - name: wolskinet.infrastructure.basic_setup
-      when: "'basic_setup' in (group_roles_install | default([]))"
+    # Test core roles on all machines
+    - name: wolskinet.infrastructure.configure_host
+      when: "'configure_host' in (group_roles_install | default([]))"
+
+    - name: wolskinet.infrastructure.manage_packages
+      when: "'manage_packages' in (group_roles_install | default([]))"
+
+    - name: wolskinet.infrastructure.manage_users
+      when: "'manage_users' in (group_roles_install | default([]))"
 
     # Test container_platform role on docker_hosts
     - name: wolskinet.infrastructure.container_platform
@@ -28,11 +34,9 @@
         - "'container_platform' in (group_roles_install | default([]))"
         - inventory_hostname in groups['docker_hosts']
 
-    # Test maintenance role (but don't actually update dotfiles in CI)
-    - name: wolskinet.infrastructure.maintenance
-      when: "'maintenance' in (group_roles_install | default([]))"
-      vars:
-        force_dotfiles_update: false  # Don't clone in tests
+    # Test firewall role
+    - name: wolskinet.infrastructure.manage_firewall
+      when: "'manage_firewall' in (group_roles_install | default([]))"
 
   post_tasks:
     # Install group-specific roles
@@ -42,7 +46,7 @@
       loop: "{{ group_roles_install | default([]) }}"
       when:
         - group_roles_install is defined
-        - item not in ['basic_setup', 'container_platform', 'maintenance']  # Already tested above
+        - item not in ['configure_host', 'manage_packages', 'manage_users', 'container_platform', 'manage_firewall']  # Already tested above
 
     - name: Test role installation completed
       ansible.builtin.debug:

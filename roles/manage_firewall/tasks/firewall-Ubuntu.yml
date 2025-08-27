@@ -1,0 +1,53 @@
+---
+# Ubuntu UFW firewall management
+
+# CRITICAL: Ensure SSH access before enabling firewall
+- name: Allow SSH access (prevent lockout)
+  community.general.ufw:
+    rule: allow
+    name: ssh
+    comment: "SSH access (prevent lockout)"
+  become: true
+
+- name: Configure UFW allowed ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: "{{ firewall_allowed_ports | default([]) }}"
+  become: true
+  notify: reload ufw
+  when: firewall_allowed_ports | default([]) | length > 0
+
+- name: Configure UFW allowed services
+  community.general.ufw:
+    rule: allow
+    name: "{{ item }}"
+  loop: "{{ firewall_allowed_services | default([]) }}"
+  become: true
+  notify: reload ufw
+  when: firewall_allowed_services | default([]) | length > 0
+
+- name: Configure UFW custom rules
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port | string }}"
+    proto: "{{ item.protocol | default('tcp') }}"
+    src: "{{ item.source | default(omit) }}"
+    comment: "{{ item.comment | default('Managed by manage_firewall') }}"
+  loop: "{{ firewall_custom_rules | default([]) }}"
+  become: true
+  notify: reload ufw
+  when: firewall_custom_rules | default([]) | length > 0
+
+- name: Enable UFW logging
+  community.general.ufw:
+    logging: "on"
+  become: true
+  when: firewall_logging | default(false)
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    policy: "{{ firewall_default_policy | default('deny') }}"
+  become: true

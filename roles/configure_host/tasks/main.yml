@@ -1,0 +1,286 @@
+---
+# tasks file for configure_host
+# This role handles all basic host housekeeping without package management
+
+- name: Validate supported OS versions
+  ansible.builtin.fail:
+    msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} is not supported. Supported versions: Ubuntu 24+, Debian 12+, Arch Linux (latest), macOS (latest)"
+  when:
+    - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 24) or
+      (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
+  tags:
+    - always
+    - validation
+    - configure-host
+
+# =============================================================================
+# HOSTNAME CONFIGURATION (Cross-platform)
+# =============================================================================
+
+- name: Set system hostname
+  ansible.builtin.hostname:
+    name: "{{ config_hostname }}"
+  become: true
+  when:
+    - config_hostname != ""
+    - ansible_system == 'Linux'
+  tags:
+    - hostname
+    - configure-host
+
+- name: Set macOS hostname
+  block:
+    - name: Set macOS ComputerName
+      ansible.builtin.command: scutil --set ComputerName "{{ config_macos_computer_name | default(config_hostname) }}"
+      become: true
+      when: config_macos_computer_name != "" or config_hostname != ""
+
+    - name: Set macOS HostName
+      ansible.builtin.command: scutil --set HostName "{{ config_hostname }}"
+      become: true
+      when: config_hostname != ""
+
+    - name: Set macOS LocalHostName
+      ansible.builtin.command: scutil --set LocalHostName "{{ config_hostname | regex_replace('[^a-zA-Z0-9-]', '-') }}"
+      become: true
+      when: config_hostname != ""
+
+  when:
+    - ansible_distribution == 'MacOSX'
+    - config_hostname != ""
+  tags:
+    - hostname
+    - macos
+    - configure-host
+
+- name: Update /etc/hosts file
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1\s+'
+    line: "127.0.1.1\t{{ config_fqdn | default(config_hostname + '.localdomain') }}\t{{ config_hostname }}"
+    create: false
+  become: true
+  when:
+    - config_update_hosts | default(true)
+    - config_hostname != ""
+    - ansible_system == 'Linux'
+  tags:
+    - hostname
+    - configure-host
+
+# =============================================================================
+# TIME & TIMEZONE CONFIGURATION (Cross-platform)
+# =============================================================================
+
+- name: Set system timezone
+  community.general.timezone:
+    name: "{{ config_system_timezone }}"
+  become: true
+  tags:
+    - timezone
+    - configure-host
+
+# NTP Configuration
+- name: Configure NTP time synchronization
+  block:
+    # For systemd-based systems (Ubuntu, Debian, Arch)
+    - name: Configure systemd-timesyncd
+      ansible.builtin.template:
+        src: timesyncd.conf.j2
+        dest: /etc/systemd/timesyncd.conf
+        owner: root
+        group: root
+        mode: '0644'
+        backup: true
+      become: true
+      when: ansible_service_mgr == "systemd"
+      notify: restart timesyncd
+
+    - name: Enable and start systemd-timesyncd
+      ansible.builtin.systemd:
+        name: systemd-timesyncd
+        enabled: true
+        state: started
+      become: true
+      when: ansible_service_mgr == "systemd"
+
+  when:
+    - config_ntp_enabled | default(true)
+    - ansible_system == 'Linux'
+  tags:
+    - ntp
+    - time
+    - configure-host
+
+# =============================================================================
+# LOCALE CONFIGURATION (Cross-platform with OS-specific parts)
+# =============================================================================
+
+- name: Configure system locale (Debian/Ubuntu)
+  block:
+    - name: Generate locale
+      ansible.builtin.locale_gen:
+        name: "{{ config_system_locale }}"
+        state: present
+      become: true
+
+    - name: Set default locale
+      ansible.builtin.copy:
+        content: |
+          LANG={{ config_system_language }}
+          LC_ALL={{ config_system_locale }}
+        dest: /etc/default/locale
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+
+  when: ansible_distribution in ['Ubuntu', 'Debian']
+  tags:
+    - locale
+    - configure-host
+
+- name: Configure system locale (Arch Linux)
+  block:
+    - name: Enable locale in locale.gen
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: "^#?{{ config_system_locale | regex_escape() }}"
+        line: "{{ config_system_locale }} UTF-8"
+      become: true
+      notify: generate locales
+
+    - name: Set system locale
+      ansible.builtin.copy:
+        content: "LANG={{ config_system_language }}"
+        dest: /etc/locale.conf
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+
+  when: ansible_distribution == 'Archlinux'
+  tags:
+    - locale
+    - configure-host
+
+# =============================================================================
+# SYSTEM LIMITS CONFIGURATION
+# =============================================================================
+
+- name: Configure system limits
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-ansible-managed.conf
+    reload: true
+  loop: "{{ config_sysctl_params | dict2items }}"
+  become: true
+  when:
+    - config_sysctl | default(true)
+    - ansible_system == 'Linux'
+  tags:
+    - sysctl
+    - limits
+    - configure-host
+
+- name: Configure PAM limits
+  community.general.pam_limits:
+    domain: "{{ item.domain }}"
+    limit_type: "{{ item.limit_type }}"
+    limit_item: "{{ item.limit_item }}"
+    value: "{{ item.value }}"
+  loop: "{{ config_limits }}"
+  become: true
+  when:
+    - config_system_limits | default(true)
+    - ansible_system == 'Linux'
+  tags:
+    - limits
+    - pam
+    - configure-host
+
+# =============================================================================
+# MOTD & BANNERS
+# =============================================================================
+
+- name: Configure message of the day (MOTD)
+  ansible.builtin.template:
+    src: "{{ config_motd_template }}"
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - config_motd | default(true)
+    - ansible_system == 'Linux'
+  tags:
+    - motd
+    - configure-host
+
+- name: Configure SSH banner
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Banner'
+    line: 'Banner /etc/ssh/banner'
+  become: true
+  when:
+    - config_ssh_banner | default(true)
+    - ansible_system == 'Linux'
+  notify: restart sshd
+  tags:
+    - ssh
+    - banner
+    - configure-host
+
+- name: Create SSH banner file
+  ansible.builtin.copy:
+    content: "{{ config_ssh_banner_text }}"
+    dest: /etc/ssh/banner
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - config_ssh_banner | default(true)
+    - ansible_system == 'Linux'
+  tags:
+    - ssh
+    - banner
+    - configure-host
+
+# =============================================================================
+# JOURNAL CONFIGURATION
+# =============================================================================
+
+- name: Configure systemd journal
+  ansible.builtin.template:
+    src: journald.conf.j2
+    dest: /etc/systemd/journald.conf.d/00-ansible-managed.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - config_journal | default(true)
+    - ansible_service_mgr == "systemd"
+  notify: restart journald
+  tags:
+    - journal
+    - logging
+    - configure-host
+
+# =============================================================================
+# PLATFORM-SPECIFIC CONFIGURATIONS
+# =============================================================================
+
+# Include OS-specific tasks only for unique platform features
+- name: Include OS-specific configuration tasks
+  ansible.builtin.include_tasks: "configure-{{ ansible_distribution }}.yml"
+  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'Darwin']
+  tags:
+    - always
+    - os-config
+    - configure-host

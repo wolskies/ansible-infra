@@ -1,0 +1,38 @@
+---
+galaxy_info:
+  role_name: manage_firewall
+  author: Ed Wolski
+  description: Independent firewall and fail2ban management across different operating systems
+  company: wolskinet
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+    - name: Darwin
+      versions:
+        - all
+
+  galaxy_tags:
+    - security
+    - firewall
+    - networking
+    - ufw
+    - firewalld
+    - iptables
+    - fail2ban
+
+dependencies: []
+
+collections:
+  - community.general
+  - ansible.posix
