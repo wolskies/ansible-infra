@@ -20,18 +20,12 @@
             src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
             dest: "/tmp/test-bad-keys.yml"
           vars:
-            discovery_host_vars:
-              repositories: "{{ test_repositories }}"
-              packages: { all_native: [], languages: {} }
-              services: { running: [], enabled: [] }
-              docker: {}
-              dotfiles: {}
-              users: { system_users: {} }
-              security: {}
+            host_packages_install_Ubuntu: "{{ test_repositories.apt.keys }}"  # This should be a list, not a string
+            users_config: []
+            firewall_enable: true
+            config_hostname: "test"
             ansible_distribution: "Ubuntu"
-            ansible_distribution_version: "24.04"
-            ansible_architecture: "x86_64"
-            ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
+            inventory_hostname: "test"
           ignore_errors: true
           register: bad_keys_result
           
@@ -46,25 +40,14 @@
         src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
         dest: "/tmp/test-missing-nested.yml"
       vars:
-        discovery_host_vars:
-          repositories:
-            apt:  # apt exists but has no keys attribute
-              manual_packages: ['vim']
-          packages: { all: [] }
-          services: 
-            running: []
-            enabled: []
-            # missing collection_relevant
-          docker: {}
-          dotfiles: {}
-          users: 
-            system_users: {}
-            # missing current_user
-          security: 
-            ssh: {}  # missing service_running
-            # missing firewall, fail2ban
+        # Some variables defined, some missing
+        host_packages_install_Debian: ['vim']
+        # users_config is intentionally missing
+        firewall_enable: false
+        # config_hostname is intentionally missing
+        config_system_timezone: "UTC"
         ansible_distribution: "Debian"
-        ansible_distribution_version: "12"
+        inventory_hostname: "missing-nested-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
       register: missing_nested_result
@@ -80,22 +63,14 @@
         src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
         dest: "/tmp/test-null-values.yml"
       vars:
-        discovery_host_vars:
-          repositories:
-            apt:
-              keys: null
-              third_party_repos: null
-              manual_packages: null
-          packages:
-            all_native: null
-            languages: null
-          services: null
-          docker: null
-          dotfiles: null
-          users: null
-          security: null
+        host_packages_install_Ubuntu: null
+        users_config: null
+        firewall_enable: null
+        firewall_custom_rules: null
+        config_hostname: null
+        config_system_timezone: null
         ansible_distribution: "Ubuntu"
-        ansible_distribution_version: "24.04"
+        inventory_hostname: "null-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
       register: null_values_result
@@ -106,23 +81,23 @@
           - null_values_result is succeeded
         fail_msg: "Template must handle null values"
 
-    - name: Test case 4 - Completely undefined discovery_host_vars
+    - name: Test case 4 - Completely undefined variables
       ansible.builtin.template:
         src: "{{ test_role_path }}/templates/simple_host_vars.yml.j2"
         dest: "/tmp/test-undefined-vars.yml"
       vars:
         ansible_distribution: "Ubuntu"
-        ansible_distribution_version: "24.04"
+        inventory_hostname: "undefined-test"
         ansible_architecture: "x86_64"
         ansible_date_time: { iso8601: "2024-01-01T00:00:00Z" }
-        # discovery_host_vars is intentionally not defined
+        # All discovery variables are intentionally not defined
       register: undefined_vars_result
       
-    - name: Verify undefined discovery_host_vars handled
+    - name: Verify undefined variables handled
       ansible.builtin.assert:
         that:
           - undefined_vars_result is succeeded
-        fail_msg: "Template must handle undefined discovery_host_vars"
+        fail_msg: "Template must handle undefined variables gracefully"
 
     - name: Summary of edge case tests
       ansible.builtin.debug:

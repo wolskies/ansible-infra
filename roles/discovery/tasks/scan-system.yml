@@ -51,9 +51,16 @@
         interfaces: "{{ ansible_interfaces }}"
         default_ipv4: "{{ ansible_default_ipv4 | default({}) }}"
         fqdn: "{{ ansible_fqdn }}"
+
       python:
         version: "{{ ansible_python_version }}"
         executable: "{{ ansible_python['executable'] }}"
+      timezone: "{{ ansible_date_time.tz }}"
   tags:
     - system
     - facts
+
+- name: Set host configuration variables (configure_host role format)
+  ansible.builtin.set_fact:
+    config_hostname: "{{ inventory_hostname }}"
+    config_system_timezone: "{{ ansible_date_time.tz | default('UTC') }}"

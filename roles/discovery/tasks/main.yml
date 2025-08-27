@@ -97,18 +97,7 @@
     - discovery
     - processing
 
-- name: Generate role-specific variables
-  ansible.builtin.include_tasks: generate-role-vars.yml
-  tags:
-    - discovery
-    - role-integration
-
-# Build final host variables from all discovered data
-- name: Build host variables from discovered data
-  ansible.builtin.include_tasks: build-host-vars.yml
-  tags:
-    - discovery
-    - generation
+# Variables are now set directly by individual scan tasks in final format
 
 # Generate the vars.yml file with a simple template
 - name: Generate host variables file

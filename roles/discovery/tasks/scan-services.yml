@@ -243,20 +243,11 @@
     firewall_type_detected: "none"
   when: not (discovered_services.collection_relevant.firewall_detected | default(false))
 
-- name: Store security configuration discovery
+- name: Set firewall variables (manage_firewall role format)
   ansible.builtin.set_fact:
-    discovered_security:
-      ssh:
-        service_running: "{{ discovered_services.collection_relevant.ssh_enabled }}"
-        settings:
-          port: "{{ ansible_ssh_port | default('22') }}"
-      fail2ban:
-        service_enabled: "{{ discovered_services.collection_relevant.fail2ban_enabled }}"
-      firewall:
-        detected: "{{ discovered_services.collection_relevant.firewall_detected }}"
-        type: "{{ discovered_services.collection_relevant.firewall_type_output }}"
-        original_type: "{{ discovered_services.collection_relevant.firewall_type }}"
-        rules: "{{ firewall_rules | default([]) }}"
+    firewall_enable: "{{ discovered_services.collection_relevant.firewall_detected }}"
+    firewall_enable_fail2ban: "{{ discovered_services.collection_relevant.fail2ban_enabled }}"
+    firewall_custom_rules: "{{ firewall_rules | default([]) }}"
   tags:
     - services
     - security

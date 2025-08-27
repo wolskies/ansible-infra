@@ -207,19 +207,9 @@
   when: regular_users | length > 0
 
 # Step 7: Store final results in the expected format
-- name: Store user discovery results
+- name: Set users_config variable (manage_users role format)
   ansible.builtin.set_fact:
-    discovered_users:
-      system_users:
-        total: "{{ ansible_facts.getent_passwd.keys() | length }}"
-        regular_users: "{{ regular_users }}"
-        regular_users_detailed: "{{ discovered_users_final | default([]) }}"
-        system_users: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '<', '1000') | map(attribute='key') | list }}"
-
-- name: Store dotfiles discovery results
-  ansible.builtin.set_fact:
-    discovered_dotfiles:
-      users_with_dotfiles: "{{ discovered_users_final | default([]) }}"
+    users_config: "{{ discovered_users_final | default([]) }}"
   tags:
     - users
     - dotfiles

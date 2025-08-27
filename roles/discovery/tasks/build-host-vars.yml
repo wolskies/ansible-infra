@@ -1,17 +1,6 @@
 ---
-# Build structured host variables directly from discovery
-# Single source of truth - no intermediate variables
-
-# Initialize the main structure
-- name: Initialize discovery host variables structure
-  ansible.builtin.set_fact:
-    discovery_host_vars:
-      packages: {}
-      security: {}
-      docker: {}
-      users: {}
-      system_tuning: "{{ discovery_system_tuning_defaults | default({}) }}"
-      discovery_metadata: {}
+# Build host variables using exact role variable names
+# No intermediate variables - direct output format
 
 # Always build discovery metadata
 - name: Build discovery metadata
@@ -30,29 +19,13 @@
       }
     }) }}"
 
-# Build packages section if packages were discovered
-- name: Add packages section
+# Add discovered packages (manage_packages role format)
+- name: Add discovered packages
   ansible.builtin.set_fact:
     discovery_host_vars: "{{ discovery_host_vars | combine({
-      'packages': {
-        ('host_packages_install_' + ansible_distribution): discovered_packages.all_native | sort,
-        ('host_packages_remove_' + ansible_distribution): [],
-        'host_third_party_packages': discovered_packages.languages | default({})
-      }
+      ('host_packages_install_' + ansible_distribution): discovered_packages.all_native | default([]) | sort
     }) }}"
   when: discovered_packages.all_native | default([]) | length > 0
-
-# Add packages section for third-party only if no native packages but third-party exist
-- name: Add packages section for third-party packages only
-  ansible.builtin.set_fact:
-    discovery_host_vars: "{{ discovery_host_vars | combine({
-      'packages': {
-        'host_third_party_packages': discovered_packages.languages | default({})
-      }
-    }) }}"
-  when:
-    - discovered_packages.all_native | default([]) | length == 0
-    - discovered_packages.languages | default({}) | length > 0
 
 - name: Add APT repositories to packages section
   ansible.builtin.set_fact:
