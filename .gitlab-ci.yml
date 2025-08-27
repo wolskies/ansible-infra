@@ -51,11 +51,13 @@ quick-validation:
 lint-collection:
   stage: validate
   image: python:3.11-slim
-  <<: *base-setup
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip make
+    - pip3 install --cache-dir .pip-cache/ ansible ansible-lint yamllint
   script:
     - echo "Linting Ansible collection files..."
-    - ansible-lint --version || pip3 install ansible-lint
-    - ansible-lint .
+    - ansible-lint --version
+    - ansible-lint . --offline
     - echo "Checking YAML syntax..."
     - yamllint .
   rules:
@@ -301,7 +303,7 @@ ansible-security-scan:
     - pip3 install ansible-lint bandit safety
   script:
     - echo "Running security scans..."
-    - ansible-lint .
+    - ansible-lint . --offline
     - find . -name "*.py" -exec bandit {} + || true
     - safety check || true
   allow_failure: true
