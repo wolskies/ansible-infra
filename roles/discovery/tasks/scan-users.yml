@@ -1,5 +1,5 @@
 ---
-# Simplified user discovery - trust Ansible built-ins
+# Simple but functional user discovery
 
 - name: Get user and group facts
   ansible.builtin.getent:
@@ -9,6 +9,30 @@
     - passwd
     - group
 
-- name: Set users_config variable (manage_users role format)
+- name: Check for dotfiles directories
+  ansible.builtin.stat:
+    path: "{{ item.value[4] }}/.dotfiles"
+  register: dotfiles_dirs
+  become: true
+  loop: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', 1000) | selectattr('value.1', '<', 60000) | list }}"
+  when: ansible_facts.getent_passwd is defined
+
+- name: Build users_config for regular users (UID 1000-59999)
   ansible.builtin.set_fact:
-    users_config: []
+    users_config: "{{ users_config | default([]) + [user_info] }}"
+  vars:
+    user_info:
+      name: "{{ item.key }}"
+      uid: "{{ item.value[1] }}"
+      gid: "{{ item.value[2] }}"
+      home: "{{ item.value[4] }}"
+      shell: "{{ item.value[5] }}"
+      groups: []  # Can be enhanced later if needed
+      dotfiles_repo: "{{ has_dotfiles }}"
+      dotfiles_dir: "{{ '.dotfiles' if has_dotfiles else '' }}"
+      dotfiles_repo_url: ""
+      dotfiles_repo_branch: "main"
+    # Check if this user has dotfiles
+    has_dotfiles: "{{ dotfiles_dirs.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stat.exists') | first | default(false) }}"
+  loop: "{{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', '>=', 1000) | selectattr('value.1', '<', 60000) | list }}"
+  when: ansible_facts.getent_passwd is defined

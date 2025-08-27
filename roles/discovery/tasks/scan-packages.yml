@@ -1,10 +1,35 @@
 ---
-# Simplified package discovery using built-in package_facts
+# Aggressive package filtering - only keep likely user-installed packages
 
 - name: Get package facts
   ansible.builtin.package_facts:
     manager: auto
 
-- name: Set host packages install variable (manage_packages role format)
+- name: Filter to user-installed packages only
   ansible.builtin.set_fact:
-    "host_packages_install_{{ ansible_distribution }}": "{{ ansible_facts.packages.keys() | list | sort }}"
+    "host_packages_install_{{ ansible_distribution }}": "{{ filtered_packages }}"
+  vars:
+    # Aggressively filter out base/system packages by common patterns
+    system_package_patterns:
+      - '^lib'          # Most libraries
+      - '^systemd'      # systemd components
+      - '^kernel'       # kernel packages
+      - '^linux-'       # linux kernel packages
+      - '^glibc'        # core system libs
+      - '^gcc'          # compiler internals
+      - '^base'         # base system (Arch)
+      - '^filesystem'   # core filesystem
+      - '^tzdata'       # timezone data
+      - '^ca-certificates' # certificates
+      - '^coreutils'    # basic utilities
+      - '^util-linux'   # basic utilities
+      - '^procps'       # process utilities
+      - '-dev$'         # development packages
+      - '-dbg$'         # debug packages
+      - '-doc$'         # documentation
+    filtered_packages: >-
+      {{
+        ansible_facts.packages.keys() |
+        reject('regex', system_package_patterns | join('|')) |
+        list | sort
+      }}
