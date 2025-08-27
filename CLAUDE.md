@@ -46,9 +46,8 @@ make test-quick             # Fast validation tests
 make build                  # Build collection package
 
 # Comprehensive testing
-make test                   # Run all molecule tests (basic_setup, container_platform, discovery, integration)
-make test-basic             # Test basic_setup role only
-make test-docker            # Test container_platform role only
+make test                   # Run all molecule tests (discovery, integration)
+make test-discovery         # Test discovery role only
 make test-integration       # Full integration test suite
 
 # Development environment setup
@@ -59,8 +58,6 @@ make check-env              # Verify development environment
 ### Molecule Testing
 ```bash
 # Individual test scenarios
-cd molecule/basic_setup && molecule test
-cd molecule/container_platform && molecule test
 cd molecule/discovery && molecule test
 cd molecule/default && molecule test
 
@@ -85,7 +82,7 @@ tox -e py311-ansible8       # Test with specific Python/Ansible versions
 
 ### Collection Structure
 - `galaxy.yml`: Collection metadata and dependencies
-- `roles/`: Collection roles (basic_setup, container_platform, dotfiles, maintenance)
+- `roles/`: Collection roles (configure_host, manage_packages, manage_users, dotfiles, discovery, manage_firewall, manage_system_settings, manage_language_packages)
 - `examples/`: Sample inventories and playbooks
 - `molecule/`: Test scenarios for different use cases
 - `utilities/`: Infrastructure discovery and management tools
@@ -106,7 +103,7 @@ tox -e py311-ansible8       # Test with specific Python/Ansible versions
 
 ### Adding New Roles
 1. Create role structure: `ansible-galaxy init roles/new_role`
-2. Follow existing patterns in `roles/basic_setup/tasks/main.yml`
+2. Follow existing patterns in `roles/configure_host/tasks/main.yml`
 3. Implement OS-specific tasks in `tasks/basic-{OS_Family}.yml`
 4. Add OS-specific variables in `vars/{Distribution}.yml`
 5. Create molecule test scenario in `molecule/new_role/`

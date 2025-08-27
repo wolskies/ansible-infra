@@ -1,4 +1,4 @@
-# Third-Party Packages Role
+# manage_language_packages
 
 This role handles all packages and software that require additional setup beyond standard OS repositories:
 

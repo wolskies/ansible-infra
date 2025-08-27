@@ -25,11 +25,6 @@ Supported distributions: `Ubuntu`, `Debian`, `Archlinux`, `MacOSX`
 
 ## Core Roles
 
-### **basic_setup** - System Foundation (Meta Role)
-Coordinates foundational setup by delegating to specialized roles:
-- **configure_host**: System configuration (timezone, locale, firewall, repositories)
-- **manage_system_packages**: Hierarchical package management with OS-specific support
-- **manage_users**: User and group management with optional dotfiles integration
 
 ### **configure_host** - System Configuration
 Host-level system configuration and settings:
@@ -38,7 +33,7 @@ Host-level system configuration and settings:
 - **Repository Management**: Additional APT sources and GPG keys
 - **Platform Features**: Ubuntu snap removal, Arch mirror optimization, macOS preferences
 
-### **manage_system_packages** - Package Management  
+### **manage_packages** - Package Management  
 Advanced hierarchical package management:
 - **Variable Merging**: all_ + group_ + host_ package lists
 - **Conditional Packages**: Shell enhancements, dotfiles support
@@ -59,17 +54,11 @@ Automated discovery and inventory generation:
 - **Output Generation**: host_vars and deployment playbooks ready for use
 - **Cross-Platform**: Full support for Linux distros and macOS
 
-### **container_platform** - Docker Infrastructure
-Docker installation and container service management:
-- **Docker Setup**: Installation, user management, daemon configuration
-- **Service Management**: Deploy services from discovery or manual configuration
-- **Compose Integration**: Automatic compose file handling and service mapping
-
 ### **dotfiles** - Configuration Management
 Automated dotfiles deployment with conflict resolution:
 - **Stow Integration**: GNU Stow-based symlink management
 - **Conflict Resolution**: Intelligent backup of existing files
-- **Multi-User Support**: Integration with basic_setup for per-user deployment
+- **Multi-User Support**: Per-user dotfiles deployment
 
 ### **manage_firewall** - Firewall and Security Configuration
 Independent firewall configuration and intrusion prevention:
@@ -144,12 +133,7 @@ group_packages_install_Ubuntu:
 - name: Basic infrastructure setup
   hosts: all
   roles:
-    - wolskinet.infrastructure.basic_setup
-
-- name: Docker infrastructure  
-  hosts: docker_hosts
-  roles:
-    - wolskinet.infrastructure.container_platform
+    - wolskinet.infrastructure.configure_host
 
 - name: Security configuration
   hosts: servers
@@ -217,8 +201,8 @@ macos_enable_full_keyboard_access: true
 
 ### Dotfiles Integration
 ```yaml
-# Per-user dotfiles deployment via basic_setup
-install_dotfiles_support: true
+# Per-user dotfiles deployment
+dotfiles_enable: true
 discovered_users_config:
   - name: developer
     dotfiles_repository_url: "https://github.com/developer/dotfiles"
@@ -270,7 +254,7 @@ This collection complements the devsec.hardening collection:
 - name: Complete security setup
   hosts: servers
   roles:
-    - wolskinet.infrastructure.basic_setup      # Foundation + firewall install
+    - wolskinet.infrastructure.configure_host      # Foundation + firewall install
     - devsec.hardening.os_hardening            # OS-level security hardening
     - devsec.hardening.ssh_hardening           # SSH security configuration
     - wolskinet.infrastructure.manage_firewall  # Firewall rules + fail2ban
@@ -305,8 +289,6 @@ make test          # Full molecule test suite
 make build         # Build collection package
 
 # Individual role testing
-make test-basic    # Test basic_setup role
-make test-docker   # Test container_platform role
 make test-discovery # Test discovery role
 ```
 

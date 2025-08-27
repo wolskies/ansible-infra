@@ -1,4 +1,4 @@
-# Ansible Role: System Security
+# manage_firewall
 
 Firewall and fail2ban management. Complements devsec.hardening collection.
 
