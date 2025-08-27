@@ -1,5 +1,0 @@
----
-# Ubuntu-specific variables for system_tuning
-
-system_tuning_initramfs_update_command: "update-initramfs -u"
-system_tuning_ssh_service_name: "ssh"

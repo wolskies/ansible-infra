@@ -1,0 +1,8 @@
+---
+# handlers file for manage_system_settings
+
+- name: Update initramfs
+  ansible.builtin.command: "{{ system_settings_initramfs_update_command }}"
+  become: true
+  changed_when: true
+  listen: "Update initramfs"
