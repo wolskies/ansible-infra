@@ -25,8 +25,8 @@ cache:
     - .pip-cache/
     - .ansible-cache/
 
-# Docker-in-Docker template for molecule tests
-.docker-setup: &docker-setup
+# Complete Docker test template
+.molecule-test: &molecule-test
   image: python:3.11-slim
   services:
     - name: docker:dind
@@ -36,8 +36,6 @@ cache:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_DRIVER: overlay2
     DOCKER_BUILDKIT: 0
-
-.base-setup: &base-setup
   before_script:
     # Install Docker client and dependencies
     - apt-get update -qq
@@ -78,30 +76,10 @@ cache:
 # Docker connectivity test job for debugging
 test-docker-connectivity:
   stage: validate
-  <<: *docker-setup
-  before_script:
-    - apt-get update -qq
-    - apt-get install -y -qq curl apt-transport-https ca-certificates gnupg lsb-release
-    - curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    - >
-      echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg]
-      https://download.docker.com/linux/debian bullseye stable" |
-      tee /etc/apt/sources.list.d/docker.list > /dev/null
-    - apt-get update -qq
-    - apt-get install -y -qq docker-ce-cli
+  <<: *molecule-test
   script:
     - echo "=== Docker Connectivity Debug ==="
     - echo "Docker host: ${DOCKER_HOST}"
-    - echo "Waiting for Docker daemon..."
-    - >
-      for i in $(seq 1 30); do
-        if docker info >/dev/null 2>&1; then
-          echo "✅ Docker daemon ready after $i attempts";
-          break;
-        fi;
-        echo "⏳ Attempt $i/30: Docker not ready, waiting...";
-        sleep 2;
-      done
     - echo "=== Docker Info ==="
     - docker info
     - echo "=== Docker Version ==="
@@ -182,8 +160,7 @@ validate-templates:
 
 test-configure-host:
   stage: test-roles
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Testing configure_host role..."
     - molecule test -s configure_host
@@ -196,8 +173,7 @@ test-configure-host:
 
 test-manage-packages:
   stage: test-roles
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Testing manage_packages role..."
     - molecule test -s manage_packages
@@ -210,8 +186,7 @@ test-manage-packages:
 
 test-manage-users:
   stage: test-roles
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Testing manage_users role..."
     - molecule test -s manage_users
@@ -224,8 +199,7 @@ test-manage-users:
 
 test-manage-firewall:
   stage: test-roles
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Testing manage_firewall role..."
     - molecule test -s manage_firewall
@@ -238,8 +212,7 @@ test-manage-firewall:
 
 test-manage-language-packages:
   stage: test-roles
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Testing manage_language_packages role..."
     - molecule test -s manage_language_packages
@@ -252,8 +225,7 @@ test-manage-language-packages:
 
 test-manage-system-settings:
   stage: test-roles
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Testing manage_system_settings role..."
     - molecule test -s manage_system_settings
@@ -266,8 +238,7 @@ test-manage-system-settings:
 
 test-discovery:
   stage: test-roles
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Testing discovery role..."
     - molecule test -s discovery
@@ -280,8 +251,7 @@ test-discovery:
 
 test-dotfiles:
   stage: test-roles
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Testing dotfiles role..."
     - molecule test -s dotfiles
@@ -295,8 +265,7 @@ test-dotfiles:
 # Integration Testing Stage
 test-collection-integration:
   stage: test-integration
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Running full collection integration tests..."
     - molecule test -s integration
@@ -320,7 +289,9 @@ test-collection-integration:
 build-collection:
   stage: build
   image: python:3.11-slim
-  <<: *base-setup
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip make
+    - pip3 install --cache-dir .pip-cache/ ansible
   script:
     - echo "Building collection for release..."
     - ansible-galaxy collection build . --force
@@ -414,8 +385,7 @@ ansible-security-scan:
 # Performance testing (runs on schedule)
 performance-test:
   stage: test-integration
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Running performance tests..."
     - time molecule test -s integration
@@ -426,8 +396,7 @@ performance-test:
 # Multi-OS Testing Matrix (scheduled runs)
 .os-matrix-test: &os-matrix-test
   stage: test-integration
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $TEST_MATRIX == "true"
@@ -460,8 +429,7 @@ test-cross-os-compatibility:
 # End-to-End Testing (full workflow)
 test-e2e-workflow:
   stage: test-integration
-  <<: *docker-setup
-  <<: *base-setup
+  <<: *molecule-test
   script:
     - echo "Running end-to-end workflow test..."
     - echo "1. Discovery -> 2. Configuration Generation -> 3. Infrastructure Setup"
