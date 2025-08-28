@@ -14,7 +14,7 @@ variables:
   ANSIBLE_FORCE_COLOR: 'true'
   ANSIBLE_HOST_KEY_CHECKING: 'false'
   PY_COLORS: '1'
-  ANSIBLE_COLLECTIONS_PATH: "${CI_PROJECT_DIR}/..:${HOME}/.ansible/collections:/usr/share/ansible/collections"
+  ANSIBLE_COLLECTIONS_PATH: "/root/.ansible/collections:${CI_PROJECT_DIR}/..:${HOME}/.ansible/collections:/usr/share/ansible/collections"
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -33,17 +33,24 @@ cache:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_DRIVER: overlay2
     DOCKER_BUILDKIT: 0
+    ANSIBLE_COLLECTIONS_PATH: "/root/.ansible/collections:${CI_PROJECT_DIR}/..:${HOME}/.ansible/collections:/usr/share/ansible/collections"
   before_script:
     - apt-get update -qq
     - apt-get install -y -qq python3-pip make curl docker.io
     - pip3 install --cache-dir .pip-cache/ ansible molecule molecule-plugins[docker] docker pytest-testinfra ansible-lint yamllint jinja2
     - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
+    # Install the current collection for testing
+    - mkdir -p /root/.ansible/collections/ansible_collections/wolskinet/
+    - cp -r . /root/.ansible/collections/ansible_collections/wolskinet/infrastructure
+    # Wait for Docker daemon
     - echo "Waiting for Docker daemon..."
     - for i in {1..30}; do if docker info >/dev/null 2>&1; then echo "Docker ready"; break; fi; sleep 2; done
     - docker info
+    # Verify setup
     - docker --version
     - ansible --version
     - molecule --version
+    - ansible-galaxy collection list | grep wolskinet || echo "Collection not found in list"
 
 # Basic validation
 quick-validation:
