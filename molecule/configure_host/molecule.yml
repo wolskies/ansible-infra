@@ -65,6 +65,9 @@ provisioner:
   inventory:
     group_vars:
       all:
+        # Run as root in containers
+        ansible_user: root
+        
         # Container-specific settings to prevent issues
         config_hostname: ""                    # Don't change hostnames in containers
         config_fqdn: ""                       # Don't set FQDN in containers  
@@ -79,10 +82,6 @@ provisioner:
         config_system_locale: "en_US.UTF-8"
         config_system_language: "en_US.UTF-8"
         config_sysctl: true
-        
-        # Container-friendly defaults
-        ansible_become_method: sudo
-        ansible_become_flags: ""
     
     host_vars:
       archlinux-latest:

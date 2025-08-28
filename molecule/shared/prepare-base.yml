@@ -4,7 +4,7 @@
 - name: Prepare test environment for all platforms
   hosts: all
   gather_facts: false
-  become: true
+  # Running as root in containers, no need for become
   vars:
     # Retry configuration for flaky container operations
     retry_count: 3
