@@ -101,7 +101,9 @@
         name: systemd-timesyncd
       register: timesyncd_service_check
       become: true
-      when: ansible_service_mgr == "systemd"
+      when:
+        - ansible_service_mgr == "systemd"
+        - ansible_virtualization_type | default('') != 'docker'
       failed_when: false
 
     - name: Enable and start systemd-timesyncd
@@ -112,6 +114,7 @@
       become: true
       when:
         - ansible_service_mgr == "systemd"
+        - ansible_virtualization_type | default('') != 'docker'
         - timesyncd_service_check is defined
         - timesyncd_service_check.status is defined
         - timesyncd_service_check.status.LoadState != "not-found"
