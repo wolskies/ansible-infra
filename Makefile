@@ -66,6 +66,10 @@ test-discovery: ## Run molecule tests for discovery role
 
 # Note: test-container removed - container_platform role not implemented yet
 
+.PHONY: test-integration
+test-integration: ## Run integration tests with all roles
+	molecule test -s integration
+
 .PHONY: test-quick
 test-quick: lint syntax-check ## Quick validation (lint + syntax check)
 	@echo "Quick validation completed!"

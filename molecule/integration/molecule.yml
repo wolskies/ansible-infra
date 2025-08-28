@@ -1,8 +1,10 @@
 ---
+role_name_check: 1
 dependency:
   name: galaxy
   options:
     requirements-file: requirements.yml
+    force: true
 
 driver:
   name: docker
@@ -47,39 +49,45 @@ provisioner:
   inventory:
     group_vars:
       all:
-        # Test variables for configure_host
-        # Skip hostname changes in containers
-        config_hostname: ""
-        config_fqdn: ""
-        config_system_timezone: "America/New_York"
-        config_system_locale: "en_US.UTF-8"
-        config_ntp_enabled: true
-        config_system_limits: true
-        config_motd: true
-        config_create_directories:
-          - "/opt/test"
-          - "/var/log/test"
+        ansible_user: root
+        config_system_timezone: 'UTC'
+        config_system_locale: 'en_US.UTF-8'
+        # Test user details (no real passwords)
+        user_details:
+          - name: 'testuser'
+            uid: 1001
+            gid: 1001
+            password: '$$6$$$$test$$$$test'  # Test password hash
+        # Disable services that require real credentials
+        enable_automatic_updates: false
+        security_hardening_enabled: false
+        # Test dotfiles repo
+        dotfiles_repository_url: 'https://github.com/test/dotfiles.git'
     host_vars:
       archlinux-latest:
         ansible_python_interpreter: /usr/bin/python
-  playbooks:
-    converge: converge.yml
-    verify: verify.yml
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+      bin_ansible_callbacks: true
+    connection:
+      pipelining: true
 
 verifier:
   name: ansible
+  enabled: true
 
 scenario:
-  name: configure_host
+  name: integration
   test_sequence:
     - dependency
-    - cleanup
-    - destroy
     - syntax
     - create
     - prepare
     - converge
     - idempotence
+    - side_effect
     - verify
     - cleanup
     - destroy

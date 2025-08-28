@@ -20,7 +20,8 @@
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.configure_host
       vars:
-        config_hostname: "custom-hostname"
+        # Skip hostname changes in containers
+        config_hostname: ""
         config_ubuntu_disable_snap: true
         config_journal: true
         config_journal_max_size: "100M"

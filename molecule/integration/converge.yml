@@ -1,0 +1,49 @@
+---
+# Main test playbook - tests the complete collection workflow
+- name: Test wolskinet.infrastructure collection
+  hosts: all
+  gather_facts: true
+
+  pre_tasks:
+    - name: Display test target information
+      ansible.builtin.debug:
+        msg:
+          - "Testing on: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Groups: {{ group_names }}"
+          - "Roles to test: {{ group_roles_install | default([]) }}"
+
+  roles:
+    # Test core roles on all machines
+    - role: wolskinet.infrastructure.configure_host
+      when: "'configure_host' in (group_roles_install | default([]))"
+
+    - role: wolskinet.infrastructure.manage_packages
+      when: "'manage_packages' in (group_roles_install | default([]))"
+
+    - role: wolskinet.infrastructure.manage_users
+      when: "'manage_users' in (group_roles_install | default([]))"
+
+    # Test dotfiles role on workstations
+    - role: wolskinet.infrastructure.dotfiles
+      when:
+        - "'dotfiles' in (group_roles_install | default([]))"
+        - inventory_hostname in groups.get('workstations', [])
+
+    # Test firewall role
+    - role: wolskinet.infrastructure.manage_firewall
+      when: "'manage_firewall' in (group_roles_install | default([]))"
+
+  post_tasks:
+    # Install group-specific roles
+    - name: Install group-specific roles
+      ansible.builtin.include_role:
+        name: "wolskinet.infrastructure.{{ item }}"
+      loop: "{{ group_roles_install | default([]) }}"
+      when:
+        - group_roles_install is defined
+        - item not in ['configure_host', 'manage_packages', 'manage_users', 'dotfiles', 'manage_firewall']  # Already tested above
+
+    - name: Test role installation completed
+      ansible.builtin.debug:
+        msg: "Role testing completed for {{ inventory_hostname }}"

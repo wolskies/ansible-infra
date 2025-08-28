@@ -1,5 +1,5 @@
 ---
-role_name_check: 1
+# Default Molecule configuration - base for all scenarios
 dependency:
   name: galaxy
   options:
@@ -11,10 +11,7 @@ driver:
 
 platforms:
   - name: ubuntu-24-04
-    image: quay.io/ansible/ubuntu2404-test:latest
-    groups:
-      - servers
-      - docker_hosts
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
     volumes:
@@ -22,10 +19,8 @@ platforms:
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
 
-  - name: debian-12
-    image: quay.io/ansible/debian12-test:latest
-    groups:
-      - servers
+  - name: debian-13
+    image: geerlingguy/docker-debian13-ansible:latest
     pre_build_image: true
     privileged: true
     volumes:
@@ -34,9 +29,7 @@ platforms:
     command: "/lib/systemd/systemd"
 
   - name: archlinux-latest
-    image: quay.io/ansible/archlinux-test:latest
-    groups:
-      - workstations
+    image: archlinux/archlinux:latest
     pre_build_image: true
     privileged: true
     volumes:
@@ -50,46 +43,9 @@ provisioner:
     group_vars:
       all:
         ansible_user: root
-        config_system_timezone: 'UTC'
-        config_system_locale: 'en_US.UTF-8'
-        # Test user details (no real passwords)
-        user_details:
-          - name: 'testuser'
-            uid: 1001
-            gid: 1001
-            password: '$$6$$$$test$$$$test'  # Test password hash
-        # Disable services that require real credentials
-        enable_automatic_updates: false
-        security_hardening_enabled: false
-        # Test dotfiles repo
-        dotfiles_repository_url: 'https://github.com/test/dotfiles.git'
-      servers:
-        group_roles_install:
-          - configure_host
-          - manage_packages
-          - manage_users
-        firewall_enable: false  # Don't enable firewall in tests
-      docker_hosts:
-        group_roles_install:
-          - configure_host
-          - manage_packages
-          - manage_users
-          - container_platform
-        docker_services_deploy:
-          - portainer
-        # Test Docker configuration
-        docker_users:
-          - root
-        docker_networks:
-          - name: "test-network"
-            driver: "bridge"
-      workstations:
-        group_roles_install:
-          - configure_host
-          - manage_packages
-          - manage_users
-          - dotfiles
-        install_dotfiles: false  # Don't actually clone in tests
+    host_vars:
+      archlinux-latest:
+        ansible_python_interpreter: /usr/bin/python
   config_options:
     defaults:
       host_key_checking: false
@@ -103,6 +59,7 @@ verifier:
   enabled: true
 
 scenario:
+  name: default
   test_sequence:
     - dependency
     - syntax
@@ -110,7 +67,6 @@ scenario:
     - prepare
     - converge
     - idempotence
-    - side_effect
     - verify
     - cleanup
     - destroy

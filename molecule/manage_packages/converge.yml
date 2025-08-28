@@ -3,7 +3,6 @@
 - name: Test manage_packages role
   hosts: all
   gather_facts: true
-  become: true
 
   pre_tasks:
     - name: Update package cache
