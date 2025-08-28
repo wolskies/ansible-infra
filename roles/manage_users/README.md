@@ -9,13 +9,14 @@ This role manages system users and groups with integrated dotfiles deployment. I
 ## Features
 
 - **👤 User Management**: Create, modify, and remove system users
-- **🔑 Authentication**: Password management and account locking
-- **👥 Group Assignment**: Add users to system and custom groups
-- **🏠 Home Directories**: Automatic home directory creation with proper permissions
-- **🎨 Dotfiles Integration**: Automatic dotfiles deployment via GNU Stow
-- **🔄 Repository Management**: Clone and update user dotfiles repositories
+- **🔑 Authentication**: Password management, account locking, and SSH key deployment
+- **👥 Group Assignment**: Add users to system and custom groups with flexible GID support
+- **🏠 Home Directories**: Custom home directory paths with automatic creation
+- **🎨 Dotfiles Integration**: Automatic dotfiles deployment via GNU Stow with nested configuration
+- **🔄 Repository Management**: Clone and update user dotfiles repositories with branch control
 - **🌐 Cross-Platform**: Linux and macOS user management support
 - **⚙️ Discovery Integration**: Works with discovered user configurations
+- **🔄 Backward Compatibility**: Supports both new nested format and legacy configuration
 
 ## Role Variables
 
@@ -34,6 +35,38 @@ This role manages system users and groups with integrated dotfiles deployment. I
 - `users_default_dotfiles_stow_packages: []` - Default stow packages (empty = all)
 
 ### User Configuration Format
+
+**Enhanced Format (Recommended):**
+```yaml
+users_config:
+  - name: ed                                    # Required: username
+    uid: "1000"                                # Optional: specific UID (string or int)
+    gid: "1000"                                # Optional: primary group ID (string or int)
+    home: /home/ed                             # Optional: home directory path
+    shell: /bin/bash                           # Optional: user shell
+    groups: [sudo, docker]                    # Optional: additional groups
+    ssh_pubkey: var_users_config_ed_ssh_pubkey # Optional: SSH public key (variable reference)
+    password: var_users_config_ed_password     # Optional: password hash (variable reference)
+    dotfiles:                                  # Optional: dotfiles configuration
+      enable: true                             # Required if dotfiles block present
+      repo: "https://github.com/user/dotfiles" # Required: git repository URL
+      branch: "main"                           # Optional: git branch (default: main)
+      directory: "/home/ed/.dotfiles"          # Optional: clone directory (default: ~/.dotfiles)
+  
+  - name: shelly
+    uid: "1001"
+    gid: "1001"
+    home: /home/shelly
+    ssh_pubkey: var_users_config_shelly_ssh_pubkey
+    password: var_users_config_shelly_password
+    dotfiles:
+      enable: true
+      repo: "https://github.com/shelly/dotfiles"
+      branch: "main"
+      directory: "/home/shelly/.dotfiles"
+```
+
+**Legacy Format (Still Supported):**
 ```yaml
 users_config:
   - name: username                    # Required: username
@@ -42,11 +75,8 @@ users_config:
     groups: [sudo, docker]          # Optional: additional groups
     password: "*"                    # Optional: password hash or "*" (locked)
     create_home: true                # Optional: create home directory
-    # Dotfiles configuration (optional)
+    # Legacy dotfiles configuration
     dotfiles_repository_url: https://github.com/user/dotfiles
-    dotfiles_uses_stow: true         # Optional: use GNU Stow
-    dotfiles_stow_packages: [zsh, git, tmux]  # Optional: specific packages
-    dotfiles_update_repo: false      # Optional: update existing repo
 ```
 
 ## Dependencies

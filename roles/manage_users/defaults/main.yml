@@ -1,10 +1,10 @@
 ---
-# manage_users role defaults - User management and dotfiles deployment
-# Manages system users and handles dotfiles deployment automatically
+# manage_users role defaults - User account and group management with dotfiles
+# Manages system users and groups with integrated dotfiles deployment
 # Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
-# USER MANAGEMENT SETTINGS
+# USER MANAGEMENT CONFIGURATION
 # =============================================================================
 
 # Default shell for new users
@@ -13,41 +13,92 @@ users_default_shell: /bin/bash
 # Create home directories by default
 users_create_home: true
 
-# Default groups for new users (OS-specific)
-# Empty by default - specify groups per user or override these defaults
-# Common examples: [sudo] for Linux, [admin] for macOS
-users_default_groups_linux: []
-users_default_groups_macos: []
+# Default user mask for home directories
+users_home_mode: '0755'
+
+# =============================================================================
+# GROUP MANAGEMENT
+# =============================================================================
+
+# Default groups for new users (platform-specific)
+users_default_groups_linux: []         # Default groups for Linux users
+users_default_groups_macos: []         # Default groups for macOS users
+
+# Auto-assign users to sudo/wheel groups
+users_auto_sudo_group: true            # Add users to sudo group automatically
+users_sudo_group_linux: sudo           # Sudo group name on Linux
+users_sudo_group_macos: wheel          # Sudo group name on macOS
+
+# =============================================================================
+# SSH KEY MANAGEMENT
+# =============================================================================
+
+# SSH key deployment settings
+users_ssh_key_type: rsa                # Default SSH key type (rsa, ed25519, etc.)
+users_ssh_key_deployment: true         # Enable SSH key deployment from variables
+users_ssh_exclusive_keys: false        # Remove other SSH keys not managed by Ansible
 
 # =============================================================================
 # DOTFILES INTEGRATION
 # =============================================================================
 
 # Default dotfiles settings (can be overridden per user)
-# Dotfiles are automatically deployed for users that have dotfiles_repository_url defined
-users_default_dotfiles_uses_stow: true
-users_default_dotfiles_stow_packages: []  # Empty list means stow all packages in repo
+users_default_dotfiles_uses_stow: true         # Use GNU Stow for symlink management
+users_default_dotfiles_stow_packages: []       # Default stow packages (empty = deploy all)
+users_default_dotfiles_update_repo: false      # Update existing dotfiles repositories
+users_default_dotfiles_branch: main            # Default git branch for dotfiles
 
 # =============================================================================
 # USER CONFIGURATION
 # =============================================================================
 
 # List of users to manage on the system
-# Format:
+# Enhanced format supporting SSH keys, passwords, and nested dotfiles:
 # users_config:
+#   - name: ed                                    # Required: username
+#     uid: "1000"                                # Optional: specific UID (string or int)
+#     gid: "1000"                                # Optional: primary group ID (string or int)
+#     home: /home/ed                             # Optional: home directory path
+#     shell: /bin/bash                           # Optional: user shell
+#     groups: [sudo, docker]                    # Optional: additional groups
+#     ssh_pubkey: var_users_config_ed_ssh_pubkey # Optional: SSH public key (variable reference)
+#     password: var_users_config_ed_password     # Optional: password hash (variable reference)
+#     dotfiles:                                  # Optional: dotfiles configuration
+#       enable: true                             # Required if dotfiles block present
+#       repo: "https://github.com/user/dotfiles" # Required: git repository URL
+#       branch: "main"                           # Optional: git branch (default: main)
+#       directory: "/home/ed/.dotfiles"          # Optional: clone directory (default: ~/.dotfiles)
+#
+# Legacy format (still supported for backward compatibility):
 #   - name: username
-#     uid: 1001                    # Optional: specific UID
-#     shell: /bin/bash             # Optional: user shell
-#     groups: [sudo, docker]      # Optional: additional groups
-#     password: "*"                # Optional: password hash or "*" for locked
-#     create_home: true            # Optional: create home directory
-#     dotfiles_repository_url: https://github.com/user/dotfiles  # Optional
-#     dotfiles_uses_stow: true     # Optional: use GNU Stow
-#     dotfiles_stow_packages: [zsh, git, tmux]  # Optional: stow packages
-#     dotfiles_update_repo: false  # Optional: update existing dotfiles
+#     uid: 1001
+#     dotfiles_repository_url: https://github.com/user/dotfiles
 
 users_config: []
 
 # Users to remove from the system
 users_remove: []
 
+# =============================================================================
+# SECURITY & COMPLIANCE
+# =============================================================================
+
+# Password policies
+users_enforce_password_policy: false   # Enforce password complexity requirements
+users_password_min_length: 12          # Minimum password length
+users_password_expire_days: 90         # Password expiration in days (0 = never)
+
+# Account lockout settings
+users_max_login_attempts: 5            # Maximum failed login attempts
+users_lockout_duration: 300            # Account lockout duration in seconds
+
+# =============================================================================
+# PLATFORM-SPECIFIC FEATURES
+# =============================================================================
+
+# Linux-specific settings
+users_linux_create_mail_spool: true    # Create mail spool files for users
+
+# macOS-specific settings
+users_macos_hide_users: []              # List of users to hide from login screen
+users_macos_admin_users: []             # Users to add to admin group

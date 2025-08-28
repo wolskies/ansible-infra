@@ -1,18 +1,33 @@
 ---
-# Simplified user management - trust Ansible built-ins
+# Enhanced user management with SSH keys, passwords, and nested dotfiles support
 
 - name: Add users to system
   become: true
   ansible.builtin.user:
     name: "{{ item.name }}"
     uid: "{{ item.uid | default(omit) }}"
+    group: "{{ item.gid | default(omit) }}"
+    home: "{{ item.home | default('/home/' + item.name) }}"
     shell: "{{ item.shell | default('/bin/bash') }}"
+    password: "{{ item.password | default(omit) }}"
     state: present
     create_home: true
     groups: "{{ item.groups | default([]) }}"
     append: true
   loop: "{{ users_config | default([]) }}"
   when: users_config | default([]) | length > 0
+
+- name: Add SSH public keys for users
+  become: true
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.ssh_pubkey }}"
+    state: present
+  loop: "{{ users_config | default([]) }}"
+  when:
+    - users_config | default([]) | length > 0
+    - item.ssh_pubkey is defined
+    - item.ssh_pubkey != ""
 
 - name: Remove users from system
   become: true
@@ -23,12 +38,32 @@
   loop: "{{ users_remove | default([]) }}"
   when: users_remove | default([]) | length > 0
 
-- name: Deploy dotfiles for configured users
+- name: Deploy dotfiles for users with dotfiles configuration (new format)
   ansible.builtin.include_role:
     name: wolskinet.infrastructure.dotfiles
   vars:
     dotfiles_user: "{{ item.name }}"
-    dotfiles_repository_url: "{{ item.dotfiles_repo_url }}"
-  loop: "{{ users_config | default([]) | selectattr('dotfiles_repo', 'equalto', true) | list }}"
-  when: users_config | default([]) | selectattr('dotfiles_repo', 'equalto', true) | list | length > 0
+    dotfiles_repository_url: "{{ item.dotfiles.repo }}"
+    dotfiles_repository_version: "{{ item.dotfiles.branch | default('main') }}"
+    dotfiles_directory: "{{ item.dotfiles.directory | default(item.home | default('/home/' + item.name) + '/.dotfiles') }}"
+  loop: "{{ users_config | default([]) }}"
+  when:
+    - users_config | default([]) | length > 0
+    - item.dotfiles is defined
+    - item.dotfiles.enable | default(false)
+    - item.dotfiles.repo is defined
+    - item.dotfiles.repo != ""
+
+- name: Deploy dotfiles for users with legacy configuration
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.dotfiles
+  vars:
+    dotfiles_user: "{{ item.name }}"
+    dotfiles_repository_url: "{{ item.dotfiles_repository_url }}"
+  loop: "{{ users_config | default([]) }}"
+  when:
+    - users_config | default([]) | length > 0
+    - item.dotfiles is not defined
+    - item.dotfiles_repository_url is defined
+    - item.dotfiles_repository_url != ""
 

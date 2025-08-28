@@ -1,41 +1,97 @@
 ---
-# manage_system_settings role defaults
-# System performance tuning and hardware configurations requiring root privileges
+# manage_system_settings role defaults - Advanced system performance tuning and hardware optimization
+# Handles specialized system configurations requiring root privileges and hardware-specific optimizations
+# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
 
-# Enable/disable system setting categories
-system_settings_network_enabled: true
-system_settings_gaming_enabled: false
-system_settings_gpu_enabled: false
-system_settings_services_enabled: true
-system_settings_hardware_enabled: true
+# =============================================================================
+# FEATURE TOGGLE CONFIGURATION
+# =============================================================================
 
-# Network performance tuning
+# Control which system setting categories are enabled
+system_settings_network_enabled: true          # Network performance optimizations
+system_settings_gaming_enabled: false          # Gaming-specific kernel parameters
+system_settings_gpu_enabled: false             # GPU driver and module configurations
+system_settings_services_enabled: true         # System service management
+system_settings_hardware_enabled: true         # Hardware support (camera, bluetooth, etc.)
+
+# =============================================================================
+# NETWORK PERFORMANCE TUNING
+# =============================================================================
+
+# High-performance network stack optimizations
+# These settings improve throughput and latency for network-intensive workloads
 system_settings_network_optimizations:
   sysctl:
-    net.core.default_qdisc: "fq"
-    net.ipv4.tcp_congestion_control: "bbr"
-    net.ipv4.ip_unprivileged_port_start: "80"
+    net.core.default_qdisc: "fq"               # Fair Queue packet scheduler
+    net.ipv4.tcp_congestion_control: "bbr"     # Google BBR congestion control
+    net.ipv4.ip_unprivileged_port_start: "80"  # Allow non-root processes to bind to lower ports
 
-# Gaming performance optimizations
+# =============================================================================
+# GAMING PERFORMANCE OPTIMIZATIONS
+# =============================================================================
+
+# Gaming-specific kernel parameter optimizations
+# Improves performance for games and reduces input latency
 system_settings_gaming_optimizations:
   sysctl:
-    vm.max_map_count: "2097152"
+    vm.max_map_count: "2097152"                 # Increased memory map areas (required for some games)
 
-# GPU-specific configurations
-system_settings_gpu_nvidia_enabled: false
-system_settings_gpu_nvidia_modules:
-  - "nvidia"
-  - "nvidia_modeset"
-  - "nvidia_uvm"
-  - "nvidia_drm"
+# =============================================================================
+# GPU AND GRAPHICS CONFIGURATION
+# =============================================================================
 
-# System services to manage
-system_settings_services_enable: []
-system_settings_services_disable: []
+# NVIDIA GPU support configuration
+system_settings_gpu_nvidia_enabled: false      # Enable NVIDIA proprietary driver modules
+system_settings_gpu_nvidia_modules:            # NVIDIA kernel modules to load
+  - "nvidia"                                    # Main NVIDIA driver module
+  - "nvidia_modeset"                            # Display driver module
+  - "nvidia_uvm"                                # Unified Memory module
+  - "nvidia_drm"                                # Direct Rendering Manager module
 
-# Hardware-specific configurations
-system_settings_camera_support_enabled: false
-system_settings_bluetooth_enabled: false
+# =============================================================================
+# SYSTEM SERVICE MANAGEMENT
+# =============================================================================
 
-# Custom sysctl parameters (merged with above)
-system_settings_custom_sysctl: {}
+# Lists of system services to enable or disable
+# These are managed via systemctl and affect system startup
+system_settings_services_enable: []            # Services to enable and start
+system_settings_services_disable: []           # Services to disable and stop
+
+# Example usage:
+# system_settings_services_enable:
+#   - bluetooth.service
+#   - cups.service
+# system_settings_services_disable:
+#   - cups.service
+#   - avahi-daemon.service
+
+# =============================================================================
+# HARDWARE SUPPORT CONFIGURATION
+# =============================================================================
+
+# Camera and webcam support
+system_settings_camera_support_enabled: false  # Enable camera/webcam support and permissions
+
+# Bluetooth hardware support
+system_settings_bluetooth_enabled: false       # Enable Bluetooth hardware and audio codec support
+
+# =============================================================================
+# CUSTOM SYSTEM PARAMETERS
+# =============================================================================
+
+# Additional custom sysctl parameters
+# These are merged with the optimizations above, allowing for host-specific tuning
+system_settings_custom_sysctl: {}              # Custom kernel parameters (key-value pairs)
+
+# Example usage:
+# system_settings_custom_sysctl:
+#   vm.swappiness: 10
+#   net.core.somaxconn: 65535
+#   fs.file-max: 2097152
+
+# =============================================================================
+# PLATFORM-SPECIFIC FEATURES
+# =============================================================================
+
+# Linux-specific: Full support for all features
+# macOS-specific: Limited support (sysctl parameters via sysctl command)

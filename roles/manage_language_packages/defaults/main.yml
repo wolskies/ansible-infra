@@ -1,28 +1,101 @@
 ---
-# Language ecosystem package management
-# Handles npm, uv (Python), cargo, go modules with dependency checking
+# manage_language_packages role defaults - Language ecosystem package management
+# Handles Python (uv), Node.js (npm), Rust (cargo), and Go (go install) package installation with dependency validation
+# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
 
-# Python packages (uv)
-language_python_packages: []
-language_python_install_method: "user"  # user, global, project
+# =============================================================================
+# LANGUAGE ECOSYSTEM FEATURE TOGGLES
+# =============================================================================
+
+# Control which language ecosystems are managed
+language_python_enable: true               # Enable Python package management via uv
+language_nodejs_enable: true               # Enable Node.js package management via npm
+language_rust_enable: false                # Enable Rust package management via cargo (requires Rust toolchain)
+language_go_enable: false                  # Enable Go package management via go install (requires Go toolchain)
+
+# =============================================================================
+# DEPENDENCY VALIDATION CONFIGURATION
+# =============================================================================
+
+# Automatic dependency checking and installation
+language_check_dependencies: true          # Validate required tools before installing packages
+language_install_missing_tools: true       # Auto-install missing language tools via system package manager
+
+# =============================================================================
+# PYTHON PACKAGE MANAGEMENT (UV)
+# =============================================================================
+
+# Python packages managed via uv (modern Python package installer)
+language_python_packages: []               # List of Python packages to install
+
+# Python installation method configuration
+language_python_install_method: "user"     # Installation scope: user, global, project
 language_python_project_path: "{{ ansible_env.HOME }}/python-project"  # Path for project-based installs
 
-# Node.js packages (npm)
-language_nodejs_packages: []
-language_nodejs_install_global: true
+# Example usage:
+# language_python_packages:
+#   - requests
+#   - flask
+#   - pytest
+#   - black
 
-# Rust packages (cargo install)
-language_rust_packages: []
+# Installation methods explained:
+# - user: Install to user site-packages (~/.local)
+# - global: Install system-wide (requires root privileges)
+# - project: Install to specific project directory (uses language_python_project_path)
 
-# Go packages (go install)
-language_go_packages: []
+# =============================================================================
+# NODE.JS PACKAGE MANAGEMENT (NPM)
+# =============================================================================
 
-# Feature toggles
-language_python_enable: true
-language_nodejs_enable: true
-language_rust_enable: false    # Requires Rust toolchain
-language_go_enable: false      # Requires Go toolchain
+# Node.js packages managed via npm
+language_nodejs_packages: []               # List of Node.js packages to install
+language_nodejs_install_global: true       # Install packages globally (-g flag)
 
-# Dependency checking
-language_check_dependencies: true      # Check for required tools before installing packages
-language_install_missing_tools: true   # Install missing language tools via system package manager
+# Example usage:
+# language_nodejs_packages:
+#   - typescript
+#   - "@vue/cli"
+#   - eslint
+#   - prettier
+
+# =============================================================================
+# RUST PACKAGE MANAGEMENT (CARGO)
+# =============================================================================
+
+# Rust packages managed via cargo install
+language_rust_packages: []                 # List of Rust packages to install
+
+# Example usage:
+# language_rust_packages:
+#   - ripgrep
+#   - fd-find
+#   - bat
+#   - exa
+
+# Note: Requires Rust toolchain to be installed
+# Enable language_rust_enable only if Rust is available
+
+# =============================================================================
+# GO PACKAGE MANAGEMENT (GO INSTALL)
+# =============================================================================
+
+# Go packages managed via go install
+language_go_packages: []                   # List of Go packages to install
+
+# Example usage:
+# language_go_packages:
+#   - github.com/junegunn/fzf@latest
+#   - golang.org/x/tools/cmd/goimports@latest
+#   - github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Note: Requires Go toolchain to be installed
+# Enable language_go_enable only if Go is available
+
+# =============================================================================
+# PLATFORM-SPECIFIC FEATURES
+# =============================================================================
+
+# Ubuntu/Debian: Full support for all language ecosystems
+# Arch Linux: Full support for all language ecosystems
+# macOS: Full support for all language ecosystems (via Homebrew integration)

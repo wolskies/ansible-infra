@@ -7,7 +7,12 @@
 # DISCOVERY OUTPUT CONTROL
 # =============================================================================
 
-# Core discovery behavior
+# Core discovery behavior control
+discovery_generate_configs: true               # Generate playbooks and inventory files
+discovery_timeout: 300                         # Maximum time per discovery task (seconds)
+discovery_debug: false                         # Enable detailed discovery debugging output
+
+# Legacy compatibility (deprecated - use individual variables above)
 discovery:
   generate_configs: true              # Generate playbooks and inventory files
   timeout: 300                       # Maximum time per discovery task (seconds)
@@ -27,17 +32,17 @@ discovery:
 # DOCKER DISCOVERY CONFIGURATION
 # =============================================================================
 
-# Docker Compose search paths - where to look for docker-compose.yml files
-# Discovery searches these paths for containerized services
-discovery_docker_compose_paths:
-  - "/opt"                          # Common system service location
-  - "/opt/docker"                   # Docker-specific directory
-  - "/srv"                          # Service directory (FHS standard)
-  - "/srv/docker"                   # Docker services in /srv
-  - "/home/*/docker"                # User docker directories (auto-expanded)
+# Docker Compose search configuration
+# Discovery searches these paths for containerized services and docker-compose.yml files
+discovery_docker_compose_paths:                # Primary search paths for Docker Compose files
+  - "/opt"                                      # Common system service location
+  - "/opt/docker"                               # Docker-specific directory
+  - "/srv"                                      # Service directory (FHS standard)
+  - "/srv/docker"                               # Docker services in /srv
+  - "/home/*/docker"                            # User docker directories (auto-expanded)
 
 # Legacy compatibility (deprecated - use discovery_docker_compose_paths instead)
-discovery_docker_compose_dir: "/opt/docker"
+discovery_docker_compose_dir: "/opt/docker"    # Single directory search (deprecated)
 
 # Service mapping - maps discovered container images to collection roles
 # Add custom mappings here to auto-assign roles to your Docker services

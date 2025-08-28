@@ -1,26 +1,44 @@
 ---
-# manage_firewall role defaults
+# manage_firewall role defaults - Firewall and intrusion prevention management
 # Independent firewall and fail2ban management across operating systems
+# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
 
-# Core firewall features
-firewall_enable: true              # Enable firewall management
-firewall_enable_fail2ban: false    # Install and configure fail2ban
+# =============================================================================
+# FIREWALL CONFIGURATION
+# =============================================================================
 
-# Firewall configuration
-firewall_type: "auto"              # auto, ufw, firewalld, iptables
-firewall_manage_ports: true        # Whether to manage firewall ports
-firewall_reset_to_defaults: false  # Reset firewall before applying rules
-firewall_default_policy: "deny"    # Default policy for incoming connections
-firewall_logging: false            # Enable firewall logging
-firewall_docker_integration: false # Let Docker manage its iptables rules
+# Core firewall management
+firewall_enable: true                  # Enable firewall management
+firewall_type: "auto"                  # auto, ufw, firewalld, iptables, pf
+firewall_manage_ports: true            # Whether to manage firewall ports
+firewall_reset_to_defaults: false      # Reset firewall before applying rules
 
-# Simple port lists (strings)
-firewall_allowed_ports: []         # List of ports to allow (e.g., ["80", "443"])
-firewall_allowed_services: []      # List of service names (e.g., ["http", "https"])
-                                    # Note: SSH is always allowed automatically to prevent lockout
+# Default policies
+firewall_default_policy: "deny"        # Default policy for incoming connections
+firewall_default_outgoing: "allow"     # Default policy for outgoing connections
+firewall_default_forward: "deny"       # Default policy for forwarding
+
+# Firewall behavior
+firewall_logging: false                # Enable firewall logging
+firewall_log_level: low                # Logging level (low, medium, high, full)
+firewall_docker_integration: false     # Let Docker manage its iptables rules
+firewall_ipv6_enabled: true            # Enable IPv6 firewall rules
+
+# =============================================================================
+# ACCESS CONTROL
+# =============================================================================
+
+# Simple port lists (recommended for basic configurations)
+firewall_allowed_ports: []             # List of ports to allow (e.g., ["80", "443"])
+firewall_allowed_services: []          # List of service names (e.g., ["http", "https"])
+                                        # Note: SSH is always allowed automatically to prevent lockout
+
+# Denied ports and services
+firewall_denied_ports: []              # List of ports to explicitly deny
+firewall_denied_services: []           # List of services to explicitly deny
 
 # Advanced port configuration
-firewall_custom_rules: []          # Complex rules with source restrictions
+firewall_custom_rules: []              # Complex rules with source restrictions
 # Example:
 # firewall_custom_rules:
 #   - port: 3306
@@ -32,22 +50,55 @@ firewall_custom_rules: []          # Complex rules with source restrictions
 #     source: "192.168.1.0/24"
 #     comment: "Redis from local network"
 
-# Fail2ban configuration
+# Rate limiting
+firewall_rate_limit_enabled: false     # Enable connection rate limiting
+firewall_rate_limit_burst: 6           # Burst connections allowed
+firewall_rate_limit_seconds: 30        # Time window for rate limiting
+
+# =============================================================================
+# INTRUSION PREVENTION (FAIL2BAN)
+# =============================================================================
+
+# Fail2ban core settings
+firewall_enable_fail2ban: false        # Install and configure fail2ban
+firewall_fail2ban_sender: "root@localhost" # Email sender for notifications
+firewall_fail2ban_dest_email: ""       # Destination email for alerts
+
+# Default fail2ban settings
+firewall_fail2ban_default_bantime: 3600    # Default ban time (1 hour)
+firewall_fail2ban_default_findtime: 600    # Default find time (10 minutes)
+firewall_fail2ban_default_maxretry: 5      # Default max retry attempts
+
+# Fail2ban service configurations
 firewall_fail2ban_services:
   - name: sshd
     enabled: true
     maxretry: 5
-    bantime: 3600                  # 1 hour
-    findtime: 600                  # 10 minutes
+    bantime: 3600                       # 1 hour
+    findtime: 600                       # 10 minutes
+    logpath: /var/log/auth.log
 
+# IP addresses to ignore (never ban)
 firewall_fail2ban_ignoreips:
-  - "127.0.0.1/8"
-  - "::1"
+  - "127.0.0.1/8"                      # Localhost
+  - "::1"                               # IPv6 localhost
+
+# =============================================================================
+# PLATFORM-SPECIFIC FEATURES
+# =============================================================================
 
 # OS-specific tool preferences
 firewall_tool_preference:
-  Ubuntu: "ufw"
-  Debian: "ufw"
-  Archlinux: "ufw"                 # UFW is commonly used on Arch as iptables frontend
-  MacOSX: "macos_alf"              # macOS Application Layer Firewall
+  Ubuntu: "ufw"                         # Ubuntu Uncomplicated Firewall
+  Debian: "ufw"                         # UFW is common on Debian
+  Archlinux: "ufw"                      # UFW is commonly used on Arch
+  MacOSX: "macos_alf"                   # macOS Application Layer Firewall
 
+# Linux-specific settings
+firewall_linux_netfilter_modules: []   # Additional netfilter modules to load
+firewall_linux_save_rules: true        # Save rules to survive reboot
+
+# macOS-specific settings
+firewall_macos_stealth_mode: false     # Enable stealth mode
+firewall_macos_block_all: false        # Block all incoming connections
+firewall_macos_firewall_logging: false # Enable built-in firewall logging
