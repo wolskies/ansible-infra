@@ -5,6 +5,10 @@
   gather_facts: true
 
   tasks:
+    - name: Debug inventory file path
+      ansible.builtin.debug:
+        msg: "inventory_file: {{ inventory_file | default('undefined') }}"
+        
     - name: Run infrastructure discovery role
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.discovery

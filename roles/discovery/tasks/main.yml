@@ -8,6 +8,14 @@
       host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.yml"
   delegate_to: localhost
 
+- name: Debug discovery paths
+  ansible.builtin.debug:
+    msg:
+      - "inventory_file: {{ inventory_file | default('undefined') }}"
+      - "host_vars_dir: {{ discovery_paths.host_vars_dir }}"
+      - "host_vars_file: {{ discovery_paths.host_vars_file }}"
+  delegate_to: localhost
+
 - name: Create output directory
   ansible.builtin.file:
     path: "{{ discovery_paths.host_vars_dir }}"

@@ -8,6 +8,7 @@
   loop:
     - passwd
     - group
+  failed_when: false
 
 - name: Filter regular users (UID 1000-59999)
   ansible.builtin.set_fact:
@@ -15,8 +16,9 @@
   loop: "{{ ansible_facts.getent_passwd | dict2items }}"
   when:
     - ansible_facts.getent_passwd is defined
-    - item.value[1] | int >= 1000
-    - item.value[1] | int < 60000
+    - item.value | length > 1
+    - item.value[1] | string | int >= 1000
+    - item.value[1] | string | int < 60000
 
 - name: Check for dotfiles directories
   ansible.builtin.stat:
