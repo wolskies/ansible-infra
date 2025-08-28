@@ -15,12 +15,22 @@
     # PRE-FLIGHT CHECKS AND PYTHON INSTALLATION
     # ========================================================================
     
-    - name: Check container connectivity
-      ansible.builtin.ping:
+    - name: Wait for container to be ready
+      ansible.builtin.wait_for_connection:
+        delay: 2
+        timeout: 60
+      register: wait_result
+      ignore_errors: true
+    
+    - name: Check container connectivity with raw module
+      ansible.builtin.raw: |
+        echo "Container is responsive"
       register: connectivity_check
+      when: wait_result is failed
       until: connectivity_check is succeeded
       retries: "{{ retry_count }}"
       delay: "{{ retry_delay }}"
+      changed_when: false
       
     - name: Install Python and essential packages on Arch Linux
       ansible.builtin.raw: |
