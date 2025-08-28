@@ -96,13 +96,25 @@
       when: ansible_service_mgr == "systemd"
       notify: restart timesyncd
 
+    - name: Check if systemd-timesyncd service exists
+      ansible.builtin.systemd:
+        name: systemd-timesyncd
+      register: timesyncd_service_check
+      become: true
+      when: ansible_service_mgr == "systemd"
+      failed_when: false
+
     - name: Enable and start systemd-timesyncd
       ansible.builtin.systemd:
         name: systemd-timesyncd
         enabled: true
         state: started
       become: true
-      when: ansible_service_mgr == "systemd"
+      when: 
+        - ansible_service_mgr == "systemd"
+        - timesyncd_service_check is defined
+        - timesyncd_service_check.status is defined
+        - timesyncd_service_check.status.LoadState != "not-found"
 
   when:
     - config_ntp_enabled | default(true)

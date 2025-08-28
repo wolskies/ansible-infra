@@ -27,6 +27,14 @@
     - variables
     - system-settings
 
+- name: Security validation for system settings
+  ansible.builtin.include_tasks: security-validation.yml
+  tags:
+    - always
+    - security
+    - validation
+    - system-settings
+
 - name: Include OS-specific system settings tasks
   ansible.builtin.include_tasks: "settings-{{ ansible_distribution }}.yml"
   when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux']

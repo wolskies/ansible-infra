@@ -30,3 +30,72 @@ config_hostname: {{ config_hostname | to_json }}
 {% if config_system_timezone is defined %}
 config_system_timezone: {{ config_system_timezone | to_json }}
 {% endif %}
+
+{% if repositories_config is defined and repositories_config.keys() | length > 0 %}
+# Repository management (manage_packages role)
+{% if repositories_config.apt_repositories is defined and repositories_config.apt_repositories | length > 0 %}
+packages_apt_repositories:
+{% for repo in repositories_config.apt_repositories %}
+  - filename: {{ repo.filename | to_json }}
+    enabled: {{ repo.enabled | to_json }}
+    content: {{ repo.content | to_json }}
+{% endfor %}
+{% endif %}
+{% if repositories_config.apt_keys is defined and repositories_config.apt_keys | length > 0 %}
+packages_apt_keys:
+{% for key in repositories_config.apt_keys %}
+  - {{ key.path | to_json }}
+{% endfor %}
+{% endif %}
+{% if repositories_config.ubuntu_ppas is defined and repositories_config.ubuntu_ppas | length > 0 %}
+# Ubuntu PPAs discovered
+packages_ubuntu_ppas_discovered:
+{{ repositories_config.ubuntu_ppas | to_nice_yaml(indent=2) }}
+{% endif %}
+{% if repositories_config.pacman_repositories is defined %}
+# Arch Linux repositories
+packages_pacman_repositories_discovered:
+{{ repositories_config.pacman_repositories | to_nice_yaml(indent=2) }}
+{% endif %}
+{% if repositories_config.pacman_multilib_enabled is defined %}
+packages_pacman_multilib: {{ repositories_config.pacman_multilib_enabled | to_json }}
+{% endif %}
+{% if repositories_config.aur_helpers_installed is defined and repositories_config.aur_helpers_installed | length > 0 %}
+packages_aur_helper: {{ repositories_config.aur_helpers_installed[0] | to_json }}
+{% endif %}
+{% if repositories_config.homebrew_installed is defined and repositories_config.homebrew_installed %}
+# Homebrew configuration  
+packages_homebrew_path: {{ repositories_config.homebrew_path | to_json }}
+{% if repositories_config.homebrew_taps is defined and repositories_config.homebrew_taps | length > 0 %}
+packages_homebrew_taps:
+{{ repositories_config.homebrew_taps | to_nice_yaml(indent=2) }}
+{% endif %}
+{% if repositories_config.homebrew_casks_installed is defined and repositories_config.homebrew_casks_installed | length > 0 %}
+packages_homebrew_casks_discovered:
+{{ repositories_config.homebrew_casks_installed | to_nice_yaml(indent=2) }}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% if additional_package_managers is defined %}
+{% if additional_package_managers.flatpak.flatpak_installed is defined and additional_package_managers.flatpak.flatpak_installed %}
+# Flatpak configuration
+packages_flatpak_enabled: true
+{% if additional_package_managers.flatpak.flatpak_remotes is defined and additional_package_managers.flatpak.flatpak_remotes | length > 0 %}
+packages_flatpak_remotes_discovered:
+{{ additional_package_managers.flatpak.flatpak_remotes | to_nice_yaml(indent=2) }}
+{% endif %}
+{% if additional_package_managers.flatpak.flatpak_apps is defined and additional_package_managers.flatpak.flatpak_apps | length > 0 %}
+packages_flatpak_packages_discovered:
+{{ additional_package_managers.flatpak.flatpak_apps | to_nice_yaml(indent=2) }}
+{% endif %}
+{% endif %}
+{% if additional_package_managers.snap.snap_installed is defined and additional_package_managers.snap.snap_installed %}
+# Snap configuration
+packages_snap_enabled: true
+{% if additional_package_managers.snap.installed_snaps is defined and additional_package_managers.snap.installed_snaps | length > 0 %}
+packages_snap_packages_discovered:
+{{ additional_package_managers.snap.installed_snaps | to_nice_yaml(indent=2) }}
+{% endif %}
+{% endif %}
+{% endif %}
