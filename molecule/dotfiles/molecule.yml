@@ -59,6 +59,7 @@ provisioner:
     connection:
       pipelining: true
   playbooks:
+    prepare: ../shared/prepare-base.yml
     converge: converge.yml
     verify: verify.yml
 
