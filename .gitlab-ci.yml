@@ -25,22 +25,94 @@ cache:
     - .pip-cache/
     - .ansible-cache/
 
+# Docker-in-Docker template for molecule tests
+.docker-setup: &docker-setup
+  image: python:3.11-slim
+  services:
+    - name: docker:dind
+      command: ["--tls=false", "--host=tcp://0.0.0.0:2375"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 0
+
 .base-setup: &base-setup
   before_script:
-    # Install Docker client for docker:dind service
+    # Install Docker client and dependencies
     - apt-get update -qq
-    - apt-get install -y -qq python3-pip make docker.io
+    - apt-get install -y -qq python3-pip make curl apt-transport-https ca-certificates gnupg lsb-release
     - pip3 install --cache-dir .pip-cache/ ansible molecule molecule-plugins[docker] docker pytest-testinfra ansible-lint yamllint jinja2
     - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
-    # Wait for Docker daemon to be ready
-    - until docker info >/dev/null 2>&1; do echo "Waiting for Docker daemon..."; sleep 1; done
+    # Install Docker CLI (don't install docker.io which conflicts with DinD)
+    - curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    - >
+      echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg]
+      https://download.docker.com/linux/debian bullseye stable" |
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+    - apt-get update -qq
+    - apt-get install -y -qq docker-ce-cli
+    # Wait for Docker daemon to be ready with better error handling
+    - echo "Waiting for Docker daemon to start..."
+    - echo "Docker host: ${DOCKER_HOST}"
+    - >
+      for i in $(seq 1 60); do
+        if docker info >/dev/null 2>&1; then
+          echo "Docker daemon ready after $i attempts";
+          break;
+        fi;
+        echo "Attempt $i/60: Docker not ready, waiting...";
+        sleep 3;
+      done
+    - docker info || (echo "Docker daemon failed to start after 60 attempts (3 minutes)" && exit 1)
+    # Test Docker connectivity
+    - echo "Testing Docker connectivity..."
+    - docker run --rm hello-world || echo "Docker connectivity test failed"
     # Verify setup
     - docker --version
-    - docker info
     - ansible --version
     - molecule --version
-    - molecule list || echo "Molecule scenarios not found"
-    - ls -la molecule/ || echo "Molecule directory not found"
+    - echo "Checking available molecule scenarios..."
+    - molecule list || echo "No molecule scenarios found"
+
+# Docker connectivity test job for debugging
+test-docker-connectivity:
+  stage: validate
+  <<: *docker-setup
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq curl apt-transport-https ca-certificates gnupg lsb-release
+    - curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    - >
+      echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg]
+      https://download.docker.com/linux/debian bullseye stable" |
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+    - apt-get update -qq
+    - apt-get install -y -qq docker-ce-cli
+  script:
+    - echo "=== Docker Connectivity Debug ==="
+    - echo "Docker host: ${DOCKER_HOST}"
+    - echo "Waiting for Docker daemon..."
+    - >
+      for i in $(seq 1 30); do
+        if docker info >/dev/null 2>&1; then
+          echo "✅ Docker daemon ready after $i attempts";
+          break;
+        fi;
+        echo "⏳ Attempt $i/30: Docker not ready, waiting...";
+        sleep 2;
+      done
+    - echo "=== Docker Info ==="
+    - docker info
+    - echo "=== Docker Version ==="
+    - docker version
+    - echo "=== Test Container Run ==="
+    - docker run --rm hello-world
+    - echo "✅ Docker connectivity test passed"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  allow_failure: true
 
 # Validation Stage
 quick-validation:
@@ -110,14 +182,7 @@ validate-templates:
 
 test-configure-host:
   stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Testing configure_host role..."
@@ -131,14 +196,7 @@ test-configure-host:
 
 test-manage-packages:
   stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Testing manage_packages role..."
@@ -152,14 +210,7 @@ test-manage-packages:
 
 test-manage-users:
   stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Testing manage_users role..."
@@ -173,14 +224,7 @@ test-manage-users:
 
 test-manage-firewall:
   stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Testing manage_firewall role..."
@@ -194,14 +238,7 @@ test-manage-firewall:
 
 test-manage-language-packages:
   stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Testing manage_language_packages role..."
@@ -215,14 +252,7 @@ test-manage-language-packages:
 
 test-manage-system-settings:
   stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Testing manage_system_settings role..."
@@ -236,14 +266,7 @@ test-manage-system-settings:
 
 test-discovery:
   stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Testing discovery role..."
@@ -257,14 +280,7 @@ test-discovery:
 
 test-dotfiles:
   stage: test-roles
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Testing dotfiles role..."
@@ -279,14 +295,7 @@ test-dotfiles:
 # Integration Testing Stage
 test-collection-integration:
   stage: test-integration
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Running full collection integration tests..."
@@ -405,14 +414,7 @@ ansible-security-scan:
 # Performance testing (runs on schedule)
 performance-test:
   stage: test-integration
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Running performance tests..."
@@ -424,9 +426,7 @@ performance-test:
 # Multi-OS Testing Matrix (scheduled runs)
 .os-matrix-test: &os-matrix-test
   stage: test-integration
-  image: python:3.11-slim
-  services:
-    - docker:dind
+  <<: *docker-setup
   <<: *base-setup
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -439,8 +439,6 @@ test-ubuntu-discovery:
     - echo "Testing discovery on Ubuntu 24.04..."
     - molecule test -s discovery
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
     MOLECULE_PLATFORM: ubuntu2404
 
 test-debian-discovery:
@@ -449,8 +447,6 @@ test-debian-discovery:
     - echo "Testing discovery on Debian 12..."
     - molecule test -s discovery
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
     MOLECULE_PLATFORM: debian12
 
 test-cross-os-compatibility:
@@ -459,21 +455,12 @@ test-cross-os-compatibility:
     - echo "Testing cross-OS compatibility..."
     - molecule test -s integration --parallel
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
     MOLECULE_PARALLEL: "true"
 
 # End-to-End Testing (full workflow)
 test-e2e-workflow:
   stage: test-integration
-  image: python:3.11-slim
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
+  <<: *docker-setup
   <<: *base-setup
   script:
     - echo "Running end-to-end workflow test..."
