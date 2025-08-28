@@ -65,6 +65,43 @@ quick-validation:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
+# Comprehensive linting
+lint-collection:
+  stage: validate
+  image: python:3.11-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip make
+    - pip3 install --cache-dir .pip-cache/ ansible ansible-lint yamllint
+  script:
+    - echo "Running comprehensive linting..."
+    - ansible-lint --version
+    - ansible-lint . --offline
+    - yamllint .
+    - echo "✅ All linting checks passed"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Validate galaxy metadata
+validate-galaxy:
+  stage: validate
+  image: python:3.11-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip
+    - pip3 install ansible
+  script:
+    - echo "Validating galaxy.yml and building collection..."
+    - ansible-galaxy collection build . --force
+    - echo "✅ Collection package created successfully"
+    - ls -la *.tar.gz
+  artifacts:
+    paths:
+      - "*.tar.gz"
+    expire_in: 1 hour
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
 # Docker connectivity test
 test-docker-connectivity:
   stage: validate
@@ -79,11 +116,118 @@ test-docker-connectivity:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 # Role tests
+test-configure-host:
+  stage: test-roles
+  <<: *molecule-test
+  script:
+    - molecule test -s configure_host
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-packages:
+  stage: test-roles
+  <<: *molecule-test
+  script:
+    - molecule test -s manage_packages
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-users:
+  stage: test-roles
+  <<: *molecule-test
+  script:
+    - molecule test -s manage_users
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-firewall:
+  stage: test-roles
+  <<: *molecule-test
+  script:
+    - molecule test -s manage_firewall
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
 test-manage-system-settings:
   stage: test-roles
   <<: *molecule-test
   script:
     - molecule test -s manage_system_settings
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-discovery:
+  stage: test-roles
+  <<: *molecule-test
+  script:
+    - molecule test -s discovery
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-dotfiles:
+  stage: test-roles
+  <<: *molecule-test
+  script:
+    - molecule test -s dotfiles
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+test-manage-language-packages:
+  stage: test-roles
+  <<: *molecule-test
+  script:
+    - molecule test -s manage_language_packages
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+# Integration tests
+test-collection-integration:
+  stage: test-integration
+  <<: *molecule-test
+  script:
+    - echo "Running collection integration tests..."
+    - molecule test -s integration
+  needs:
+    - test-configure-host
+    - test-manage-packages
+    - test-manage-users
+    - test-manage-firewall
+    - test-manage-system-settings
+    - test-discovery
+    - test-dotfiles
+    - test-manage-language-packages
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -99,11 +243,19 @@ build-collection:
     - apt-get update -qq && apt-get install -y -qq python3-pip
     - pip3 install ansible
   script:
+    - echo "Building collection after all tests pass..."
     - ansible-galaxy collection build . --force
+    - echo "Collection built successfully:"
     - ls -la *.tar.gz
   artifacts:
     paths:
       - "*.tar.gz"
     expire_in: 1 week
+  needs:
+    - quick-validation
+    - lint-collection
+    - validate-galaxy
+    - test-collection-integration
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
