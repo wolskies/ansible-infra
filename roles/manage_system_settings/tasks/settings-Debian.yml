@@ -38,7 +38,7 @@
     state: present
     reload: true
   loop: "{{ system_settings_network_security.sysctl | dict2items }}"
-  when: 
+  when:
     - system_settings_security_hardening.enable_network_hardening | default(true)
     - system_settings_network_security.sysctl is defined
   become: true
@@ -55,7 +55,7 @@
     state: present
     reload: true
   loop: "{{ system_settings_custom_sysctl | dict2items }}"
-  when: 
+  when:
     - system_settings_custom_sysctl | length > 0
     # Security validation is performed in security-validation.yml
   become: true

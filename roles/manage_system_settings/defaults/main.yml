@@ -25,7 +25,6 @@ system_settings_network_optimizations:
     net.core.default_qdisc: "fq"               # Fair Queue packet scheduler (SAFE)
     net.ipv4.tcp_congestion_control: "bbr"     # Google BBR congestion control (SAFE)
     # REMOVED DANGEROUS SETTING: net.ipv4.ip_unprivileged_port_start
-    
 # Additional SAFE network optimizations that can be enabled
 system_settings_network_safe_optimizations:
   sysctl:
@@ -92,7 +91,7 @@ system_settings_critical_services:
   - "ssh"
   - "sshd"
   - "systemd-resolved"
-  - "systemd-timesyncd" 
+  - "systemd-timesyncd"
   - "systemd-networkd"
   - "systemd-journald"
   - "systemd-udevd"
@@ -145,44 +144,18 @@ system_settings_security_hardening:
 # SECURITY VALIDATION BYPASS (USE WITH EXTREME CAUTION)
 # =============================================================================
 
-# WARNING: These settings disable critical security protections!
-# Only use in controlled environments where security validation is not required.
-# Setting these to true will DISABLE security checks and allow dangerous configurations.
+# Security bypass controls (use with extreme caution)
+security_bypass:
+  all_validation: false
+  dangerous_sysctl: false
+  critical_services: false
+  warnings: false
+  sysctl_whitelist: false
+  forbidden_params: false
+  port_binding: false
+  privilege_audit: false
 
-system_settings_security_bypass:
-  disable_all_security_validation: false        # DANGER: Disables ALL security validation
-  allow_dangerous_sysctl_parameters: false      # DANGER: Allows forbidden sysctl parameters  
-  allow_critical_service_changes: false         # DANGER: Allows disabling critical services
-  skip_security_warnings: false                 # DANGER: Suppresses security warning messages
-  
-# Individual security check bypasses (more granular control)
-system_settings_security_bypass_individual:
-  skip_sysctl_whitelist_check: false           # Skip whitelist validation for sysctl
-  skip_forbidden_parameter_check: false         # Skip forbidden parameter check
-  skip_port_binding_check: false                # Skip dangerous port binding check
-  skip_critical_service_check: false            # Skip critical service protection
-  skip_privilege_audit: false                   # Skip privilege escalation logging
-
-# =============================================================================
-# SECURITY BYPASS DOCUMENTATION AND WARNINGS
-# =============================================================================
-
-# CRITICAL WARNING: Using security bypass settings creates serious security risks!
-# 
-# Risks of disabling security validation include:
-# 1. PRIVILEGE ESCALATION: Unprivileged users can bind to privileged ports
-# 2. KERNEL COMPROMISE: Dangerous kernel parameters can disable security features
-# 3. SYSTEM LOCKOUT: Critical services can be accidentally disabled
-# 4. NETWORK ATTACKS: IP forwarding and routing protections can be disabled
-# 5. AUDIT BLINDNESS: Security-relevant changes may go unlogged
-#
-# ONLY disable security validation if:
-# - You are in a controlled test/lab environment
-# - You fully understand the security implications  
-# - You have alternative security controls in place
-# - You accept full responsibility for security risks
-#
-# NEVER disable security validation in production environments!
+# WARNING: Security bypasses disable critical protections. Use only in controlled environments.
 
 # Network security hardening parameters
 system_settings_network_security:
@@ -203,19 +176,3 @@ system_settings_network_security:
     # Disable ICMP redirect sending
     net.ipv4.conf.all.send_redirects: "0"
 
-# =============================================================================
-# SECURITY WARNINGS AND DOCUMENTATION
-# =============================================================================
-
-# CRITICAL SECURITY WARNINGS:
-# 1. NEVER set net.ipv4.ip_unprivileged_port_start below 1024
-# 2. ALWAYS validate sysctl parameters before applying
-# 3. NEVER disable critical system services
-# 4. REVIEW all custom parameters for security implications
-# 5. TEST in non-production environment first
-
-# For production use:
-# - Enable system_settings_security_hardening options
-# - Review all custom sysctl parameters
-# - Use minimal privilege principle for service management
-# - Enable logging and monitoring for system changes

@@ -33,7 +33,7 @@
         repo_filename: "{{ item.item.path | basename }}"
         is_sources_format: "{{ repo_filename.endswith('.sources') }}"
         # For .sources format, check for "Types:" line, for .list format check for "deb" lines
-        is_enabled: "{{ 
+        is_enabled: "{{
           (repo_content | regex_search('Types:\\s*deb', multiline=True) is not none) if is_sources_format
           else (repo_content | regex_search('^\\s*deb\\s', multiline=True) is not none)
         }}"
@@ -49,7 +49,7 @@
           type: "{{ 'sources' if is_sources_format else 'list' }}"
           format: "{{ 'deb822' if is_sources_format else 'traditional' }}"
       loop: "{{ apt_repo_contents.results | default([]) }}"
-      when: 
+      when:
         - apt_repo_contents.results is defined
         - item.content is defined
         - (item.content | b64decode | length) > 0
@@ -168,7 +168,7 @@
         homebrew_path: "{{ item.stat.path }}"
       loop: "{{ homebrew_paths.results }}"
       when: item.stat.exists
-      
+
     - name: Get Homebrew taps
       ansible.builtin.command:
         cmd: "{{ homebrew_path }} tap"
@@ -252,7 +252,7 @@
     - name: Parse snap packages
       ansible.builtin.set_fact:
         installed_snaps: "{{ snap_list_output.stdout_lines[1:] | map('regex_replace', '^(\\S+)\\s+.*', '\\1') | list }}"
-      when: 
+      when:
         - snap_check.rc == 0
         - snap_list_output.stdout_lines | length > 1
 
@@ -280,7 +280,18 @@
     msg:
       - "=== Repository Discovery Complete ==="
       - "OS Family: {{ ansible_os_family }}"
-      - "Primary package manager: {{ 'apt' if ansible_os_family == 'Debian' else 'pacman' if ansible_distribution == 'Archlinux' else 'homebrew' if ansible_os_family == 'Darwin' else 'unknown' }}"
-      - "Additional repositories found: {{ (discovered_apt_repositories | default([])) | length if ansible_os_family == 'Debian' else (pacman_repositories | default([])) | length if ansible_distribution == 'Archlinux' else 0 }}"
+      - >-
+        Primary package manager: {{
+          'apt' if ansible_os_family == 'Debian'
+          else 'pacman' if ansible_distribution == 'Archlinux'
+          else 'homebrew' if ansible_os_family == 'Darwin'
+          else 'unknown'
+        }}
+      - >-
+        Additional repositories found: {{
+          (discovered_apt_repositories | default([])) | length if ansible_os_family == 'Debian'
+          else (pacman_repositories | default([])) | length if ansible_distribution == 'Archlinux'
+          else 0
+        }}
       - "Additional package managers: {{ additional_package_managers.keys() | select() | list | join(', ') }}"
   when: discovery_debug | default(false)

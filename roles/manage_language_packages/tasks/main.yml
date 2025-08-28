@@ -66,13 +66,12 @@
       changed_when: false
       failed_when: false
 
-    - name: Install uv if not present
-      ansible.builtin.shell: |
-        set -o pipefail
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-      args:
-        executable: /bin/bash
-        creates: "{{ ansible_env.HOME }}/.local/bin/uv"
+    - name: Install uv via secure script
+      ansible.builtin.include_tasks: secure_script_install.yml
+      vars:
+        tool_name: uv
+        download_url: https://astral.sh/uv/install.sh
+        target_binary: "{{ ansible_env.HOME }}/.local/bin/uv"
       when:
         - uv_check.rc != 0
         - language_install_missing_tools | default(true)
@@ -174,13 +173,13 @@
       changed_when: false
       failed_when: false
 
-    - name: Install Rust if not present
-      ansible.builtin.shell: |
-        set -o pipefail
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-      args:
-        executable: /bin/bash
-        creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo"
+    - name: Install Rust via secure script
+      ansible.builtin.include_tasks: secure_script_install.yml
+      vars:
+        tool_name: rust
+        download_url: https://sh.rustup.rs
+        install_args: "-y"
+        target_binary: "{{ ansible_env.HOME }}/.cargo/bin/cargo"
       when:
         - cargo_check.rc != 0
         - language_install_missing_tools | default(true)
@@ -253,6 +252,7 @@
     - go
     - language-packages
 
+
 # Display summary
 - name: Display language packages summary
   ansible.builtin.debug:
@@ -262,6 +262,10 @@
       - "Node.js packages: {{ language_nodejs_packages | default([]) | length }}"
       - "Rust packages: {{ language_rust_packages | default([]) | length }}"
       - "Go packages: {{ language_go_packages | default([]) | length }}"
+      - "=== Security Enhancements ==="
+      - "✅ Secure script downloads with certificate validation"
+      - "✅ Temporary file cleanup after installation"
+      - "✅ Script integrity verification support"
   tags:
     - always
     - summary

@@ -110,7 +110,7 @@
         enabled: true
         state: started
       become: true
-      when: 
+      when:
         - ansible_service_mgr == "systemd"
         - timesyncd_service_check is defined
         - timesyncd_service_check.status is defined
@@ -213,55 +213,10 @@
     - pam
     - configure-host
 
-# =============================================================================
-# MOTD & BANNERS
-# =============================================================================
-
-- name: Configure message of the day (MOTD)
-  ansible.builtin.template:
-    src: "{{ config_motd_template }}"
-    dest: /etc/motd
-    owner: root
-    group: root
-    mode: '0644'
-  become: true
-  when:
-    - config_motd | default(true)
-    - ansible_system == 'Linux'
-  tags:
-    - motd
-    - configure-host
-
-- name: Configure SSH banner
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?Banner'
-    line: 'Banner /etc/ssh/banner'
-  become: true
-  when:
-    - config_ssh_banner | default(true)
-    - ansible_system == 'Linux'
-  notify: restart sshd
-  tags:
-    - ssh
-    - banner
-    - configure-host
-
-- name: Create SSH banner file
-  ansible.builtin.copy:
-    content: "{{ config_ssh_banner_text }}"
-    dest: /etc/ssh/banner
-    owner: root
-    group: root
-    mode: '0644'
-  become: true
-  when:
-    - config_ssh_banner | default(true)
-    - ansible_system == 'Linux'
-  tags:
-    - ssh
-    - banner
-    - configure-host
+# MOTD and SSH banner functionality removed for security reasons
+# - MOTD template injection risks
+# - SSH configuration changes without validation could cause lockouts
+# - SSH service restart without configuration validation is dangerous
 
 # =============================================================================
 # JOURNAL CONFIGURATION
