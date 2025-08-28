@@ -182,6 +182,9 @@ inventory.local
 
 # Backup files
 *.orig
+*.backup
+*-simple.yml
+*-fixed.yml
 
 # Lock files
 poetry.lock
