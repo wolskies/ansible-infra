@@ -16,6 +16,7 @@ variables:
   ANSIBLE_FORCE_COLOR: 'true'
   ANSIBLE_HOST_KEY_CHECKING: 'false'
   PY_COLORS: '1'
+  ANSIBLE_COLLECTIONS_PATH: "${CI_PROJECT_DIR}/..:${HOME}/.ansible/collections:/usr/share/ansible/collections"
 
 # Cache for pip and ansible collections
 cache:
@@ -29,7 +30,7 @@ cache:
     # Install Docker client for docker:dind service
     - apt-get update -qq
     - apt-get install -y -qq python3-pip make docker.io
-    - pip3 install --cache-dir .pip-cache/ ansible molecule molecule-plugins docker pytest-testinfra ansible-lint yamllint jinja2
+    - pip3 install --cache-dir .pip-cache/ ansible molecule molecule-plugins[docker] docker pytest-testinfra ansible-lint yamllint jinja2
     - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
     # Wait for Docker daemon to be ready
     - until docker info >/dev/null 2>&1; do echo "Waiting for Docker daemon..."; sleep 1; done
@@ -38,6 +39,8 @@ cache:
     - docker info
     - ansible --version
     - molecule --version
+    - molecule list || echo "Molecule scenarios not found"
+    - ls -la molecule/ || echo "Molecule directory not found"
 
 # Validation Stage
 quick-validation:
@@ -287,7 +290,7 @@ test-collection-integration:
   <<: *base-setup
   script:
     - echo "Running full collection integration tests..."
-    - molecule test -s default
+    - molecule test -s integration
   needs:
     - test-configure-host
     - test-manage-packages
@@ -413,7 +416,7 @@ performance-test:
   <<: *base-setup
   script:
     - echo "Running performance tests..."
-    - time molecule test -s default
+    - time molecule test -s integration
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   allow_failure: true
@@ -454,7 +457,7 @@ test-cross-os-compatibility:
   <<: *os-matrix-test
   script:
     - echo "Testing cross-OS compatibility..."
-    - molecule test -s default --parallel
+    - molecule test -s integration --parallel
   variables:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: ""
@@ -475,7 +478,7 @@ test-e2e-workflow:
   script:
     - echo "Running end-to-end workflow test..."
     - echo "1. Discovery -> 2. Configuration Generation -> 3. Infrastructure Setup"
-    - molecule test -s default
+    - molecule test -s integration
     - echo "Testing discovery-to-deployment pipeline..."
     - molecule converge -s discovery
     - molecule verify -s discovery
