@@ -66,14 +66,12 @@ provisioner_base: &provisioner_base
         config_fqdn: ""                       # Don't set FQDN in containers  
         config_ntp_enabled: true              # Enable but handle missing services gracefully
         config_system_limits: true           # Test system limits configuration
-        config_motd: true                     # Test MOTD generation
         config_create_directories:           # Test directory creation
           - "/opt/test"
           - "/var/log/test"
         
         # Service configurations that work in containers
         config_sysctl: true
-        config_system_limits: true
         
         # Container-friendly defaults
         ansible_become_method: sudo

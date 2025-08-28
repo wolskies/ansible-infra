@@ -13,19 +13,48 @@
     path: /home/{{ ansible_user}}/.local/bin/starship
   register: starship_binary
 
-# - name: Install starship
-#   ansible.builtin.include_role:
-#     name: starship
-#   when: not starship_binary.stat.exists
+- name: Install starship via script
+  ansible.builtin.include_tasks: ../manage_language_packages/tasks/secure_script_install.yml
+  vars:
+    tool_name: starship
+    download_url: https://starship.rs/install.sh
+    install_args: "--yes"
+    target_binary: "/home/{{ ansible_user}}/.local/bin/starship"
+  when:
+    - dotfiles_starship_enable | default(false)
+    - not starship_binary.stat.exists
+
+- name: Create starship configuration directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config"
+    state: directory
+    mode: '0755'
+  when:
+    - dotfiles_starship_enable | default(false)
+    - dotfiles_starship_create_config | default(true)
+
+- name: Deploy starship configuration
+  ansible.builtin.copy:
+    content: "{{ dotfiles_starship_config }}"
+    dest: "{{ ansible_env.HOME }}/.config/starship.toml"
+    mode: '0644'
+  when:
+    - dotfiles_starship_enable | default(false)
+    - dotfiles_starship_create_config | default(true)
+    - dotfiles_starship_config is defined
+    - dotfiles_starship_config | length > 0
 
 - name: Check for zoxide
   ansible.builtin.stat:
     path: /home/{{ ansible_user}}/.local/bin/zoxide
   register: zoxide_binary
 
-- name: Install zoxide if not present
-  ansible.builtin.script:
-    cmd: files/zoxide-install.sh
+- name: Install zoxide via script
+  ansible.builtin.include_tasks: ../manage_language_packages/tasks/secure_script_install.yml
+  vars:
+    tool_name: zoxide
+    download_url: https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh
+    target_binary: "/home/{{ ansible_user}}/.local/bin/zoxide"
   when: not zoxide_binary.stat.exists
 
 - name: Check for eza

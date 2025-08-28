@@ -10,6 +10,7 @@ exclude_paths:
   - molecule/*/create.yml
   - molecule/*/destroy.yml
   - molecule/*/prepare.yml
+  - molecule/shared/molecule-base.yml
   - tests/
 
 # Enable additional rules for better error detection

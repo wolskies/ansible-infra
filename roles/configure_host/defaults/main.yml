@@ -62,21 +62,10 @@ config_sysctl_params:
   # File system
   fs.file-max: 2097152
 
-# =============================================================================
-# MOTD & SYSTEM IDENTIFICATION
-# =============================================================================
-
-# Message of the day configuration
-config_motd: false                      # Configure MOTD
-config_motd_template: motd.j2          # MOTD template to use
-config_motd_custom_content: ""         # Additional custom content for MOTD
-
-# SSH banner configuration
-config_ssh_banner: false                # Configure SSH banner
-config_ssh_banner_text: |
-  ********************************************************************
-  * This system is for authorized use only. All activity is logged. *
-  ********************************************************************
+# MOTD and SSH banner configuration removed for security reasons
+# - Template injection vulnerabilities in MOTD
+# - SSH configuration modification risks (service restart without validation)
+# - Potential administrator lockout from SSH configuration errors
 
 # =============================================================================
 # LOGGING & JOURNAL CONFIGURATION

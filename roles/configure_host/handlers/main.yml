@@ -8,11 +8,9 @@
     state: restarted
   become: true
 
-- name: restart sshd
-  ansible.builtin.systemd:
-    name: "{{ 'ssh' if ansible_distribution in ['Ubuntu', 'Debian'] else 'sshd' }}"
-    state: restarted
-  become: true
+# restart sshd handler removed for security reasons
+# - SSH service restart without configuration validation is dangerous
+# - Could cause administrator lockout if SSH config becomes invalid
 
 - name: restart journald
   ansible.builtin.systemd:

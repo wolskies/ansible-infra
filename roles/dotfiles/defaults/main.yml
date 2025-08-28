@@ -1,135 +1,19 @@
 ---
-# dotfiles role defaults - Automated dotfiles deployment and management
-# Handles single-user dotfiles deployment with GNU Stow and automatic conflict resolution
-# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+# dotfiles role - Automated dotfiles deployment with GNU Stow
+# Required: dotfiles_user, dotfiles_repository_url
 
-# =============================================================================
-# USAGE PATTERNS
-# =============================================================================
+# Deployment configuration
+dotfiles_uses_stow: true
+dotfiles_stow_packages: []                     # [] = deploy all directories
+dotfiles_repository_dest: "{{ ansible_env.HOME }}/.dotfiles"
+dotfiles_backup_existing: true                 # Backup conflicts with .dotfiles-backup suffix
 
-# 1. STANDALONE USAGE (manual role call):
-#    - include_role:
-#        name: wolskinet.infrastructure.dotfiles
-#      vars:
-#        dotfiles_user: "myuser"
-#        dotfiles_repository_url: "https://github.com/myuser/dotfiles"
-
-# 2. INTEGRATED USAGE (via manage_users):
-#    Set install_dotfiles_support=true in manage_users, then configure users:
-#    discovered_users_config:
-#      - name: myuser
-#        dotfiles_repository_url: "https://github.com/myuser/dotfiles"
-#        dotfiles_uses_stow: true
-#        dotfiles_stow_packages: ["zsh", "git", "tmux"]
-
-# =============================================================================
-# REQUIRED VARIABLES (must be provided)
-# =============================================================================
-
-# These variables must be provided by the calling playbook or role:
-# dotfiles_user: "username"                    # Target user for dotfiles deployment
-# dotfiles_repository_url: "https://..."       # Git repository containing dotfiles
-
-# =============================================================================
-# DEPLOYMENT CONFIGURATION
-# =============================================================================
-
-# Stow-based deployment configuration (recommended method)
-dotfiles_uses_stow: true                       # Use GNU Stow for symlink management
-dotfiles_stow_packages: []                     # Specific stow packages ([] = deploy all directories)
-
-# Repository and deployment settings
-dotfiles_repository_dest: "{{ ansible_env.HOME }}/.dotfiles"  # Local clone destination
-dotfiles_backup_existing: true                 # Backup conflicting files before deployment
-
-# Examples of dotfiles_stow_packages:
-# dotfiles_stow_packages: []                   # Deploy all directories in repo
-# dotfiles_stow_packages: ["zsh"]              # Deploy only zsh directory
-# dotfiles_stow_packages: ["zsh", "git", "tmux"] # Deploy multiple specific directories
-
-# =============================================================================
-# CONFLICT RESOLUTION
-# =============================================================================
-
-# The role automatically handles conflicts with existing dotfiles:
-# 1. First attempt: Try stow deployment normally
-# 2. On conflict: Backup existing files with .dotfiles-backup suffix
-# 3. Retry: Deploy dotfiles after backing up conflicting files
-# 4. Report: Inform user about backed up files
-
-# This prevents data loss while allowing clean dotfiles deployment
-# Users can recover original files if needed: ~/.bashrc.dotfiles-backup
-
-# =============================================================================
-# REPOSITORY STRUCTURE REQUIREMENTS
-# =============================================================================
-
-# For stow-based deployment, your dotfiles repository should be structured like:
-#
-# dotfiles-repo/
-# ├── zsh/
-# │   ├── .zshrc
-# │   └── .zshenv
-# ├── git/
-# │   └── .gitconfig
-# ├── tmux/
-# │   └── .tmux.conf
-# └── vim/
-#     └── .vimrc
-#
-# When deployed, creates symlinks:
-# ~/.zshrc -> ~/.dotfiles/zsh/.zshrc
-# ~/.gitconfig -> ~/.dotfiles/git/.gitconfig
-# etc.
-
-# =============================================================================
-# INTEGRATION WITH OTHER ROLES
-# =============================================================================
-
-# BASIC_SETUP INTEGRATION:
-# When manage_users role has install_dotfiles_support=true:
-# - Installs stow package automatically (Linux only, macOS users install manually)
-# - Calls this dotfiles role per-user for users with dotfiles_repository_url
-# - Maps discovery variables to dotfiles role variables
-
-# DISCOVERY INTEGRATION:
-# Discovery role can detect existing dotfiles and populate variables:
-# - dotfiles_repository_url: Git remote URL (if .git directory found)
-# - dotfiles_uses_stow: Detected based on directory structure
-# - dotfiles_stow_packages: Discovered from directory names
-
-# =============================================================================
-# PLATFORM SUPPORT
-# =============================================================================
-
-# Linux (Ubuntu, Debian, Arch): Full support with automatic stow installation
-# macOS: Supported (requires manual stow installation via Homebrew)
-#   Note: manage_users macOS setup doesn't auto-install stow due to Homebrew limitations
-#   Users should run: brew install stow
-
-# =============================================================================
-# SECURITY CONSIDERATIONS
-# =============================================================================
-
-# - Repository cloning uses HTTPS (no SSH key management required)
-# - Files are owned by the target user (become_user: dotfiles_user)
-# - Original files are backed up (not deleted) to prevent data loss
-# - Git repository updates are performed safely (force: false)
-
-# =============================================================================
-# TROUBLESHOOTING
-# =============================================================================
-
-# Common issues and solutions:
-
-# Issue: "stow: WARNING! stowing ... would cause conflicts"
-# Solution: Role automatically backs up conflicting files and retries
-
-# Issue: "Permission denied" errors
-# Solution: Ensure dotfiles_user exists and has proper home directory permissions
-
-# Issue: Git clone fails
-# Solution: Check repository URL and network connectivity; private repos need authentication
-
-# Issue: Stow command not found (macOS)
-# Solution: Install stow manually: brew install stow
+# Starship prompt
+dotfiles_starship_enable: false
+dotfiles_starship_create_config: true
+dotfiles_starship_config: |
+  # Minimal starship config - customize as needed
+  format = "$directory$git_branch$character"
+  [character]
+  success_symbol = "[➜](bold green)"
+  error_symbol = "[➜](bold red)"

@@ -4,14 +4,11 @@
 
 - name: Check if security validation is bypassed
   ansible.builtin.debug:
-    msg: 
-      - "⚠️  CRITICAL SECURITY WARNING ⚠️"
-      - "SECURITY VALIDATION HAS BEEN BYPASSED!"
-      - "This system is configured to skip security checks."
-      - "Dangerous system modifications are now ALLOWED."
-      - "This configuration is UNSAFE for production use!"
-      - "Bypass settings: {{ system_settings_security_bypass }}"
-  when: system_settings_security_bypass.disable_all_security_validation | default(false)
+    msg:
+      - "⚠️  SECURITY VALIDATION BYPASSED ⚠️"
+      - "Active bypasses: {{ security_bypass }}"
+      - "This configuration is UNSAFE for production!"
+  when: security_bypass.all_validation | default(false)
   tags:
     - security
     - validation
@@ -20,229 +17,45 @@
 - name: Security validation for system settings role
   ansible.builtin.debug:
     msg: "Starting security validation for system settings modifications"
-  when: not (system_settings_security_bypass.disable_all_security_validation | default(false))
+  when: not (security_bypass.all_validation | default(false))
   tags:
     - security
     - validation
 
-# =============================================================================
-# SYSCTL PARAMETER SECURITY VALIDATION
-# =============================================================================
+- name: Run security validations
+  ansible.builtin.include_tasks: validate_setting.yml
+  vars:
+    validation_rule: "{{ item }}"
+  loop:
+    - type: sysctl_forbidden
+      check_items: "{{ system_settings_custom_sysctl | dict2items | selectattr('key', 'in', system_settings_forbidden_sysctl_parameters) }}"
+      bypass: dangerous_sysctl
+      condition: "{{ system_settings_security_hardening.enable_strict_sysctl_validation | default(true) }}"
+      error: "SECURITY: Forbidden sysctl parameter"
 
-- name: Check for dangerous sysctl parameters
-  ansible.builtin.fail:
-    msg: >-
-      SECURITY ALERT: Forbidden sysctl parameter detected: {{ item.key }}
-      This parameter can compromise system security. 
-      Forbidden parameters: {{ system_settings_forbidden_sysctl_parameters | join(', ') }}
-      To bypass this check (DANGEROUS), set system_settings_security_bypass.allow_dangerous_sysctl_parameters=true
-  loop: "{{ system_settings_custom_sysctl | dict2items }}"
-  when: 
-    - not (system_settings_security_bypass.disable_all_security_validation | default(false))
-    - not (system_settings_security_bypass.allow_dangerous_sysctl_parameters | default(false))
-    - not (system_settings_security_bypass_individual.skip_forbidden_parameter_check | default(false))
-    - system_settings_security_hardening.enable_strict_sysctl_validation | default(true)
-    - item.key in system_settings_forbidden_sysctl_parameters
-  tags:
-    - security
-    - sysctl
-    - validation
+    - type: sysctl_whitelist
+      check_items: "{{ system_settings_custom_sysctl | dict2items | rejectattr('key', 'in', system_settings_allowed_sysctl_parameters) }}"
+      bypass: sysctl_whitelist
+      condition: "{{ system_settings_security_hardening.enable_strict_sysctl_validation | default(true) }}"
+      error: "SECURITY: sysctl parameter not in whitelist"
 
-- name: Validate sysctl parameters against whitelist
-  ansible.builtin.fail:
-    msg: >-
-      SECURITY WARNING: sysctl parameter '{{ item.key }}' is not in the approved whitelist.
-      Approved parameters: {{ system_settings_allowed_sysctl_parameters | join(', ') }}
-      To override, set system_settings_security_bypass_individual.skip_sysctl_whitelist_check=true
-  loop: "{{ system_settings_custom_sysctl | dict2items }}"
-  when:
-    - not (system_settings_security_bypass.disable_all_security_validation | default(false))
-    - not (system_settings_security_bypass_individual.skip_sysctl_whitelist_check | default(false))
-    - system_settings_security_hardening.enable_strict_sysctl_validation | default(true)
-    - item.key not in system_settings_allowed_sysctl_parameters
-  tags:
-    - security
-    - sysctl
-    - validation
+    - type: port_binding
+      check_items: "{{ system_settings_custom_sysctl | dict2items | selectattr('key', 'equalto', 'net.ipv4.ip_unprivileged_port_start') | selectattr('value', 'lt', '1024') }}"
+      bypass: port_binding
+      error: "CRITICAL: Unprivileged port binding < 1024"
 
-- name: Check for dangerous port binding configuration
-  ansible.builtin.fail:
-    msg: >-
-      CRITICAL SECURITY ALERT: net.ipv4.ip_unprivileged_port_start is set to {{ item.value }}.
-      Values below 1024 allow unprivileged users to bind to privileged ports (HTTP/HTTPS).
-      This is a major security vulnerability! Recommended minimum: 1024
-      To bypass this check (EXTREMELY DANGEROUS), set system_settings_security_bypass.allow_dangerous_sysctl_parameters=true
-  loop: "{{ system_settings_custom_sysctl | dict2items }}"
-  when:
-    - not (system_settings_security_bypass.disable_all_security_validation | default(false))
-    - not (system_settings_security_bypass.allow_dangerous_sysctl_parameters | default(false))
-    - not (system_settings_security_bypass_individual.skip_port_binding_check | default(false))
-    - item.key == "net.ipv4.ip_unprivileged_port_start"
-    - item.value | int < 1024
-  tags:
-    - security
-    - network
-    - ports
-    - validation
+    - type: critical_services
+      check_items: "{{ system_settings_services_disable | intersect(system_settings_critical_services) }}"
+      bypass: critical_services
+      condition: "{{ system_settings_security_hardening.enable_service_validation | default(true) }}"
+      error: "SECURITY: Cannot disable critical service"
 
-# =============================================================================
-# SERVICE MANAGEMENT SECURITY VALIDATION
-# =============================================================================
-
-- name: Prevent disabling critical system services
-  ansible.builtin.fail:
-    msg: >-
-      SECURITY ALERT: Attempting to disable critical system service: {{ item }}
-      Critical services cannot be disabled: {{ system_settings_critical_services | join(', ') }}
-      This could make the system inaccessible or unstable.
-      To bypass this check (DANGEROUS), set system_settings_security_bypass.allow_critical_service_changes=true
-  loop: "{{ system_settings_services_disable }}"
-  when:
-    - not (system_settings_security_bypass.disable_all_security_validation | default(false))
-    - not (system_settings_security_bypass.allow_critical_service_changes | default(false))
-    - not (system_settings_security_bypass_individual.skip_critical_service_check | default(false))
-    - system_settings_security_hardening.enable_service_validation | default(true)
-    - item in system_settings_critical_services
-  tags:
-    - security
-    - services
-    - validation
-
-- name: Warn about services being disabled
-  ansible.builtin.debug:
-    msg: >-
-      WARNING: Disabling service {{ item }}. 
-      Ensure this service is not needed for system functionality.
-  loop: "{{ system_settings_services_disable }}"
-  when: 
-    - system_settings_services_disable | length > 0
-    - not (system_settings_security_bypass.skip_security_warnings | default(false))
-  tags:
-    - security
-    - services
-    - validation
-
-# =============================================================================
-# NETWORK SECURITY VALIDATION
-# =============================================================================
-
-- name: Check network optimization settings for security issues
-  ansible.builtin.debug:
-    msg: >-
-      WARNING: Network optimizations are enabled. 
-      Review all network parameters for security implications.
-      Current settings: {{ system_settings_network_optimizations.sysctl.keys() | list | join(', ') }}
-  when: 
-    - system_settings_network_enabled | default(false) | bool
-    - system_settings_network_optimizations.sysctl is defined
-    - not (system_settings_security_bypass.skip_security_warnings | default(false))
-  tags:
-    - security
-    - network
-    - validation
-
-# =============================================================================
-# PRIVILEGE ESCALATION CHECKS
-# =============================================================================
-
-- name: Log privilege escalation attempts
-  ansible.builtin.debug:
-    msg: >-
-      SECURITY AUDIT: Role is modifying system-level configurations requiring root privileges.
-      Changes include: sysctl parameters, kernel modules, system services.
-      Ensure this is authorized and logged appropriately.
-  when: 
-    - system_settings_security_hardening.enable_privilege_auditing | default(true)
-    - not (system_settings_security_bypass.disable_all_security_validation | default(false))
-    - not (system_settings_security_bypass_individual.skip_privilege_audit | default(false))
-    - not (system_settings_security_bypass.skip_security_warnings | default(false))
-  tags:
-    - security
-    - audit
-    - privileges
-
-# =============================================================================
-# SECURITY RECOMMENDATIONS
-# =============================================================================
-
-- name: Display security recommendations
+- name: Security summary
   ansible.builtin.debug:
     msg:
-      - "=== SECURITY RECOMMENDATIONS ==="
-      - "1. Review all custom sysctl parameters before applying"
-      - "2. Test system settings changes in non-production environment first"
-      - "3. Enable network security hardening: system_settings_network_security"
-      - "4. Monitor system logs for unexpected behavior after changes"
-      - "5. Document all production system modifications"
-      - "6. Use minimal privilege principle - only enable what's needed"
-  when: 
-    - not (system_settings_security_bypass.skip_security_warnings | default(false))
-    - not (system_settings_security_bypass.disable_all_security_validation | default(false))
-  tags:
-    - security
-    - recommendations
-
-# =============================================================================
-# SECURITY BYPASS STATUS WARNINGS
-# =============================================================================
-
-- name: Display individual security bypass warnings
-  ansible.builtin.debug:
-    msg: 
-      - "⚠️  SECURITY BYPASS ACTIVE ⚠️"
-      - "Individual security bypasses detected:"
-      - "  - Skip sysctl whitelist check: {{ system_settings_security_bypass_individual.skip_sysctl_whitelist_check | default(false) }}"
-      - "  - Skip forbidden parameter check: {{ system_settings_security_bypass_individual.skip_forbidden_parameter_check | default(false) }}"
-      - "  - Skip port binding check: {{ system_settings_security_bypass_individual.skip_port_binding_check | default(false) }}"
-      - "  - Skip critical service check: {{ system_settings_security_bypass_individual.skip_critical_service_check | default(false) }}"
-      - "  - Skip privilege audit: {{ system_settings_security_bypass_individual.skip_privilege_audit | default(false) }}"
-      - "These bypasses reduce system security. Use only in controlled environments!"
-  when:
-    - not (system_settings_security_bypass.disable_all_security_validation | default(false))
-    - not (system_settings_security_bypass.skip_security_warnings | default(false))
-    - >
-      (system_settings_security_bypass_individual.skip_sysctl_whitelist_check | default(false)) or
-      (system_settings_security_bypass_individual.skip_forbidden_parameter_check | default(false)) or
-      (system_settings_security_bypass_individual.skip_port_binding_check | default(false)) or
-      (system_settings_security_bypass_individual.skip_critical_service_check | default(false)) or
-      (system_settings_security_bypass_individual.skip_privilege_audit | default(false))
-  tags:
-    - security
-    - warning
-    - bypass
-
-- name: Display partial security bypass warnings
-  ansible.builtin.debug:
-    msg: 
-      - "⚠️  PARTIAL SECURITY BYPASS ACTIVE ⚠️"
-      - "Partial security bypasses detected:"
-      - "  - Allow dangerous sysctl parameters: {{ system_settings_security_bypass.allow_dangerous_sysctl_parameters | default(false) }}"
-      - "  - Allow critical service changes: {{ system_settings_security_bypass.allow_critical_service_changes | default(false) }}"
-      - "These bypasses allow potentially dangerous configurations!"
-  when:
-    - not (system_settings_security_bypass.disable_all_security_validation | default(false))
-    - not (system_settings_security_bypass.skip_security_warnings | default(false))
-    - >
-      (system_settings_security_bypass.allow_dangerous_sysctl_parameters | default(false)) or
-      (system_settings_security_bypass.allow_critical_service_changes | default(false))
-  tags:
-    - security
-    - warning
-    - bypass
-
-- name: Final security validation summary
-  ansible.builtin.debug:
-    msg: 
-      - "=== SECURITY VALIDATION SUMMARY ==="
-      - "Security validation: {{ 'BYPASSED (DANGEROUS!)' if system_settings_security_bypass.disable_all_security_validation | default(false) else 'ACTIVE' }}"
-      - "Dangerous sysctl allowed: {{ 'YES (DANGER!)' if system_settings_security_bypass.allow_dangerous_sysctl_parameters | default(false) else 'NO' }}"
-      - "Critical services changeable: {{ 'YES (DANGER!)' if system_settings_security_bypass.allow_critical_service_changes | default(false) else 'NO' }}"
-      - "Security warnings: {{ 'SUPPRESSED' if system_settings_security_bypass.skip_security_warnings | default(false) else 'ENABLED' }}"
-      - "Individual bypasses: {{ (system_settings_security_bypass_individual.values() | map('default', false) | select | length) }} active"
-      - "{{ 'SYSTEM IS IN SECURE CONFIGURATION' if not ((system_settings_security_bypass.values() | map('default', false) | select | length) > 0 or (system_settings_security_bypass_individual.values() | map('default', false) | select | length) > 0) else 'SYSTEM HAS SECURITY BYPASSES - REVIEW CONFIGURATION!' }}"
-  when: 
-    - not (system_settings_security_bypass.skip_security_warnings | default(false))
+      - "Security validation: {{ 'BYPASSED' if security_bypass.all_validation else 'ACTIVE' }}"
+      - "Active bypasses: {{ security_bypass | dict2items | selectattr('value') | map(attribute='key') | list | join(', ') or 'None' }}"
+  when: not security_bypass.warnings
   tags:
     - security
     - summary
-    - validation
