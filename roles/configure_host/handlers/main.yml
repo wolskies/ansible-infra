@@ -7,6 +7,8 @@
     name: systemd-timesyncd
     state: restarted
   become: true
+  when: ansible_virtualization_type | default('') != 'docker'
+  failed_when: false
 
 # restart sshd handler removed for security reasons
 # - SSH service restart without configuration validation is dangerous
@@ -17,12 +19,16 @@
     name: systemd-journald
     state: restarted
   become: true
+  when: ansible_virtualization_type | default('') != 'docker'
+  failed_when: false
 
 - name: restart reflector
   ansible.builtin.systemd:
     name: reflector.timer
     state: restarted
   become: true
+  when: ansible_virtualization_type | default('') != 'docker'
+  failed_when: false
 
 - name: generate locales
   ansible.builtin.command: locale-gen
