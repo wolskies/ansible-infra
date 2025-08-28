@@ -21,6 +21,9 @@
 - name: Discover packages
   ansible.builtin.include_tasks: scan-packages.yml
 
+- name: Discover repositories
+  ansible.builtin.include_tasks: scan-repositories.yml
+
 - name: Discover users
   ansible.builtin.include_tasks: scan-users.yml
 

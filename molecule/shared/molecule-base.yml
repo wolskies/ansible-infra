@@ -1,6 +1,5 @@
----
-# Configure Host Role Testing Scenario
-# Uses shared configuration for consistency across all scenarios
+# Shared molecule configuration for consistent testing
+# Include this file in scenario molecule.yml files to ensure consistent setup
 
 dependency:
   name: galaxy
@@ -10,12 +9,10 @@ dependency:
 driver:
   name: docker
 
-platforms:
+# Standard test platforms with proper container configuration
+platforms_base: &platforms_base
   - name: ubuntu-24-04
     image: geerlingguy/docker-ubuntu2404-ansible:latest
-    groups:
-      - servers
-      - docker_hosts
     pre_build_image: true
     privileged: true
     volumes:
@@ -24,11 +21,11 @@ platforms:
     command: "/lib/systemd/systemd"
     networks:
       - name: molecule-network
+    published_ports:
+      - "0.0.0.0:8080:80/tcp"  # For web service testing
 
-  - name: debian-13
+  - name: debian-13  
     image: geerlingguy/docker-debian13-ansible:latest
-    groups:
-      - servers
     pre_build_image: true
     privileged: true
     volumes:
@@ -40,8 +37,6 @@ platforms:
 
   - name: archlinux-latest
     image: archlinux/archlinux:latest
-    groups:
-      - workstations
     pre_build_image: true
     privileged: true
     volumes:
@@ -51,7 +46,8 @@ platforms:
     networks:
       - name: molecule-network
 
-provisioner:
+# Standard provisioner configuration
+provisioner_base: &provisioner_base
   name: ansible
   config_options:
     defaults:
@@ -75,11 +71,9 @@ provisioner:
           - "/opt/test"
           - "/var/log/test"
         
-        # Configure host specific test variables
-        config_system_timezone: "America/New_York"
-        config_system_locale: "en_US.UTF-8"
-        config_system_language: "en_US.UTF-8"
+        # Service configurations that work in containers
         config_sysctl: true
+        config_system_limits: true
         
         # Container-friendly defaults
         ansible_become_method: sudo
@@ -88,16 +82,17 @@ provisioner:
     host_vars:
       archlinux-latest:
         ansible_python_interpreter: /usr/bin/python
-  playbooks:
-    prepare: ../shared/prepare-base.yml
-    converge: converge.yml
-    verify: verify.yml
+      ubuntu-24-04:
+        # Any Ubuntu-specific test variables
+      debian-13:
+        # Any Debian-specific test variables
 
-verifier:
+# Standard verifier configuration  
+verifier_base: &verifier_base
   name: ansible
 
-scenario:
-  name: configure_host
+# Standard test sequence
+test_sequence_base: &test_sequence_base
   test_sequence:
     - dependency
     - cleanup

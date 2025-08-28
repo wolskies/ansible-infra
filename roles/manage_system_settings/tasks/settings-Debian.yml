@@ -31,14 +31,33 @@
     - sysctl
     - system-settings
 
-- name: Apply custom sysctl parameters
+- name: Apply network security hardening
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop: "{{ system_settings_network_security.sysctl | dict2items }}"
+  when: 
+    - system_settings_security_hardening.enable_network_hardening | default(true)
+    - system_settings_network_security.sysctl is defined
+  become: true
+  tags:
+    - network
+    - security
+    - sysctl
+    - system-settings
+
+- name: Apply custom sysctl parameters (security validated)
   ansible.posix.sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"
     state: present
     reload: true
   loop: "{{ system_settings_custom_sysctl | dict2items }}"
-  when: system_settings_custom_sysctl | length > 0
+  when: 
+    - system_settings_custom_sysctl | length > 0
+    # Security validation is performed in security-validation.yml
   become: true
   tags:
     - sysctl
