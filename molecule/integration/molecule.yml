@@ -73,6 +73,8 @@ provisioner:
       bin_ansible_callbacks: true
     connection:
       pipelining: true
+  playbooks:
+    prepare: ../shared/prepare-base.yml
 
 verifier:
   name: ansible
