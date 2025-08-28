@@ -26,6 +26,26 @@
   loop: "{{ regular_users }}"
   when: regular_users | length > 0
 
+- name: Check for dotfiles git repositories
+  ansible.builtin.stat:
+    path: "{{ item.value[4] }}/.dotfiles/.git"
+  register: dotfiles_git_dirs
+  become: true
+  loop: "{{ regular_users }}"
+  when: regular_users | length > 0
+
+- name: Get git remote URL for dotfiles repos
+  ansible.builtin.shell: |
+    cd "{{ item.value[4] }}/.dotfiles" && git config --get remote.origin.url 2>/dev/null || echo ""
+  register: dotfiles_git_remotes
+  become: true
+  loop: "{{ regular_users }}"
+  when:
+    - regular_users | length > 0
+    - dotfiles_git_dirs.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stat.exists') | first | default(false)
+  failed_when: false
+  changed_when: false
+
 - name: Build users_config for regular users (UID 1000-59999)
   ansible.builtin.set_fact:
     users_config: "{{ users_config | default([]) + [user_info] }}"
@@ -37,11 +57,18 @@
       home: "{{ item.value[4] }}"
       shell: "{{ item.value[5] }}"
       groups: []  # Can be enhanced later if needed
-      dotfiles_repo: "{{ has_dotfiles }}"
-      dotfiles_dir: "{{ '.dotfiles' if has_dotfiles else '' }}"
-      dotfiles_repo_url: ""
-      dotfiles_repo_branch: "main"
+      ssh_pubkey: "var_users_config_{{ item.key }}_ssh_pubkey"
+      password: "var_users_config_{{ item.key }}_password"
+      dotfiles: "{{ dotfiles_config if has_dotfiles else omit }}"
     # Check if this user has dotfiles
     has_dotfiles: "{{ dotfiles_dirs.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stat.exists') | first | default(false) }}"
+    # Get git remote URL for this user
+    git_remote_url: "{{ dotfiles_git_remotes.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stdout') | first | default('') }}"
+    # Build dotfiles configuration
+    dotfiles_config:
+      enable: true
+      repo: "{{ git_remote_url if git_remote_url != '' else 'https://github.com/' + item.key + '/dotfiles' }}"
+      branch: "main"
+      directory: "{{ item.value[4] }}/.dotfiles"
   loop: "{{ regular_users }}"
   when: regular_users | length > 0

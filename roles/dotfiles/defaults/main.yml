@@ -1,8 +1,7 @@
-#SPDX-License-Identifier: MIT
 ---
-# dotfiles role defaults - Single-user dotfiles management
-# This role handles automated dotfiles deployment with conflict resolution
-# Integrates seamlessly with manage_users role when install_dotfiles_support=true
+# dotfiles role defaults - Automated dotfiles deployment and management
+# Handles single-user dotfiles deployment with GNU Stow and automatic conflict resolution
+# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
 # USAGE PATTERNS
@@ -27,6 +26,7 @@
 # REQUIRED VARIABLES (must be provided)
 # =============================================================================
 
+# These variables must be provided by the calling playbook or role:
 # dotfiles_user: "username"                    # Target user for dotfiles deployment
 # dotfiles_repository_url: "https://..."       # Git repository containing dotfiles
 
@@ -34,9 +34,13 @@
 # DEPLOYMENT CONFIGURATION
 # =============================================================================
 
-# Stow-based deployment (recommended)
+# Stow-based deployment configuration (recommended method)
 dotfiles_uses_stow: true                       # Use GNU Stow for symlink management
 dotfiles_stow_packages: []                     # Specific stow packages ([] = deploy all directories)
+
+# Repository and deployment settings
+dotfiles_repository_dest: "{{ ansible_env.HOME }}/.dotfiles"  # Local clone destination
+dotfiles_backup_existing: true                 # Backup conflicting files before deployment
 
 # Examples of dotfiles_stow_packages:
 # dotfiles_stow_packages: []                   # Deploy all directories in repo

@@ -17,22 +17,39 @@ packages_upgrade_type: safe            # safe, full, or dist (APT only)
 
 
 # =============================================================================
-# REPOSITORY AND PACKAGE MANAGER VARIABLES
+# REPOSITORY MANAGEMENT
 # =============================================================================
 
 # APT repositories and keys (Ubuntu/Debian)
 packages_apt_repositories: []          # List of APT repositories to add
 packages_apt_keys: []                  # List of APT GPG key URLs
+packages_apt_key_keyserver: keyserver.ubuntu.com # Default keyserver for APT keys
 
-# Homebrew taps (macOS)
-packages_homebrew_taps: []             # List of Homebrew taps to add
-
-# AUR packages (Arch Linux)
+# Pacman configuration (Arch Linux)
+packages_pacman_multilib: true         # Enable multilib repository
 packages_aur_packages: []              # List of AUR packages to install via paru
+packages_aur_helper: paru               # AUR helper to use (paru, yay, etc.)
 
-# Homebrew casks (macOS)
+# =============================================================================
+# PLATFORM-SPECIFIC FEATURES
+# =============================================================================
+
+# macOS (Homebrew) settings
+packages_homebrew_taps: []             # List of Homebrew taps to add
 packages_homebrew_casks: []            # List of Homebrew casks to install
 packages_homebrew_casks_remove: []     # List of Homebrew casks to remove
+packages_macos_update_homebrew: true   # Update Homebrew before installing
+packages_macos_cleanup_cache: false    # Clean Homebrew cache after operations
+
+# Snap package management (Ubuntu)
+packages_snap_packages: []             # List of snap packages to install
+packages_snap_packages_remove: []      # List of snap packages to remove
+packages_snap_classic: []              # List of snap packages to install with --classic
+
+# Flatpak package management (Linux)
+packages_flatpak_packages: []          # List of Flatpak packages to install
+packages_flatpak_packages_remove: []   # List of Flatpak packages to remove
+packages_flatpak_remotes: []           # List of Flatpak remotes to add
 
 # =============================================================================
 # HIERARCHICAL PACKAGE VARIABLES
@@ -64,10 +81,3 @@ packages_homebrew_casks_remove: []     # List of Homebrew casks to remove
 # Note: Do not define these variables in this defaults file as they will
 # apply to ALL machines. Always define them in the appropriate inventory
 # level (group_vars/all, group_vars/{group}, host_vars/{host}).
-
-
-# =============================================================================
-# MACOS SPECIFIC SETTINGS
-# =============================================================================
-
-packages_macos_update_homebrew: true   # Update Homebrew before installing
