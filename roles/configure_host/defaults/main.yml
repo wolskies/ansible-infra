@@ -40,7 +40,7 @@ config_system_language: 'en_US.UTF-8'  # Language setting (Linux only)
 # =============================================================================
 
 # System limits configuration
-config_system_limits: true             # Configure system limits
+config_system_limits: false             # Configure system limits
 config_limits:
   - domain: '*'
     limit_type: soft
@@ -52,7 +52,7 @@ config_limits:
     value: 65536
 
 # Kernel parameters (sysctl)
-config_sysctl: true                    # Configure kernel parameters
+config_sysctl: false                    # Configure kernel parameters
 config_sysctl_params:
   # Network performance
   net.core.somaxconn: 65535
@@ -67,12 +67,12 @@ config_sysctl_params:
 # =============================================================================
 
 # Message of the day configuration
-config_motd: true                      # Configure MOTD
+config_motd: false                      # Configure MOTD
 config_motd_template: motd.j2          # MOTD template to use
 config_motd_custom_content: ""         # Additional custom content for MOTD
 
 # SSH banner configuration
-config_ssh_banner: true                # Configure SSH banner
+config_ssh_banner: false                # Configure SSH banner
 config_ssh_banner_text: |
   ********************************************************************
   * This system is for authorized use only. All activity is logged. *
