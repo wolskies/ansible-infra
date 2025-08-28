@@ -1,26 +1,29 @@
-# Minimal GitLab CI test to identify syntax issues
+# GitLab CI/CD Pipeline for wolskinet.infrastructure Ansible Collection
 
 stages:
   - validate
-  - test
+  - test-roles
+  - test-integration
+  - build
+  - sync-github
 
 variables:
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
+  COLLECTION_NAMESPACE: wolskinet
+  COLLECTION_NAME: infrastructure
+  COLLECTION_VERSION: 1.0.0
+  ANSIBLE_FORCE_COLOR: 'true'
+  ANSIBLE_HOST_KEY_CHECKING: 'false'
+  PY_COLORS: '1'
+  ANSIBLE_COLLECTIONS_PATH: "${CI_PROJECT_DIR}/..:${HOME}/.ansible/collections:/usr/share/ansible/collections"
 
-# Simple test
-simple-test:
-  stage: validate
-  image: python:3.11-slim
-  script:
-    - echo "Basic test"
-    - python3 --version
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .pip-cache/
+    - .ansible-cache/
 
-# Docker test
-docker-test:
-  stage: test
+# Molecule test template
+.molecule-test: &molecule-test
   image: python:3.11-slim
   services:
     - name: docker:dind
@@ -28,14 +31,72 @@ docker-test:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 0
   before_script:
     - apt-get update -qq
-    - apt-get install -y -qq docker.io
-  script:
-    - echo "Testing Docker"
-    - docker --version
-    - sleep 10
+    - apt-get install -y -qq python3-pip make curl docker.io
+    - pip3 install --cache-dir .pip-cache/ ansible molecule molecule-plugins[docker] docker pytest-testinfra ansible-lint yamllint jinja2
+    - ansible-galaxy collection install community.general community.docker -p .ansible-cache/
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..30}; do if docker info >/dev/null 2>&1; then echo "Docker ready"; break; fi; sleep 2; done
     - docker info
+    - docker --version
+    - ansible --version
+    - molecule --version
+
+# Basic validation
+quick-validation:
+  stage: validate
+  image: python:3.11-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip make
+    - pip3 install --cache-dir .pip-cache/ ansible ansible-lint yamllint jinja2
+  script:
+    - make test-quick
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Docker connectivity test
+test-docker-connectivity:
+  stage: validate
+  <<: *molecule-test
+  script:
+    - echo "=== Docker Debug ==="
+    - docker info
+    - docker run --rm hello-world
+    - echo "Docker connectivity OK"
   allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Role tests
+test-manage-system-settings:
+  stage: test-roles
+  <<: *molecule-test
+  script:
+    - molecule test -s manage_system_settings
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  retry:
+    max: 2
+    when: runner_system_failure
+
+# Build collection
+build-collection:
+  stage: build
+  image: python:3.11-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3-pip
+    - pip3 install ansible
+  script:
+    - ansible-galaxy collection build . --force
+    - ls -la *.tar.gz
+  artifacts:
+    paths:
+      - "*.tar.gz"
+    expire_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
