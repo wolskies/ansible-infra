@@ -2,18 +2,5 @@
 # Arch Linux-specific host configuration tasks
 # Platform-unique features only - common tasks handled in main.yml
 
-# Pacman mirror optimization (Arch-specific feature)
-- name: Configure reflector for mirror optimization
-  ansible.builtin.template:
-    src: reflector.conf.j2
-    dest: /etc/xdg/reflector/reflector.conf
-    owner: root
-    group: root
-    mode: '0644'
-  become: true
-  when: config_archlinux_reflector | default(true)
-  notify: restart reflector
-  tags:
-    - archlinux
-    - mirrors
-    - configure-host
+# Currently no Arch-specific configuration tasks
+# Reflector configuration has been moved to manage_packages role

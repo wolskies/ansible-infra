@@ -1,6 +1,10 @@
 ---
 # Simplified package management - trust Ansible built-ins
 
+# =============================================================================
+# OFFICIAL REPOSITORY PACKAGES (ALL DISTRIBUTIONS)
+# =============================================================================
+
 - name: Install packages (hierarchical merge handled by Ansible precedence)
   ansible.builtin.package:
     name: "{{ merged_packages_install }}"
@@ -37,9 +41,130 @@
   become: true
   when: packages_update_cache | default(true)
 
-- name: Upgrade all packages
+- name: Upgrade all packages (non-Arch)
   ansible.builtin.package:
     name: "*"
     state: latest
   become: true
-  when: packages_perform_system_upgrade | default(false)
+  when:
+    - packages_perform_system_upgrade | default(false)
+    - ansible_distribution != "Archlinux"
+
+- name: Upgrade all packages (Arch Linux)
+  community.general.pacman:
+    update_cache: false
+    upgrade: true
+  become: true
+  when:
+    - packages_perform_system_upgrade | default(false)
+    - ansible_distribution == "Archlinux"
+
+# =============================================================================
+# ARCH LINUX AUR PACKAGES (OPTIONAL - SECURITY CONSIDERATION)
+# =============================================================================
+
+- name: Handle Arch Linux AUR packages
+  block:
+    - name: Set merged AUR packages variable
+      ansible.builtin.set_fact:
+        merged_aur_packages: >-
+          {{
+            (vars.get('all_packages_aur_install_' + ansible_distribution, []) | default([])) +
+            (vars.get('group_packages_aur_install_' + ansible_distribution, []) | default([])) +
+            (vars.get('host_packages_aur_install_' + ansible_distribution, []) | default([]))
+            | unique | list
+          }}
+
+    - name: Install AUR packages if any configured
+      block:
+        - name: Check if paru is installed
+          ansible.builtin.command: which paru
+          register: paru_installed
+          changed_when: false
+          failed_when: false
+
+        - name: Install paru from AUR
+          block:
+            - name: Install build dependencies for AUR packages
+              ansible.builtin.package:
+                name:
+                  - base-devel
+                  - git
+                state: present
+              become: true
+
+            - name: Clone and install paru
+              become: false
+              block:
+                - name: Clone paru repository
+                  ansible.builtin.git:
+                    repo: 'https://aur.archlinux.org/paru.git'
+                    dest: '/tmp/paru-install'
+                    version: master
+
+                - name: Build and install paru
+                  ansible.builtin.command:
+                    cmd: makepkg -si --noconfirm
+                    chdir: /tmp/paru-install
+                  environment:
+                    MAKEFLAGS: "-j{{ ansible_processor_vcpus | default(1) }}"
+
+                - name: Clean up paru build directory
+                  ansible.builtin.file:
+                    path: /tmp/paru-install
+                    state: absent
+                  become: true
+          when: paru_installed.rc != 0
+
+        - name: Install AUR packages with paru
+          become: false
+          ansible.builtin.command:
+            cmd: paru -S --noconfirm --needed {{ item }}
+          loop: "{{ merged_aur_packages }}"
+          register: aur_install_results
+          changed_when: "'installing' in aur_install_results.stdout"
+      when: merged_aur_packages | length > 0
+  when:
+    - ansible_distribution == "Archlinux"
+    - packages_enable_aur | default(true)
+
+# =============================================================================
+# ARCH LINUX SPECIFIC CONFIGURATION
+# =============================================================================
+
+# Arch Linux specific: Configure reflector if installed
+- name: Check if reflector is installed (Arch Linux)
+  ansible.builtin.command: pacman -Q reflector
+  register: reflector_check
+  changed_when: false
+  failed_when: false
+  when: ansible_distribution == "Archlinux"
+
+- name: Configure reflector for mirror optimization (Arch Linux)
+  block:
+    - name: Ensure reflector config directory exists
+      ansible.builtin.file:
+        path: /etc/xdg/reflector
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      become: true
+
+    - name: Configure reflector
+      ansible.builtin.template:
+        src: reflector.conf.j2
+        dest: /etc/xdg/reflector/reflector.conf
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      notify: restart reflector
+  when:
+    - ansible_distribution == "Archlinux"
+    - reflector_check.rc == 0
+    - config_archlinux_reflector | default(true)
+  tags:
+    - archlinux
+    - mirrors
+    - packages

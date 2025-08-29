@@ -5,7 +5,8 @@
 - name: Allow SSH access (prevent lockout)
   community.general.ufw:
     rule: allow
-    name: ssh
+    port: "22"
+    proto: tcp
     comment: "SSH access (prevent lockout)"
   become: true
 

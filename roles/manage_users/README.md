@@ -46,7 +46,7 @@ users_config:
     shell: /bin/bash                           # Optional: user shell
     groups: [sudo, docker]                    # Optional: additional groups
     ssh_pubkey: var_users_config_ed_ssh_pubkey # Optional: SSH public key (variable reference)
-    password: var_users_config_ed_password     # Optional: password hash (variable reference)
+    password: var_users_config_ed_password     # Optional: plaintext or hash (variable reference)
     dotfiles:                                  # Optional: dotfiles configuration
       enable: true                             # Required if dotfiles block present
       repo: "https://github.com/user/dotfiles" # Required: git repository URL
@@ -58,7 +58,7 @@ users_config:
     gid: "1001"
     home: /home/shelly
     ssh_pubkey: var_users_config_shelly_ssh_pubkey
-    password: var_users_config_shelly_password
+    password: var_users_config_shelly_password  # Optional: plaintext or hash (variable reference)
     dotfiles:
       enable: true
       repo: "https://github.com/shelly/dotfiles"
@@ -73,7 +73,7 @@ users_config:
     uid: 1001                        # Optional: specific UID
     shell: /bin/bash                 # Optional: user shell
     groups: [sudo, docker]          # Optional: additional groups
-    password: "*"                    # Optional: password hash or "*" (locked)
+    password: "*"                    # Optional: plaintext, hash, or "*" (locked)
     create_home: true                # Optional: create home directory
     # Legacy dotfiles configuration
     dotfiles_repository_url: https://github.com/user/dotfiles
@@ -96,7 +96,7 @@ users_config:
           - name: developer
             shell: /bin/zsh
             groups: [sudo]
-            password: "$6$rounds=656000$salt$hash..."
+            password: "MySecurePassword123!"  # Will be hashed automatically
           - name: service
             shell: /bin/bash
             password: "*"  # Locked account
@@ -228,7 +228,26 @@ discovered_users_config:
 
 ## Security Considerations
 
-- **Password Handling**: Supports password hashes and account locking
+### Password Handling
+
+The role intelligently handles both plaintext and pre-hashed passwords:
+- **Plaintext passwords**: Automatically hashed using SHA-512 when detected (recommended when using Ansible Vault)
+- **Pre-hashed passwords**: Passed through unchanged (must start with `$`)
+- **Account locking**: Use `"*"` to create locked accounts
+
+Example with Ansible Vault:
+```yaml
+# group_vars/all/vault.yml (encrypted with ansible-vault)
+vault_user_password: "MySecurePassword123!"
+
+# group_vars/all/users.yml
+users_config:
+  - name: alice
+    password: "{{ vault_user_password }}"  # Will be automatically hashed
+```
+
+### Other Security Features
+
 - **Group Management**: Adds users to appropriate system groups
 - **File Permissions**: Sets proper ownership on home directories
 - **Dotfiles Security**: Uses HTTPS for repository cloning (no SSH keys required)

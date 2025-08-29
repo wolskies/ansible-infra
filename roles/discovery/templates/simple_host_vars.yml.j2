@@ -30,6 +30,10 @@ config_hostname: {{ config_hostname | to_json }}
 {% if config_system_timezone is defined %}
 config_system_timezone: {{ config_system_timezone | to_json }}
 {% endif %}
+{% if ansible_distribution == "Ubuntu" and additional_package_managers.snap.snap_installed is defined and additional_package_managers.snap.snap_installed %}
+# Preserve existing snap installation on Ubuntu
+config_ubuntu_disable_snap: false
+{% endif %}
 
 {% if repositories_config is defined and repositories_config.keys() | length > 0 %}
 # Repository management (manage_packages role)
