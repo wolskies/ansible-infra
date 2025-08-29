@@ -5,6 +5,18 @@
 # REPOSITORY CONFIGURATION (DEBIAN/UBUNTU)
 # =============================================================================
 
+- name: Download APT repository keys (Debian/Ubuntu)
+  ansible.builtin.get_url:
+    url: "{{ item }}"
+    dest: "/etc/apt/trusted.gpg.d/{{ item | basename }}"
+    mode: '0644'
+  loop: "{{ packages_apt_keys | default([]) }}"
+  when:
+    - ansible_os_family == "Debian"
+    - packages_apt_keys is defined
+    - packages_apt_keys | length > 0
+  become: true
+
 - name: Add APT repositories (Debian/Ubuntu)
   ansible.builtin.apt_repository:
     repo: "{{ item }}"
