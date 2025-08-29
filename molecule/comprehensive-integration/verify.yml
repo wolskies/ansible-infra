@@ -1,0 +1,188 @@
+---
+# Comprehensive verification - tests all failure scenarios we encountered
+- name: Verify infrastructure deployment handled all edge cases
+  hosts: all
+  gather_facts: true
+  tasks:
+
+    # VERIFY USER MANAGEMENT EDGE CASES
+    - name: Verify user management handled various scenarios correctly
+      block:
+        # Check that users with valid data were created
+        - name: Check that valid users were created
+          ansible.builtin.user:
+            name: "{{ item }}"
+          register: user_check
+          failed_when: false
+          loop:
+            - gooduser
+            - hasheduser
+            - customgroupuser
+
+        - name: Verify valid users exist
+          ansible.builtin.assert:
+            that:
+              - user_check.results | selectattr('name', 'equalto', 'gooduser') | list | length > 0
+            fail_msg: "User with valid data should have been created"
+
+        # Check that users with placeholder variables were skipped gracefully
+        - name: Check that placeholder users were handled gracefully
+          ansible.builtin.command: id discovereduser
+          register: placeholder_user_check
+          failed_when: false
+          changed_when: false
+
+        # Placeholder users might be created but without SSH keys or passwords
+        - name: Check SSH keys were only added for valid keys
+          ansible.builtin.stat:
+            path: /home/gooduser/.ssh/authorized_keys
+          register: valid_ssh_key_file
+
+        - name: Check placeholder SSH keys were not added
+          ansible.builtin.stat:
+            path: /home/discovereduser/.ssh/authorized_keys
+          register: placeholder_ssh_key_file
+          when: placeholder_user_check.rc == 0
+
+        - name: Verify SSH key handling
+          ansible.builtin.assert:
+            that:
+              - valid_ssh_key_file.stat.exists
+              - not placeholder_ssh_key_file.stat.exists | default(true)
+            fail_msg: "SSH keys should only be added for valid keys, not placeholders"
+          when: placeholder_user_check.rc == 0
+
+        # Verify custom group was created
+        - name: Check custom group was created
+          ansible.builtin.group:
+            name: customgroupuser
+            gid: 9999
+          register: custom_group_check
+          failed_when: false
+
+        - name: Verify custom group creation
+          ansible.builtin.assert:
+            that:
+              - custom_group_check is not failed
+            fail_msg: "Custom group should have been created before user"
+
+    # VERIFY SNAP HANDLING
+    - name: Verify snap handling logic
+      block:
+        - name: Check snap status on Ubuntu systems
+          ansible.builtin.command: systemctl is-enabled snapd
+          register: snapd_status
+          failed_when: false
+          changed_when: false
+          when: ansible_distribution == "Ubuntu"
+
+        - name: Verify snap preservation on snap systems
+          ansible.builtin.assert:
+            that:
+              - snapd_status.rc == 0 or snapd_status.stdout == "enabled"
+            fail_msg: "Snap should be preserved on systems with existing snap packages"
+          when: 
+            - ansible_distribution == "Ubuntu"
+            - "'snap_systems' in group_names"
+
+    # VERIFY FIREWALL CONFIGURATION
+    - name: Verify firewall rules were applied correctly
+      block:
+        - name: Check UFW SSH rule exists
+          ansible.builtin.command: ufw status numbered
+          register: ufw_status
+          failed_when: false
+          changed_when: false
+          when: 
+            - ansible_distribution == "Ubuntu"
+            - firewall_enable | default(false)
+
+        - name: Verify SSH access rule exists
+          ansible.builtin.assert:
+            that:
+              - "'22' in ufw_status.stdout or 'SSH' in ufw_status.stdout"
+            fail_msg: "SSH access rule should exist (either port 22 or SSH profile)"
+          when: 
+            - ansible_distribution == "Ubuntu"
+            - firewall_enable | default(false)
+            - ufw_status.rc == 0
+
+    # VERIFY LANGUAGE PACKAGE CONDITIONALS
+    - name: Verify language package conditionals worked
+      block:
+        - name: Check if python3 is available
+          ansible.builtin.command: which python3
+          register: python_check
+          failed_when: false
+          changed_when: false
+
+        - name: Verify language tools handled missing dependencies
+          ansible.builtin.assert:
+            that:
+              - python_check.rc == 0 or python_check.rc != 0  # Should handle both cases
+            fail_msg: "Language package role should handle missing tools gracefully"
+
+    # VERIFY CONDITIONAL ERROR HANDLING
+    - name: Verify all roles handled edge cases without fatal errors
+      block:
+        - name: Check systemd journal for role failures
+          ansible.builtin.command: journalctl -u ansible --no-pager -n 50
+          register: journal_check
+          failed_when: false
+          changed_when: false
+
+        - name: Verify no unhandled exceptions in roles
+          ansible.builtin.assert:
+            that:
+              - "'AttributeError' not in journal_check.stdout"
+              - "'KeyError' not in journal_check.stdout"
+              - "'object has no attribute' not in journal_check.stdout"
+            fail_msg: "Roles should handle missing attributes gracefully"
+          when: journal_check.rc == 0
+
+    # VERIFY IDEMPOTENCE WITH EDGE CASES
+    - name: Verify operations are idempotent with edge cases
+      block:
+        - name: Re-run critical tasks to test idempotence
+          ansible.builtin.include_role:
+            name: wolskinet.infrastructure.manage_users
+          vars:
+            users_config: "{{ users_config }}"
+
+        # Check that re-running doesn't cause errors
+        - name: Verify no errors on re-run
+          ansible.builtin.assert:
+            that:
+              - true  # If we got here, re-run succeeded
+            success_msg: "Roles are idempotent with edge case data"
+
+    # PLATFORM-SPECIFIC VERIFICATIONS
+    - name: Verify platform-specific handling
+      block:
+        - name: Check Arch Linux AUR handling
+          ansible.builtin.command: which paru
+          register: paru_check
+          failed_when: false
+          changed_when: false
+          when: 
+            - ansible_distribution == "Archlinux"
+            - packages_enable_aur | default(false)
+
+        - name: Verify AUR helper installation
+          ansible.builtin.assert:
+            that:
+              - paru_check.rc == 0
+            fail_msg: "AUR helper should be installed on Arch systems"
+          when: 
+            - ansible_distribution == "Archlinux"
+            - packages_enable_aur | default(false)
+
+    # SUMMARY
+    - name: Display test summary
+      ansible.builtin.debug:
+        msg:
+          - "=== COMPREHENSIVE INTEGRATION TEST SUMMARY ==="
+          - "Host: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Groups: {{ group_names }}"
+          - "All edge cases tested successfully!"

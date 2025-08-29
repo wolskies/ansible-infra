@@ -1,0 +1,15 @@
+# Arch Linux minimal container for testing missing dependencies  
+FROM archlinux:base
+
+# Install minimal systemd setup
+RUN pacman -Syu --noconfirm systemd python && \
+    pacman -Scc --noconfirm
+
+# Remove common packages to test missing dependency handling
+RUN pacman -R --noconfirm git curl wget 2>/dev/null || true
+
+# Configure systemd
+RUN systemctl set-default multi-user.target
+
+VOLUME ["/sys/fs/cgroup"]
+CMD ["/usr/lib/systemd/systemd"]

@@ -1,36 +1,210 @@
 ---
-# Pre-commit hooks for wolskinet.infrastructure collection
-# Install with: pre-commit install
+# Enhanced pre-commit hooks for wolskinet.infrastructure collection
+# Install with: pip install pre-commit && pre-commit install
 
 repos:
+  # Basic file checks - prevent common issues
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+            .*\.patch|
+            .*\.diff
+          )$
       - id: end-of-file-fixer
+        exclude: |
+          (?x)^(
+            .*\.patch|
+            .*\.diff
+          )$
       - id: check-yaml
         args: [--allow-multiple-documents]
+        exclude: |
+          (?x)^(
+            .*\.vault\.yml
+          )$
       - id: check-added-large-files
+        args: ['--maxkb=1000']
       - id: check-merge-conflict
+      - id: detect-private-key
 
+  # YAML linting - catch formatting issues
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:
       - id: yamllint
         args: [-c=.yamllint]
+        exclude: |
+          (?x)^(
+            molecule/.*|
+            .*\.vault\.yml
+          )$
 
+  # Ansible linting - catch role and playbook issues
   - repo: https://github.com/ansible/ansible-lint
-    rev: v6.22.2
+    rev: v24.2.0
     hooks:
       - id: ansible-lint
+        args:
+          - --fix=none
+          - --profile=production
         files: \.(yaml|yml)$
-        exclude: ^molecule/
+        exclude: |
+          (?x)^(
+            \.github/.*|
+            requirements.*\.yml|
+            molecule/.*/requirements\.yml
+          )$
 
+  # Python linting for any Python scripts
+  - repo: https://github.com/psf/black
+    rev: 24.2.0
+    hooks:
+      - id: black
+        language_version: python3
+        files: \.py$
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        files: \.py$
+        args: [--max-line-length=120]
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7
+    hooks:
+      - id: bandit
+        files: \.py$
+        args: [-ll]
+
+  # Collection-specific checks
   - repo: local
     hooks:
+      # Validate Jinja2 templates (enhanced)
       - id: validate-jinja2-templates
         name: Validate Jinja2 Templates
         entry: python3 scripts/validate_templates.py
         language: python
         files: \.j2$
         additional_dependencies: [jinja2]
+
+      # Check for common Ansible anti-patterns that caused our failures
+      - id: ansible-failure-patterns
+        name: Check for patterns that caused test failures
+        entry: bash -c
+        language: system
+        files: \.(yml|yaml)$
+        args:
+          - |
+            echo "🔍 Checking for patterns that caused test failures..."
+
+            # Check for missing attribute access patterns
+            if grep -r "\.rc\|\.stdout\|\.stderr" . --include="*.yml" --include="*.yaml" --exclude-dir=".git" | grep -v "is defined\|default"; then
+              echo "⚠️  Found direct attribute access without 'is defined' checks"
+              echo "   This caused failures like: 'object has no attribute rc'"
+              echo "   Add checks like: item.rc is defined and item.rc != 0"
+            fi
+
+            # Check for password_hash without passlib handling
+            if grep -r "password_hash" . --include="*.yml" --include="*.yaml" --exclude-dir=".git"; then
+              echo "⚠️  Found password_hash usage - ensure passlib dependency is handled"
+              echo "   This caused failures when passlib was missing"
+            fi
+
+            # Check for UFW app names without fallback
+            if grep -r "name:.*ssh" . --include="*.yml" --include="*.yaml" --exclude-dir=".git" | grep -i ufw; then
+              echo "⚠️  Found UFW app name usage - ensure fallback to port numbers"
+              echo "   This caused 'Could not find profile matching ssh' errors"
+            fi
+
+            # Check for UFW reload usage (UFW doesn't support reload)
+            if grep -A 5 -B 5 "name:.*ufw" . --include="*.yml" --include="*.yaml" --exclude-dir=".git" | grep "state:.*reload"; then
+              echo "❌ Found UFW reload usage - UFW doesn't support reload!"
+              echo "   Use 'state: restarted' instead. This causes 'Job type reload is not applicable' errors"
+              exit 1
+            fi
+
+            # Check for nested loops without loop_var
+            INCLUDE_PATTERN="include_role\|include_tasks"
+            YAML_FILES="--include=*.yml --include=*.yaml --exclude-dir=.git"
+            if grep -A 10 -B 5 "$INCLUDE_PATTERN" . $YAML_FILES | grep -A 15 -B 5 "loop:" | grep -q "loop:" && \
+               ! grep -A 10 -B 5 "$INCLUDE_PATTERN" . $YAML_FILES | grep -A 15 -B 5 "loop:" | grep -q "loop_var:"; then
+              echo "❌ Found nested loops without loop_control.loop_var"
+              echo "   This causes 'loop variable item is already in use' warnings"
+              exit 1
+            fi
+
+            echo "✓ No known failure patterns detected"
+
+      # Check for missing conditional safety patterns
+      - id: conditional-safety
+        name: Check conditional safety patterns
+        entry: bash -c
+        language: system
+        files: \.(yml|yaml)$
+        args:
+          - |
+            echo "🔍 Checking for missing conditional safety patterns..."
+
+            # Check for startswith without string validation
+            if grep -r "startswith" . --include="*.yml" --include="*.yaml" --exclude-dir=".git" | grep -v "is string\|is defined"; then
+              echo "⚠️  Found startswith() without type validation"
+              echo "   Add: item.field is defined and item.field | string"
+            fi
+
+            # Check for loops over variables that might be undefined
+            if grep -r "loop:.*default\(\[\]\)" . --include="*.yml" --include="*.yaml" --exclude-dir=".git"; then
+              echo "✓ Found good default([]) pattern for loop safety"
+            fi
+
+            echo "✓ Conditional safety patterns check complete"
+
+      # Check for realistic test data
+      - id: test-data-realism
+        name: Check test data realism
+        entry: bash -c
+        language: system
+        files: molecule/.*/.*\.yml$
+        args:
+          - |
+            echo "🔍 Checking for realistic test data..."
+
+            # Check if molecule tests have placeholder-like data
+            if grep -r "var_.*_password\|var_.*_key" molecule/ --include="*.yml" 2>/dev/null; then
+              echo "✓ Found placeholder variables in tests (good for testing edge cases)"
+            fi
+
+            # Check for mixed data quality in tests
+            if grep -r "password.*Test.*\|ssh-rsa.*test" molecule/ --include="*.yml" 2>/dev/null; then
+              echo "✓ Found mixed quality test data (realistic)"
+            fi
+
+            echo "✓ Test data realism check complete"
+
+      # Validate molecule test coverage
+      - id: molecule-coverage
+        name: Validate molecule test coverage
+        entry: bash -c
+        language: system
+        files: molecule/.*
+        args:
+          - |
+            echo "🔍 Validating molecule test coverage..."
+
+            # Check that verify.yml files test failure scenarios
+            for verify_file in molecule/*/verify.yml; do
+              if [ -f "$verify_file" ]; then
+                if ! grep -q "assert\|fail\|error" "$verify_file"; then
+                  echo "⚠️  $verify_file lacks assertion tests"
+                fi
+                if ! grep -q "edge.*case\|placeholder\|invalid" "$verify_file"; then
+                  echo "⚠️  $verify_file may lack edge case testing"
+                fi
+              fi
+            done
+
+            echo "✓ Molecule coverage validation complete"

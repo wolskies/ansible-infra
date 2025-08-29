@@ -1,0 +1,82 @@
+---
+# Test that roles handle failure conditions gracefully
+- name: Test graceful failure handling
+  hosts: all
+  gather_facts: true
+  vars:
+    # Allow roles to continue on non-fatal errors
+    ansible_error_on_undefined_vars: false
+    
+  tasks:
+    # TEST USER MANAGEMENT WITH ALL KNOWN FAILURE CONDITIONS
+    - name: Test user management with missing dependencies and bad data
+      block:
+        - name: Run manage_users role with problematic data
+          ansible.builtin.include_role:
+            name: wolskinet.infrastructure.manage_users
+          vars:
+            users_config: "{{ users_config }}"
+      rescue:
+        - name: Capture user management failures
+          ansible.builtin.set_fact:
+            user_mgmt_failed: true
+            user_mgmt_error: "{{ ansible_failed_result.msg | default('Unknown error') }}"
+
+    # TEST FIREWALL WITH MISSING SSH PROFILE
+    - name: Test firewall with missing UFW SSH profile
+      block:
+        - name: Run manage_firewall role with missing profile
+          ansible.builtin.include_role:
+            name: wolskinet.infrastructure.manage_firewall
+          vars:
+            firewall_enable: true
+            firewall_allowed_ports: ['22', '80']
+      rescue:
+        - name: Capture firewall failures  
+          ansible.builtin.set_fact:
+            firewall_failed: true
+            firewall_error: "{{ ansible_failed_result.msg | default('Unknown error') }}"
+
+    # TEST LANGUAGE PACKAGES WITH MISSING TOOLS
+    - name: Test language packages with missing dependencies
+      block:
+        - name: Run manage_language_packages with missing tools
+          ansible.builtin.include_role:
+            name: wolskinet.infrastructure.manage_language_packages
+          vars:
+            language_install_missing_tools: true
+            language_check_dependencies: true
+      rescue:
+        - name: Capture language package failures
+          ansible.builtin.set_fact:
+            language_failed: true
+            language_error: "{{ ansible_failed_result.msg | default('Unknown error') }}"
+
+    # TEST CONFIGURE HOST WITH SNAP SCENARIOS
+    - name: Test host configuration with snap handling
+      block:
+        - name: Run configure_host with snap scenario
+          ansible.builtin.include_role:
+            name: wolskinet.infrastructure.configure_host  
+          vars:
+            config_hostname: "failure-test"
+            config_ubuntu_disable_snap: true
+      rescue:
+        - name: Capture host configuration failures
+          ansible.builtin.set_fact:
+            config_failed: true
+            config_error: "{{ ansible_failed_result.msg | default('Unknown error') }}"
+
+    # SUMMARY OF WHAT SHOULD HAVE HAPPENED
+    - name: Display failure handling summary
+      ansible.builtin.debug:
+        msg:
+          - "=== FAILURE HANDLING TEST RESULTS ==="
+          - "Expected behavior: Roles should handle failures gracefully"
+          - "User Management Failed: {{ user_mgmt_failed | default(false) }}"
+          - "Firewall Failed: {{ firewall_failed | default(false) }}"
+          - "Language Packages Failed: {{ language_failed | default(false) }}" 
+          - "Host Config Failed: {{ config_failed | default(false) }}"
+          - ""
+          - "Failures are EXPECTED and should be handled gracefully"
+          - "The verify stage will check that failures were handled properly"

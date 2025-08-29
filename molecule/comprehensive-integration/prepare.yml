@@ -1,0 +1,103 @@
+---
+# Comprehensive test preparation - creates realistic test conditions
+- name: Prepare test systems
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    # Install base requirements for all systems
+    - name: Install base packages for testing
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-pip
+          - curl
+          - systemd
+        state: present
+      when: ansible_os_family in ['Debian', 'RedHat']
+
+    - name: Install base packages (Arch Linux)
+      community.general.pacman:
+        name:
+          - python
+          - python-pip
+          - curl
+          - systemd
+        state: present
+      when: ansible_distribution == "Archlinux"
+
+    # Simulate snap installation on designated systems
+    - name: Install snapd on snap test systems
+      ansible.builtin.package:
+        name: snapd
+        state: present
+      when: 
+        - "'snap_systems' in group_names"
+        - ansible_os_family == 'Debian'
+
+    - name: Install test snap packages
+      community.general.snap:
+        name: hello-world
+        state: present
+      when: 
+        - "'snap_systems' in group_names"
+        - ansible_os_family == 'Debian'
+      ignore_errors: true  # May fail in containers
+
+    # Simulate missing dependencies on minimal systems
+    - name: Remove common tools on minimal systems
+      ansible.builtin.package:
+        name:
+          - git  # Often assumed to be present
+          - rsync
+          - wget
+        state: absent
+      when: "'minimal_systems' in group_names"
+      ignore_errors: true
+
+    # Remove UFW SSH profile on systems that should test port-based rules
+    - name: Remove UFW SSH application profile (simulate missing profile)
+      ansible.builtin.file:
+        path: /etc/ufw/applications.d/openssh-server
+        state: absent
+      when: 
+        - "'ubuntu_systems' in group_names"
+        - firewall_ufw_ssh_profile_available | default(true) == false
+
+    # Simulate systems without passlib
+    - name: Remove passlib on some systems (test dependency handling)
+      ansible.builtin.pip:
+        name: passlib
+        state: absent
+      when: "'minimal_systems' in group_names"
+      ignore_errors: true
+
+    # Create test conditions that mirror discovery output
+    - name: Create discovery-like variable files
+      ansible.builtin.copy:
+        content: |
+          # Simulated discovery variables
+          var_users_config_discovereduser_password: "PlaceholderPassword123!"
+          var_users_config_discovereduser_ssh_pubkey: "ssh-rsa AAAAB3... real_key_here"
+        dest: /tmp/discovered_vars.yml
+      when: inventory_hostname == 'ubuntu-clean'
+
+    # Test various system states
+    - name: Create existing users with conflicting UIDs
+      ansible.builtin.user:
+        name: existinguser
+        uid: 1001
+        state: present
+      when: inventory_hostname == 'debian-13'
+      ignore_errors: true
+
+    # Ensure systemd is running for service tests
+    - name: Start systemd services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        daemon_reload: true
+      loop:
+        - systemd-timesyncd
+        - systemd-journald
+      ignore_errors: true
