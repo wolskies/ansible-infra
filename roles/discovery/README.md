@@ -194,9 +194,9 @@ system_tuning:
 
 ### Security Considerations
 - Read-only discovery (no system modifications)
-- SSH key and password handling via Ansible Vault references
-- Safe file permissions and ownership preservation
-- No sensitive data in generated files (uses vault variable references)
+- Safe for production - no password or sensitive data in output
+- Preserves file permissions and ownership
+- User discovery excludes authentication data
 
 ## Troubleshooting
 
