@@ -1,6 +1,10 @@
 ---
 # Simple but functional user discovery
 
+- name: Reset users_config to ensure clean discovery
+  ansible.builtin.set_fact:
+    users_config: []
+
 - name: Get user and group facts
   ansible.builtin.getent:
     database: "{{ item }}"

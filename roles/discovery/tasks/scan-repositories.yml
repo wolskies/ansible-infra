@@ -8,6 +8,9 @@
 
 - name: Discover additional APT repositories (Debian/Ubuntu)
   block:
+    - name: Reset repository variables
+      ansible.builtin.set_fact:
+        additional_apt_repos: []
     - name: Find additional APT repository files
       ansible.builtin.find:
         paths:
