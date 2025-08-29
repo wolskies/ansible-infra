@@ -28,10 +28,34 @@ validate-templates: ## Validate all Jinja2 templates
 	@echo "Validating Jinja2 templates..."
 	@find roles -name "*.j2" -type f | xargs python3 scripts/validate_templates.py
 
+# =============================================================================
+# ENHANCED TESTING TARGETS - Catch real-world failures
+# =============================================================================
+
+.PHONY: test-failures
+test-failures: ## Run failure scenario tests (negative testing)
+	@echo "🧪 Running failure scenario tests..."
+	cd molecule/failure-scenarios && molecule test
+
+.PHONY: test-comprehensive  
+test-comprehensive: ## Run comprehensive integration tests
+	@echo "🧪 Running comprehensive integration tests..."
+	cd molecule/comprehensive-integration && molecule test
+
+.PHONY: test-quick
+test-quick: lint syntax-check ## Quick validation tests (fast feedback)
+	@echo "⚡ Running quick validation tests..."
+	cd molecule/discovery && molecule test
+
 .PHONY: test-template-edge-cases
 test-template-edge-cases: ## Test template edge cases
 	@echo "Testing template edge cases..."
 	@cd molecule/discovery && ansible-playbook test_edge_cases.yml -v
+
+.PHONY: test-pre-commit
+test-pre-commit: ## Run pre-commit hooks (catches failure patterns)
+	@echo "🔍 Running pre-commit hooks..."
+	pre-commit run --all-files
 
 .PHONY: syntax-check
 syntax-check: ## Check Ansible syntax for all roles
@@ -55,24 +79,20 @@ syntax-check: ## Check Ansible syntax for all roles
 	done
 
 .PHONY: test
-test: ## Run all molecule tests
-	molecule test
+test: test-pre-commit test-failures test-comprehensive test-integration ## Run complete test suite (includes failure scenarios)
+	@echo "✅ Complete test suite passed!"
 
 .PHONY: test-discovery
 test-discovery: ## Run molecule tests for discovery role
 	molecule test -s discovery
 
-# Note: test-basic removed - basic_setup role has been split into configure_host, manage_packages, manage_users
-
-# Note: test-container removed - container_platform role not implemented yet
-
 .PHONY: test-integration
 test-integration: ## Run integration tests with all roles
 	molecule test -s integration
 
-.PHONY: test-quick
-test-quick: lint syntax-check ## Quick validation (lint + syntax check)
-	@echo "Quick validation completed!"
+.PHONY: ci-test
+ci-test: deps test-pre-commit test-failures test-integration ## CI-style complete testing
+	@echo "✅ CI test suite completed!"
 
 .PHONY: molecule-create
 molecule-create: ## Create molecule test instances

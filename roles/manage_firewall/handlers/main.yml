@@ -6,7 +6,7 @@
 - name: reload ufw
   ansible.builtin.systemd:
     name: ufw
-    state: reloaded
+    state: restarted
   become: true
   listen: "reload ufw"
 

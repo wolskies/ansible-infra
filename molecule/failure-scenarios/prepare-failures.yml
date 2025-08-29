@@ -1,0 +1,79 @@
+---
+# Prepare system to reproduce all known failures
+- name: Prepare failure test environment
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+
+    # Install minimal requirements but remove problematic packages
+    - name: Install minimal base system
+      ansible.builtin.package:
+        name:
+          - python3
+          - systemd
+        state: present
+
+    # SIMULATE PASSLIB MISSING (caused password hash failures)
+    - name: Remove passlib to test password handling
+      ansible.builtin.pip:
+        name: passlib
+        state: absent
+      ignore_errors: true
+
+    # SIMULATE MISSING UFW SSH PROFILE (caused firewall failures)
+    - name: Install UFW but remove SSH profile
+      ansible.builtin.package:
+        name: ufw
+        state: present
+
+    - name: Remove UFW SSH application profile
+      ansible.builtin.file:
+        path: /etc/ufw/applications.d/openssh-server
+        state: absent
+
+    # SIMULATE MISSING LANGUAGE TOOLS (caused language package failures)
+    - name: Remove common language tools
+      ansible.builtin.package:
+        name:
+          - git
+          - nodejs  
+          - npm
+          - python3-pip
+        state: absent
+      ignore_errors: true
+
+    # SIMULATE SNAP INSTALLATION (tests snap handling logic)
+    - name: Install snapd
+      ansible.builtin.package:
+        name: snapd
+        state: present
+
+    - name: Install test snap package  # noqa: syntax-check[unknown-module]
+      community.general.snap:
+        name: hello-world
+        state: present
+      ignore_errors: true
+
+    # CREATE CONDITIONS FOR GROUP CREATION FAILURES
+    - name: Create conflicting user to test group handling
+      ansible.builtin.user:
+        name: conflictuser
+        uid: 9876  # Same as our test user's GID
+        state: present
+      ignore_errors: true
+
+    # SIMULATE INCOMPLETE SYSTEM STATE
+    - name: Stop some services to create failure conditions
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        state: stopped
+      ignore_errors: true
+
+    - name: Display preparation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== FAILURE TEST PREPARATION COMPLETE ==="
+          - "Removed: passlib, UFW SSH profile, language tools"
+          - "Installed: snapd with test packages"
+          - "Created: Conflicting users and service states"

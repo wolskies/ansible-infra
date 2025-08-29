@@ -65,7 +65,6 @@ packages_homebrew_casks_discovered:
 {{ repositories_config.homebrew_casks_installed | to_nice_yaml(indent=2) }}
 {% endif %}
 {% endif %}
-{% endif %}
 
 {% if additional_package_managers is defined %}
 {% if additional_package_managers.flatpak.flatpak_installed is defined and additional_package_managers.flatpak.flatpak_installed %}
