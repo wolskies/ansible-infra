@@ -59,8 +59,6 @@
       home: "{{ item.value[4] }}"
       shell: "{{ item.value[5] }}"
       groups: []  # Can be enhanced later if needed
-      ssh_pubkey: "var_users_config_{{ item.key }}_ssh_pubkey"
-      password: "var_users_config_{{ item.key }}_password"
       dotfiles: "{{ dotfiles_config if has_dotfiles else omit }}"
     # Check if this user has dotfiles
     has_dotfiles: "{{ dotfiles_dirs.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stat.exists') | first | default(false) }}"
