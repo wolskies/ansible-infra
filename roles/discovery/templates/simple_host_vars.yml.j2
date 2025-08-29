@@ -35,11 +35,11 @@ config_system_timezone: {{ config_system_timezone | to_json }}
 config_ubuntu_disable_snap: false
 {% endif %}
 
-{% if repositories_config is defined and repositories_config.additional_repositories is defined and repositories_config.additional_repositories | length > 0 %}
+{% if repositories_config is defined and repositories_config.apt_repositories is defined and repositories_config.apt_repositories | length > 0 %}
 # Additional APT repositories discovered
-additional_repositories:
-{% for repo in repositories_config.additional_repositories %}
-  - {{ repo }}
+packages_apt_repositories:
+{% for repo in repositories_config.apt_repositories %}
+  - {{ repo | to_json }}
 {% endfor %}
 {% endif %}
 {% if repositories_config.pacman_repositories is defined %}

@@ -37,7 +37,7 @@
     - name: Set repository config
       ansible.builtin.set_fact:
         repository_config:
-          additional_repositories: "{{ additional_apt_repos | default([]) }}"
+          apt_repositories: "{{ additional_apt_repos | default([]) | unique | list }}"
 
   when: ansible_os_family == "Debian"
 
