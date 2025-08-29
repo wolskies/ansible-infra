@@ -35,26 +35,12 @@ config_system_timezone: {{ config_system_timezone | to_json }}
 config_ubuntu_disable_snap: false
 {% endif %}
 
-{% if repositories_config is defined and repositories_config.keys() | length > 0 %}
-# Repository management (manage_packages role)
-{% if repositories_config.apt_repositories is defined and repositories_config.apt_repositories | length > 0 %}
-packages_apt_repositories:
-{% for repo in repositories_config.apt_repositories %}
-  - filename: {{ repo.filename | to_json }}
-    enabled: {{ repo.enabled | to_json }}
-    content: {{ repo.content | to_json }}
+{% if repositories_config is defined and repositories_config.additional_repositories is defined and repositories_config.additional_repositories | length > 0 %}
+# Additional APT repositories discovered
+additional_repositories:
+{% for repo in repositories_config.additional_repositories %}
+  - {{ repo }}
 {% endfor %}
-{% endif %}
-{% if repositories_config.apt_keys is defined and repositories_config.apt_keys | length > 0 %}
-packages_apt_keys:
-{% for key in repositories_config.apt_keys %}
-  - {{ key.path | to_json }}
-{% endfor %}
-{% endif %}
-{% if repositories_config.ubuntu_ppas is defined and repositories_config.ubuntu_ppas | length > 0 %}
-# Ubuntu PPAs discovered
-packages_ubuntu_ppas_discovered:
-{{ repositories_config.ubuntu_ppas | to_nice_yaml(indent=2) }}
 {% endif %}
 {% if repositories_config.pacman_repositories is defined %}
 # Arch Linux repositories

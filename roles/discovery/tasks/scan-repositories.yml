@@ -6,117 +6,38 @@
 # APT REPOSITORY DISCOVERY (Ubuntu/Debian)
 # =============================================================================
 
-- name: Discover APT repositories and keys (Debian/Ubuntu)
+- name: Discover additional APT repositories (Debian/Ubuntu)
   block:
-    - name: Find APT repository files
+    - name: Find additional APT repository files
       ansible.builtin.find:
         paths:
           - /etc/apt/sources.list.d
         patterns:
           - "*.list"
-          - "*.sources"
         file_type: file
       register: apt_repo_files
 
-    - name: Read APT repository content
+    - name: Read repository files
       ansible.builtin.slurp:
         src: "{{ item.path }}"
       register: apt_repo_contents
       loop: "{{ apt_repo_files.files }}"
       when: apt_repo_files.files | length > 0
 
-    - name: Parse APT repositories
+    - name: Extract repository lines
       ansible.builtin.set_fact:
-        discovered_apt_repositories: "{{ discovered_apt_repositories | default([]) + [repo_info] }}"
+        additional_apt_repos: "{{ additional_apt_repos | default([]) + (repo_lines | list) }}"
       vars:
-        repo_content: "{{ item.content | b64decode }}"
-        repo_filename: "{{ item.item.path | basename }}"
-        is_sources_format: "{{ repo_filename.endswith('.sources') }}"
-        # For .sources format, check for "Types:" line, for .list format check for "deb" lines
-        is_enabled: "{{
-          (repo_content | regex_search('Types:\\s*deb', multiline=True) is not none) if is_sources_format
-          else (repo_content | regex_search('^\\s*deb\\s', multiline=True) is not none)
-        }}"
-        repo_entries: "{{
-          (repo_content | regex_findall('^Types:.*deb.*$', multiline=True)) if is_sources_format
-          else (repo_content | regex_findall('^\\s*deb[^\\n]*', multiline=True) | select('match', '^\\s*deb\\s') | list)
-        }}"
-        repo_info:
-          filename: "{{ repo_filename }}"
-          enabled: "{{ is_enabled }}"
-          content: "{{ repo_entries }}"
-          source: "{{ item.item.path }}"
-          type: "{{ 'sources' if is_sources_format else 'list' }}"
-          format: "{{ 'deb822' if is_sources_format else 'traditional' }}"
+        repo_lines: "{{ item.content | b64decode | regex_findall('^\\s*deb\\s+.*$', multiline=True) | default([]) }}"
       loop: "{{ apt_repo_contents.results | default([]) }}"
       when:
-        - apt_repo_contents.results is defined
         - item.content is defined
         - (item.content | b64decode | length) > 0
 
-    - name: Discover APT GPG keys
-      ansible.builtin.find:
-        paths:
-          - /etc/apt/trusted.gpg.d
-          - /usr/share/keyrings
-        patterns:
-          - "*.gpg"
-          - "*.asc"
-        file_type: file
-      register: apt_key_files
-
-    - name: Build APT keys list
-      ansible.builtin.set_fact:
-        discovered_apt_keys: "{{ discovered_apt_keys | default([]) + [key_info] }}"
-      vars:
-        key_info:
-          filename: "{{ item.path | basename }}"
-          path: "{{ item.path }}"
-          size: "{{ item.size }}"
-      loop: "{{ apt_key_files.files }}"
-      when: apt_key_files.files | length > 0
-
-    - name: Check for universe/multiverse repositories
-      ansible.builtin.shell: |
-        grep -h "^deb.*universe" /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null | head -1 || echo ""
-      register: ubuntu_universe_check
-      changed_when: false
-      failed_when: false
-      when: ansible_distribution == "Ubuntu"
-
-    - name: Check for backports repositories
-      ansible.builtin.shell: |
-        grep -h "^deb.*-backports" /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null | head -1 || echo ""
-      register: debian_backports_check
-      changed_when: false
-      failed_when: false
-      when: ansible_os_family == "Debian"
-
-    - name: Discover Ubuntu PPAs
-      ansible.builtin.shell: |
-        find /etc/apt/sources.list.d -name "*ppa*.list" -exec basename {} \; 2>/dev/null | sed 's/\.list$//' | grep -E "^ppa-" || true
-      register: ubuntu_ppa_discovery
-      changed_when: false
-      failed_when: false
-      when: ansible_distribution == "Ubuntu"
-
-    - name: Build repository configuration facts
+    - name: Set repository config
       ansible.builtin.set_fact:
         repository_config:
-          apt_repositories: "{{ discovered_apt_repositories | default([]) }}"
-          apt_keys: "{{ discovered_apt_keys | default([]) }}"
-          ubuntu_universe_enabled: >-
-            {{ (ubuntu_universe_check.stdout | default('') | length > 0)
-               if ubuntu_universe_check is defined and ubuntu_universe_check.stdout is defined
-               else false }}
-          ubuntu_ppas: >-
-            {{ ubuntu_ppa_discovery.stdout_lines | default([])
-               if ubuntu_ppa_discovery is defined and ubuntu_ppa_discovery.stdout_lines is defined
-               else [] }}
-          debian_backports_enabled: >-
-            {{ (debian_backports_check.stdout | default('') | length > 0)
-               if debian_backports_check is defined and debian_backports_check.stdout is defined
-               else false }}
+          additional_repositories: "{{ additional_apt_repos | default([]) }}"
 
   when: ansible_os_family == "Debian"
 
