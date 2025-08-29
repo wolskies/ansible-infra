@@ -105,9 +105,18 @@
         repository_config:
           apt_repositories: "{{ discovered_apt_repositories | default([]) }}"
           apt_keys: "{{ discovered_apt_keys | default([]) }}"
-          ubuntu_universe_enabled: "{{ ubuntu_universe_check.stdout | length > 0 }}"
-          ubuntu_ppas: "{{ ubuntu_ppa_discovery.stdout_lines | default([]) }}"
-          debian_backports_enabled: "{{ debian_backports_check.stdout | length > 0 }}"
+          ubuntu_universe_enabled: >-
+            {{ (ubuntu_universe_check.stdout | default('') | length > 0)
+               if ubuntu_universe_check is defined and ubuntu_universe_check.stdout is defined
+               else false }}
+          ubuntu_ppas: >-
+            {{ ubuntu_ppa_discovery.stdout_lines | default([])
+               if ubuntu_ppa_discovery is defined and ubuntu_ppa_discovery.stdout_lines is defined
+               else [] }}
+          debian_backports_enabled: >-
+            {{ (debian_backports_check.stdout | default('') | length > 0)
+               if debian_backports_check is defined and debian_backports_check.stdout is defined
+               else false }}
 
   when: ansible_os_family == "Debian"
 
