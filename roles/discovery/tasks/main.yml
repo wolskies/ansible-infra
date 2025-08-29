@@ -38,10 +38,30 @@
 - name: Discover firewall rules
   ansible.builtin.include_tasks: scan-firewall.yml
 
+- name: Get system timezone
+  ansible.builtin.command: timedatectl show -p Timezone --value
+  register: system_timezone
+  changed_when: false
+  failed_when: false
+
+- name: Fallback timezone detection for systems without timedatectl
+  ansible.builtin.command: readlink -f /etc/localtime
+  register: timezone_link
+  changed_when: false
+  failed_when: false
+  when: system_timezone.rc != 0
+
 - name: Set basic host variables (same variable names as before)
   ansible.builtin.set_fact:
     config_hostname: "{{ ansible_hostname }}"
-    config_system_timezone: "{{ ansible_date_time.tz }}"
+    config_system_timezone: >-
+      {%- if system_timezone.rc == 0 and system_timezone.stdout -%}
+        {{ system_timezone.stdout }}
+      {%- elif timezone_link.rc == 0 and timezone_link.stdout -%}
+        {{ timezone_link.stdout | regex_replace('^.*/zoneinfo/', '') }}
+      {%- else -%}
+        UTC
+      {%- endif -%}
 
 - name: Generate host variables file
   ansible.builtin.template:
