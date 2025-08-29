@@ -2,6 +2,22 @@
 # Simplified package management - trust Ansible built-ins
 
 # =============================================================================
+# REPOSITORY CONFIGURATION (DEBIAN/UBUNTU)
+# =============================================================================
+
+- name: Add APT repositories (Debian/Ubuntu)
+  ansible.builtin.apt_repository:
+    repo: "{{ item }}"
+    state: present
+    update_cache: true
+  loop: "{{ packages_apt_repositories | default([]) }}"
+  when:
+    - ansible_os_family == "Debian"
+    - packages_apt_repositories is defined
+    - packages_apt_repositories | length > 0
+  become: true
+
+# =============================================================================
 # OFFICIAL REPOSITORY PACKAGES (ALL DISTRIBUTIONS)
 # =============================================================================
 
