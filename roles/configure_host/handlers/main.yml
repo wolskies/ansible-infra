@@ -22,13 +22,6 @@
   when: ansible_virtualization_type | default('') != 'docker'
   failed_when: false
 
-- name: restart reflector
-  ansible.builtin.systemd:
-    name: reflector.timer
-    state: restarted
-  become: true
-  when: ansible_virtualization_type | default('') != 'docker'
-  failed_when: false
 
 - name: generate locales
   ansible.builtin.command: locale-gen

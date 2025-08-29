@@ -37,6 +37,7 @@
         loop_var: result
       when:
         - language_install_missing_tools | default(true)
+        - result.rc is defined
         - result.rc != 0
         - result.item.condition | bool
       vars:

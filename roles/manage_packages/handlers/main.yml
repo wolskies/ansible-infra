@@ -9,3 +9,11 @@
     test_command: whoami
   become: true
   when: ansible_system == 'Linux'
+
+- name: restart reflector
+  ansible.builtin.systemd:
+    name: reflector.timer
+    state: restarted
+  become: true
+  when: ansible_virtualization_type | default('') != 'docker'
+  failed_when: false
