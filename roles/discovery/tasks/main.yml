@@ -35,11 +35,13 @@
 - name: Discover users
   ansible.builtin.include_tasks: scan-users.yml
 
+- name: Discover firewall rules
+  ansible.builtin.include_tasks: scan-firewall.yml
+
 - name: Set basic host variables (same variable names as before)
   ansible.builtin.set_fact:
     config_hostname: "{{ ansible_hostname }}"
     config_system_timezone: "{{ ansible_date_time.tz }}"
-    firewall_enable: false
 
 - name: Generate host variables file
   ansible.builtin.template:

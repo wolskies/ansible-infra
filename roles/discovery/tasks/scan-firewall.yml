@@ -1,0 +1,66 @@
+---
+# UFW firewall discovery
+
+- name: Reset firewall variables
+  ansible.builtin.set_fact:
+    firewall_enable: false
+    firewall_custom_rules: []
+
+- name: Check if UFW is installed
+  ansible.builtin.command: which ufw
+  register: ufw_installed
+  changed_when: false
+  failed_when: false
+
+- name: Discover UFW configuration
+  when: ufw_installed.rc == 0
+  block:
+    - name: Check UFW status
+      ansible.builtin.command: ufw status
+      register: ufw_status
+      become: true
+      changed_when: false
+      failed_when: false
+
+    - name: Set firewall enabled status
+      ansible.builtin.set_fact:
+        firewall_enable: true
+      when: "'Status: active' in ufw_status.stdout"
+
+    - name: Get UFW rules in numbered format
+      ansible.builtin.command: ufw status numbered
+      register: ufw_rules
+      become: true
+      changed_when: false
+      failed_when: false
+      when: firewall_enable
+
+    - name: Parse UFW rules
+      ansible.builtin.set_fact:
+        firewall_custom_rules: "{{ firewall_custom_rules + [parsed_rule] }}"
+      vars:
+        rule_parts: "{{ item | regex_replace('^\\[\\s*\\d+\\]\\s+', '') | split() }}"
+        # Parse standard UFW rule format: "22/tcp ALLOW IN 192.168.1.0/24"
+        has_port: "{{ rule_parts[0] | regex_search('^\\d+') }}"
+        port_proto: "{{ rule_parts[0].split('/') if has_port else ['', ''] }}"
+        parsed_rule:
+          port: "{{ port_proto[0] | int if has_port and port_proto[0] else omit }}"
+          protocol: "{{ port_proto[1] if has_port and port_proto[1] else 'tcp' }}"
+          source: "{{ rule_parts[3] if rule_parts | length > 3 and rule_parts[3] != 'Anywhere' else omit }}"
+          comment: "Discovered UFW rule"
+      loop: "{{ ufw_rules.stdout_lines }}"
+      when:
+        - firewall_enable
+        - item | regex_search('^\\[\\s*\\d+\\]')
+        - "'ALLOW' in item"
+        - "'IN' in item"
+
+- name: Set default firewall rules if UFW not active
+  ansible.builtin.set_fact:
+    firewall_enable: false
+    firewall_custom_rules:
+      - comment: SSH from local subnet
+        port: 22
+        protocol: tcp
+        source: 192.168.100.0/24
+  when: not firewall_enable
