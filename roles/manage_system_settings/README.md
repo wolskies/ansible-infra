@@ -1,27 +1,25 @@
 # manage_system_settings
 
-System performance tuning and hardware configurations for gaming, GPU support, network optimization, and service management.
+Performance tuning and hardware configurations for gaming, GPU support, and network optimization.
 
 ## Description
 
-This role provides system-level performance tuning and hardware configurations that require root privileges. It's designed to be standalone and focuses on optional system optimizations beyond basic host configuration.
+This role provides performance-focused system tuning and hardware configurations. Security hardening is handled by `devsec.hardening` collection - this role focuses purely on performance optimization.
 
 ## Features
 
-- **Network Performance Tuning**: BBR congestion control, sysctl optimizations
-- **Gaming Optimizations**: VM parameters for gaming workloads
+- **Network Performance Tuning**: BBR congestion control, connection optimizations
+- **Gaming Optimizations**: VM parameters for gaming workloads  
 - **GPU Support**: NVIDIA driver configurations and kernel module loading
 - **Hardware Support**: Camera (uvcvideo), Bluetooth configurations
-- **Service Management**: Enable/disable systemd services
-- **Custom Configurations**: Support for custom sysctl parameters
+- **Custom Performance Configurations**: Support for custom performance sysctl parameters
 
 ## Role Variables
 
 ### Core Settings
-- `system_settings_network_enabled: true` - Enable network optimizations
+- `system_settings_network_enabled: false` - Enable network performance optimizations
 - `system_settings_gaming_enabled: false` - Enable gaming optimizations  
 - `system_settings_gpu_enabled: false` - Enable GPU configurations
-- `system_settings_services_enabled: true` - Enable service management
 - `system_settings_hardware_enabled: true` - Enable hardware support
 
 ### Network Optimization
@@ -35,9 +33,8 @@ This role provides system-level performance tuning and hardware configurations t
 - `system_settings_gpu_nvidia_enabled: false` - Enable NVIDIA support
 - `system_settings_gpu_nvidia_modules` - NVIDIA kernel modules to load
 
-### Service Management
-- `system_settings_services_enable: []` - Services to enable
-- `system_settings_services_disable: []` - Services to disable
+### Hardware Services
+- `system_settings_services_enable: []` - Hardware services to enable
 
 ### Hardware Support
 - `system_settings_camera_support_enabled: false` - Enable camera support
@@ -45,21 +42,22 @@ This role provides system-level performance tuning and hardware configurations t
 
 ## Dependencies
 
-None. This role is designed to be fully standalone.
+None. This role is designed to be fully standalone and complements `devsec.hardening` collection.
 
 ## Example Playbook
 
 ```yaml
 - hosts: gaming_workstations
   roles:
+    # Security first
+    - devsec.hardening.os_hardening
+    # Then performance tuning
     - role: wolskinet.infrastructure.manage_system_settings
       vars:
         system_settings_gaming_enabled: true
         system_settings_gpu_enabled: true
         system_settings_gpu_nvidia_enabled: true
         system_settings_camera_support_enabled: true
-        system_settings_services_enable:
-          - bluetooth
         system_settings_custom_sysctl:
           vm.swappiness: "10"
 ```

@@ -1,6 +1,6 @@
 ---
 # manage_system_settings role main tasks
-# System-level performance tuning and hardware configurations
+# Performance tuning and hardware configurations (security handled by devsec.hardening)
 
 - name: Validate supported OS versions
   ansible.builtin.fail:
@@ -27,13 +27,6 @@
     - variables
     - system-settings
 
-- name: Security validation for system settings
-  ansible.builtin.include_tasks: security-validation.yml
-  tags:
-    - always
-    - security
-    - validation
-    - system-settings
 
 - name: Include OS-specific system settings tasks
   ansible.builtin.include_tasks: "settings-{{ ansible_distribution }}.yml"

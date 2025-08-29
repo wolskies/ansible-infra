@@ -4,113 +4,57 @@
 # Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
-# FEATURE TOGGLE CONFIGURATION
+# PERFORMANCE SETTINGS CONFIGURATION
 # =============================================================================
 
-# Control which system setting categories are enabled
-system_settings_network_enabled: false         # CHANGED: Disabled by default for security
+# Control which performance setting categories are enabled
+system_settings_network_enabled: false         # Network performance optimizations
 system_settings_gaming_enabled: false          # Gaming-specific kernel parameters
 system_settings_gpu_enabled: false             # GPU driver and module configurations
-system_settings_services_enabled: false        # CHANGED: Disabled by default for security
 system_settings_hardware_enabled: true         # Hardware support (camera, bluetooth, etc.)
 
 # =============================================================================
-# NETWORK PERFORMANCE TUNING - SECURITY REVIEWED
+# NETWORK PERFORMANCE TUNING
 # =============================================================================
 
-# High-performance network stack optimizations
-# SECURITY: Reviewed and hardened network settings
+# High-performance network stack optimizations (PERFORMANCE ONLY)
 system_settings_network_optimizations:
   sysctl:
-    net.core.default_qdisc: "fq"               # Fair Queue packet scheduler (SAFE)
-    net.ipv4.tcp_congestion_control: "bbr"     # Google BBR congestion control (SAFE)
-    # REMOVED DANGEROUS SETTING: net.ipv4.ip_unprivileged_port_start
-# Additional SAFE network optimizations that can be enabled
-system_settings_network_safe_optimizations:
-  sysctl:
-    net.core.somaxconn: "65535"                # Increase connection backlog (SAFE)
-    net.ipv4.tcp_max_syn_backlog: "65535"      # Increase SYN backlog (SAFE)
-    net.core.netdev_max_backlog: "5000"        # Network device queue (SAFE)
-    net.ipv4.tcp_window_scaling: "1"           # TCP window scaling (SAFE)
-    net.ipv4.tcp_timestamps: "0"               # Disable TCP timestamps (SECURITY+)
+    net.core.default_qdisc: "fq"               # Fair Queue packet scheduler
+    net.ipv4.tcp_congestion_control: "bbr"     # Google BBR congestion control
+    net.core.somaxconn: "65535"                # Increase connection backlog
+    net.ipv4.tcp_max_syn_backlog: "65535"      # Increase SYN backlog
+    net.core.netdev_max_backlog: "5000"        # Network device queue
+    net.ipv4.tcp_window_scaling: "1"           # TCP window scaling
 
 # =============================================================================
-# GAMING PERFORMANCE OPTIMIZATIONS - SECURITY REVIEWED
+# GAMING PERFORMANCE OPTIMIZATIONS
 # =============================================================================
 
 # Gaming-specific kernel parameter optimizations
 system_settings_gaming_optimizations:
   sysctl:
-    vm.max_map_count: "2097152"                 # Increased memory map areas (SAFE - required for Steam)
+    vm.max_map_count: "2097152"                 # Increased memory map areas (required for Steam)
 
 # =============================================================================
-# RESTRICTED SYSCTL PARAMETERS - SECURITY CONTROLLED
+# PERFORMANCE SYSCTL PARAMETERS
 # =============================================================================
 
-# Whitelist of allowed sysctl parameters to prevent dangerous modifications
-system_settings_allowed_sysctl_parameters:
-  # Performance parameters (SAFE)
-  - "vm.swappiness"
-  - "vm.max_map_count"
-  - "fs.file-max"
-  - "fs.inotify.max_user_watches"
-  # Safe network performance parameters
-  - "net.core.somaxconn"
-  - "net.ipv4.tcp_max_syn_backlog"
-  - "net.core.netdev_max_backlog"
-  - "net.ipv4.tcp_window_scaling"
-  - "net.ipv4.tcp_timestamps"
-  - "net.core.default_qdisc"
-  - "net.ipv4.tcp_congestion_control"
-
-# DANGEROUS parameters that are EXPLICITLY FORBIDDEN
-system_settings_forbidden_sysctl_parameters:
-  - "net.ipv4.ip_unprivileged_port_start"      # Allows privilege escalation
-  - "net.ipv4.conf.all.forwarding"             # Enables IP forwarding
-  - "net.ipv4.conf.all.accept_source_route"    # Source routing attacks
-  - "net.ipv4.conf.all.accept_redirects"       # ICMP redirect attacks
-  - "kernel.yama.ptrace_scope"                 # ASLR and debugging protections
-  - "kernel.kptr_restrict"                     # Kernel pointer restrictions
-  - "kernel.dmesg_restrict"                    # dmesg access restrictions
-  - "net.ipv4.conf.all.log_martians"           # Security logging
-  - "net.ipv4.conf.all.send_redirects"         # ICMP redirect sending
-
-# Validated custom sysctl parameters (will be checked against whitelist)
+# Custom performance sysctl parameters (no restrictions - security handled by devsec.hardening)
 system_settings_custom_sysctl: {}
 
 # =============================================================================
-# SYSTEM SERVICE MANAGEMENT - SECURITY CONTROLLED
+# HARDWARE SERVICE MANAGEMENT
 # =============================================================================
 
-# Lists of system services - NOW WITH VALIDATION
-system_settings_services_enable: []            # Services to enable (validated)
-system_settings_services_disable: []           # Services to disable (validated)
-
-# Critical services that should NEVER be disabled
-system_settings_critical_services:
-  - "ssh"
-  - "sshd"
-  - "systemd-resolved"
-  - "systemd-timesyncd"
-  - "systemd-networkd"
-  - "systemd-journald"
-  - "systemd-udevd"
-  - "dbus"
-
-# Services that are safe to disable for security hardening
-system_settings_safe_to_disable_services:
-  - "cups"                    # Printing (if not needed)
-  - "avahi-daemon"           # Network discovery (privacy concern)
-  - "bluetooth"              # Bluetooth (if not needed)
-  - "whoopsie"               # Ubuntu error reporting
-  - "apport"                 # Crash reporting
-  - "motd-news"              # MOTD ads
+# Hardware-related services only (security services handled by devsec.hardening)
+system_settings_services_enable: []            # Hardware services to enable
 
 # =============================================================================
-# GPU AND GRAPHICS CONFIGURATION - SECURITY REVIEWED
+# GPU AND GRAPHICS CONFIGURATION
 # =============================================================================
 
-# NVIDIA GPU support configuration - UNCHANGED (secure as-is)
+# NVIDIA GPU support configuration
 system_settings_gpu_nvidia_enabled: false
 system_settings_gpu_nvidia_modules:
   - "nvidia"
@@ -119,60 +63,11 @@ system_settings_gpu_nvidia_modules:
   - "nvidia_drm"
 
 # =============================================================================
-# HARDWARE SUPPORT CONFIGURATION - SECURITY REVIEWED
+# HARDWARE SUPPORT CONFIGURATION
 # =============================================================================
 
-# Camera and webcam support - CHANGED: More explicit control
-system_settings_camera_support_enabled: false  # Disabled by default for privacy
-system_settings_camera_access_control: true    # Enable access controls
+# Camera and webcam support
+system_settings_camera_support_enabled: false
 
-# Bluetooth hardware support - UNCHANGED (secure)
+# Bluetooth hardware support
 system_settings_bluetooth_enabled: false
-
-# =============================================================================
-# SECURITY HARDENING OPTIONS
-# =============================================================================
-
-# Security hardening and validation controls
-system_settings_security_hardening:
-  enable_strict_sysctl_validation: true         # Validate all sysctl parameters
-  enable_service_validation: true               # Validate service operations
-  enable_privilege_auditing: true               # Log privilege escalations
-  enable_network_hardening: true                # Apply network security settings
-
-# =============================================================================
-# SECURITY VALIDATION BYPASS (USE WITH EXTREME CAUTION)
-# =============================================================================
-
-# Security bypass controls (use with extreme caution)
-security_bypass:
-  all_validation: false
-  dangerous_sysctl: false
-  critical_services: false
-  warnings: false
-  sysctl_whitelist: false
-  forbidden_params: false
-  port_binding: false
-  privilege_audit: false
-
-# WARNING: Security bypasses disable critical protections. Use only in controlled environments.
-
-# Network security hardening parameters
-system_settings_network_security:
-  sysctl:
-    # Disable IP forwarding (prevent becoming a router)
-    net.ipv4.ip_forward: "0"
-    net.ipv6.conf.all.forwarding: "0"
-    # Disable source routing
-    net.ipv4.conf.all.accept_source_route: "0"
-    net.ipv6.conf.all.accept_source_route: "0"
-    # Disable ICMP redirects
-    net.ipv4.conf.all.accept_redirects: "0"
-    net.ipv6.conf.all.accept_redirects: "0"
-    # Enable reverse path filtering
-    net.ipv4.conf.all.rp_filter: "1"
-    # Log suspicious packets
-    net.ipv4.conf.all.log_martians: "1"
-    # Disable ICMP redirect sending
-    net.ipv4.conf.all.send_redirects: "0"
-

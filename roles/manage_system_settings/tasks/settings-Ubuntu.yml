@@ -31,24 +31,8 @@
     - sysctl
     - system-settings
 
-- name: Apply network security hardening
-  ansible.posix.sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
-    state: present
-    reload: true
-  loop: "{{ system_settings_network_security.sysctl | dict2items }}"
-  when:
-    - system_settings_security_hardening.enable_network_hardening | default(true)
-    - system_settings_network_security.sysctl is defined
-  become: true
-  tags:
-    - network
-    - security
-    - sysctl
-    - system-settings
 
-- name: Apply custom sysctl parameters (security validated)
+- name: Apply custom sysctl parameters
   ansible.posix.sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"
@@ -57,7 +41,6 @@
   loop: "{{ system_settings_custom_sysctl | dict2items }}"
   when:
     - system_settings_custom_sysctl | length > 0
-    # Security validation is performed in security-validation.yml
   become: true
   tags:
     - sysctl
@@ -119,34 +102,17 @@
     - hardware
     - system-settings
 
-- name: Enable system services
+- name: Enable hardware services
   ansible.builtin.systemd:
     name: "{{ item }}"
     enabled: true
     state: started
   loop: "{{ system_settings_services_enable }}"
   when:
-    - system_settings_services_enabled | bool
     - system_settings_services_enable | length > 0
   become: true
   failed_when: false
   tags:
     - services
-    - systemd
-    - system-settings
-
-- name: Disable system services
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    enabled: false
-    state: stopped
-  loop: "{{ system_settings_services_disable }}"
-  when:
-    - system_settings_services_enabled | bool
-    - system_settings_services_disable | length > 0
-  become: true
-  failed_when: false
-  tags:
-    - services
-    - systemd
+    - hardware
     - system-settings
