@@ -25,16 +25,23 @@
 - name: Install Homebrew if not present
   block:
     - name: Download and install Homebrew
-      ansible.builtin.expect:
-        command: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        responses:
-          'Password:': "{{ ansible_become_pass }}"
-        timeout: 300
+      ansible.builtin.shell: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
       environment:
         NONINTERACTIVE: "1"
       register: homebrew_install
       changed_when: homebrew_install.rc == 0
-      no_log: true
+      failed_when: false
+
+    - name: Warn if Homebrew installation failed
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Homebrew installation failed. This is likely because sudo access is required.
+          Please install Homebrew manually by running:
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+          Or ensure the user has sudo privileges and run with --ask-become-pass
+      when: homebrew_install.rc != 0
 
     - name: Set Homebrew path after installation
       ansible.builtin.set_fact:
@@ -43,6 +50,7 @@
             "/opt/homebrew/bin/brew" if ansible_machine == "arm64"
             else "/usr/local/bin/brew"
           }}
+      when: homebrew_install.rc == 0
   when:
     - homebrew_path == ""
     - homebrew_installed | default(true)  # Install by default unless explicitly disabled
@@ -91,6 +99,11 @@
          host_packages_remove | default([]) +
          packages_remove | default([])) | unique
       }}
+
+- name: Skip Homebrew operations if not installed
+  ansible.builtin.debug:
+    msg: "Skipping Homebrew operations - Homebrew is not installed"
+  when: homebrew_path == ""
 
 - name: Update Homebrew
   community.general.homebrew:
