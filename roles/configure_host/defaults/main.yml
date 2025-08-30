@@ -101,7 +101,26 @@ config_archlinux_reflector: true       # Configure reflector for mirror optimiza
 config_macos_computer_name: ""          # Computer name (empty = use hostname)
 config_macos_configure_system: true    # Apply macOS system preferences
 # Xcode Command Line Tools are a prerequisite - see role tasks for details
+
+# Dock configuration
 config_macos_configure_dock: true      # Configure Dock preferences
-config_macos_dock_tile_size: 48        # Dock tile size
+config_macos_dock_tile_size: 48        # Dock tile size (16-128)
 config_macos_dock_position: "bottom"   # Dock position (bottom, left, right)
+config_macos_dock_autohide: false      # Auto-hide Dock
+config_macos_dock_magnification: false # Dock magnification on hover
+
+# Finder configuration
+config_macos_configure_finder: true    # Configure Finder preferences
+config_macos_finder_show_extensions: true # Show file extensions
+config_macos_finder_show_hidden: false # Show hidden files
+config_macos_finder_default_view: "icnv" # Default view (icnv=icon, Nlsv=list, clmv=column, Flwv=gallery)
+
+# System behavior
+config_macos_fast_key_repeat: true     # Enable fast key repeat
 config_macos_disable_auto_updates: false # Disable automatic macOS updates
+config_macos_require_password_immediately: true # Require password immediately after screensaver
+config_macos_show_battery_percentage: true # Show battery percentage in menu bar
+
+# Security & Privacy
+config_macos_configure_security: true  # Apply security settings
+config_macos_require_admin_password: true # Require admin password for system changes
