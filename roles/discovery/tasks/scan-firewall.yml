@@ -1,5 +1,6 @@
 ---
-# UFW firewall discovery
+# UFW firewall discovery - generate rules compatible with community.general.ufw
+# Focus: Extract existing rules and map to clean UFW module parameters
 
 - name: Reset firewall variables
   ansible.builtin.set_fact:
@@ -12,9 +13,12 @@
   become: true
   changed_when: false
   failed_when: false
+  when: ansible_os_family == "Debian" or ansible_distribution == "Archlinux"
 
 - name: Discover UFW configuration
-  when: ufw_status.rc == 0
+  when:
+    - ufw_status is defined
+    - ufw_status.rc == 0
   block:
 
     - name: Set firewall enabled status
@@ -30,87 +34,77 @@
       failed_when: false
       when: firewall_enable
 
-    - name: Parse UFW rules (port rules without protocol)
+    - name: Parse UFW rules and normalize for community.general.ufw
       ansible.builtin.set_fact:
-        firewall_custom_rules: "{{ firewall_custom_rules + [new_rule] }}"
-      vars:
-        rule_with_comment: "{{ item | regex_replace('^\\[\\s*\\d+\\]\\s+', '') }}"
-        has_comment: "{{ '#' in rule_with_comment }}"
-        rule_part: "{{ rule_with_comment.split('#')[0] | trim if has_comment else rule_with_comment }}"
-        comment_part: "{{ rule_with_comment.split('#', 1)[1] | trim if has_comment else '' }}"
-        rule_parts: "{{ rule_part | split() }}"
-        port_proto: "{{ rule_parts[0].split('/') }}"
-        ufw_action: "{{ rule_parts[1] | lower if rule_parts | length > 1 else 'allow' }}"
-        source_ip: "{{ rule_parts[3] if rule_parts | length > 3 and rule_parts[3] != 'Anywhere' else '' }}"
-        new_rule:
-          rule: "{{ ufw_action }}"
-          port: "{{ port_proto[0] | int }}"
-          source: "{{ source_ip if source_ip else omit }}"
-          comment: "{{ comment_part if comment_part else omit }}"
-      loop: "{{ ufw_rules.stdout_lines }}"
-      when:
-        - firewall_enable
-        - item | regex_search('^\\[\\s*\\d+\\]') is not none
-        - "'ALLOW' in item"
-        - "'IN' in item"
-        - rule_parts[0] | regex_search('^\\d+$') is not none
+        discovered_firewall_rules: >-
+          {%- set rules = [] -%}
+          {%- if ufw_rules.stdout_lines is defined -%}
+            {%- for line in ufw_rules.stdout_lines -%}
+              {%- if line | regex_search('^\\[\\s*\\d+\\]') -%}
+                {%- set clean_line = line | regex_replace('^\\[\\s*\\d+\\]\\s+', '') -%}
+                {%- set has_comment = '#' in clean_line -%}
+                {%- set rule_part = clean_line.split('#')[0] | trim if has_comment else clean_line -%}
+                {%- set comment_part = clean_line.split('#', 1)[1] | trim if has_comment else '' -%}
+                {%- set parts = rule_part.split() -%}
+                {%- if parts | length >= 2 and 'ALLOW' in parts[1] and 'IN' in line -%}
+                  {%- set target = parts[0] -%}
+                  {%- set action = parts[1].split()[0] | lower -%}
+                  {%- set source = parts[3] if parts | length > 3 and parts[3] != 'Anywhere' else '' -%}
 
-    - name: Parse UFW rules (port rules with protocol)
+                  {%- if '/' in target -%}
+                    {%- set port_proto = target.split('/') -%}
+                    {%- set rule_data = {
+                      'rule': action,
+                      'port': port_proto[0],
+                      'protocol': port_proto[1]
+                    } -%}
+                  {%- elif target | regex_match('^\\d+$') -%}
+                    {%- set rule_data = {
+                      'rule': action,
+                      'port': target
+                    } -%}
+                  {%- elif target | regex_match('^[a-zA-Z]') -%}
+                    {%- set rule_data = {
+                      'rule': action,
+                      'name': target
+                    } -%}
+                  {%- else -%}
+                    {%- set rule_data = {} -%}
+                  {%- endif -%}
+
+                  {%- if rule_data and source -%}
+                    {%- set _ = rule_data.update({'source': source}) -%}
+                  {%- endif -%}
+                  {%- if rule_data and comment_part -%}
+                    {%- set _ = rule_data.update({'comment': comment_part}) -%}
+                  {%- endif -%}
+
+                  {%- if rule_data -%}
+                    {%- set _ = rules.append(rule_data) -%}
+                  {%- endif -%}
+                {%- endif -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ rules }}
+
+    - name: Set final firewall configuration
       ansible.builtin.set_fact:
-        firewall_custom_rules: "{{ firewall_custom_rules + [new_rule] }}"
-      vars:
-        rule_with_comment: "{{ item | regex_replace('^\\[\\s*\\d+\\]\\s+', '') }}"
-        has_comment: "{{ '#' in rule_with_comment }}"
-        rule_part: "{{ rule_with_comment.split('#')[0] | trim if has_comment else rule_with_comment }}"
-        comment_part: "{{ rule_with_comment.split('#', 1)[1] | trim if has_comment else '' }}"
-        rule_parts: "{{ rule_part | split() }}"
-        port_proto: "{{ rule_parts[0].split('/') }}"
-        ufw_action: "{{ rule_parts[1] | lower if rule_parts | length > 1 else 'allow' }}"
-        source_ip: "{{ rule_parts[3] if rule_parts | length > 3 and rule_parts[3] != 'Anywhere' else '' }}"
-        new_rule:
-          rule: "{{ ufw_action }}"
-          port: "{{ port_proto[0] | int }}"
-          protocol: "{{ port_proto[1] }}"
-          source: "{{ source_ip if source_ip else omit }}"
-          comment: "{{ comment_part if comment_part else omit }}"
-      loop: "{{ ufw_rules.stdout_lines }}"
-      when:
-        - firewall_enable
-        - item | regex_search('^\\[\\s*\\d+\\]') is not none
-        - "'ALLOW' in item"
-        - "'IN' in item"
-        - rule_parts[0] | regex_search('^\\d+/') is not none
+        firewall_custom_rules: "{{ discovered_firewall_rules | default([]) }}"
 
-    - name: Parse UFW rules (service rules)
-      ansible.builtin.set_fact:
-        firewall_custom_rules: "{{ firewall_custom_rules + [new_rule] }}"
-      vars:
-        rule_with_comment: "{{ item | regex_replace('^\\[\\s*\\d+\\]\\s+', '') }}"
-        has_comment: "{{ '#' in rule_with_comment }}"
-        rule_part: "{{ rule_with_comment.split('#')[0] | trim if has_comment else rule_with_comment }}"
-        comment_part: "{{ rule_with_comment.split('#', 1)[1] | trim if has_comment else '' }}"
-        rule_parts: "{{ rule_part | split() }}"
-        ufw_action: "{{ rule_parts[1] | lower if rule_parts | length > 1 else 'allow' }}"
-        source_ip: "{{ rule_parts[3] if rule_parts | length > 3 and rule_parts[3] != 'Anywhere' else '' }}"
-        new_rule:
-          rule: "{{ ufw_action }}"
-          name: "{{ rule_parts[0] }}"
-          source: "{{ source_ip if source_ip else omit }}"
-          comment: "{{ comment_part if comment_part else omit }}"
-      loop: "{{ ufw_rules.stdout_lines }}"
-      when:
-        - firewall_enable
-        - item | regex_search('^\\[\\s*\\d+\\]') is not none
-        - "'ALLOW' in item"
-        - "'IN' in item"
-        - rule_parts[0] | regex_search('^[a-zA-Z]') is not none
-
-- name: Set default firewall rules if UFW not active
+- name: Set fallback firewall configuration if UFW not available/active
   ansible.builtin.set_fact:
     firewall_enable: false
-    firewall_custom_rules:
-      - comment: SSH from local subnet
-        port: 22
-        protocol: tcp
-        source: 192.168.100.0/24
-  when: not firewall_enable
+    firewall_custom_rules: []
+  when:
+    - ufw_status is not defined or ufw_status.rc != 0 or not firewall_enable
+
+- name: Debug discovered firewall rules
+  ansible.builtin.debug:
+    msg:
+      - "Firewall enabled: {{ firewall_enable }}"
+      - "Discovered {{ firewall_custom_rules | length }} custom rules"
+      - "Rules: {{ firewall_custom_rules | to_nice_yaml }}"
+  when:
+    - discovery_debug | default(false)
+    - firewall_custom_rules is defined
