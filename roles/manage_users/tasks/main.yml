@@ -7,17 +7,16 @@
     name: "{{ item.name }}"
     uid: "{{ item.uid | default(omit) }}"
     group: "{{ item.gid | default(omit) }}"
-    home: "{{ item.home | default(('/Users/' + item.name) if ansible_system == 'Darwin' else ('/home/' + item.name)) }}"
-    shell: "{{ item.shell | default('/bin/bash') }}"
+    home: "{{ item.home | default(omit) }}"
+    shell: "{{ item.shell | default(omit) }}"
     password: >-
       {{
-        omit if item.password is not defined or item.password is none or item.password == ''
-        else (item.password if item.password.startswith('$')
-        else item.password | password_hash('sha512'))
+        omit if 'password' not in item or item.password is none or item.password == ''
+        else (item.password if item.password.startswith('$') else item.password | password_hash('sha512'))
       }}
     state: present
-    create_home: "{{ item.create_home | default(true) }}"
-    groups: "{{ item.groups | default([]) }}"
+    create_home: "{{ item.create_home | default(omit) }}"
+    groups: "{{ item.groups | default(omit) }}"
     append: true
   loop: "{{ users_config | default([]) }}"
   when: users_config | default([]) | length > 0
@@ -56,10 +55,7 @@
     dotfiles_directory: >-
       {{
         user_item.dotfiles.directory | default(
-          (user_item.home | default(
-            ('/Users/' + user_item.name) if ansible_system == 'Darwin'
-            else ('/home/' + user_item.name)
-          )) + '/.dotfiles'
+          '~' + user_item.name + '/.dotfiles'
         )
       }}
   loop: "{{ users_config | default([]) }}"
