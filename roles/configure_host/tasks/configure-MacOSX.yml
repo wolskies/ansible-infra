@@ -148,8 +148,8 @@
   ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
   become: true
   when:
-    - configure_firewall | default(true)
-    - enable_firewall | default(true)
+    - configure_firewall | default(false)
+    - enable_firewall | default(false)
   changed_when: false
   tags:
     - firewall
