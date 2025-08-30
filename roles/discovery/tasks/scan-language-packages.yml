@@ -48,34 +48,42 @@
 # Node.js packages (npm)
 - name: Discover Node.js packages
   block:
-    - name: Check for npm executable
-      ansible.builtin.stat:
-        path: "{{ item }}"
-      register: npm_executables
-      loop:
-        - "/usr/bin/npm"
-        - "/usr/local/bin/npm"
-
     - name: Get npm packages (global)
-      ansible.builtin.command: "{{ npm_executable }} list -g --depth=0 --parseable"
-      register: npm_global_packages
+      ansible.builtin.command: npm list -g --depth=0 --parseable
+      register: npm_packages
       changed_when: false
       failed_when: false
-      vars:
-        npm_executable: "{{ npm_executables.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default('npm') }}"
-      when: npm_executables.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
 
-    - name: Parse npm global packages
+    - name: Extract npm package names
       ansible.builtin.set_fact:
-        discovered_nodejs_packages_global: >-
+        npm_package_names: >-
           {{
-            (npm_global_packages.stdout_lines | default([])
+            (npm_packages.stdout_lines | default([])
             | map('regex_replace', '^.*/node_modules/(.+)$', '\1')
             | select('match', '^[^/]+$')
             | reject('equalto', 'npm')
-            | list | unique | sort)
+            | list)
           }}
-      when: npm_global_packages.stdout_lines is defined
+
+    - name: Filter out system-managed Node.js packages
+      ansible.builtin.set_fact:
+        discovered_nodejs_packages_global: >-
+          {{
+            npm_package_names | reject('in', system_nodejs_packages) | list | unique | sort
+          }}
+      vars:
+        # Find system packages that match npm package names
+        # Convert node-package -> package, nodejs-package -> package
+        system_nodejs_packages: >-
+          {{
+            (ansible_facts.packages.keys() | list
+            | select('match', '^nodejs?-')
+            | map('regex_replace', '^nodejs?-(.+)$', '\1')
+            | list) +
+            (ansible_facts.packages.keys() | list
+            | select('match', '^nodejs?$')
+            | list)
+          }}
   when: >
     'nodejs' in ansible_facts.packages or
     'npm' in ansible_facts.packages
@@ -83,34 +91,41 @@
 # Rust packages (cargo)
 - name: Discover Rust packages
   block:
-    - name: Check for cargo executable
-      ansible.builtin.stat:
-        path: "{{ item }}"
-      register: cargo_executables
-      loop:
-        - "{{ ansible_env.HOME }}/.cargo/bin/cargo"
-        - "/usr/bin/cargo"
-        - "/usr/local/bin/cargo"
-
     - name: Get cargo installed packages
-      ansible.builtin.command: "{{ cargo_executable }} install --list"
+      ansible.builtin.command: cargo install --list
       register: cargo_packages
       changed_when: false
       failed_when: false
-      vars:
-        cargo_executable: "{{ cargo_executables.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default('cargo') }}"
-      when: cargo_executables.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
 
-    - name: Parse cargo packages
+    - name: Extract cargo package names
       ansible.builtin.set_fact:
-        discovered_rust_packages: >-
+        cargo_package_names: >-
           {{
             (cargo_packages.stdout_lines | default([])
             | map('regex_replace', '^([^ ]+).*$', '\1')
             | select('match', '^[^:]+$')
-            | list | unique | sort)
+            | list)
           }}
-      when: cargo_packages.stdout_lines is defined
+
+    - name: Filter out system-managed Rust packages
+      ansible.builtin.set_fact:
+        discovered_rust_packages: >-
+          {{
+            cargo_package_names | reject('in', system_rust_packages) | list | unique | sort
+          }}
+      vars:
+        # Find system packages that match cargo package names
+        # Convert rust-package -> package
+        system_rust_packages: >-
+          {{
+            (ansible_facts.packages.keys() | list
+            | select('match', '^rust-')
+            | map('regex_replace', '^rust-(.+)$', '\1')
+            | list) +
+            (ansible_facts.packages.keys() | list
+            | select('match', '^rust$')
+            | list)
+          }}
   when: >
     'rust' in ansible_facts.packages or
     'cargo' in ansible_facts.packages or
@@ -119,34 +134,43 @@
 # Go packages
 - name: Discover Go packages
   block:
-    - name: Check for go executable
-      ansible.builtin.stat:
-        path: "{{ item }}"
-      register: go_executables
-      loop:
-        - "/usr/bin/go"
-        - "/usr/local/bin/go"
-        - "/usr/local/go/bin/go"
-
     - name: Find Go binaries in GOPATH/bin
       ansible.builtin.find:
         paths: "{{ ansible_env.HOME }}/go/bin"
         file_type: file
         patterns: "*"
       register: go_binaries
-      when: go_executables.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
       failed_when: false
 
-    - name: Parse Go packages (binaries only)
+    - name: Extract Go package names (binaries)
       ansible.builtin.set_fact:
-        discovered_go_packages: >-
+        go_package_names: >-
           {{
             (go_binaries.files | default([])
             | map(attribute='path')
             | map('basename')
-            | list | unique | sort)
+            | list)
           }}
-      when: go_binaries.files is defined
+
+    - name: Filter out system-managed Go packages
+      ansible.builtin.set_fact:
+        discovered_go_packages: >-
+          {{
+            go_package_names | reject('in', system_go_packages) | list | unique | sort
+          }}
+      vars:
+        # Find system packages that match go package names
+        # Convert golang-package -> package, go-package -> package
+        system_go_packages: >-
+          {{
+            (ansible_facts.packages.keys() | list
+            | select('match', '^golang?-')
+            | map('regex_replace', '^golang?-(.+)$', '\1')
+            | list) +
+            (ansible_facts.packages.keys() | list
+            | select('match', '^golang?$')
+            | list)
+          }}
   when: >
     'go' in ansible_facts.packages or
     'golang' in ansible_facts.packages or
