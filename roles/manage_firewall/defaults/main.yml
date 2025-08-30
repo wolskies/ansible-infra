@@ -8,7 +8,7 @@
 # =============================================================================
 
 # Core firewall management
-firewall_enable: true                  # Enable firewall management
+firewall_enable: false                 # Enable firewall management (opt-in for safety)
 firewall_type: "auto"                  # auto, ufw, firewalld, iptables, pf
 firewall_manage_ports: true            # Whether to manage firewall ports
 firewall_reset_to_defaults: false      # Reset firewall before applying rules

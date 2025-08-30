@@ -1,105 +1,186 @@
 # manage_firewall
 
-Firewall and fail2ban management. Complements devsec.hardening collection.
+Cross-platform firewall and intrusion prevention management with fail2ban integration.
 
-## Scope
+## Description
 
-**This Role**: Firewall management + fail2ban
-**Use devsec.hardening For**: SSH hardening, OS security, application hardening
+This role provides comprehensive firewall management across Ubuntu, Debian, Arch Linux, and macOS. It supports UFW, firewalld, iptables, and macOS Application Layer Firewall with intelligent detection and configuration. The role also includes optional fail2ban integration for intrusion prevention.
 
-## Usage
+## Features
 
+- **🔥 Multi-Platform Firewall**: UFW, firewalld, iptables, macOS ALF support
+- **🛡️ Intrusion Prevention**: fail2ban integration with service-specific rules
+- **⚙️ Flexible Rules**: Simple port lists, service names, or complex custom rules
+- **🔍 Auto-Detection**: Automatically selects appropriate firewall tool per OS
+- **🔒 SSH Protection**: Never blocks SSH access to prevent lockout
+- **📊 Logging Support**: Configurable firewall logging levels
+
+## Role Variables
+
+See `defaults/main.yml` for complete variable documentation. Key variables include:
+
+### Core Firewall Configuration
 ```yaml
-- hosts: servers
-  roles:
-    - devsec.hardening.os_hardening      # OS-level security
-    - devsec.hardening.ssh_hardening     # SSH security  
-    - wolskinet.infrastructure.system_security  # Firewall + fail2ban
+firewall_enable: false                 # Enable firewall management (opt-in for safety)
+firewall_type: "auto"                  # auto, ufw, firewalld, iptables, pf
+firewall_default_policy: "deny"        # Default policy for incoming connections
+firewall_logging: false                # Enable firewall logging
 ```
 
-## Variables
-
+### Access Control
 ```yaml
-# Core settings
-enable_firewall: true
-enable_fail2ban: false
+firewall_allowed_ports: []             # List of ports to allow (e.g., ["80", "443"])
+firewall_allowed_services: []          # List of service names (e.g., ["http", "https"])
+firewall_denied_ports: []              # List of ports to explicitly deny
+firewall_denied_services: []           # List of services to explicitly deny
+```
 
-# Simple port lists
-firewall_allowed_ports: ["22", "80", "443"]
-firewall_allowed_services: ["ssh", "http", "https"]
+### Advanced Rules
+```yaml
+firewall_custom_rules: []              # Complex rules with source restrictions
+# Example:
+# firewall_custom_rules:
+#   - rule: allow
+#     port: 3306
+#     protocol: tcp
+#     source: "10.0.1.0/24"
+#     comment: "MySQL from app subnet"
+#   - rule: allow
+#     name: "OpenSSH"
+#     comment: "SSH access"
+```
 
-# Advanced rules with source restrictions
-firewall_custom_rules:
-  - port: 3306
-    protocol: tcp
-    source: "10.0.1.0/24"
-    comment: "MySQL from app subnet"
-
-# Fail2ban configuration
-fail2ban_services:
+### Fail2ban Configuration
+```yaml
+firewall_enable_fail2ban: false        # Install and configure fail2ban
+firewall_fail2ban_services:
   - name: sshd
     enabled: true
     maxretry: 5
     bantime: 3600
+    findtime: 600
+    logpath: /var/log/auth.log
 
-fail2ban_ignoreips:
+firewall_fail2ban_ignoreips:
   - "127.0.0.1/8"
-  - "192.168.1.0/24"
+  - "::1"
 ```
 
-## Examples
-
-### Web Server
+### Platform-Specific Settings
 ```yaml
-- hosts: web_servers
-  vars:
-    enable_firewall: true
-    firewall_allowed_services: ["ssh", "http", "https"]
-    enable_fail2ban: true
-  roles:
-    - wolskinet.infrastructure.system_security
+# OS-specific tool preferences
+firewall_tool_preference:
+  Ubuntu: "ufw"
+  Debian: "ufw" 
+  Archlinux: "ufw"
+  MacOSX: "macos_alf"
+
+# macOS-specific settings
+firewall_macos_stealth_mode: false     # Enable stealth mode
+firewall_macos_block_all: false        # Block all incoming connections
 ```
-
-### Database Server (Restricted)
-```yaml
-- hosts: db_servers
-  vars:
-    enable_firewall: true
-    firewall_allowed_ports: ["22"]
-    firewall_custom_rules:
-      - port: 3306
-        protocol: tcp
-        source: "10.0.1.0/24"
-  roles:
-    - wolskinet.infrastructure.system_security
-```
-
-### Docker Host
-```yaml
-- hosts: docker_hosts
-  vars:
-    enable_firewall: true
-    firewall_docker_integration: true
-    firewall_allowed_ports: ["22", "80", "443"]
-  roles:
-    - wolskinet.infrastructure.system_security
-```
-
-## Discovery Integration
-
-Discovery automatically provides:
-- `firewall_type`: Detected firewall (ufw/firewalld/iptables)
-- `enable_fail2ban`: False if already installed
-
-## Platform Support
-
-- **Ubuntu 22+**: UFW + fail2ban
-- **Debian 12+**: UFW + fail2ban  
-- **Arch Linux**: firewalld + fail2ban
-- **macOS**: Limited (Application Layer Firewall only)
 
 ## Dependencies
 
-- `community.general` (UFW module)
-- `ansible.posix` (firewalld module)
-- **Recommended**: `devsec.hardening` collection
+- `community.general` collection (for UFW support)
+- `ansible.posix` collection (for firewalld support)
+
+## Example Playbook
+
+### Basic Web Server
+```yaml
+- hosts: web_servers
+  roles:
+    - role: wolskinet.infrastructure.manage_firewall
+      vars:
+        firewall_enable: true
+        firewall_allowed_services: ["ssh", "http", "https"]
+```
+
+### Database Server with Restricted Access
+```yaml
+- hosts: db_servers
+  roles:
+    - role: wolskinet.infrastructure.manage_firewall
+      vars:
+        firewall_enable: true
+        firewall_allowed_ports: ["22"]
+        firewall_custom_rules:
+          - rule: allow
+            port: 3306
+            protocol: tcp
+            source: "10.0.1.0/24"
+            comment: "MySQL from application servers"
+```
+
+### Server with Fail2ban Protection
+```yaml
+- hosts: servers
+  roles:
+    - role: wolskinet.infrastructure.manage_firewall
+      vars:
+        firewall_enable: true
+        firewall_allowed_services: ["ssh", "http", "https"]
+        firewall_enable_fail2ban: true
+        firewall_fail2ban_services:
+          - name: sshd
+            enabled: true
+            maxretry: 3
+            bantime: 7200
+          - name: nginx-http-auth
+            enabled: true
+            maxretry: 5
+            bantime: 3600
+```
+
+### macOS Firewall Configuration
+```yaml
+- hosts: macos_systems
+  roles:
+    - role: wolskinet.infrastructure.manage_firewall
+      vars:
+        firewall_enable: true
+        firewall_macos_stealth_mode: true
+        firewall_logging: true
+```
+
+## Platform Support
+
+- **Ubuntu 22+**: Full UFW and fail2ban support
+- **Debian 12+**: Full UFW and fail2ban support  
+- **Arch Linux**: UFW and fail2ban support
+- **macOS**: Application Layer Firewall (limited functionality)
+
+## Safety Features
+
+- **SSH Protection**: Automatically allows SSH to prevent lockout
+- **Opt-in Design**: Firewall disabled by default (`firewall_enable: false`)
+- **Validation**: Validates custom rules before application
+- **Rollback**: Supports firewall reset if needed
+
+## Integration with Other Roles
+
+Works well with security-focused roles:
+
+```yaml
+- hosts: servers
+  roles:
+    - devsec.hardening.os_hardening        # OS security hardening
+    - devsec.hardening.ssh_hardening       # SSH security
+    - wolskinet.infrastructure.manage_firewall  # Firewall management
+```
+
+## File Locations
+
+The role manages these system files:
+- `/etc/ufw/` - UFW configuration (Ubuntu/Debian/Arch)
+- `/etc/fail2ban/jail.local` - Fail2ban configuration
+- macOS Application Layer Firewall via `socketfilterfw` command
+
+## License
+
+MIT
+
+## Author Information
+
+Ed Wolski - wolskinet
