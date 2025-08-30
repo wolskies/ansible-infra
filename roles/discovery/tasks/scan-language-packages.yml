@@ -32,18 +32,20 @@
         # Convert python3-package -> package, python-package -> package
         system_python_packages: >-
           {{
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^python3?-')
             | map('regex_replace', '^python3?-(.+)$', '\1')
             | list) +
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^python3?$')
             | list)
           }}
   when: >
+    ansible_facts.packages is defined and (
     'python3' in ansible_facts.packages or
     'python' in ansible_facts.packages or
-    'python3-pip' in ansible_facts.packages
+    'python3-pip' in ansible_facts.packages)
+    or ansible_system == "Darwin"
 
 # Node.js packages (npm)
 - name: Discover Node.js packages
@@ -76,17 +78,19 @@
         # Convert node-package -> package, nodejs-package -> package
         system_nodejs_packages: >-
           {{
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^nodejs?-')
             | map('regex_replace', '^nodejs?-(.+)$', '\1')
             | list) +
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^nodejs?$')
             | list)
           }}
   when: >
+    ansible_facts.packages is defined and (
     'nodejs' in ansible_facts.packages or
-    'npm' in ansible_facts.packages
+    'npm' in ansible_facts.packages)
+    or ansible_system == "Darwin"
 
 # Rust packages (cargo)
 - name: Discover Rust packages
@@ -118,18 +122,20 @@
         # Convert rust-package -> package
         system_rust_packages: >-
           {{
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^rust-')
             | map('regex_replace', '^rust-(.+)$', '\1')
             | list) +
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^rust$')
             | list)
           }}
   when: >
+    ansible_facts.packages is defined and (
     'rust' in ansible_facts.packages or
     'cargo' in ansible_facts.packages or
-    'rustc' in ansible_facts.packages
+    'rustc' in ansible_facts.packages)
+    or ansible_system == "Darwin"
 
 # Go packages
 - name: Discover Go packages
@@ -163,18 +169,20 @@
         # Convert golang-package -> package, go-package -> package
         system_go_packages: >-
           {{
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^golang?-')
             | map('regex_replace', '^golang?-(.+)$', '\1')
             | list) +
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^golang?$')
             | list)
           }}
   when: >
+    ansible_facts.packages is defined and (
     'go' in ansible_facts.packages or
     'golang' in ansible_facts.packages or
-    'golang-go' in ansible_facts.packages
+    'golang-go' in ansible_facts.packages)
+    or ansible_system == "Darwin"
 
 # Ruby packages (gem)
 - name: Discover Ruby packages
@@ -205,18 +213,20 @@
         # Convert ruby-package -> package
         system_ruby_packages: >-
           {{
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^ruby-')
             | map('regex_replace', '^ruby-(.+)$', '\1')
             | list) +
-            (ansible_facts.packages.keys() | list
+            (ansible_facts.packages.keys() | default([]) | list
             | select('match', '^ruby$')
             | list)
           }}
   when: >
+    ansible_facts.packages is defined and (
     'ruby' in ansible_facts.packages or
     'ruby-full' in ansible_facts.packages or
-    'rubygems' in ansible_facts.packages
+    'rubygems' in ansible_facts.packages)
+    or ansible_system == "Darwin"
 
 # Snap packages
 - name: Discover Snap packages
@@ -242,8 +252,9 @@
           {%- endif -%}
           {{ snaps }}
   when: >
+    ansible_facts.packages is defined and (
     'snapd' in ansible_facts.packages or
-    'snap' in ansible_facts.packages
+    'snap' in ansible_facts.packages)
 
 # Flatpak packages
 - name: Discover Flatpak configuration
@@ -289,7 +300,7 @@
             {%- endfor -%}
           {%- endif -%}
           {{ packages }}
-  when: "'flatpak' in ansible_facts.packages"
+  when: ansible_facts.packages is defined and 'flatpak' in ansible_facts.packages
 
 
 # Set final discovered language packages
