@@ -19,12 +19,14 @@ packages_upgrade_type: safe            # safe, full, or dist (APT only)
 packages_pacman_multilib: true         # Enable multilib repository
 packages_enable_aur: true              # Enable AUR support (security consideration)
 packages_aur_helper: paru              # AUR helper to use (paru, yay, etc.)
+config_archlinux_reflector: true       # Configure reflector for mirror optimization
 
 # =============================================================================
 # PLATFORM-SPECIFIC FEATURES
 # =============================================================================
 
 # macOS (Homebrew) settings
+homebrew_installed: true               # Install Homebrew if not present (macOS only)
 packages_homebrew_taps: []             # List of Homebrew taps to add
 packages_homebrew_casks: []            # List of Homebrew casks to install
 packages_homebrew_casks_remove: []     # List of Homebrew casks to remove
