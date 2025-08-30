@@ -67,16 +67,28 @@
   ansible.builtin.include_tasks: scan-language-packages.yml
 
 - name: Get current timezone configuration
-  community.general.timezone:
-    name: ""
-  check_mode: true
-  register: current_timezone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: current_timezone_cmd
+  changed_when: false
   failed_when: false
+  when: ansible_system == "Linux"
+
+- name: Get current timezone configuration (macOS)
+  ansible.builtin.command: readlink /etc/localtime
+  register: current_timezone_macos_cmd
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Darwin"
 
 - name: Set basic host variables (same variable names as before)
   ansible.builtin.set_fact:
     config_hostname: "{{ ansible_hostname }}"
-    config_system_timezone: "{{ current_timezone.name | default('UTC') }}"
+    config_system_timezone: >-
+      {{
+        current_timezone_cmd.stdout | default(
+          current_timezone_macos_cmd.stdout | default('') | regex_replace('.*/zoneinfo/(.*)', '\1')
+        ) | default('UTC')
+      }}
 
 - name: Generate host variables file
   ansible.builtin.template:
