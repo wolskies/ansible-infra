@@ -1,159 +1,59 @@
 ---
-# Universal Linux Nerd Fonts Installation
-# Downloads and installs Nerd Fonts from GitHub releases for any Linux distribution
-# Note: Arch Linux and macOS users should use package managers instead
+# Quick & Dirty Nerd Fonts Installation for Ubuntu/Debian
+# Downloads, unzips, and installs fonts from provided URLs
+# Skips installation on Arch Linux and macOS (use package managers instead)
 
-- name: Check if nerd fonts installation is appropriate for this OS
-  ansible.builtin.fail:
-    msg: >-
-      Nerd Fonts installation via GitHub releases is not recommended for {{ ansible_distribution }}.
-      Please use the system package manager instead:
-      - Arch Linux: Install ttf-*-nerd packages via pacman/AUR
-      - macOS: Install via Homebrew (brew install --cask font-*-nerd-font)
+- name: Skip nerd fonts installation on Arch/macOS
+  ansible.builtin.debug:
+    msg: "Skipping nerd fonts installation - use package manager instead (pacman/homebrew)"
   when:
-    - ansible_distribution in ["Archlinux", "MacOSX"]
-    - system_settings_nerd_fonts_enabled | bool
+    - system_config_nf_enable | bool
+    - ansible_distribution in ["Archlinux"] or ansible_system == "Darwin"
   tags:
     - fonts
     - nerd-fonts
-    - validation
-
-- name: Create nerd fonts temporary directory
-  ansible.builtin.file:
-    path: "{{ system_settings_nerd_fonts_temp_dir }}"
-    state: directory
-    mode: '0755'
-  when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
-  tags:
-    - fonts
-    - nerd-fonts
-    - system-settings
 
 - name: Create nerd fonts installation directory
   ansible.builtin.file:
-    path: "{{ system_settings_nerd_fonts_install_dir }}"
+    path: "{{ system_config_nf_install_dir }}"
     state: directory
     mode: '0755'
   become: true
   when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
+    - system_config_nf_enable | bool
+    - ansible_os_family in ["Debian"]
   tags:
     - fonts
     - nerd-fonts
-    - system-settings
 
-- name: Check if nerd fonts are already installed
-  ansible.builtin.find:
-    paths: "{{ system_settings_nerd_fonts_install_dir }}"
-    patterns: "*.ttf,*.otf"
-    recurse: true
-  register: existing_nerd_fonts
-  when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
-  tags:
-    - fonts
-    - nerd-fonts
-    - system-settings
-
-- name: Download nerd fonts from GitHub releases
-  ansible.builtin.get_url:
-    url: "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ system_settings_nerd_fonts_version }}/{{ item }}.zip"
-    dest: "{{ system_settings_nerd_fonts_temp_dir }}/{{ item }}.zip"
-    mode: '0644'
-    timeout: 300
-  loop: "{{ system_settings_nerd_fonts_list }}"
-  when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
-    - existing_nerd_fonts.matched == 0
-  tags:
-    - fonts
-    - nerd-fonts
-    - download
-    - system-settings
-
-- name: Extract nerd fonts archives
+- name: Download and extract nerd fonts
   ansible.builtin.unarchive:
-    src: "{{ system_settings_nerd_fonts_temp_dir }}/{{ item }}.zip"
-    dest: "{{ system_settings_nerd_fonts_temp_dir }}"
+    src: "{{ item }}"
+    dest: "{{ system_config_nf_install_dir }}"
     remote_src: true
-    creates: "{{ system_settings_nerd_fonts_temp_dir }}/{{ item }}"
-  loop: "{{ system_settings_nerd_fonts_list }}"
-  when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
-    - existing_nerd_fonts.matched == 0
-  tags:
-    - fonts
-    - nerd-fonts
-    - extract
-    - system-settings
-
-- name: Find extracted font files
-  ansible.builtin.find:
-    paths: "{{ system_settings_nerd_fonts_temp_dir }}"
-    patterns: "*.ttf,*.otf"
-    recurse: true
-  register: extracted_font_files
-  when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
-    - existing_nerd_fonts.matched == 0
-  tags:
-    - fonts
-    - nerd-fonts
-    - system-settings
-
-- name: Install nerd fonts to system directory
-  ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ system_settings_nerd_fonts_install_dir }}/{{ item.path | basename }}"
-    mode: '0644'
     owner: root
     group: root
-    remote_src: true
-  loop: "{{ extracted_font_files.files | default([]) }}"
+    mode: '0644'
+  loop: "{{ system_config_nf_links }}"
   become: true
   when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
-    - existing_nerd_fonts.matched == 0
+    - system_config_nf_enable | bool
+    - ansible_os_family in ["Debian"]
   notify: Update font cache
   tags:
     - fonts
     - nerd-fonts
-    - install
-    - system-settings
-
-- name: Clean up temporary nerd fonts directory
-  ansible.builtin.file:
-    path: "{{ system_settings_nerd_fonts_temp_dir }}"
-    state: absent
-  when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
-  tags:
-    - fonts
-    - nerd-fonts
-    - cleanup
-    - system-settings
 
 - name: Display nerd fonts installation status
   ansible.builtin.debug:
     msg:
       - "=== Nerd Fonts Installation Completed ==="
-      - "Installed fonts: {{ system_settings_nerd_fonts_list | join(', ') }}"
-      - "Installation directory: {{ system_settings_nerd_fonts_install_dir }}"
+      - "Downloaded {{ system_config_nf_links | length }} font archives"
+      - "Installation directory: {{ system_config_nf_install_dir }}"
       - "Font cache will be updated automatically"
   when:
-    - system_settings_nerd_fonts_enabled | bool
-    - ansible_distribution not in ["Archlinux", "MacOSX"]
-    - existing_nerd_fonts.matched == 0
+    - system_config_nf_enable | bool
+    - ansible_os_family in ["Debian"]
   tags:
     - fonts
     - nerd-fonts
-    - system-settings
