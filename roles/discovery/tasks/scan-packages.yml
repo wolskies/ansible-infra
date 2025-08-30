@@ -2,19 +2,11 @@
 # Smart package filtering using native package manager knowledge
 
 - name: Get explicitly installed packages (Arch Linux)
-  ansible.builtin.command: pacman -Qqe
+  ansible.builtin.command: pacman -Qe --quiet
   register: arch_explicit_packages
   become: true
   when: ansible_distribution == "Archlinux"
   changed_when: false
-
-- name: Get base group packages (Arch Linux)
-  ansible.builtin.command: pacman -Qqg base
-  register: arch_base_packages
-  become: true
-  when: ansible_distribution == "Archlinux"
-  changed_when: false
-  failed_when: false
 
 - name: Get manually installed packages (Ubuntu/Debian)
   ansible.builtin.command: apt-mark showmanual
@@ -23,9 +15,9 @@
   when: ansible_distribution in ["Ubuntu", "Debian"]
   changed_when: false
 
-- name: Calculate user-installed packages (Arch Linux)
+- name: Set user-installed packages (Arch Linux)
   ansible.builtin.set_fact:
-    user_explicit_packages: "{{ arch_explicit_packages.stdout_lines | difference(arch_base_packages.stdout_lines | default([])) }}"
+    user_explicit_packages: "{{ arch_explicit_packages.stdout_lines | default([]) }}"
   when: ansible_distribution == "Archlinux"
 
 - name: Set user-installed packages (Ubuntu/Debian)
