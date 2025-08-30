@@ -23,6 +23,20 @@
         type: string
         value: "{{ config_macos_dock_position }}"
 
+    - name: Configure Dock auto-hide
+      community.general.osx_defaults:
+        domain: com.apple.dock
+        key: autohide
+        type: bool
+        value: "{{ config_macos_dock_autohide }}"
+
+    - name: Configure Dock magnification
+      community.general.osx_defaults:
+        domain: com.apple.dock
+        key: magnification
+        type: bool
+        value: "{{ config_macos_dock_magnification }}"
+
     - name: Restart Dock to apply changes
       ansible.builtin.command: killall Dock
       changed_when: false
@@ -32,6 +46,107 @@
     - macos
     - dock
     - preferences
+
+- name: Configure Finder preferences
+  block:
+    - name: Show file extensions in Finder
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleShowAllExtensions
+        type: bool
+        value: "{{ config_macos_finder_show_extensions }}"
+
+    - name: Show hidden files in Finder
+      community.general.osx_defaults:
+        domain: com.apple.finder
+        key: AppleShowAllFiles
+        type: bool
+        value: "{{ config_macos_finder_show_hidden }}"
+
+    - name: Set default Finder view
+      community.general.osx_defaults:
+        domain: com.apple.finder
+        key: FXPreferredViewStyle
+        type: string
+        value: "{{ config_macos_finder_default_view }}"
+
+    - name: Restart Finder to apply changes
+      ansible.builtin.command: killall Finder
+      changed_when: false
+
+  when: config_macos_configure_finder | default(true)
+  tags:
+    - macos
+    - finder
+    - preferences
+
+- name: Configure system behavior preferences
+  block:
+    - name: Enable fast key repeat
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: KeyRepeat
+        type: int
+        value: 2
+      when: config_macos_fast_key_repeat
+
+    - name: Set initial key repeat delay
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: InitialKeyRepeat
+        type: int
+        value: 15
+      when: config_macos_fast_key_repeat
+
+    - name: Require password immediately after screensaver
+      community.general.osx_defaults:
+        domain: com.apple.screensaver
+        key: askForPasswordDelay
+        type: int
+        value: 0
+      when: config_macos_require_password_immediately
+
+    - name: Show battery percentage in menu bar
+      community.general.osx_defaults:
+        domain: ~/Library/Preferences/ByHost/com.apple.controlcenter
+        key: BatteryShowPercentage
+        type: bool
+        value: "{{ config_macos_show_battery_percentage }}"
+
+  when: config_macos_configure_system | default(true)
+  tags:
+    - macos
+    - system
+    - preferences
+
+# macOS Security & Privacy configuration
+- name: Configure security settings
+  block:
+    - name: Require admin password for system-wide preferences
+      community.general.osx_defaults:
+        domain: /Library/Preferences/com.apple.preferences.accounts
+        key: DisableGuestAccount
+        type: bool
+        value: true
+      become: true
+      when: config_macos_require_admin_password
+
+    - name: Enable Gatekeeper
+      ansible.builtin.command: spctl --master-enable
+      become: true
+      changed_when: false
+
+    - name: Disable remote login (SSH) by default
+      ansible.builtin.command: systemsetup -setremotelogin off
+      become: true
+      changed_when: false
+      when: not (enable_ssh | default(false))
+
+  when: config_macos_configure_security | default(true)
+  tags:
+    - security
+    - macos
+    - privacy
 
 # macOS Firewall configuration
 - name: Enable macOS firewall
