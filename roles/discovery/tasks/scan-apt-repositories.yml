@@ -34,9 +34,9 @@
             {%- if line and not line.startswith('#') and line.startswith('deb') -%}
               {%- set gpg_key_path = '' -%}
               {%- if 'signed-by=' in line -%}
-                {%- set signed_by_match = line | regex_search('signed-by=([^\\s\\]]+)') -%}
+                {%- set signed_by_match = line | regex_search('signed-by=([^\\s\\]]+)', '\\1') -%}
                 {%- if signed_by_match -%}
-                  {%- set gpg_key_path = signed_by_match -%}
+                  {%- set gpg_key_path = signed_by_match[0] -%}
                 {%- endif -%}
               {%- endif -%}
               {%- set repo_info = {
