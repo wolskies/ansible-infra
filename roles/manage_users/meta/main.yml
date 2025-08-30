@@ -28,6 +28,4 @@ galaxy_info:
     - dotfiles
     - security
 
-dependencies:
-  - role: wolskinet.infrastructure.dotfiles
-    when: install_dotfiles_support | default(false)
+dependencies: []
