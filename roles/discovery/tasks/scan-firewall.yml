@@ -18,6 +18,7 @@
 - name: Discover UFW configuration
   when:
     - ufw_status is defined
+    - ufw_status.rc is defined
     - ufw_status.rc == 0
   block:
 
@@ -97,7 +98,7 @@
     firewall_enable: false
     firewall_custom_rules: []
   when:
-    - ufw_status is not defined or ufw_status.rc != 0 or not firewall_enable
+    - ufw_status is not defined or ufw_status.rc is not defined or ufw_status.rc != 0 or not firewall_enable
 
 - name: Debug discovered firewall rules
   ansible.builtin.debug:
