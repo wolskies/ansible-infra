@@ -1,6 +1,12 @@
 ---
 # Ubuntu UFW firewall management
 
+- name: Install UFW (Ubuntu)
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  become: true
+
 # CRITICAL: Ensure SSH access before enabling firewall
 - name: Allow SSH access (prevent lockout)
   community.general.ufw:
@@ -29,18 +35,32 @@
   notify: reload ufw
   when: firewall_allowed_services | default([]) | length > 0
 
-- name: Configure UFW custom rules
+- name: Configure UFW custom rules (port-based)
   community.general.ufw:
     rule: "{{ item.rule | default('allow') }}"
-    port: "{{ item.port | string if item.port is defined else omit }}"
-    proto: "{{ item.protocol | default(omit) }}"
+    port: "{{ item.port | string }}"
+    proto: "{{ item.protocol | default('tcp') }}"
     src: "{{ item.source | default(omit) }}"
-    name: "{{ item.name | default(omit) }}"
-    comment: "{{ item.comment | default(omit) }}"
+    comment: "{{ item.comment | default('Managed by manage_firewall') }}"
   loop: "{{ firewall_custom_rules | default([]) }}"
   become: true
   notify: reload ufw
-  when: firewall_custom_rules | default([]) | length > 0
+  when: 
+    - firewall_custom_rules | default([]) | length > 0
+    - item.port is defined
+
+- name: Configure UFW custom rules (service name-based)
+  community.general.ufw:
+    rule: "{{ item.rule | default('allow') }}"
+    name: "{{ item.name }}"
+    src: "{{ item.source | default(omit) }}"
+    comment: "{{ item.comment | default('Managed by manage_firewall') }}"
+  loop: "{{ firewall_custom_rules | default([]) }}"
+  become: true
+  notify: reload ufw
+  when: 
+    - firewall_custom_rules | default([]) | length > 0
+    - item.name is defined
 
 - name: Enable UFW logging
   community.general.ufw:

@@ -22,11 +22,11 @@
 
     - name: Validate firewall configuration
       ansible.builtin.fail:
-        msg: "Invalid port in firewall_custom_rules: {{ item }}"
+        msg: "Invalid rule in firewall_custom_rules: {{ item }} - must have either 'port' or 'name'"
       loop: "{{ firewall_custom_rules }}"
       when:
         - firewall_custom_rules is defined
-        - item.port is not defined or item.protocol is not defined
+        - item.port is not defined and item.name is not defined
 
     - name: Include firewall tasks
       ansible.builtin.include_tasks: "firewall-{{ ansible_distribution }}.yml"
