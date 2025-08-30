@@ -79,6 +79,10 @@ mock_modules:
   - community.general.osx_defaults
   - community.general.pam_limits
   - community.general.ufw
+  - community.general.snap
+  - community.general.flatpak
+  - community.general.flatpak_remote
+  - community.general.git_config
 
 mock_roles:
   - wolskinet.infrastructure.configure_host
