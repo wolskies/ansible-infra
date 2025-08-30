@@ -74,24 +74,21 @@
 
 - name: Add APT repositories with proper signed-by keyring references
   ansible.builtin.apt_repository:
-    repo: "{{ repo_line_with_signing }}"
+    repo: "{{ final_repo_line }}"
     state: present
     filename: "{{ item.name }}"
     update_cache: false
   loop: "{{ merged_apt_repositories }}"
   vars:
-    # Ensure repo line includes signed-by reference to our keyring
-    repo_line_with_signing: >-
-      {{
-        item.repo_line
-        | regex_replace('\\[([^\\]]*)\\]', '[\\1 signed-by=/usr/share/keyrings/' + item.name + '.gpg]')
-        if 'signed-by=' not in item.repo_line and ('[' in item.repo_line)
-        else (
-          item.repo_line.split(' ', 1)[0] + ' [signed-by=/usr/share/keyrings/' + item.name + '.gpg] ' + item.repo_line.split(' ', 1)[1]
-          if 'signed-by=' not in item.repo_line and ('[' not in item.repo_line)
-          else item.repo_line
-        )
-      }}
+    # Build clean repository line with our keyring reference
+    final_repo_line: >-
+      {%- if 'signed-by=' in item.repo_line -%}
+        {{ item.repo_line | regex_replace('signed-by=([^\\s\\]]+)', 'signed-by=/usr/share/keyrings/' + item.name + '.gpg') }}
+      {%- elif '[' in item.repo_line -%}
+        {{ item.repo_line | regex_replace('\\[([^\\]]*)\\]', '[\\1 signed-by=/usr/share/keyrings/' + item.name + '.gpg]') }}
+      {%- else -%}
+        {{ item.repo_line.split(' ', 1)[0] }} [signed-by=/usr/share/keyrings/{{ item.name }}.gpg] {{ item.repo_line.split(' ', 1)[1] }}
+      {%- endif -%}
   become: true
   register: apt_repos_added
   when: merged_apt_repositories | length > 0
