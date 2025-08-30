@@ -29,11 +29,18 @@
 # OFFICIAL REPOSITORY PACKAGES (ALL DISTRIBUTIONS)
 # =============================================================================
 
-- name: Install packages (hierarchical merge handled by Ansible precedence)
+- name: Install packages via Homebrew (macOS)
+  community.general.homebrew:
+    name: "{{ merged_packages_install }}"
+    state: present
+  when: ansible_system == "Darwin"
+
+- name: Install packages via system package manager (Linux)
   ansible.builtin.package:
     name: "{{ merged_packages_install }}"
     state: present
   become: true
+  when: ansible_system == "Linux"
   vars:
     merged_packages_install: >-
       {{
