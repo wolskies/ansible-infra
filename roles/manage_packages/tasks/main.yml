@@ -34,6 +34,14 @@
     name: "{{ merged_packages_install }}"
     state: present
   when: ansible_system == "Darwin"
+  vars:
+    merged_packages_install: >-
+      {{
+        (vars.get('all_packages_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_install_' + ansible_distribution, []) | default([]))
+        | unique | sort
+      }}
 
 - name: Install packages via system package manager (Linux)
   ansible.builtin.package:
