@@ -126,7 +126,7 @@
     state: started
   loop: "{{ system_settings_services_enable }}"
   when:
-    - system_settings_services_enabled | bool
+    - system_settings_hardware_enabled | bool
     - system_settings_services_enable | length > 0
   become: true
   failed_when: false
@@ -142,7 +142,7 @@
     state: stopped
   loop: "{{ system_settings_services_disable }}"
   when:
-    - system_settings_services_enabled | bool
+    - system_settings_hardware_enabled | bool
     - system_settings_services_disable | length > 0
   become: true
   failed_when: false

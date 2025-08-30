@@ -49,6 +49,7 @@ system_settings_custom_sysctl: {}
 
 # Hardware-related services only (security services handled by devsec.hardening)
 system_settings_services_enable: []            # Hardware services to enable
+system_settings_services_disable: []           # Hardware services to disable
 
 # =============================================================================
 # GPU AND GRAPHICS CONFIGURATION
