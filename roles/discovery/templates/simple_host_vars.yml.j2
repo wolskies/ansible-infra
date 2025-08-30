@@ -55,20 +55,20 @@ config_system_timezone: {{ config_system_timezone | to_json }}
 # =============================================================================
 # Discovered language packages - configure via manage_language_packages role
 
-{% if discovered_language_packages.python_user is defined and discovered_language_packages.python_user | length > 0 %}
-# Python packages (discovered user-installed)
+{% if discovered_language_packages.python is defined and discovered_language_packages.python | length > 0 %}
+# Python packages (discovered global)
 language_python_enable: true
-language_python_install_method: user
+language_python_install_method: global
 language_python_packages:
-{{ discovered_language_packages.python_user | to_nice_yaml(indent=2) }}
+{{ discovered_language_packages.python | to_nice_yaml(indent=2) }}
 {% endif %}
 
-{% if discovered_language_packages.nodejs_global is defined and discovered_language_packages.nodejs_global | length > 0 %}
+{% if discovered_language_packages.nodejs is defined and discovered_language_packages.nodejs | length > 0 %}
 # Node.js packages (discovered global)
 language_nodejs_enable: true
 language_nodejs_install_global: true
 language_nodejs_packages:
-{{ discovered_language_packages.nodejs_global | to_nice_yaml(indent=2) }}
+{{ discovered_language_packages.nodejs | to_nice_yaml(indent=2) }}
 {% endif %}
 
 {% if discovered_language_packages.rust is defined and discovered_language_packages.rust | length > 0 %}

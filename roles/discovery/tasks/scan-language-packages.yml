@@ -1,7 +1,5 @@
 ---
 # Language package discovery for multiple ecosystems
-# Detects installed packages from npm, pip, cargo, go, snap, flatpak, gem
-# Uses package facts gathered in main.yml
 
 # Python packages (pip/uv)
 - name: Discover Python packages
@@ -16,17 +14,7 @@
         - "/usr/local/bin/pip"
         - "/usr/local/bin/pip3"
 
-    - name: Get pip packages (user-installed)
-      ansible.builtin.command: "{{ item.item }} list --user --format=freeze"
-      register: pip_user_packages
-      changed_when: false
-      failed_when: false
-      loop: "{{ pip_executables.results }}"
-      when:
-        - item.stat.exists
-        - item.stat.executable
-
-    - name: Get pip packages (global)
+    - name: Get pip packages (global only)
       ansible.builtin.command: "{{ item.item }} list --format=freeze"
       register: pip_global_packages
       changed_when: false
@@ -39,16 +27,7 @@
 
     - name: Parse Python packages
       ansible.builtin.set_fact:
-        discovered_python_packages_user: >-
-          {{
-            (pip_user_packages.results | default([])
-            | selectattr('stdout', 'defined')
-            | map(attribute='stdout')
-            | join('\n')
-            | regex_findall('^([^=]+)==.*$', multiline=True)
-            | list | unique | sort)
-          }}
-        discovered_python_packages_global: >-
+        discovered_python_packages: >-
           {{
             (pip_global_packages.results | default([])
             | selectattr('stdout', 'defined')
@@ -263,9 +242,8 @@
 - name: Set discovered language packages variables
   ansible.builtin.set_fact:
     discovered_language_packages:
-      python_user: "{{ discovered_python_packages_user | default([]) }}"
-      python_global: "{{ discovered_python_packages_global | default([]) }}"
-      nodejs_global: "{{ discovered_nodejs_packages_global | default([]) }}"
+      python: "{{ discovered_python_packages | default([]) }}"
+      nodejs: "{{ discovered_nodejs_packages_global | default([]) }}"
       rust: "{{ discovered_rust_packages | default([]) }}"
       go: "{{ discovered_go_packages | default([]) }}"
       snap: "{{ discovered_snap_packages | default([]) }}"
@@ -275,9 +253,8 @@
 - name: Debug discovered language packages
   ansible.builtin.debug:
     msg:
-      - "Python (user): {{ discovered_language_packages.python_user | length }} packages"
-      - "Python (global): {{ discovered_language_packages.python_global | length }} packages"
-      - "Node.js (global): {{ discovered_language_packages.nodejs_global | length }} packages"
+      - "Python (global): {{ discovered_language_packages.python | length }} packages"
+      - "Node.js (global): {{ discovered_language_packages.nodejs | length }} packages"
       - "Rust: {{ discovered_language_packages.rust | length }} packages"
       - "Go: {{ discovered_language_packages.go | length }} packages"
       - "Snap: {{ discovered_language_packages.snap | length }} packages"
