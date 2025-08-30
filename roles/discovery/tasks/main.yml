@@ -19,11 +19,12 @@
     - validation
     - discovery
 
-- name: Set output path
+- name: Set output paths with timestamp
   ansible.builtin.set_fact:
     discovery_paths:
       host_vars_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}"
-      host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.yml"
+      host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.discovered.{{ ansible_date_time.epoch }}"
+      gpg_keys_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/gpg_keys"
   delegate_to: localhost
 
 - name: Debug discovery paths
@@ -32,14 +33,18 @@
       - "inventory_file: {{ inventory_file | default('undefined') }}"
       - "host_vars_dir: {{ discovery_paths.host_vars_dir }}"
       - "host_vars_file: {{ discovery_paths.host_vars_file }}"
+      - "gpg_keys_dir: {{ discovery_paths.gpg_keys_dir }}"
   delegate_to: localhost
   when: discovery_debug | default(false)
 
-- name: Create output directory
+- name: Create output directories
   ansible.builtin.file:
-    path: "{{ discovery_paths.host_vars_dir }}"
+    path: "{{ item }}"
     state: directory
     mode: '0755'
+  loop:
+    - "{{ discovery_paths.host_vars_dir }}"
+    - "{{ discovery_paths.gpg_keys_dir }}"
   delegate_to: localhost
 
 - name: Gather system facts
@@ -101,4 +106,6 @@
   ansible.builtin.debug:
     msg:
       - "=== Infrastructure Discovery Completed ==="
-      - "Generated: {{ discovery_paths.host_vars_file }}"
+      - "Discovery results: {{ discovery_paths.host_vars_file }}"
+      - "GPG keys directory: {{ discovery_paths.gpg_keys_dir }}"
+      - "Note: Ansible ignores .discovered.* files - copy to vars.yml when ready"

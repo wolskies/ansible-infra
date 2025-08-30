@@ -88,7 +88,7 @@
 - name: Copy existing GPG keys to controller for repositories without URL guesses
   ansible.builtin.fetch:
     src: "{{ item.gpg_key_path }}"
-    dest: "{{ discovery_paths.host_vars_dir }}/{{ item.name }}.gpg"
+    dest: "{{ discovery_paths.gpg_keys_dir }}/{{ item.name }}.gpg"
     flat: true
   loop: "{{ discovered_repositories | default([]) }}"
   when:
