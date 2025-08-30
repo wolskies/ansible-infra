@@ -26,6 +26,17 @@
     - merged_apt_repositories | length > 0
 
 # =============================================================================
+# HOMEBREW SETUP (macOS) - Must come before package installation
+# =============================================================================
+
+- name: Setup Homebrew (macOS)
+  ansible.builtin.include_tasks: manage-homebrew.yml
+  when: ansible_system == "Darwin"
+  tags:
+    - homebrew
+    - packages
+
+# =============================================================================
 # OFFICIAL REPOSITORY PACKAGES (ALL DISTRIBUTIONS)
 # =============================================================================
 
@@ -33,7 +44,7 @@
   community.general.homebrew:
     name: "{{ merged_packages_install }}"
     state: present
-  when: 
+  when:
     - ansible_system == "Darwin"
     - merged_packages_install | length > 0
   vars:
@@ -50,7 +61,7 @@
     name: "{{ merged_packages_install }}"
     state: present
   become: true
-  when: 
+  when:
     - ansible_system == "Linux"
     - merged_packages_install | length > 0
   vars:
@@ -343,13 +354,3 @@
     - flatpak
     - packages
 
-# =============================================================================
-# HOMEBREW PACKAGE MANAGEMENT (macOS)
-# =============================================================================
-
-- name: Manage Homebrew packages (macOS)
-  ansible.builtin.include_tasks: manage-homebrew.yml
-  when: ansible_system == "Darwin"
-  tags:
-    - homebrew
-    - packages
