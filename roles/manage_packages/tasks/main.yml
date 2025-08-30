@@ -1,6 +1,10 @@
 ---
 # Simplified package management - trust Ansible built-ins
 
+# Ensure package facts are available (may already be called by discovery role)
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: auto
 
 # =============================================================================
 # APT REPOSITORY MANAGEMENT (UBUNTU/DEBIAN)
@@ -318,4 +322,15 @@
     - "'flatpak' in ansible_facts.packages"
   tags:
     - flatpak
+    - packages
+
+# =============================================================================
+# HOMEBREW PACKAGE MANAGEMENT (macOS)
+# =============================================================================
+
+- name: Manage Homebrew packages (macOS)
+  ansible.builtin.include_tasks: manage-homebrew.yml
+  when: ansible_system == "Darwin"
+  tags:
+    - homebrew
     - packages

@@ -88,7 +88,7 @@
       register: homebrew_intel
       when: not homebrew_arm.stat.exists
 
-    - name: Get Homebrew packages
+    - name: Get Homebrew packages (formulas)
       ansible.builtin.command: "{{ brew_path }} list --formula"
       register: homebrew_packages
       changed_when: false
@@ -97,14 +97,38 @@
         brew_path: "{{ '/opt/homebrew/bin/brew' if homebrew_arm.stat.exists else '/usr/local/bin/brew' }}"
       when: homebrew_arm.stat.exists or homebrew_intel.stat.exists
 
-    - name: Set discovered Homebrew packages
+    - name: Get Homebrew casks (GUI apps)
+      ansible.builtin.command: "{{ brew_path }} list --cask"
+      register: homebrew_casks
+      changed_when: false
+      failed_when: false
+      vars:
+        brew_path: "{{ '/opt/homebrew/bin/brew' if homebrew_arm.stat.exists else '/usr/local/bin/brew' }}"
+      when: homebrew_arm.stat.exists or homebrew_intel.stat.exists
+
+    - name: Get Homebrew taps (repositories)
+      ansible.builtin.command: "{{ brew_path }} tap"
+      register: homebrew_taps
+      changed_when: false
+      failed_when: false
+      vars:
+        brew_path: "{{ '/opt/homebrew/bin/brew' if homebrew_arm.stat.exists else '/usr/local/bin/brew' }}"
+      when: homebrew_arm.stat.exists or homebrew_intel.stat.exists
+
+    - name: Set discovered Homebrew data
       ansible.builtin.set_fact:
         "host_packages_install_{{ ansible_distribution }}": "{{ homebrew_packages.stdout_lines | default([]) }}"
-      when: homebrew_packages.stdout_lines is defined
+        homebrew_discovered_casks: "{{ homebrew_casks.stdout_lines | default([]) }}"
+        homebrew_discovered_taps: "{{ homebrew_taps.stdout_lines | default([]) }}"
+        homebrew_installed: true
+      when: homebrew_packages is defined or homebrew_casks is defined or homebrew_taps is defined
 
-    - name: Set empty package list if no Homebrew
+    - name: Set empty data if no Homebrew
       ansible.builtin.set_fact:
         "host_packages_install_{{ ansible_distribution }}": []
+        homebrew_discovered_casks: []
+        homebrew_discovered_taps: []
+        homebrew_installed: false
       when:
         - not homebrew_arm.stat.exists
         - not homebrew_intel.stat.exists

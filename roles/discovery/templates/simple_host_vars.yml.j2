@@ -10,6 +10,26 @@ host_packages_install_{{ ansible_distribution }}:
 {{ vars['host_packages_install_' + ansible_distribution] | to_nice_yaml(indent=2) }}
 {% endif %}
 
+{% if ansible_distribution == "MacOSX" and homebrew_installed is defined %}
+# =============================================================================
+# HOMEBREW CONFIGURATION (macOS)
+# =============================================================================
+# Homebrew installation status and discovered configuration
+homebrew_installed: {{ homebrew_installed | lower }}
+
+{% if homebrew_discovered_taps is defined %}
+# Discovered Homebrew taps - formatted for manage_packages
+packages_homebrew_taps:
+{{ homebrew_discovered_taps | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if homebrew_discovered_casks is defined %}
+# Discovered Homebrew casks - formatted for manage_packages
+packages_homebrew_casks:
+{{ homebrew_discovered_casks | to_nice_yaml(indent=2) }}
+{% endif %}
+{% endif %}
+
 {% if host_apt_repositories is defined and host_apt_repositories is sequence and host_apt_repositories | length > 0 %}
 # =============================================================================
 # APT REPOSITORY CONFIGURATION
