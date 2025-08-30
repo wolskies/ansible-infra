@@ -73,21 +73,21 @@ language_nodejs_packages:
 
 {% if discovered_language_packages.rust is defined %}
 # Rust packages (discovered) - {{ discovered_language_packages.rust | length }} packages found
-language_rust_enable: {{ discovered_language_packages.rust | length > 0 }}
+language_rust_enable: {{ (discovered_language_packages.rust | length > 0) | lower }}
 language_rust_packages:
 {{ discovered_language_packages.rust | to_nice_yaml(indent=2) }}
 {% endif %}
 
 {% if discovered_language_packages.go is defined %}
 # Go packages (discovered binaries) - {{ discovered_language_packages.go | length }} packages found
-language_go_enable: {{ discovered_language_packages.go | length > 0 }}
+language_go_enable: {{ (discovered_language_packages.go | length > 0) | lower }}
 language_go_packages:
 {{ discovered_language_packages.go | to_nice_yaml(indent=2) }}
 {% endif %}
 
 {% if discovered_language_packages.ruby is defined %}
 # Ruby packages (discovered gems) - {{ discovered_language_packages.ruby | length }} packages found
-language_ruby_enable: {{ discovered_language_packages.ruby | length > 0 }}
+language_ruby_enable: {{ (discovered_language_packages.ruby | length > 0) | lower }}
 language_ruby_packages:
 {{ discovered_language_packages.ruby | to_nice_yaml(indent=2) }}
 {% endif %}
