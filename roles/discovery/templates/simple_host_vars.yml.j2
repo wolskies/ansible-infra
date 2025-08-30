@@ -78,7 +78,6 @@ config_system_timezone: {{ config_system_timezone | to_json }}
 {% if discovered_language_packages.python is defined and discovered_language_packages.python | length > 0 %}
 # Python packages (discovered global)
 language_python_enable: true
-language_python_install_method: global
 language_python_packages:
 {{ discovered_language_packages.python | to_nice_yaml(indent=2) }}
 {% endif %}
