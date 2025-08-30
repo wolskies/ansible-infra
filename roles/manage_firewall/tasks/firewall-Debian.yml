@@ -1,6 +1,12 @@
 ---
 # Debian UFW firewall management
 
+- name: Install UFW (Debian)
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  become: true
+
 # CRITICAL: Ensure SSH access before enabling firewall
 - name: Allow SSH access (prevent lockout)
   community.general.ufw:
@@ -38,7 +44,7 @@
   loop: "{{ firewall_custom_rules | default([]) }}"
   become: true
   notify: reload ufw
-  when: 
+  when:
     - firewall_custom_rules | default([]) | length > 0
     - item.port is defined
 
@@ -51,7 +57,7 @@
   loop: "{{ firewall_custom_rules | default([]) }}"
   become: true
   notify: reload ufw
-  when: 
+  when:
     - firewall_custom_rules | default([]) | length > 0
     - item.name is defined
 
