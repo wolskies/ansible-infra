@@ -43,6 +43,7 @@
   when:
     - users_config | default([]) | length > 0
     - item.ssh_pubkey is defined
+    - item.ssh_pubkey is not none
     - item.ssh_pubkey != ""
     - not item.ssh_pubkey.startswith('var_')
     - item.ssh_pubkey is match('^ssh-.*') or item.ssh_pubkey is match('^ecdsa-.*') or item.ssh_pubkey is match('^ssh-ed25519.*')
