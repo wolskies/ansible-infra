@@ -39,7 +39,7 @@
     reload: true
   loop: "{{ system_settings_network_security.sysctl | dict2items }}"
   when:
-    - system_settings_security_hardening.enable_network_hardening | default(true)
+    - system_settings_security_hardening.enable_network_hardening | default(false)
     - system_settings_network_security.sysctl is defined
   become: true
   tags:

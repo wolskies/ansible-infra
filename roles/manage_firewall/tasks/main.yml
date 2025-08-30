@@ -32,7 +32,7 @@
       ansible.builtin.include_tasks: "firewall-{{ ansible_distribution }}.yml"
       when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
 
-  when: firewall_enable | default(true)
+  when: firewall_enable | default(false)
   tags:
     - firewall
 
