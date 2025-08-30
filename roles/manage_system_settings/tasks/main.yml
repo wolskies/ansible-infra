@@ -36,11 +36,9 @@
     - system-settings
     - optimization
 
-- name: Install Nerd Fonts (Linux distributions)
+- name: Install Nerd Fonts (Ubuntu/Debian quick utility)
   ansible.builtin.include_tasks: "install-nerd-fonts.yml"
-  when:
-    - ansible_system == "Linux"
-    - system_settings_nerd_fonts_enabled | bool
+  when: system_config_nf_enable | bool
   tags:
     - fonts
     - nerd-fonts

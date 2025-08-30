@@ -68,27 +68,25 @@ None. This role is designed to be fully standalone and complements `devsec.harde
           vm.swappiness: "10"
 ```
 
-### Nerd Fonts Installation
+### Nerd Fonts Installation (Ubuntu/Debian)
 
-For development environments and modern terminal setups:
+Quick utility for Ubuntu/Debian systems (Arch/macOS use package managers):
 
 ```yaml
-- hosts: developer_workstations
+- hosts: ubuntu_workstations
   roles:
     - role: wolskinet.infrastructure.manage_system_settings
       vars:
-        system_settings_nerd_fonts_enabled: true
-        system_settings_nerd_fonts_list:
-          - "CascadiaCode"      # VS Code default
-          - "FiraCode"          # Popular with developers
-          - "JetBrainsMono"     # JetBrains IDEs
-          - "Hack"              # Clear and readable
-          - "UbuntuMono"        # Ubuntu default
+        system_config_nf_enable: true
+        system_config_nf_links:
+          - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+          - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/FiraCode.zip"
+          - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip"
 ```
 
-**Note**: Arch Linux and macOS users should install Nerd Fonts via their package managers:
-- **Arch Linux**: `pacman -S ttf-cascadia-code-nerd ttf-fira-code-nerd ttf-jetbrains-mono-nerd`
-- **macOS**: `brew install --cask font-cascadia-code-nerd-font font-fira-code-nerd-font`
+**Note**: Use package managers for other OS:
+- **Arch Linux**: `group_packages_install_Archlinux: [ttf-cascadia-code-nerd, ttf-fira-code-nerd]`
+- **macOS**: `host_packages_homebrew_casks: [font-cascadia-code-nerd-font, font-fira-code-nerd-font]`
 
 ## Supported Platforms
 

@@ -73,27 +73,19 @@ system_settings_camera_support_enabled: false
 system_settings_bluetooth_enabled: false
 
 # =============================================================================
-# NERD FONTS CONFIGURATION
+# NERD FONTS CONFIGURATION (Ubuntu/Debian only)
 # =============================================================================
 
-# Nerd Fonts installation (for terminal and development environments)
-# Note: Arch Linux and macOS should install via package managers instead
-system_settings_nerd_fonts_enabled: false
+# Quick & dirty Nerd Fonts installation for Ubuntu/Debian
+# Note: Arch Linux and macOS users should use package managers instead
+system_config_nf_enable: false
 
-# List of Nerd Fonts to install from GitHub releases
-# Full list available at: https://github.com/ryanoasis/nerd-fonts/releases
-system_settings_nerd_fonts_list:
-  - "CascadiaCode"              # Cascadia Code (Microsoft, VS Code default)
-  - "FiraCode"                  # Fira Code (Mozilla, popular with developers)
-  - "JetBrainsMono"             # JetBrains Mono (JetBrains IDEs)
-  - "Hack"                      # Hack (clear, readable)
-  - "UbuntuMono"                # Ubuntu Mono (Ubuntu default)
-
-# Nerd Fonts version to install
-system_settings_nerd_fonts_version: "v3.4.0"
+# Direct links to compressed Nerd Font files
+# Add any .zip/.tar.xz URL from GitHub releases or other sources
+system_config_nf_links:
+  - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+  - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/FiraCode.zip"
+  - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip"
 
 # Installation directory (system-wide)
-system_settings_nerd_fonts_install_dir: "/usr/share/fonts/nerd-fonts"
-
-# Temporary download directory
-system_settings_nerd_fonts_temp_dir: "/tmp/nerd-fonts"
+system_config_nf_install_dir: "/usr/share/fonts/nerd-fonts"
