@@ -86,13 +86,17 @@
         (vars.get('host_packages_remove_' + ansible_distribution, []) | default([]))
         | unique | list
       }}
-  when: merged_packages_remove | length > 0
+  when:
+    - merged_packages_remove | length > 0
+    - ansible_system == "Linux"
 
 - name: Update package cache
   ansible.builtin.package:
     update_cache: true
   become: true
-  when: packages_update_cache | default(true)
+  when:
+    - packages_update_cache | default(true)
+    - ansible_system == "Linux"
 
 - name: Upgrade all packages (non-Arch)
   ansible.builtin.package:

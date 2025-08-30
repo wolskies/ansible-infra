@@ -16,13 +16,13 @@ Unattended-Upgrade::Package-Blacklist {
 };
 
 // Automatically reboot if required
-Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Automatic-Reboot "{{ config_unattended_reboot | lower }}";
 
 // Automatically reboot at specific time
-Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ config_unattended_reboot_time }}";
 
 // Send email to this address for problems or packages upgrades
-Unattended-Upgrade::Mail "";
+Unattended-Upgrade::Mail "{{ config_unattended_email }}";
 
 // Remove unused kernel packages when safe
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
@@ -31,7 +31,7 @@ Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
 
 // Automatically reboot even if users are logged in
-Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "{{ config_unattended_reboot_with_users | lower }}";
 
 // Keep debs after install
 Unattended-Upgrade::Keep-Debs-After-Install "false";

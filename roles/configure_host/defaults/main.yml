@@ -82,6 +82,21 @@ config_rsyslog_remote_host: ""         # Remote syslog host
 config_rsyslog_remote_port: 514        # Remote syslog port
 
 # =============================================================================
+# FIREWALL CONFIGURATION
+# =============================================================================
+
+# Cross-platform firewall configuration
+configure_firewall: true               # Enable firewall configuration (macOS)
+enable_firewall: true                  # Enable firewall rules (macOS)
+
+# =============================================================================
+# SYSTEM UPDATES CONFIGURATION
+# =============================================================================
+
+# System updates behavior
+enable_system_updates: true            # Include system updates in unattended upgrades
+
+# =============================================================================
 # PLATFORM-SPECIFIC FEATURES
 # =============================================================================
 

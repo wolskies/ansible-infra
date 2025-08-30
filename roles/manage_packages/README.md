@@ -19,24 +19,47 @@ This role provides sophisticated package management across Ubuntu, Debian, Arch 
 
 ## Role Variables
 
+See `defaults/main.yml` for complete variable documentation. Key variables include:
+
 ### Package Management Settings
-- `packages_update_cache: true` - Update package cache before operations
-- `packages_cache_valid_time: 3600` - APT cache validity in seconds
-- `packages_perform_system_upgrade: false` - Perform full system upgrade
-- `packages_upgrade_type: "safe"` - Upgrade type: safe, full, or dist (APT)
+```yaml
+packages_update_cache: true            # Update package cache before operations
+packages_cache_valid_time: 3600        # APT cache validity in seconds
+packages_perform_system_upgrade: false # Perform full system upgrade
+packages_upgrade_type: safe            # safe, full, or dist (APT only)
+```
 
-### Repository Configuration
-- `packages_apt_repositories: []` - APT repositories to add (Ubuntu/Debian)
-- `packages_apt_keys: []` - APT GPG key URLs to import
-- `packages_homebrew_taps: []` - Homebrew taps to add (macOS)
+### Arch Linux Configuration
+```yaml
+packages_pacman_multilib: true         # Enable multilib repository
+packages_enable_aur: true              # Enable AUR support (security consideration)
+packages_aur_helper: paru              # AUR helper to use (paru, yay, etc.)
+config_archlinux_reflector: true       # Configure reflector for mirror optimization
+```
 
-### Platform-Specific Packages
-- `packages_aur_packages: []` - AUR packages via paru (Arch Linux)
-- `packages_homebrew_casks: []` - Homebrew casks to install (macOS)
-- `packages_homebrew_casks_remove: []` - Homebrew casks to remove (macOS)
+### macOS (Homebrew) Settings
+```yaml
+homebrew_installed: true               # Install Homebrew if not present (macOS only)
+packages_homebrew_taps: []             # List of Homebrew taps to add
+packages_homebrew_casks: []            # List of Homebrew casks to install
+packages_homebrew_casks_remove: []     # List of Homebrew casks to remove
+packages_macos_update_homebrew: true   # Update Homebrew before installing
+packages_macos_cleanup_cache: false    # Clean Homebrew cache after operations
+```
 
-### macOS Settings
-- `packages_macos_update_homebrew: true` - Update Homebrew before installing
+### Snap Package Management (Ubuntu)
+```yaml
+packages_snap_packages: []             # List of snap packages to install
+packages_snap_packages_remove: []      # List of snap packages to remove
+packages_snap_classic: []              # List of snap packages to install with --classic
+```
+
+### Flatpak Package Management (Linux)
+```yaml
+packages_flatpak_packages: []          # List of Flatpak packages to install
+packages_flatpak_packages_remove: []   # List of Flatpak packages to remove
+packages_flatpak_remotes: []           # List of Flatpak remotes to add
+```
 
 ## Hierarchical Package Variables
 
