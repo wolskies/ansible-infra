@@ -71,3 +71,29 @@ system_settings_camera_support_enabled: false
 
 # Bluetooth hardware support
 system_settings_bluetooth_enabled: false
+
+# =============================================================================
+# NERD FONTS CONFIGURATION
+# =============================================================================
+
+# Nerd Fonts installation (for terminal and development environments)
+# Note: Arch Linux and macOS should install via package managers instead
+system_settings_nerd_fonts_enabled: false
+
+# List of Nerd Fonts to install from GitHub releases
+# Full list available at: https://github.com/ryanoasis/nerd-fonts/releases
+system_settings_nerd_fonts_list:
+  - "CascadiaCode"              # Cascadia Code (Microsoft, VS Code default)
+  - "FiraCode"                  # Fira Code (Mozilla, popular with developers)
+  - "JetBrainsMono"             # JetBrains Mono (JetBrains IDEs)
+  - "Hack"                      # Hack (clear, readable)
+  - "UbuntuMono"                # Ubuntu Mono (Ubuntu default)
+
+# Nerd Fonts version to install
+system_settings_nerd_fonts_version: "v3.4.0"
+
+# Installation directory (system-wide)
+system_settings_nerd_fonts_install_dir: "/usr/share/fonts/nerd-fonts"
+
+# Temporary download directory
+system_settings_nerd_fonts_temp_dir: "/tmp/nerd-fonts"

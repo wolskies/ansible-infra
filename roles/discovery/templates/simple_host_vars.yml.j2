@@ -19,13 +19,13 @@ homebrew_installed: {{ homebrew_installed | lower }}
 
 {% if homebrew_discovered_taps is defined %}
 # Discovered Homebrew taps - formatted for manage_packages
-packages_homebrew_taps:
+host_packages_homebrew_taps:
 {{ homebrew_discovered_taps | to_nice_yaml(indent=2) }}
 {% endif %}
 
 {% if homebrew_discovered_casks is defined %}
 # Discovered Homebrew casks - formatted for manage_packages
-packages_homebrew_casks:
+host_packages_homebrew_casks:
 {{ homebrew_discovered_casks | to_nice_yaml(indent=2) }}
 {% endif %}
 {% endif %}

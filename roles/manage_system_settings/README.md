@@ -12,6 +12,7 @@ This role provides performance-focused system tuning and hardware configurations
 - **Gaming Optimizations**: VM parameters for gaming workloads  
 - **GPU Support**: NVIDIA driver configurations and kernel module loading
 - **Hardware Support**: Camera (uvcvideo), Bluetooth configurations
+- **Nerd Fonts Installation**: Downloads and installs Nerd Fonts for development environments
 - **Custom Performance Configurations**: Support for custom performance sysctl parameters
 
 ## Role Variables
@@ -58,9 +59,36 @@ None. This role is designed to be fully standalone and complements `devsec.harde
         system_settings_gpu_enabled: true
         system_settings_gpu_nvidia_enabled: true
         system_settings_camera_support_enabled: true
+        system_settings_nerd_fonts_enabled: true
+        system_settings_nerd_fonts_list:
+          - "CascadiaCode"
+          - "FiraCode"
+          - "JetBrainsMono"
         system_settings_custom_sysctl:
           vm.swappiness: "10"
 ```
+
+### Nerd Fonts Installation
+
+For development environments and modern terminal setups:
+
+```yaml
+- hosts: developer_workstations
+  roles:
+    - role: wolskinet.infrastructure.manage_system_settings
+      vars:
+        system_settings_nerd_fonts_enabled: true
+        system_settings_nerd_fonts_list:
+          - "CascadiaCode"      # VS Code default
+          - "FiraCode"          # Popular with developers
+          - "JetBrainsMono"     # JetBrains IDEs
+          - "Hack"              # Clear and readable
+          - "UbuntuMono"        # Ubuntu default
+```
+
+**Note**: Arch Linux and macOS users should install Nerd Fonts via their package managers:
+- **Arch Linux**: `pacman -S ttf-cascadia-code-nerd ttf-fira-code-nerd ttf-jetbrains-mono-nerd`
+- **macOS**: `brew install --cask font-cascadia-code-nerd-font font-fira-code-nerd-font`
 
 ## Supported Platforms
 
