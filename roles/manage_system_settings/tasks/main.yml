@@ -6,7 +6,7 @@
   ansible.builtin.fail:
     msg: >-
       {{ ansible_distribution }} {{ ansible_distribution_version }}
-      is not supported. Supported versions: Ubuntu 24+, Debian 12+,
+      is not supported. Supported versions: Ubuntu 22+, Debian 12+,
       Arch Linux (latest)
   when:
     - >-

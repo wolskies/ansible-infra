@@ -4,7 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is an **Ansible Collection** (`wolskinet.infrastructure`) that provides infrastructure automation roles for multi-OS environments (Ubuntu 24+, Debian 12/13, Arch Linux, macOS). The collection follows an inventory-group-based architecture where machines are configured based on their group membership.
+This is an **Ansible Collection** (`wolskinet.infrastructure`) that provides infrastructure automation roles for multi-OS environments (Ubuntu 22+, Debian 12/13, Arch Linux, macOS). The collection follows an inventory-group-based architecture where machines are configured based on their group membership.
+
+## Prerequisites
+
+### macOS Requirements
+- **Xcode Command Line Tools**: Required for Ansible to function on macOS
+  ```bash
+  xcode-select --install
+  ```
+  These must be installed manually before running any Ansible playbooks on macOS hosts.
 
 ## Core Architecture
 
@@ -22,13 +31,52 @@ Each role in `roles/` follows Ansible best practices:
 - `defaults/main.yml`: Default variables
 - `meta/main.yml`: Role metadata and dependencies
 
-## Discovery Role Output Paths
+## Discovery Role
 
+### Enhanced System Discovery
+The discovery role provides comprehensive system analysis and generates ready-to-use configuration:
+
+#### User Discovery
+- **Full `ansible.builtin.user` compatibility**: Discovers `uid`, `home`, `shell`, `comment`, `groups`
+- **Cross-platform support**: Works on Ubuntu, Debian, Arch Linux, and macOS
+- **Smart filtering**: Identifies real users (UID 1000-59999, valid shells, real home directories)
+- **Dotfiles detection**: Automatically discovers existing dotfiles repositories
+
+#### APT Repository Discovery (Ubuntu/Debian)
+- **Complete repository data**: Discovers existing APT repositories in `/etc/apt/sources.list.d/`
+- **GPG key management**: Downloads and stores actual GPG key content for full portability
+- **Intelligent mapping**: Recognizes common repositories (Docker, Node.js, PostgreSQL, etc.)
+
+#### Output Structure
 The discovery role outputs files to your standard Ansible project structure:
 - **Host Variables**: `inventory/host_vars/{hostname}.yml`
 - **Deployment Playbook**: `playbooks/{hostname}_discovered.yml`
 
-When running discovery from your project root:
+Generated host variables use structured sections:
+```yaml
+# =============================================================================
+# USER CONFIGURATION
+# =============================================================================
+users_config:
+  - name: username
+    uid: 1000
+    groups: [group1, group2]
+    home: /home/username
+    shell: /bin/bash
+    comment: "User Full Name"
+    create_home: true
+
+# =============================================================================
+# APT REPOSITORY CONFIGURATION
+# =============================================================================
+host_apt_repositories_Ubuntu:
+  - name: docker
+    repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
+    gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+    gpg_key_content: "-----BEGIN PGP PUBLIC KEY BLOCK-----\n..."
+```
+
+#### Usage
 ```bash
 # Example usage
 ansible-playbook playbooks/run-discovery.yml -i inventory/inventory.yml -l target-host --ask-become-pass
@@ -161,17 +209,62 @@ host_packages_install_Ubuntu:
   - git
 ```
 
+### APT Repository Management (Ubuntu/Debian)
+The collection supports custom APT repositories with full GPG key management:
+
+```yaml
+# APT repositories with GPG key URLs (traditional)
+all_apt_repositories_Ubuntu:
+  - name: docker
+    repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
+    gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+
+# APT repositories with GPG key content (from discovery)  
+host_apt_repositories_Ubuntu:
+  - name: docker
+    repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
+    gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+    gpg_key_content: "-----BEGIN PGP PUBLIC KEY BLOCK-----\n..."
+```
+
 ### Variable Merging Order
 1. **all_packages_install_\<Distribution>** (group_vars/all)
 2. **group_packages_install_\<Distribution>** (group_vars/\<group>)
 3. **host_packages_install_\<Distribution>** (host_vars/\<host>, includes discovery)
 
 All lists are merged with duplicates removed. Package names are distribution-specific.
+Repositories are configured before package installation.
 
 ### Supported Distributions
 - `packages_install_Ubuntu` / `packages_install_Debian`
 - `packages_install_Archlinux`
 - `packages_install_MacOSX` (macOS)
+
+## User Management Architecture
+
+### Enhanced User Configuration
+The `manage_users` role works seamlessly with discovery-generated user data:
+
+```yaml
+users_config:
+  - name: username
+    uid: 1000                    # User ID (integer)
+    home: /home/username         # Home directory path  
+    shell: /bin/bash            # User's shell
+    comment: "User Full Name"    # Full name/description
+    groups: [group1, group2]     # List of groups (not primary group)
+    create_home: true           # Whether home directory should exist
+    dotfiles:                   # Optional dotfiles configuration
+      enable: true
+      repo: "https://github.com/username/dotfiles"
+      branch: "main"
+```
+
+### Cross-Platform Compatibility
+- **No primary group handling**: Avoids OS-specific group complexities
+- **Direct `ansible.builtin.user` mapping**: All fields map directly to the user module
+- **Discovery integration**: Generated by discovery role, consumed by manage_users role
+- **Backward compatibility**: Still supports legacy `gid` field if present
 
 ## Security and Secrets
 

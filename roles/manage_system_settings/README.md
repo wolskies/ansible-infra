@@ -64,7 +64,7 @@ None. This role is designed to be fully standalone and complements `devsec.harde
 
 ## Supported Platforms
 
-- Ubuntu 24.04+
+- Ubuntu 22+
 - Debian 12+  
 - Arch Linux (latest)
 

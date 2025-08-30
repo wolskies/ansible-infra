@@ -24,5 +24,8 @@
 
 
 - name: generate locales
-  ansible.builtin.command: locale-gen
+  community.general.locale_gen:
+    name: "{{ config_system_locale }}"
+    state: present
   become: true
+  when: ansible_os_family == "Debian"

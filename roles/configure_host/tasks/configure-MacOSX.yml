@@ -2,28 +2,9 @@
 # macOS (Darwin) host configuration tasks
 # Platform-unique features only - common tasks handled in main.yml
 
-# macOS Xcode Command Line Tools
-- name: Check if Xcode Command Line Tools are installed
-  ansible.builtin.stat:
-    path: /Library/Developer/CommandLineTools
-  register: xcode_cli_tools
-  when: config_macos_install_xcode_tools | default(true)
-  tags:
-    - macos
-    - xcode
-    - development
-
-- name: Install Xcode Command Line Tools
-  ansible.builtin.command: xcode-select --install
-  become: true
-  when:
-    - macos_install_xcode_tools | default(true)
-    - not xcode_cli_tools.stat.exists
-  failed_when: false  # User might need to interact with GUI
-  tags:
-    - macos
-    - xcode
-    - development
+# NOTE: Xcode Command Line Tools are required for Ansible to function on macOS
+# They must be installed manually before running this collection:
+# xcode-select --install
 
 # macOS System Preferences
 - name: Configure macOS Dock

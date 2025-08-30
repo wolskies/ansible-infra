@@ -1,7 +1,7 @@
 ---
 # configure_host role defaults - Comprehensive host configuration
 # Handles all basic host housekeeping without package management
-# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
 # HOSTNAME CONFIGURATION
@@ -100,7 +100,7 @@ config_archlinux_reflector: true       # Configure reflector for mirror optimiza
 # macOS specific
 config_macos_computer_name: ""          # Computer name (empty = use hostname)
 config_macos_configure_system: true    # Apply macOS system preferences
-config_macos_install_xcode_tools: true # Install Xcode Command Line Tools
+# Xcode Command Line Tools are a prerequisite - see role tasks for details
 config_macos_configure_dock: true      # Configure Dock preferences
 config_macos_dock_tile_size: 48        # Dock tile size
 config_macos_dock_position: "bottom"   # Dock position (bottom, left, right)

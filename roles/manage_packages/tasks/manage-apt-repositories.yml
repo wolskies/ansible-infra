@@ -1,0 +1,70 @@
+---
+# APT repository management for Ubuntu/Debian systems
+# Handles adding custom APT repositories with GPG keys
+
+- name: Install GPG keys for APT repositories
+  block:
+    # Handle repositories with and actual GPG file
+    - name: Write GPG key content to temporary files
+      ansible.builtin.copy:
+        content: "{{ item.gpg_key_content }}"
+        dest: "/tmp/{{ item.name }}.gpg"
+        mode: '0644'
+      loop: "{{ merged_apt_repositories }}"
+      when:
+        - item.gpg_key_content is defined
+        - item.gpg_key_content | length > 0
+      register: gpg_key_content_written
+
+    # Handle repositories with GPG key URL specified
+    - name: Download GPG keys from URLs
+      ansible.builtin.get_url:
+        url: "{{ item.gpg_key_url }}"
+        dest: "/tmp/{{ item.name }}.gpg"
+        mode: '0644'
+        timeout: 30
+      loop: "{{ merged_apt_repositories }}"
+      when:
+        - item.gpg_key_url is defined
+        - item.gpg_key_url | length > 0
+        - item.gpg_key_content is not defined
+      register: gpg_key_downloads
+
+    - name: Convert and install GPG keys to APT keyring
+      ansible.builtin.shell: |
+        gpg --dearmor < "/tmp/{{ item.name }}.gpg" > "/usr/share/keyrings/{{ item.name }}.gpg"
+        chmod 644 "/usr/share/keyrings/{{ item.name }}.gpg"
+      loop: "{{ merged_apt_repositories }}"
+      when:
+        - (item.gpg_key_url is defined and item.gpg_key_url | length > 0) or (item.gpg_key_content is defined and item.gpg_key_content | length > 0)
+      become: true
+      changed_when: true
+
+    - name: Clean up temporary GPG key files
+      ansible.builtin.file:
+        path: "/tmp/{{ item.name }}.gpg"
+        state: absent
+      loop: "{{ merged_apt_repositories }}"
+      when:
+        - (item.gpg_key_url is defined and item.gpg_key_url | length > 0) or (item.gpg_key_content is defined and item.gpg_key_content | length > 0)
+  when: merged_apt_repositories | length > 0
+
+- name: Add APT repositories
+  ansible.builtin.apt_repository:
+    repo: "{{ item.repo_line }}"
+    state: present
+    filename: "{{ item.name }}"
+    update_cache: false
+  loop: "{{ merged_apt_repositories }}"
+  become: true
+  register: apt_repos_added
+  when: merged_apt_repositories | length > 0
+
+- name: Update APT cache after adding repositories
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  when:
+    - apt_repos_added is defined
+    - apt_repos_added.changed | default(false)
+

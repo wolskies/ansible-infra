@@ -3,19 +3,33 @@
 # Host variables for {{ inventory_hostname }}
 
 {% if vars['host_packages_install_' + ansible_distribution] is defined and vars['host_packages_install_' + ansible_distribution] is sequence %}
-# Package management (manage_packages role)
+# =============================================================================
+# PACKAGE MANAGEMENT
+# =============================================================================
 host_packages_install_{{ ansible_distribution }}:
 {{ vars['host_packages_install_' + ansible_distribution] | to_nice_yaml(indent=2) }}
 {% endif %}
 
+{% if host_apt_repositories is defined and host_apt_repositories is sequence and host_apt_repositories | length > 0 %}
+# =============================================================================
+# APT REPOSITORY CONFIGURATION
+# =============================================================================
+host_apt_repositories_{{ ansible_distribution }}:
+{{ host_apt_repositories | to_nice_yaml(indent=2) }}
+{% endif %}
+
 {% if users_config is defined and users_config is sequence and users_config | length > 0 %}
-# User management (manage_users role)  
+# =============================================================================
+# USER CONFIGURATION
+# =============================================================================
 users_config:
 {{ users_config | to_nice_yaml(indent=2) }}
 {% endif %}
 
 {% if firewall_enable is defined %}
-# Firewall management (manage_firewall role)
+# =============================================================================
+# FIREWALL CONFIGURATION  
+# =============================================================================
 firewall_enable: {{ firewall_enable | to_json }}
 {% if firewall_custom_rules is defined and firewall_custom_rules is sequence and firewall_custom_rules | length > 0 %}
 firewall_custom_rules:
@@ -23,68 +37,71 @@ firewall_custom_rules:
 {% endif %}
 {% endif %}
 
+{% if config_hostname is defined or config_system_timezone is defined %}
+# =============================================================================
+# HOST CONFIGURATION
+# =============================================================================
 {% if config_hostname is defined %}
-# Host configuration (configure_host role)
 config_hostname: {{ config_hostname | to_json }}
 {% endif %}
 {% if config_system_timezone is defined %}
 config_system_timezone: {{ config_system_timezone | to_json }}
 {% endif %}
-{% if ansible_distribution == "Ubuntu" and additional_package_managers.snap.snap_installed is defined and additional_package_managers.snap.snap_installed %}
-# Preserve existing snap installation on Ubuntu
-config_ubuntu_disable_snap: false
 {% endif %}
 
-{% if repositories_config is defined and repositories_config.apt_repositories is defined and repositories_config.apt_repositories | length > 0 %}
-# Additional APT repositories discovered
-packages_apt_repositories:
-{% for repo in repositories_config.apt_repositories %}
-  - {{ repo | to_json }}
-{% endfor %}
+{% if discovered_language_packages is defined %}
+# =============================================================================
+# LANGUAGE PACKAGE CONFIGURATION
+# =============================================================================
+# Discovered language packages - configure via manage_language_packages role
+
+{% if discovered_language_packages.python_user is defined and discovered_language_packages.python_user | length > 0 %}
+# Python packages (discovered user-installed)
+language_python_enable: true
+language_python_install_method: user
+language_python_packages:
+{{ discovered_language_packages.python_user | to_nice_yaml(indent=2) }}
 {% endif %}
-{% if repositories_config.pacman_repositories is defined %}
-# Arch Linux repositories
-packages_pacman_repositories_discovered:
-{{ repositories_config.pacman_repositories | to_nice_yaml(indent=2) }}
+
+{% if discovered_language_packages.nodejs_global is defined and discovered_language_packages.nodejs_global | length > 0 %}
+# Node.js packages (discovered global)
+language_nodejs_enable: true
+language_nodejs_install_global: true
+language_nodejs_packages:
+{{ discovered_language_packages.nodejs_global | to_nice_yaml(indent=2) }}
 {% endif %}
-{% if repositories_config.pacman_multilib_enabled is defined %}
-packages_pacman_multilib: {{ repositories_config.pacman_multilib_enabled | to_json }}
+
+{% if discovered_language_packages.rust is defined and discovered_language_packages.rust | length > 0 %}
+# Rust packages (discovered)
+language_rust_enable: true
+language_rust_packages:
+{{ discovered_language_packages.rust | to_nice_yaml(indent=2) }}
 {% endif %}
-{% if repositories_config.aur_helpers_installed is defined and repositories_config.aur_helpers_installed | length > 0 %}
-packages_aur_helper: {{ repositories_config.aur_helpers_installed[0] | to_json }}
-{% endif %}
-{% if repositories_config.homebrew_installed is defined and repositories_config.homebrew_installed %}
-# Homebrew configuration  
-packages_homebrew_path: {{ repositories_config.homebrew_path | to_json }}
-{% if repositories_config.homebrew_taps is defined and repositories_config.homebrew_taps | length > 0 %}
-packages_homebrew_taps:
-{{ repositories_config.homebrew_taps | to_nice_yaml(indent=2) }}
-{% endif %}
-{% if repositories_config.homebrew_casks_installed is defined and repositories_config.homebrew_casks_installed | length > 0 %}
-packages_homebrew_casks_discovered:
-{{ repositories_config.homebrew_casks_installed | to_nice_yaml(indent=2) }}
+
+{% if discovered_language_packages.go is defined and discovered_language_packages.go | length > 0 %}
+# Go packages (discovered binaries)
+language_go_enable: true
+language_go_packages:
+{{ discovered_language_packages.go | to_nice_yaml(indent=2) }}
 {% endif %}
 {% endif %}
 
-{% if additional_package_managers is defined %}
-{% if additional_package_managers.flatpak.flatpak_installed is defined and additional_package_managers.flatpak.flatpak_installed %}
-# Flatpak configuration
-packages_flatpak_enabled: true
-{% if additional_package_managers.flatpak.flatpak_remotes is defined and additional_package_managers.flatpak.flatpak_remotes | length > 0 %}
-packages_flatpak_remotes_discovered:
-{{ additional_package_managers.flatpak.flatpak_remotes | to_nice_yaml(indent=2) }}
+{% if discovered_language_packages is defined and (discovered_language_packages.snap | length > 0 or discovered_language_packages.flatpak | length > 0) %}
+# =============================================================================
+# SNAP AND FLATPAK PACKAGES
+# =============================================================================
+# Discovered snap and flatpak packages - configure via manage_packages role
+
+{% if discovered_language_packages.snap is defined and discovered_language_packages.snap | length > 0 %}
+# Snap packages (discovered)
+host_packages_snap_packages:
+{{ discovered_language_packages.snap | to_nice_yaml(indent=2) }}
 {% endif %}
-{% if additional_package_managers.flatpak.flatpak_apps is defined and additional_package_managers.flatpak.flatpak_apps | length > 0 %}
-packages_flatpak_packages_discovered:
-{{ additional_package_managers.flatpak.flatpak_apps | to_nice_yaml(indent=2) }}
-{% endif %}
-{% endif %}
-{% if additional_package_managers.snap.snap_installed is defined and additional_package_managers.snap.snap_installed %}
-# Snap configuration
-packages_snap_enabled: true
-{% if additional_package_managers.snap.installed_snaps is defined and additional_package_managers.snap.installed_snaps | length > 0 %}
-packages_snap_packages_discovered:
-{{ additional_package_managers.snap.installed_snaps | to_nice_yaml(indent=2) }}
+
+{% if discovered_language_packages.flatpak is defined and discovered_language_packages.flatpak | length > 0 %}
+# Flatpak packages (discovered)
+host_packages_flatpak_packages:
+{{ discovered_language_packages.flatpak | to_nice_yaml(indent=2) }}
 {% endif %}
 {% endif %}
-{% endif %}
+

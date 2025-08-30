@@ -1,7 +1,7 @@
 ---
 # manage_users role defaults - User account and group management with dotfiles
 # Manages system users and groups with integrated dotfiles deployment
-# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
 # USER MANAGEMENT CONFIGURATION

@@ -1,33 +1,24 @@
 ---
 # Simplified package management - trust Ansible built-ins
 
+
 # =============================================================================
-# REPOSITORY CONFIGURATION (DEBIAN/UBUNTU)
+# APT REPOSITORY MANAGEMENT (UBUNTU/DEBIAN)
 # =============================================================================
 
-- name: Download APT repository keys (Debian/Ubuntu)
-  ansible.builtin.get_url:
-    url: "{{ item }}"
-    dest: "/etc/apt/trusted.gpg.d/{{ item | basename }}"
-    mode: '0644'
-  loop: "{{ packages_apt_keys | default([]) }}"
+- name: Manage APT repositories (Ubuntu/Debian)
+  ansible.builtin.include_tasks: manage-apt-repositories.yml
+  vars:
+    merged_apt_repositories: >-
+      {{
+        (vars.get('all_apt_repositories_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_apt_repositories_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_apt_repositories_' + ansible_distribution, []) | default([]))
+        | unique | list
+      }}
   when:
     - ansible_os_family == "Debian"
-    - packages_apt_keys is defined
-    - packages_apt_keys | length > 0
-  become: true
-
-- name: Add APT repositories (Debian/Ubuntu)
-  ansible.builtin.apt_repository:
-    repo: "{{ item }}"
-    state: present
-    update_cache: true
-  loop: "{{ packages_apt_repositories | default([]) }}"
-  when:
-    - ansible_os_family == "Debian"
-    - packages_apt_repositories is defined
-    - packages_apt_repositories | length > 0
-  become: true
+    - merged_apt_repositories | length > 0
 
 # =============================================================================
 # OFFICIAL REPOSITORY PACKAGES (ALL DISTRIBUTIONS)
@@ -161,11 +152,14 @@
 # =============================================================================
 
 # Arch Linux specific: Configure reflector if installed
+- name: Gather package facts (Arch Linux)
+  ansible.builtin.package_facts:
+    manager: pacman
+  when: ansible_distribution == "Archlinux"
+
 - name: Check if reflector is installed (Arch Linux)
-  ansible.builtin.command: pacman -Q reflector
-  register: reflector_check
-  changed_when: false
-  failed_when: false
+  ansible.builtin.set_fact:
+    reflector_installed: "{{ 'reflector' in ansible_facts.packages }}"
   when: ansible_distribution == "Archlinux"
 
 - name: Configure reflector for mirror optimization (Arch Linux)
@@ -190,9 +184,138 @@
       notify: restart reflector
   when:
     - ansible_distribution == "Archlinux"
-    - reflector_check.rc == 0
+    - reflector_installed | default(false)
     - config_archlinux_reflector | default(true)
   tags:
     - archlinux
     - mirrors
+    - packages
+
+# =============================================================================
+# SNAP PACKAGE MANAGEMENT (Ubuntu/Debian)
+# =============================================================================
+
+- name: Manage Snap packages
+  block:
+    - name: Set merged snap package variables
+      ansible.builtin.set_fact:
+        merged_snap_packages: >-
+          {{
+            (all_packages_snap_packages | default([]) +
+             group_packages_snap_packages | default([]) +
+             host_packages_snap_packages | default([]) +
+             packages_snap_packages | default([])) | unique
+          }}
+        merged_snap_classic_packages: >-
+          {{
+            (all_packages_snap_classic | default([]) +
+             group_packages_snap_classic | default([]) +
+             host_packages_snap_classic | default([]) +
+             packages_snap_classic | default([])) | unique
+          }}
+        merged_snap_packages_remove: >-
+          {{
+            (all_packages_snap_packages_remove | default([]) +
+             group_packages_snap_packages_remove | default([]) +
+             host_packages_snap_packages_remove | default([]) +
+             packages_snap_packages_remove | default([])) | unique
+          }}
+      tags: always
+
+    - name: Install Snap packages
+      community.general.snap:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ merged_snap_packages | default([]) }}"
+      become: true
+      when: merged_snap_packages | default([]) | length > 0
+
+    - name: Install Snap packages with classic confinement
+      community.general.snap:
+        name: "{{ item }}"
+        state: present
+        classic: true
+      loop: "{{ merged_snap_classic_packages | default([]) }}"
+      become: true
+      when: merged_snap_classic_packages | default([]) | length > 0
+
+    - name: Remove Snap packages
+      community.general.snap:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ merged_snap_packages_remove | default([]) }}"
+      become: true
+      when: merged_snap_packages_remove | default([]) | length > 0
+
+  when:
+    - ansible_os_family == "Debian"
+    - "'snapd' in ansible_facts.packages"
+  tags:
+    - snap
+    - packages
+
+# =============================================================================
+# FLATPAK PACKAGE MANAGEMENT (Linux)
+# =============================================================================
+
+- name: Manage Flatpak packages
+  block:
+    - name: Set merged flatpak package variables
+      ansible.builtin.set_fact:
+        merged_flatpak_packages: >-
+          {{
+            (all_packages_flatpak_packages | default([]) +
+             group_packages_flatpak_packages | default([]) +
+             host_packages_flatpak_packages | default([]) +
+             packages_flatpak_packages | default([])) | unique
+          }}
+        merged_flatpak_packages_remove: >-
+          {{
+            (all_packages_flatpak_packages_remove | default([]) +
+             group_packages_flatpak_packages_remove | default([]) +
+             host_packages_flatpak_packages_remove | default([]) +
+             packages_flatpak_packages_remove | default([])) | unique
+          }}
+        merged_flatpak_remotes: >-
+          {{
+            (all_packages_flatpak_remotes | default([]) +
+             group_packages_flatpak_remotes | default([]) +
+             host_packages_flatpak_remotes | default([]) +
+             packages_flatpak_remotes | default([])) | unique
+          }}
+      tags: always
+
+    - name: Add Flatpak remotes
+      community.general.flatpak_remote:
+        name: "{{ item.name }}"
+        state: present
+        flatpakrepo_url: "{{ item.url }}"
+        method: system
+      loop: "{{ merged_flatpak_remotes | default([]) }}"
+      become: true
+      when: merged_flatpak_remotes | default([]) | length > 0
+
+    - name: Install Flatpak packages
+      community.general.flatpak:
+        name: "{{ item }}"
+        state: present
+        method: system
+      loop: "{{ merged_flatpak_packages | default([]) }}"
+      become: true
+      when: merged_flatpak_packages | default([]) | length > 0
+
+    - name: Remove Flatpak packages
+      community.general.flatpak:
+        name: "{{ item }}"
+        state: absent
+        method: system
+      loop: "{{ merged_flatpak_packages_remove | default([]) }}"
+      become: true
+      when: merged_flatpak_packages_remove | default([]) | length > 0
+
+  when:
+    - ansible_system == "Linux"
+    - "'flatpak' in ansible_facts.packages"
+  tags:
+    - flatpak
     - packages

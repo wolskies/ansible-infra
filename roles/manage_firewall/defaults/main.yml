@@ -1,7 +1,7 @@
 ---
 # manage_firewall role defaults - Firewall and intrusion prevention management
 # Independent firewall and fail2ban management across operating systems
-# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
 # FIREWALL CONFIGURATION
@@ -41,14 +41,19 @@ firewall_denied_services: []           # List of services to explicitly deny
 firewall_custom_rules: []              # Complex rules with source restrictions
 # Example:
 # firewall_custom_rules:
-#   - port: 3306
+#   - rule: allow                       # allow, deny, reject, limit
+#     port: 3306
 #     protocol: tcp
 #     source: "10.0.1.0/24"
 #     comment: "MySQL from app subnet"
-#   - port: 6379
+#   - rule: allow
+#     port: 6379
 #     protocol: tcp
 #     source: "192.168.1.0/24"
 #     comment: "Redis from local network"
+#   - rule: allow
+#     name: "OpenSSH"
+#     comment: "SSH access"
 
 # Rate limiting
 firewall_rate_limit_enabled: false     # Enable connection rate limiting

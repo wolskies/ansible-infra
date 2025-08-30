@@ -1,15 +1,21 @@
 ---
-# Default converge playbook - tests a single role
-- name: Converge
+- name: Test individual role
   hosts: all
   gather_facts: true
+  vars:
+    # Override any problematic defaults for container testing
+    packages_perform_system_upgrade: false
+    firewall_enable: false
+    config_manage_unattended_upgrades: false
   tasks:
-    - name: "Include {{ role_name | default('role under test') }}"
+    - name: Test configure_host role
       ansible.builtin.include_role:
-        name: "{{ role_name_full | default('wolskinet.infrastructure.' + (role_name | default('configure_host'))) }}"
-      when: role_name is defined
+        name: wolskinet.infrastructure.configure_host
 
-    - name: Display message when no role specified
-      ansible.builtin.debug:
-        msg: "No specific role to test. Use role_name variable to specify a role."
-      when: role_name is not defined
+    - name: Test manage_packages role
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.manage_packages
+      vars:
+        host_packages_install_Ubuntu:
+          - curl
+          - wget

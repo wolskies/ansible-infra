@@ -1,7 +1,7 @@
 ---
 # manage_language_packages role defaults - Language ecosystem package management
 # Handles Python (uv), Node.js (npm), Rust (cargo), and Go (go install) package installation with dependency validation
-# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
 # LANGUAGE ECOSYSTEM FEATURE TOGGLES

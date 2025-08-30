@@ -1,7 +1,7 @@
 ---
 # manage_packages role defaults - System package management
 # Supports hierarchical package configuration and multi-OS package managers
-# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
 # PACKAGE MANAGEMENT SETTINGS
@@ -14,16 +14,6 @@ packages_cache_valid_time: 3600        # APT cache validity time in seconds
 # System updates
 packages_perform_system_upgrade: false # Perform full system upgrade
 packages_upgrade_type: safe            # safe, full, or dist (APT only)
-
-
-# =============================================================================
-# REPOSITORY MANAGEMENT
-# =============================================================================
-
-# APT repositories and keys (Ubuntu/Debian)
-packages_apt_repositories: []          # List of APT repositories to add
-packages_apt_keys: []                  # List of APT GPG key URLs
-packages_apt_key_keyserver: keyserver.ubuntu.com # Default keyserver for APT keys
 
 # Pacman configuration (Arch Linux)
 packages_pacman_multilib: true         # Enable multilib repository
@@ -81,3 +71,39 @@ packages_flatpak_remotes: []           # List of Flatpak remotes to add
 # Note: Do not define these variables in this defaults file as they will
 # apply to ALL machines. Always define them in the appropriate inventory
 # level (group_vars/all, group_vars/{group}, host_vars/{host}).
+
+# =============================================================================
+# APT REPOSITORY MANAGEMENT (UBUNTU/DEBIAN)
+# =============================================================================
+
+# Custom APT repositories can be configured using hierarchical variables
+# following the same pattern as packages. Repository lists are merged in
+# this order: all_ + group_ + host_
+#
+# Define them in your inventory structure:
+#
+# group_vars/all/repositories.yml:
+#   all_apt_repositories_Ubuntu:
+#     - name: docker-ce
+#       repo_line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-ce.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+#       gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+#
+# group_vars/servers/repositories.yml:
+#   group_apt_repositories_Ubuntu:
+#     - name: nginx-mainline
+#       repo_line: "deb [signed-by=/usr/share/keyrings/nginx-mainline.gpg] http://nginx.org/packages/mainline/ubuntu/ {{ ansible_distribution_release }} nginx"
+#       gpg_key_url: "https://nginx.org/keys/nginx_signing.key"
+#
+# host_vars/web-01/repositories.yml:
+#   host_apt_repositories_Ubuntu:
+#     - name: custom-repo
+#       repo_line: "deb [signed-by=/usr/share/keyrings/custom-repo.gpg] https://repo.example.com/ubuntu {{ ansible_distribution_release }} main"
+#       gpg_key_url: "https://repo.example.com/gpg"
+#
+# Repository structure:
+#   - name: Identifier for the repository (used for keyring filename)
+#   - repo_line: Complete repository line for sources.list.d file
+#   - gpg_key_url: URL to download GPG key (optional)
+#
+# Supported distributions: Ubuntu, Debian
+# Variables follow the pattern: {level}_apt_repositories_{Distribution}

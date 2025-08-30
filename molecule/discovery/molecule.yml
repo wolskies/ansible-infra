@@ -1,10 +1,8 @@
 ---
 dependency:
   name: galaxy
-
 driver:
   name: docker
-
 platforms:
   - name: ubuntu-discovery
     image: geerlingguy/docker-ubuntu2404-ansible:latest
@@ -14,30 +12,17 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-    groups:
-      - discovery_targets
-
 provisioner:
   name: ansible
   inventory:
     group_vars:
       all:
         ansible_user: root
-        discovery_output_path: "/tmp/discovery"
-  playbooks:
-    prepare: ../shared/prepare-base.yml
+        # Set discovery output to a test directory
+        inventory_file: /tmp/test_inventory
   config_options:
     defaults:
       host_key_checking: false
-
-scenario:
-  test_sequence:
-    - dependency
-    - create
-    - prepare
-    - converge
-    - verify
-    - destroy
-
+      stdout_callback: yaml
 verifier:
   name: ansible

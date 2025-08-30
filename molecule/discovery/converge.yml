@@ -1,18 +1,8 @@
 ---
-# Test infrastructure discovery utility
-- name: Test infrastructure discovery
-  hosts: discovery_targets
+- name: Test discovery role
+  hosts: all
   gather_facts: true
-
   tasks:
-    - name: Debug inventory file path
-      ansible.builtin.debug:
-        msg: "inventory_file: {{ inventory_file | default('undefined') }}"
-        
-    - name: Run infrastructure discovery role
+    - name: Run discovery role
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.discovery
-
-    - name: Display discovery completion
-      ansible.builtin.debug:
-        msg: "Infrastructure discovery completed for {{ inventory_hostname }}"

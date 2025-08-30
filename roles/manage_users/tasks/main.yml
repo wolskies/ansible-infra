@@ -27,7 +27,7 @@
         else (item.password if (item.password is defined and item.password.startswith('$')) else omit)
       }}
     state: present
-    create_home: true
+    create_home: "{{ item.create_home | default(true) }}"
     groups: "{{ item.groups | default([]) }}"
     append: true
   loop: "{{ users_config | default([]) }}"

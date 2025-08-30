@@ -1,27 +1,62 @@
 ---
-# Simple prepare for discovery testing
 - name: Prepare discovery test environment
-  hosts: discovery_targets
-  gather_facts: true
+  hosts: all
+  gather_facts: false
   tasks:
-    - name: Create test users with different UIDs
-      ansible.builtin.user:
-        name: "{{ item.name }}"
-        uid: "{{ item.uid }}"
-        shell: "{{ item.shell }}"
-        create_home: true
-      loop:
-        - { name: testuser1, uid: 1500, shell: /bin/bash }
-        - { name: testuser2, uid: 1501, shell: /bin/zsh }
-        - { name: sysuser, uid: 999, shell: /bin/false }  # Below UID threshold
+    - name: Wait for container to be ready
+      ansible.builtin.wait_for_connection:
+        delay: 2
+        timeout: 30
 
-    - name: Create .dotfiles directories for test users
+    - name: Install essential packages and UFW
+      ansible.builtin.apt:
+        name:
+          - python3
+          - python3-pip
+          - sudo
+          - ufw
+          - curl
+          - wget
+          - git
+        state: present
+        update_cache: true
+      failed_when: false
+
+    - name: Create some test packages to discover
+      ansible.builtin.apt:
+        name:
+          - htop
+          - vim
+          - tree
+        state: present
+      failed_when: false
+
+    - name: Set up UFW for testing
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+      loop:
+        - "22"
+        - "80"
+        - "443"
+      become: true
+      failed_when: false
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+        policy: deny
+      become: true
+      failed_when: false
+
+    - name: Create test directories
       ansible.builtin.file:
-        path: "/home/{{ item }}/.dotfiles"
+        path: "{{ item }}"
         state: directory
-        owner: "{{ item }}"
         mode: '0755'
       loop:
-        - testuser1
-        - testuser2
-      ignore_errors: true
+        - /tmp/host_vars
+        - /tmp/host_vars/ubuntu-discovery
+
+    - name: Gather facts after preparation
+      ansible.builtin.setup:
