@@ -1,10 +1,11 @@
 ---
 # Simplified package management - trust Ansible built-ins
 
-# Ensure package facts are available (may already be called by discovery role)
+# Ensure package facts are available (Linux only - macOS not supported)
 - name: Gather package facts
   ansible.builtin.package_facts:
     manager: auto
+  when: ansible_system == "Linux"
 
 # =============================================================================
 # APT REPOSITORY MANAGEMENT (UBUNTU/DEBIAN)
