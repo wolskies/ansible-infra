@@ -31,6 +31,7 @@
         NONINTERACTIVE: "1"
       register: homebrew_install
       changed_when: homebrew_install.rc == 0
+      become: true
 
     - name: Set Homebrew path after installation
       ansible.builtin.set_fact:
