@@ -25,13 +25,16 @@
 - name: Install Homebrew if not present
   block:
     - name: Download and install Homebrew
-      ansible.builtin.shell: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      ansible.builtin.expect:
+        command: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        responses:
+          'Password:': "{{ ansible_become_pass }}"
+        timeout: 300
       environment:
         NONINTERACTIVE: "1"
       register: homebrew_install
       changed_when: homebrew_install.rc == 0
-      become: true
+      no_log: true
 
     - name: Set Homebrew path after installation
       ansible.builtin.set_fact:
