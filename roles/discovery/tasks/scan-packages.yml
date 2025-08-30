@@ -1,33 +1,37 @@
 ---
 # Smart package filtering using native package manager knowledge
 
-- name: Get package facts
-  ansible.builtin.package_facts:
-    manager: auto
-
-# Use the package manager's own knowledge of base system packages
-- name: Get user-installed packages (Arch Linux)
-  ansible.builtin.shell: |
-    comm -23 <(pacman -Qqe | sort) <(pacman -Qqg base | sort)
-  register: arch_user_packages
+- name: Get explicitly installed packages (Arch Linux)
+  ansible.builtin.command: pacman -Qqe
+  register: arch_explicit_packages
   become: true
   when: ansible_distribution == "Archlinux"
   changed_when: false
 
-- name: Get user-installed packages (Ubuntu/Debian)
-  ansible.builtin.shell: |
-    apt-mark showmanual | sort
-  register: ubuntu_user_packages
+- name: Get base group packages (Arch Linux)
+  ansible.builtin.command: pacman -Qqg base
+  register: arch_base_packages
+  become: true
+  when: ansible_distribution == "Archlinux"
+  changed_when: false
+
+- name: Get manually installed packages (Ubuntu/Debian)
+  ansible.builtin.command: apt-mark showmanual
+  register: ubuntu_manual_packages
   become: true
   when: ansible_distribution in ["Ubuntu", "Debian"]
   changed_when: false
 
-- name: Set user-installed packages list
+- name: Calculate user-installed packages (Arch Linux)
   ansible.builtin.set_fact:
-    user_explicit_packages: "{{ arch_user_packages.stdout_lines if ansible_distribution == 'Archlinux' else ubuntu_user_packages.stdout_lines | default([]) }}"
-  when: ansible_distribution in ["Archlinux", "Ubuntu", "Debian"]
+    user_explicit_packages: "{{ arch_explicit_packages.stdout_lines | difference(arch_base_packages.stdout_lines) }}"
+  when: ansible_distribution == "Archlinux"
 
-# Filter out additional system categories we don't want to manage
+- name: Set user-installed packages (Ubuntu/Debian)
+  ansible.builtin.set_fact:
+    user_explicit_packages: "{{ ubuntu_manual_packages.stdout_lines | default([]) }}"
+  when: ansible_distribution in ["Ubuntu", "Debian"]
+
 - name: Filter user-installed packages
   ansible.builtin.set_fact:
     "host_packages_install_{{ ansible_distribution }}": "{{ filtered_user_packages }}"
@@ -60,6 +64,15 @@
       - '^apt$'            # package manager itself
       - '^dpkg$'           # package system
       - '^snapd$'          # snap package system
+
+      # Infrastructure packages (handled by dedicated roles)
+      - '^docker-ce'       # Docker CE packages
+      - '^docker\.io$'     # Docker from distro repos
+      - '^containerd\.io$' # Container runtime
+      - '^docker-compose'  # Docker compose
+      - '^nvidia-container-toolkit$' # NVIDIA container support
+      - '^libnvidia-container' # NVIDIA container libs
+      - '^gitlab-runner$'  # GitLab CI runner
     filtered_user_packages: >-
       {{
         user_explicit_packages |
@@ -68,32 +81,50 @@
       }}
   when: ansible_distribution in ["Archlinux", "Ubuntu", "Debian"]
 
-# Fallback for non-Arch systems - use the old pattern-based filtering but simplified
-- name: Filter packages for other distributions
-  ansible.builtin.set_fact:
-    "host_packages_install_{{ ansible_distribution }}": "{{ filtered_packages }}"
-  vars:
-    # Simplified patterns for other distros
-    system_package_patterns:
-      - '^lib'          # Most libraries
-      - '^systemd'      # systemd components
-      - '^kernel'       # kernel packages
-      - '^linux-'       # linux kernel packages
-      - '^glibc'        # core system libs
-      - '^gcc'          # compiler internals
-      - '^apt'          # package manager
-      - '^dpkg'         # package system
-      - '^bash$'        # system shell
-      - '^dash$'        # system shell
-      - '^python3$'     # base python
-      - '^python3\.'    # python versions
-      - '-dev$'         # development packages
-      - '-dbg$'         # debug packages
-      - '-doc$'         # documentation
-    filtered_packages: >-
-      {{
-        ansible_facts.packages.keys() |
-        reject('regex', system_package_patterns | join('|')) |
-        list | sort
-      }}
-  when: ansible_distribution != "Archlinux"
+# macOS package discovery via Homebrew
+- name: Discover Homebrew packages (macOS)
+  block:
+    - name: Check if Homebrew is installed
+      ansible.builtin.stat:
+        path: /opt/homebrew/bin/brew
+      register: homebrew_arm
+
+    - name: Check if Homebrew is installed (Intel)
+      ansible.builtin.stat:
+        path: /usr/local/bin/brew
+      register: homebrew_intel
+      when: not homebrew_arm.stat.exists
+
+    - name: Get Homebrew packages
+      ansible.builtin.command: "{{ brew_path }} list --formula"
+      register: homebrew_packages
+      changed_when: false
+      failed_when: false
+      vars:
+        brew_path: "{{ '/opt/homebrew/bin/brew' if homebrew_arm.stat.exists else '/usr/local/bin/brew' }}"
+      when: homebrew_arm.stat.exists or homebrew_intel.stat.exists
+
+    - name: Set discovered Homebrew packages
+      ansible.builtin.set_fact:
+        "host_packages_install_{{ ansible_distribution }}": "{{ homebrew_packages.stdout_lines | default([]) }}"
+      when: homebrew_packages.stdout_lines is defined
+
+    - name: Set empty package list if no Homebrew
+      ansible.builtin.set_fact:
+        "host_packages_install_{{ ansible_distribution }}": []
+      when:
+        - not homebrew_arm.stat.exists
+        - not homebrew_intel.stat.exists
+  when: ansible_distribution == "MacOSX"
+
+# Validation for unsupported distributions
+- name: Fail for unsupported distributions
+  ansible.builtin.fail:
+    msg: |
+      {{ ansible_distribution }} {{ ansible_distribution_version }} is not supported.
+      Supported distributions:
+      - Ubuntu 24+
+      - Debian 12+
+      - Arch Linux
+      - macOS
+  when: ansible_distribution not in ["Archlinux", "Ubuntu", "Debian", "MacOSX"]
