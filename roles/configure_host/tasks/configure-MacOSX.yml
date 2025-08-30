@@ -136,11 +136,6 @@
       become: true
       changed_when: false
 
-    - name: Disable remote login (SSH) by default
-      ansible.builtin.command: systemsetup -setremotelogin off
-      become: true
-      changed_when: false
-      when: not (enable_ssh | default(false))
 
   when: config_macos_configure_security | default(true)
   tags:
