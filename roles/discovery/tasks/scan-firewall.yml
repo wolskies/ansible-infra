@@ -58,12 +58,12 @@
                       'port': port_proto[0],
                       'protocol': port_proto[1]
                     } -%}
-                  {%- elif target | regex_match('^\\d+$') -%}
+                  {%- elif target | regex_search('^\\d+$') -%}
                     {%- set rule_data = {
                       'rule': action,
                       'port': target
                     } -%}
-                  {%- elif target | regex_match('^[a-zA-Z]') -%}
+                  {%- elif target | regex_search('^[a-zA-Z]') -%}
                     {%- set rule_data = {
                       'rule': action,
                       'name': target
