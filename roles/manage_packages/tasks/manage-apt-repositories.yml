@@ -99,8 +99,8 @@
 - name: Update APT cache after adding repositories
   ansible.builtin.apt:
     update_cache: true
+    cache_valid_time: 0
   become: true
   when:
-    - apt_repos_added is defined
-    - apt_repos_added.changed | default(false)
+    - merged_apt_repositories | length > 0
 
