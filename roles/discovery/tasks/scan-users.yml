@@ -5,17 +5,26 @@
   ansible.builtin.set_fact:
     users_config: []
 
-- name: Get user facts to find usernames
+- name: Get user facts to find usernames (Linux)
   ansible.builtin.getent:
     database: passwd
   become: true
   failed_when: false
+  when: ansible_system == "Linux"
 
-- name: Filter to regular user accounts (UID 1000-59999)
+- name: Get user facts via dscl (macOS)
+  ansible.builtin.command: dscl . list /Users UniqueID
+  register: macos_users
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Darwin"
+
+- name: Filter to regular user accounts - Linux (UID 1000-59999)
   ansible.builtin.set_fact:
     regular_user_names: "{{ regular_user_names | default([]) + [item.key] }}"
   loop: "{{ ansible_facts.getent_passwd | dict2items }}"
   when:
+    - ansible_system == "Linux"
     - ansible_facts.getent_passwd is defined
     - item.value | length > 1
     - item.value[1] | string | int >= 1000
@@ -24,6 +33,24 @@
     - item.value[5] != "/bin/false"
     - item.value[5] != "/usr/sbin/nologin"
     - item.value[5] != "/bin/nologin"
+
+- name: Parse macOS users and filter regular accounts (UID 501-59999)
+  ansible.builtin.set_fact:
+    regular_user_names: >-
+      {{
+        (regular_user_names | default([])) +
+        [line.split()[0]]
+      }}
+  loop: "{{ macos_users.stdout_lines | default([]) }}"
+  loop_control:
+    loop_var: line
+  when:
+    - ansible_system == "Darwin"
+    - macos_users.stdout_lines is defined
+    - line.split() | length >= 2
+    - line.split()[1] | int >= 501
+    - line.split()[1] | int <= 59999
+    - not line.split()[0].startswith('_')
 
 - name: Query user details with ansible.builtin.user module
   ansible.builtin.user:
