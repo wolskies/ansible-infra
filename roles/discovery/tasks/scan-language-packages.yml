@@ -176,95 +176,121 @@
     'golang' in ansible_facts.packages or
     'golang-go' in ansible_facts.packages
 
+# Ruby packages (gem)
+- name: Discover Ruby packages
+  block:
+    - name: Get Ruby gems (local)
+      ansible.builtin.command: gem list --local --no-details
+      register: gem_packages
+      changed_when: false
+      failed_when: false
+
+    - name: Extract Ruby package names
+      ansible.builtin.set_fact:
+        ruby_package_names: >-
+          {{
+            (gem_packages.stdout_lines | default([])
+            | map('regex_replace', '^([^ ]+).*$', '\1')
+            | list)
+          }}
+
+    - name: Filter out system-managed Ruby packages
+      ansible.builtin.set_fact:
+        discovered_ruby_packages: >-
+          {{
+            ruby_package_names | reject('in', system_ruby_packages) | list | unique | sort
+          }}
+      vars:
+        # Find system packages that match ruby gem names
+        # Convert ruby-package -> package
+        system_ruby_packages: >-
+          {{
+            (ansible_facts.packages.keys() | list
+            | select('match', '^ruby-')
+            | map('regex_replace', '^ruby-(.+)$', '\1')
+            | list) +
+            (ansible_facts.packages.keys() | list
+            | select('match', '^ruby$')
+            | list)
+          }}
+  when: >
+    'ruby' in ansible_facts.packages or
+    'ruby-full' in ansible_facts.packages or
+    'rubygems' in ansible_facts.packages
+
 # Snap packages
 - name: Discover Snap packages
   block:
     - name: Get snap packages
-      community.general.snap:
-        name: []
-        state: absent
-      check_mode: true
-      register: snap_packages_facts
-      failed_when: false
-
-    - name: Get snap packages (fallback if module fails)
       ansible.builtin.command: snap list
       register: snap_packages_cmd
       changed_when: false
       failed_when: false
-      when:
-        - snap_packages_facts is failed or snap_packages_facts is not defined
 
-    - name: Parse snap packages
+    - name: Parse snap packages for community.general.snap
       ansible.builtin.set_fact:
         discovered_snap_packages: >-
-          {{
-            (snap_packages_cmd.stdout_lines[1:] | default([])
-            | map('regex_replace', '^([^ ]+).*$', '\1')
-            | list | unique | sort)
-            if (snap_packages_cmd is defined and snap_packages_cmd.stdout_lines is defined)
-            else []
-          }}
+          {%- set snaps = [] -%}
+          {%- if snap_packages_cmd.stdout_lines is defined and snap_packages_cmd.stdout_lines | length > 1 -%}
+            {%- for line in snap_packages_cmd.stdout_lines[1:] -%}
+              {%- set parts = line.split() -%}
+              {%- if parts | length > 0 -%}
+                {%- set snap_name = parts[0] -%}
+                {%- set _ = snaps.append({'name': snap_name, 'state': 'present'}) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ snaps }}
   when: >
     'snapd' in ansible_facts.packages or
     'snap' in ansible_facts.packages
 
 # Flatpak packages
-- name: Discover Flatpak packages
+- name: Discover Flatpak configuration
   block:
+    - name: Get flatpak remotes
+      ansible.builtin.command: flatpak remotes
+      register: flatpak_remotes_cmd
+      changed_when: false
+      failed_when: false
+
+    - name: Parse flatpak remotes for community.general.flatpak_remote
+      ansible.builtin.set_fact:
+        discovered_flatpak_remotes: >-
+          {%- set remotes = [] -%}
+          {%- if flatpak_remotes_cmd.stdout_lines is defined -%}
+            {%- for line in flatpak_remotes_cmd.stdout_lines -%}
+              {%- set parts = line.split() -%}
+              {%- if parts | length >= 2 -%}
+                {%- set remote_name = parts[0] -%}
+                {%- set remote_url = parts[1] -%}
+                {%- set _ = remotes.append({'name': remote_name, 'flatpakrepo_url': remote_url, 'state': 'present'}) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ remotes }}
+
     - name: Get flatpak packages
       ansible.builtin.command: flatpak list --app --columns=application
-      register: flatpak_packages
+      register: flatpak_packages_cmd
       changed_when: false
       failed_when: false
 
-    - name: Parse flatpak packages
+    - name: Parse flatpak packages for community.general.flatpak
       ansible.builtin.set_fact:
         discovered_flatpak_packages: >-
-          {{
-            (flatpak_packages.stdout_lines | default([])
-            | map('trim')
-            | reject('equalto', '')
-            | reject('match', '^Application ID')
-            | list | unique | sort)
-          }}
-      when:
-        - flatpak_packages.stdout_lines is defined
+          {%- set packages = [] -%}
+          {%- if flatpak_packages_cmd.stdout_lines is defined -%}
+            {%- for line in flatpak_packages_cmd.stdout_lines -%}
+              {%- set app_id = line | trim -%}
+              {%- if app_id and app_id != 'Application ID' -%}
+                {%- set _ = packages.append({'name': app_id, 'state': 'present'}) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ packages }}
   when: "'flatpak' in ansible_facts.packages"
 
-# Ruby gems
-- name: Discover Ruby gems
-  block:
-    - name: Check for gem executable
-      ansible.builtin.stat:
-        path: "{{ item }}"
-      register: gem_executables
-      loop:
-        - "/usr/bin/gem"
-        - "/usr/local/bin/gem"
-
-    - name: Get Ruby gems
-      ansible.builtin.command: "{{ gem_executable }} list --local --no-details"
-      register: gem_packages
-      changed_when: false
-      failed_when: false
-      vars:
-        gem_executable: "{{ gem_executables.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default('gem') }}"
-      when: gem_executables.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
-
-    - name: Parse Ruby gems
-      ansible.builtin.set_fact:
-        discovered_ruby_packages: >-
-          {{
-            (gem_packages.stdout_lines | default([])
-            | map('regex_replace', '^([^ ]+).*$', '\1')
-            | list | unique | sort)
-          }}
-      when: gem_packages.stdout_lines is defined
-  when: >
-    'ruby' in ansible_facts.packages or
-    'ruby-full' in ansible_facts.packages or
-    'rubygems' in ansible_facts.packages
 
 # Set final discovered language packages
 - name: Set discovered language packages variables
@@ -276,6 +302,7 @@
       go: "{{ discovered_go_packages | default([]) }}"
       snap: "{{ discovered_snap_packages | default([]) }}"
       flatpak: "{{ discovered_flatpak_packages | default([]) }}"
+      flatpak_remotes: "{{ discovered_flatpak_remotes | default([]) }}"
       ruby: "{{ discovered_ruby_packages | default([]) }}"
 
 - name: Debug discovered language packages
@@ -287,5 +314,6 @@
       - "Go: {{ discovered_language_packages.go | length }} packages"
       - "Snap: {{ discovered_language_packages.snap | length }} packages"
       - "Flatpak: {{ discovered_language_packages.flatpak | length }} packages"
+      - "Flatpak remotes: {{ discovered_language_packages.flatpak_remotes | length }} remotes"
       - "Ruby: {{ discovered_language_packages.ruby | length }} packages"
   when: discovery_debug | default(false)

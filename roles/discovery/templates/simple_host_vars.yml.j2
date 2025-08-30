@@ -84,6 +84,13 @@ language_go_enable: true
 language_go_packages:
 {{ discovered_language_packages.go | to_nice_yaml(indent=2) }}
 {% endif %}
+
+{% if discovered_language_packages.ruby is defined and discovered_language_packages.ruby | length > 0 %}
+# Ruby packages (discovered gems)
+language_ruby_enable: true
+language_ruby_packages:
+{{ discovered_language_packages.ruby | to_nice_yaml(indent=2) }}
+{% endif %}
 {% endif %}
 
 {% if discovered_language_packages is defined and (discovered_language_packages.snap | length > 0 or discovered_language_packages.flatpak | length > 0) %}
@@ -93,13 +100,19 @@ language_go_packages:
 # Discovered snap and flatpak packages - configure via manage_packages role
 
 {% if discovered_language_packages.snap is defined and discovered_language_packages.snap | length > 0 %}
-# Snap packages (discovered)
+# Snap packages (discovered) - formatted for community.general.snap
 host_packages_snap_packages:
 {{ discovered_language_packages.snap | to_nice_yaml(indent=2) }}
 {% endif %}
 
+{% if discovered_language_packages.flatpak_remotes is defined and discovered_language_packages.flatpak_remotes | length > 0 %}
+# Flatpak remotes (discovered) - formatted for community.general.flatpak_remote
+host_packages_flatpak_remotes:
+{{ discovered_language_packages.flatpak_remotes | to_nice_yaml(indent=2) }}
+{% endif %}
+
 {% if discovered_language_packages.flatpak is defined and discovered_language_packages.flatpak | length > 0 %}
-# Flatpak packages (discovered)
+# Flatpak packages (discovered) - formatted for community.general.flatpak
 host_packages_flatpak_packages:
 {{ discovered_language_packages.flatpak | to_nice_yaml(indent=2) }}
 {% endif %}
