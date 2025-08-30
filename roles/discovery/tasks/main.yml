@@ -45,9 +45,10 @@
 - name: Gather system facts
   ansible.builtin.setup:
 
-- name: Gather package facts
+- name: Gather package facts (Linux only)
   ansible.builtin.package_facts:
     manager: auto
+  when: ansible_system == "Linux"
 
 - name: Discover packages
   ansible.builtin.include_tasks: scan-packages.yml
