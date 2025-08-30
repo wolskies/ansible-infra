@@ -24,11 +24,16 @@
     - name: Filter out system-managed Python packages
       ansible.builtin.set_fact:
         discovered_python_packages: >-
-          {{
-            pip_package_names | reject('in', system_python_packages) | list | unique | sort
-          }}
+          {%- set filtered = [] -%}
+          {%- set system_lower = system_python_packages | map('lower') | list -%}
+          {%- for pkg in pip_package_names -%}
+            {%- if pkg | lower not in system_lower -%}
+              {%- set _ = filtered.append(pkg) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ filtered | unique | sort }}
       vars:
-        # Find system packages that match pip package names
+        # Find system packages that match pip package names (case-insensitive)
         # Convert python3-package -> package, python-package -> package
         system_python_packages: >-
           {{
@@ -70,11 +75,16 @@
     - name: Filter out system-managed Node.js packages
       ansible.builtin.set_fact:
         discovered_nodejs_packages_global: >-
-          {{
-            npm_package_names | reject('in', system_nodejs_packages) | list | unique | sort
-          }}
+          {%- set filtered = [] -%}
+          {%- set system_lower = system_nodejs_packages | map('lower') | list -%}
+          {%- for pkg in npm_package_names -%}
+            {%- if pkg | lower not in system_lower -%}
+              {%- set _ = filtered.append(pkg) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ filtered | unique | sort }}
       vars:
-        # Find system packages that match npm package names
+        # Find system packages that match npm package names (case-insensitive)
         # Convert node-package -> package, nodejs-package -> package
         system_nodejs_packages: >-
           {{
@@ -114,11 +124,16 @@
     - name: Filter out system-managed Rust packages
       ansible.builtin.set_fact:
         discovered_rust_packages: >-
-          {{
-            cargo_package_names | reject('in', system_rust_packages) | list | unique | sort
-          }}
+          {%- set filtered = [] -%}
+          {%- set system_lower = system_rust_packages | map('lower') | list -%}
+          {%- for pkg in cargo_package_names -%}
+            {%- if pkg | lower not in system_lower -%}
+              {%- set _ = filtered.append(pkg) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ filtered | unique | sort }}
       vars:
-        # Find system packages that match cargo package names
+        # Find system packages that match cargo package names (case-insensitive)
         # Convert rust-package -> package
         system_rust_packages: >-
           {{
@@ -161,11 +176,16 @@
     - name: Filter out system-managed Go packages
       ansible.builtin.set_fact:
         discovered_go_packages: >-
-          {{
-            go_package_names | reject('in', system_go_packages) | list | unique | sort
-          }}
+          {%- set filtered = [] -%}
+          {%- set system_lower = system_go_packages | map('lower') | list -%}
+          {%- for pkg in go_package_names -%}
+            {%- if pkg | lower not in system_lower -%}
+              {%- set _ = filtered.append(pkg) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ filtered | unique | sort }}
       vars:
-        # Find system packages that match go package names
+        # Find system packages that match go package names (case-insensitive)
         # Convert golang-package -> package, go-package -> package
         system_go_packages: >-
           {{
@@ -205,11 +225,16 @@
     - name: Filter out system-managed Ruby packages
       ansible.builtin.set_fact:
         discovered_ruby_packages: >-
-          {{
-            ruby_package_names | reject('in', system_ruby_packages) | list | unique | sort
-          }}
+          {%- set filtered = [] -%}
+          {%- set system_lower = system_ruby_packages | map('lower') | list -%}
+          {%- for pkg in ruby_package_names -%}
+            {%- if pkg | lower not in system_lower -%}
+              {%- set _ = filtered.append(pkg) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ filtered | unique | sort }}
       vars:
-        # Find system packages that match ruby gem names
+        # Find system packages that match ruby gem names (case-insensitive)
         # Convert ruby-package -> package
         system_ruby_packages: >-
           {{
