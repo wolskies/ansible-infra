@@ -1,40 +1,44 @@
 ---
 # Language package discovery for multiple ecosystems
 
-# Python packages (pip/uv)
+# Python packages (pip)
 - name: Discover Python packages
   block:
-    - name: Find pip executables
-      ansible.builtin.stat:
-        path: "{{ item }}"
-      register: pip_executables
-      loop:
-        - "/usr/bin/pip"
-        - "/usr/bin/pip3"
-        - "/usr/local/bin/pip"
-        - "/usr/local/bin/pip3"
-
-    - name: Get pip packages (global only)
-      ansible.builtin.command: "{{ item.item }} list --format=freeze"
-      register: pip_global_packages
+    - name: Get pip packages (global)
+      ansible.builtin.command: pip3 list --format=freeze
+      register: pip_packages
       changed_when: false
       failed_when: false
       become: true
-      loop: "{{ pip_executables.results }}"
-      when:
-        - item.stat.exists
-        - item.stat.executable
 
-    - name: Parse Python packages
+    - name: Extract pip package names
+      ansible.builtin.set_fact:
+        pip_package_names: >-
+          {{
+            (pip_packages.stdout_lines | default([])
+            | map('regex_replace', '^([^=]+)==.*$', '\1')
+            | select('match', '^[^=]+$')
+            | list)
+          }}
+
+    - name: Filter out system-managed Python packages
       ansible.builtin.set_fact:
         discovered_python_packages: >-
           {{
-            (pip_global_packages.results | default([])
-            | selectattr('stdout', 'defined')
-            | map(attribute='stdout')
-            | join('\n')
-            | regex_findall('^([^=]+)==.*$', multiline=True)
-            | list | unique | sort)
+            pip_package_names | reject('in', system_python_packages) | list | unique | sort
+          }}
+      vars:
+        # Find system packages that match pip package names
+        # Convert python3-package -> package, python-package -> package
+        system_python_packages: >-
+          {{
+            (ansible_facts.packages.keys() | list
+            | select('match', '^python3?-')
+            | map('regex_replace', '^python3?-(.+)$', '\1')
+            | list) +
+            (ansible_facts.packages.keys() | list
+            | select('match', '^python3?$')
+            | list)
           }}
   when: >
     'python3' in ansible_facts.packages or
