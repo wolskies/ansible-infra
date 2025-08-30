@@ -1,30 +1,19 @@
 ---
 # Enhanced user management with SSH keys, passwords, and nested dotfiles support
 
-- name: Create user groups
-  become: true
-  ansible.builtin.group:
-    name: "{{ item.name }}"
-    gid: "{{ item.gid | default(omit) }}"
-    state: present
-  loop: "{{ users_config | default([]) }}"
-  when:
-    - users_config | default([]) | length > 0
-    - item.gid is defined
-
 - name: Add users to system
   become: true
   ansible.builtin.user:
     name: "{{ item.name }}"
     uid: "{{ item.uid | default(omit) }}"
     group: "{{ item.gid | default(omit) }}"
-    home: "{{ item.home | default('/home/' + item.name) }}"
+    home: "{{ item.home | default(('/Users/' + item.name) if ansible_system == 'Darwin' else ('/home/' + item.name)) }}"
     shell: "{{ item.shell | default('/bin/bash') }}"
     password: >-
       {{
-        item.password | password_hash('sha512')
-        if (item.password is defined and not item.password.startswith('$') and not item.password.startswith('var_'))
-        else (item.password if (item.password is defined and item.password.startswith('$')) else omit)
+        omit if item.password is not defined or item.password is none or item.password == ''
+        else (item.password if item.password.startswith('$')
+        else item.password | password_hash('sha512'))
       }}
     state: present
     create_home: "{{ item.create_home | default(true) }}"
@@ -64,7 +53,15 @@
     dotfiles_user: "{{ user_item.name }}"
     dotfiles_repository_url: "{{ user_item.dotfiles.repo }}"
     dotfiles_repository_version: "{{ user_item.dotfiles.branch | default('main') }}"
-    dotfiles_directory: "{{ user_item.dotfiles.directory | default(user_item.home | default('/home/' + user_item.name) + '/.dotfiles') }}"
+    dotfiles_directory: >-
+      {{
+        user_item.dotfiles.directory | default(
+          (user_item.home | default(
+            ('/Users/' + user_item.name) if ansible_system == 'Darwin'
+            else ('/home/' + user_item.name)
+          )) + '/.dotfiles'
+        )
+      }}
   loop: "{{ users_config | default([]) }}"
   loop_control:
     loop_var: user_item
