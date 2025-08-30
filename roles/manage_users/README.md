@@ -163,7 +163,7 @@ users_config:
 
 ## Platform Support
 
-- **Ubuntu 24.04+**: Full support with automatic stow installation
+- **Ubuntu 22+**: Full support with automatic stow installation
 - **Debian 12+**: Full support with automatic stow installation  
 - **Arch Linux**: Full support with automatic stow installation
 - **macOS**: Full support (requires manual stow installation: `brew install stow`)

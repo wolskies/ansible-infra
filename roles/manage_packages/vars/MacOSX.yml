@@ -24,7 +24,7 @@ homebrew_casks: []  # No essential GUI apps
 homebrew_taps: []  # No essential taps
 
 # macOS-specific feature management
-macos_install_xcode_tools: true  # Install Xcode command line tools
+# Xcode Command Line Tools are a prerequisite for Ansible on macOS
 macos_disable_gatekeeper: false  # Keep Gatekeeper enabled for security
 macos_update_homebrew: true  # Update/upgrade Homebrew packages
 macos_disable_auto_updates: false  # Keep automatic updates enabled

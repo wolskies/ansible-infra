@@ -112,7 +112,7 @@ None. This role is designed to be fully standalone.
 
 ## Platform Support
 
-- **Ubuntu 24.04+**: Full support with snap removal options
+- **Ubuntu 22+**: Full support with snap removal options
 - **Debian 12+**: Full support  
 - **Arch Linux**: Full support with mirror optimization
 - **macOS**: Basic support with system preferences configuration

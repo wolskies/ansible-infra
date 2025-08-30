@@ -1,0 +1,286 @@
+---
+# Language package discovery for multiple ecosystems
+# Detects installed packages from npm, pip, cargo, go, snap, flatpak, gem
+# Uses package facts gathered in main.yml
+
+# Python packages (pip/uv)
+- name: Discover Python packages
+  block:
+    - name: Find pip executables
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: pip_executables
+      loop:
+        - "/usr/bin/pip"
+        - "/usr/bin/pip3"
+        - "/usr/local/bin/pip"
+        - "/usr/local/bin/pip3"
+
+    - name: Get pip packages (user-installed)
+      ansible.builtin.command: "{{ item.item }} list --user --format=freeze"
+      register: pip_user_packages
+      changed_when: false
+      failed_when: false
+      loop: "{{ pip_executables.results }}"
+      when:
+        - item.stat.exists
+        - item.stat.executable
+
+    - name: Get pip packages (global)
+      ansible.builtin.command: "{{ item.item }} list --format=freeze"
+      register: pip_global_packages
+      changed_when: false
+      failed_when: false
+      become: true
+      loop: "{{ pip_executables.results }}"
+      when:
+        - item.stat.exists
+        - item.stat.executable
+
+    - name: Parse Python packages
+      ansible.builtin.set_fact:
+        discovered_python_packages_user: >-
+          {{
+            (pip_user_packages.results | default([])
+            | selectattr('stdout', 'defined')
+            | map(attribute='stdout')
+            | join('\n')
+            | regex_findall('^([^=]+)==.*$', multiline=True)
+            | list | unique | sort)
+          }}
+        discovered_python_packages_global: >-
+          {{
+            (pip_global_packages.results | default([])
+            | selectattr('stdout', 'defined')
+            | map(attribute='stdout')
+            | join('\n')
+            | regex_findall('^([^=]+)==.*$', multiline=True)
+            | list | unique | sort)
+          }}
+  when: >
+    'python3' in ansible_facts.packages or
+    'python' in ansible_facts.packages or
+    'python3-pip' in ansible_facts.packages
+
+# Node.js packages (npm)
+- name: Discover Node.js packages
+  block:
+    - name: Check for npm executable
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: npm_executables
+      loop:
+        - "/usr/bin/npm"
+        - "/usr/local/bin/npm"
+
+    - name: Get npm packages (global)
+      ansible.builtin.command: "{{ npm_executable }} list -g --depth=0 --parseable"
+      register: npm_global_packages
+      changed_when: false
+      failed_when: false
+      vars:
+        npm_executable: "{{ npm_executables.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default('npm') }}"
+      when: npm_executables.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
+
+    - name: Parse npm global packages
+      ansible.builtin.set_fact:
+        discovered_nodejs_packages_global: >-
+          {{
+            (npm_global_packages.stdout_lines | default([])
+            | map('regex_replace', '^.*/node_modules/(.+)$', '\1')
+            | select('match', '^[^/]+$')
+            | reject('equalto', 'npm')
+            | list | unique | sort)
+          }}
+      when: npm_global_packages.stdout_lines is defined
+  when: >
+    'nodejs' in ansible_facts.packages or
+    'npm' in ansible_facts.packages
+
+# Rust packages (cargo)
+- name: Discover Rust packages
+  block:
+    - name: Check for cargo executable
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: cargo_executables
+      loop:
+        - "{{ ansible_env.HOME }}/.cargo/bin/cargo"
+        - "/usr/bin/cargo"
+        - "/usr/local/bin/cargo"
+
+    - name: Get cargo installed packages
+      ansible.builtin.command: "{{ cargo_executable }} install --list"
+      register: cargo_packages
+      changed_when: false
+      failed_when: false
+      vars:
+        cargo_executable: "{{ cargo_executables.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default('cargo') }}"
+      when: cargo_executables.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
+
+    - name: Parse cargo packages
+      ansible.builtin.set_fact:
+        discovered_rust_packages: >-
+          {{
+            (cargo_packages.stdout_lines | default([])
+            | map('regex_replace', '^([^ ]+).*$', '\1')
+            | select('match', '^[^:]+$')
+            | list | unique | sort)
+          }}
+      when: cargo_packages.stdout_lines is defined
+  when: >
+    'rust' in ansible_facts.packages or
+    'cargo' in ansible_facts.packages or
+    'rustc' in ansible_facts.packages
+
+# Go packages
+- name: Discover Go packages
+  block:
+    - name: Check for go executable
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: go_executables
+      loop:
+        - "/usr/bin/go"
+        - "/usr/local/bin/go"
+        - "/usr/local/go/bin/go"
+
+    - name: Find Go binaries in GOPATH/bin
+      ansible.builtin.find:
+        paths: "{{ ansible_env.HOME }}/go/bin"
+        file_type: file
+        patterns: "*"
+      register: go_binaries
+      when: go_executables.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
+      failed_when: false
+
+    - name: Parse Go packages (binaries only)
+      ansible.builtin.set_fact:
+        discovered_go_packages: >-
+          {{
+            (go_binaries.files | default([])
+            | map(attribute='path')
+            | map('basename')
+            | list | unique | sort)
+          }}
+      when: go_binaries.files is defined
+  when: >
+    'go' in ansible_facts.packages or
+    'golang' in ansible_facts.packages or
+    'golang-go' in ansible_facts.packages
+
+# Snap packages
+- name: Discover Snap packages
+  block:
+    - name: Get snap packages
+      community.general.snap:
+        name: []
+        state: absent
+      check_mode: true
+      register: snap_packages_facts
+      failed_when: false
+
+    - name: Get snap packages (fallback if module fails)
+      ansible.builtin.command: snap list
+      register: snap_packages_cmd
+      changed_when: false
+      failed_when: false
+      when:
+        - snap_packages_facts is failed or snap_packages_facts is not defined
+
+    - name: Parse snap packages
+      ansible.builtin.set_fact:
+        discovered_snap_packages: >-
+          {{
+            (snap_packages_cmd.stdout_lines[1:] | default([])
+            | map('regex_replace', '^([^ ]+).*$', '\1')
+            | list | unique | sort)
+            if (snap_packages_cmd is defined and snap_packages_cmd.stdout_lines is defined)
+            else []
+          }}
+  when: >
+    'snapd' in ansible_facts.packages or
+    'snap' in ansible_facts.packages
+
+# Flatpak packages
+- name: Discover Flatpak packages
+  block:
+    - name: Get flatpak packages
+      ansible.builtin.command: flatpak list --app --columns=application
+      register: flatpak_packages
+      changed_when: false
+      failed_when: false
+
+    - name: Parse flatpak packages
+      ansible.builtin.set_fact:
+        discovered_flatpak_packages: >-
+          {{
+            (flatpak_packages.stdout_lines | default([])
+            | map('trim')
+            | reject('equalto', '')
+            | reject('match', '^Application ID')
+            | list | unique | sort)
+          }}
+      when:
+        - flatpak_packages.stdout_lines is defined
+  when: "'flatpak' in ansible_facts.packages"
+
+# Ruby gems
+- name: Discover Ruby gems
+  block:
+    - name: Check for gem executable
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: gem_executables
+      loop:
+        - "/usr/bin/gem"
+        - "/usr/local/bin/gem"
+
+    - name: Get Ruby gems
+      ansible.builtin.command: "{{ gem_executable }} list --local --no-details"
+      register: gem_packages
+      changed_when: false
+      failed_when: false
+      vars:
+        gem_executable: "{{ gem_executables.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default('gem') }}"
+      when: gem_executables.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
+
+    - name: Parse Ruby gems
+      ansible.builtin.set_fact:
+        discovered_ruby_packages: >-
+          {{
+            (gem_packages.stdout_lines | default([])
+            | map('regex_replace', '^([^ ]+).*$', '\1')
+            | list | unique | sort)
+          }}
+      when: gem_packages.stdout_lines is defined
+  when: >
+    'ruby' in ansible_facts.packages or
+    'ruby-full' in ansible_facts.packages or
+    'rubygems' in ansible_facts.packages
+
+# Set final discovered language packages
+- name: Set discovered language packages variables
+  ansible.builtin.set_fact:
+    discovered_language_packages:
+      python_user: "{{ discovered_python_packages_user | default([]) }}"
+      python_global: "{{ discovered_python_packages_global | default([]) }}"
+      nodejs_global: "{{ discovered_nodejs_packages_global | default([]) }}"
+      rust: "{{ discovered_rust_packages | default([]) }}"
+      go: "{{ discovered_go_packages | default([]) }}"
+      snap: "{{ discovered_snap_packages | default([]) }}"
+      flatpak: "{{ discovered_flatpak_packages | default([]) }}"
+      ruby: "{{ discovered_ruby_packages | default([]) }}"
+
+- name: Debug discovered language packages
+  ansible.builtin.debug:
+    msg:
+      - "Python (user): {{ discovered_language_packages.python_user | length }} packages"
+      - "Python (global): {{ discovered_language_packages.python_global | length }} packages"
+      - "Node.js (global): {{ discovered_language_packages.nodejs_global | length }} packages"
+      - "Rust: {{ discovered_language_packages.rust | length }} packages"
+      - "Go: {{ discovered_language_packages.go | length }} packages"
+      - "Snap: {{ discovered_language_packages.snap | length }} packages"
+      - "Flatpak: {{ discovered_language_packages.flatpak | length }} packages"
+      - "Ruby: {{ discovered_language_packages.ruby | length }} packages"
+  when: discovery_debug | default(false)

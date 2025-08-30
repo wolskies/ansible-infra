@@ -1,0 +1,162 @@
+---
+# APT Repository Discovery for Ubuntu/Debian systems
+
+- name: Check if sources.list.d directory exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d
+  register: sources_list_d_exists
+
+- name: Find repository files in sources.list.d
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+  register: repository_files
+  when: sources_list_d_exists.stat.exists
+
+- name: Read repository file contents
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  register: repository_contents
+  loop: "{{ repository_files.files }}"
+  when: repository_files.files is defined
+
+- name: Parse repository information
+  ansible.builtin.set_fact:
+    discovered_repositories: >-
+      {%- set repos = [] -%}
+      {%- if repository_contents.results is defined -%}
+        {%- for file_result in repository_contents.results -%}
+          {%- set file_content = file_result.content | b64decode -%}
+          {%- set filename = file_result.source | basename | regex_replace('\.list$', '') -%}
+          {%- for line in file_content.split('\n') -%}
+            {%- set line = line.strip() -%}
+            {%- if line and not line.startswith('#') and line.startswith('deb') -%}
+              {%- set repo_info = {
+                'name': filename,
+                'repo_line': line,
+                'gpg_key_url': ''
+              } -%}
+              {%- set _ = repos.append(repo_info) -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ repos }}
+
+- name: Enhance repository information with GPG key URL guessing
+  ansible.builtin.set_fact:
+    discovered_repositories: >-
+      {%- set enhanced_repos = [] -%}
+      {%- for repo in discovered_repositories -%}
+        {%- set repo_copy = repo.copy() -%}
+        {%- set repo_line = repo.repo_line | lower -%}
+        {%- if 'docker.com' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://download.docker.com/linux/' + ansible_distribution | lower + '/gpg'}) -%}
+        {%- elif 'nginx.org' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://nginx.org/keys/nginx_signing.key'}) -%}
+        {%- elif 'nodesource.com' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://deb.nodesource.com/gpgkey/nodesource.gpg.key'}) -%}
+        {%- elif 'packages.microsoft.com' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://packages.microsoft.com/keys/microsoft.asc'}) -%}
+        {%- elif 'dl.google.com' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://dl.google.com/linux/linux_signing_key.pub'}) -%}
+        {%- elif 'apt.postgresql.org' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://www.postgresql.org/media/keys/ACCC4CF8.asc'}) -%}
+        {%- elif 'packages.elastic.co' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://artifacts.elastic.co/GPG-KEY-elasticsearch'}) -%}
+        {%- elif 'apt.grafana.com' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://apt.grafana.com/gpg.key'}) -%}
+        {%- elif 'packages.confluent.io' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://packages.confluent.io/deb/archive.key'}) -%}
+        {%- elif 'packages.redis.io' in repo_line -%}
+          {%- set _ = repo_copy.update({'gpg_key_url': 'https://packages.redis.io/gpg'}) -%}
+        {%- elif 'ppa.launchpad.net' in repo_line -%}
+          {%- set ppa_match = repo_line | regex_search('ppa.launchpad.net/([^/]+/[^/]+)') -%}
+          {%- if ppa_match -%}
+            {%- set ppa_name = ppa_match.split('/')[1:3] | join('/') -%}
+            {%- set _ = repo_copy.update({'gpg_key_url': 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x' + ppa_name | replace('/', '_')}) -%}
+          {%- endif -%}
+        {%- endif -%}
+        {%- set _ = enhanced_repos.append(repo_copy) -%}
+      {%- endfor -%}
+      {{ enhanced_repos }}
+  when: discovered_repositories is defined and discovered_repositories | length > 0
+
+- name: Download GPG keys for discovered repositories
+  ansible.builtin.get_url:
+    url: "{{ item.gpg_key_url }}"
+    dest: "/tmp/discovered_gpg_{{ item.name }}.key"
+    mode: '0644'
+    timeout: 10
+    validate_certs: true
+  register: gpg_key_downloads
+  become: true
+  loop: "{{ discovered_repositories | default([]) }}"
+  when:
+    - ansible_os_family == "Debian"
+    - discovered_repositories is defined
+    - discovered_repositories | length > 0
+    - item.gpg_key_url != ""
+  failed_when: false
+
+- name: Read downloaded GPG key content
+  ansible.builtin.slurp:
+    src: "/tmp/discovered_gpg_{{ item.name }}.key"
+  register: gpg_key_content
+  become: true
+  loop: "{{ discovered_repositories | default([]) }}"
+  when:
+    - ansible_os_family == "Debian"
+    - discovered_repositories is defined
+    - discovered_repositories | length > 0
+    - item.gpg_key_url != ""
+    - not (gpg_key_downloads.results | selectattr('item.name', 'equalto', item.name) | map(attribute='failed') | first | default(true))
+
+- name: Clean up temporary GPG key files
+  ansible.builtin.file:
+    path: "/tmp/discovered_gpg_{{ item.name }}.key"
+    state: absent
+  become: true
+  loop: "{{ discovered_repositories | default([]) }}"
+  when:
+    - ansible_os_family == "Debian"
+    - discovered_repositories is defined
+    - discovered_repositories | length > 0
+    - item.gpg_key_url != ""
+
+- name: Enhance repositories with GPG key content
+  ansible.builtin.set_fact:
+    host_apt_repositories: >-
+      {%- set repos_with_keys = [] -%}
+      {%- for repo in discovered_repositories | default([]) -%}
+        {%- set repo_with_key = repo.copy() -%}
+        {%- if repo.gpg_key_url != "" -%}
+          {%- set gpg_content = gpg_key_content.results | selectattr('item.name', 'equalto', repo.name) | map(attribute='content') | first | default('') -%}
+          {%- if gpg_content != "" -%}
+            {%- set _ = repo_with_key.update({'gpg_key_content': gpg_content | b64decode}) -%}
+          {%- endif -%}
+        {%- endif -%}
+        {%- set _ = repos_with_keys.append(repo_with_key) -%}
+      {%- endfor -%}
+      {{ repos_with_keys }}
+  when:
+    - ansible_os_family == "Debian"
+    - discovered_repositories is defined
+    - discovered_repositories | length > 0
+
+- name: Set fallback empty repositories if none discovered
+  ansible.builtin.set_fact:
+    host_apt_repositories: []
+  when:
+    - ansible_os_family == "Debian"
+    - host_apt_repositories is not defined
+
+- name: Debug discovered repositories
+  ansible.builtin.debug:
+    msg:
+      - "Found {{ host_apt_repositories | length }} APT repositories"
+      - "{{ host_apt_repositories | default([]) }}"
+  when:
+    - discovery_debug | default(false)
+    - host_apt_repositories is defined
+

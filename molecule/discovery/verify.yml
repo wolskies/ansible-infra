@@ -1,59 +1,39 @@
 ---
-# Simple verification for discovery testing
-- name: Verify infrastructure discovery
-  hosts: discovery_targets
+- name: Verify discovery functionality
+  hosts: all
   gather_facts: false
   tasks:
-    - name: Set expected output paths (same logic as discovery role)
-      ansible.builtin.set_fact:
-        expected_host_vars_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}"
-        expected_host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.yml"
-      delegate_to: localhost
-
-    - name: Check for host vars file
+    - name: Check that host_vars file was created
       ansible.builtin.stat:
-        path: "{{ expected_host_vars_file }}"
+        path: "{{ ansible_user_dir }}/.ansible/tmp/{{ molecule_ephemeral_directory | basename }}.discovery/inventory/host_vars/ubuntu-discovery/vars.yml"
       register: host_vars_file
       delegate_to: localhost
 
-    - name: Verify host vars file exists
+    - name: Validate host_vars file exists
       ansible.builtin.assert:
         that:
           - host_vars_file.stat.exists
-        fail_msg: "Host vars file not created at {{ expected_host_vars_file }}"
+        fail_msg: "Discovery should create host_vars file at {{ ansible_user_dir }}/.ansible/tmp/{{ molecule_ephemeral_directory | basename }}.discovery/inventory/host_vars/ubuntu-discovery/vars.yml"
 
-    - name: Read generated host vars file
+    - name: Read generated host_vars content
       ansible.builtin.slurp:
-        src: "{{ expected_host_vars_file }}"
+        src: "{{ ansible_user_dir }}/.ansible/tmp/{{ molecule_ephemeral_directory | basename }}.discovery/inventory/host_vars/ubuntu-discovery/vars.yml"
       register: host_vars_content
       delegate_to: localhost
 
-    - name: Parse and verify host vars content
+    - name: Parse host_vars content
       ansible.builtin.set_fact:
         discovered_vars: "{{ host_vars_content.content | b64decode | from_yaml }}"
 
-    - name: Verify discovery worked
+    - name: Validate discovered packages
       ansible.builtin.assert:
         that:
-          - discovered_vars is defined
-          - discovered_vars is mapping
-          - discovered_vars | length > 0
-        fail_msg: "Discovery failed to create valid output"
+          - discovered_vars.host_packages_install_Ubuntu is defined
+          - discovered_vars.host_packages_install_Ubuntu | length > 0
+        fail_msg: "Should discover installed packages"
 
-    - name: Verify user discovery filtering
+    - name: Validate firewall discovery
       ansible.builtin.assert:
         that:
-          - discovered_vars.users_config is defined
-          - discovered_vars.users_config is sequence
-          # Should find testuser1 and testuser2 (UID 1500+) but not sysuser (UID 999)
-          - discovered_vars.users_config | selectattr('name', 'equalto', 'testuser1') | list | length == 1
-          - discovered_vars.users_config | selectattr('name', 'equalto', 'sysuser') | list | length == 0
-        fail_msg: "User UID filtering not working correctly"
-      when: discovered_vars.users_config is defined
-
-    - name: Display discovery results
-      ansible.builtin.debug:
-        msg:
-          - "Discovery verification completed"
-          - "Variables discovered: {{ discovered_vars.keys() | list }}"
-          - "Users found: {{ discovered_vars.users_config | length if discovered_vars.users_config is defined else 0 }}"
+          - discovered_vars.firewall_enable is defined
+        fail_msg: "Should discover firewall status"

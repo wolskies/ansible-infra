@@ -93,7 +93,7 @@ Discovery automatically provides:
 
 ## Platform Support
 
-- **Ubuntu 24+**: UFW + fail2ban
+- **Ubuntu 22+**: UFW + fail2ban
 - **Debian 12+**: UFW + fail2ban  
 - **Arch Linux**: firewalld + fail2ban
 - **macOS**: Limited (Application Layer Firewall only)

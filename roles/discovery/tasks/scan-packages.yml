@@ -117,14 +117,3 @@
         - not homebrew_intel.stat.exists
   when: ansible_distribution == "MacOSX"
 
-# Validation for unsupported distributions
-- name: Fail for unsupported distributions
-  ansible.builtin.fail:
-    msg: |
-      {{ ansible_distribution }} {{ ansible_distribution_version }} is not supported.
-      Supported distributions:
-      - Ubuntu 24+
-      - Debian 12+
-      - Arch Linux
-      - macOS
-  when: ansible_distribution not in ["Archlinux", "Ubuntu", "Debian", "MacOSX"]

@@ -1,6 +1,6 @@
 # Ansible Collection - wolskinet.infrastructure
 
-Cross-platform infrastructure automation collection with discovery-driven deployment for Ubuntu 24+, Debian 12+, Arch Linux, and macOS. Features inventory-group-based architecture and hierarchical package management.
+Cross-platform infrastructure automation collection with discovery-driven deployment for Ubuntu 22+, Debian 12+, Arch Linux, and macOS. Features inventory-group-based architecture and hierarchical package management.
 
 ## Architecture Overview
 
@@ -227,7 +227,7 @@ install_docker_services:
 
 ## Platform Support
 
-### Ubuntu 24+ / Debian 12+
+### Ubuntu 22+ / Debian 12+
 - Full APT package management with additional repositories
 - Optional snap removal with complete cleanup
 - UFW firewall configuration

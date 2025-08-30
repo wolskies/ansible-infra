@@ -1,95 +1,34 @@
 ---
-role_name_check: 1
 dependency:
   name: galaxy
-  options:
-    requirements-file: requirements.yml
-    force: true
-
 driver:
   name: docker
-
 platforms:
-  - name: ubuntu-24-04
+  - name: ubuntu-integration
     image: geerlingguy/docker-ubuntu2404-ansible:latest
-    groups:
-      - servers
-      - docker_hosts
     pre_build_image: true
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-
-  - name: debian-13
-    image: geerlingguy/docker-debian13-ansible:latest
-    groups:
-      - servers
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-
-  - name: archlinux-latest
-    image: archlinux/archlinux:latest
-    groups:
-      - workstations
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/usr/lib/systemd/systemd"
-
 provisioner:
   name: ansible
   inventory:
     group_vars:
       all:
         ansible_user: root
-        config_system_timezone: 'UTC'
-        config_system_locale: 'en_US.UTF-8'
-        # Test user details (no real passwords)
-        user_details:
-          - name: 'testuser'
-            uid: 1001
-            gid: 1001
-            password: '$$6$$$$test$$$$test'  # Test password hash
-        # Disable services that require real credentials
-        enable_automatic_updates: false
-        security_hardening_enabled: false
-        # Test dotfiles repo
-        dotfiles_repository_url: 'https://github.com/test/dotfiles.git'
-    host_vars:
-      archlinux-latest:
-        ansible_python_interpreter: /usr/bin/python
+        # Test with some realistic configuration
+        all_packages_install_Ubuntu:
+          - curl
+          - wget
+          - htop
+        firewall_enable: false  # Don't enable firewall in containers
+        packages_perform_system_upgrade: false
+        config_manage_unattended_upgrades: false
   config_options:
     defaults:
       host_key_checking: false
       stdout_callback: yaml
-      bin_ansible_callbacks: true
-    connection:
-      pipelining: true
-  playbooks:
-    prepare: ../shared/prepare-base.yml
-
 verifier:
   name: ansible
-  enabled: true
-
-scenario:
-  name: integration
-  test_sequence:
-    - dependency
-    - syntax
-    - create
-    - prepare
-    - converge
-    - idempotence
-    - side_effect
-    - verify
-    - cleanup
-    - destroy

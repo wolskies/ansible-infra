@@ -10,43 +10,71 @@
         path: /usr/bin/snap
       register: snap_binary
 
-    - name: List installed snap packages
-      ansible.builtin.command: snap list
-      register: snap_packages
-      failed_when: false
-      changed_when: false
+    - name: Get list of installed snap packages
+      community.general.snap:
+        name: hello
+        state: absent
+      check_mode: true
+      register: snap_list
       when: snap_binary.stat.exists
+
+    - name: Parse snap packages from list
+      ansible.builtin.set_fact:
+        installed_snaps: >-
+          {{
+            snap_list.msg | default('')
+            | regex_findall('snap "([^"]+)" is not installed', multiline=True)
+            | difference(['hello'])
+          }}
+      when:
+        - snap_binary.stat.exists
+        - snap_list is defined
+
+    - name: Get all snap packages (fallback method)
+      ansible.builtin.command: snap list
+      register: snap_packages_cmd
+      changed_when: false
+      failed_when: false
+      when:
+        - snap_binary.stat.exists
+        - installed_snaps is not defined or installed_snaps | length == 0
+
+    - name: Parse snap packages from command
+      ansible.builtin.set_fact:
+        installed_snaps: >-
+          {{
+            snap_packages_cmd.stdout_lines[1:] | default([])
+            | map('split')
+            | map('first')
+            | list
+          }}
+      when:
+        - snap_packages_cmd is defined
+        - snap_packages_cmd.stdout_lines is defined
 
     - name: Display snap packages that would be removed
       ansible.builtin.debug:
-        msg: "Would remove snap package: {{ item.split()[0] }}"
-      loop: "{{ snap_packages.stdout_lines[1:] if (snap_packages is defined and snap_packages.rc is defined and snap_packages.rc == 0) else [] }}"
+        msg: "Would remove snap package: {{ item }}"
+      loop: "{{ installed_snaps | default([]) }}"
       when:
-        - snap_packages is defined
-        - snap_packages.rc is defined
-        - snap_packages.rc == 0
-        - snap_packages.stdout_lines | length > 1
-        - item.split()[0] not in ['core', 'core18', 'core20', 'core22', 'snapd']
+        - installed_snaps is defined
+        - item not in ['core', 'core18', 'core20', 'core22', 'snapd', 'lxd', 'multipass']
 
-    - name: Remove all installed snap packages (with safety checks)
-      ansible.builtin.command: snap remove "{{ item.split()[0] }}"
-      loop: "{{ snap_packages.stdout_lines[1:] if (snap_packages is defined and snap_packages.rc is defined and snap_packages.rc == 0) else [] }}"
+    - name: Remove installed snap packages
+      community.general.snap:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ installed_snaps | default([]) }}"
       when:
         - snap_binary.stat.exists
-        - snap_packages is defined
-        - snap_packages.rc is defined
-        - snap_packages.rc == 0
-        - snap_packages.stdout_lines | length > 1
-        - item.split()[0] not in ['core', 'core18', 'core20', 'core22', 'snapd']
-        - item.split()[0] not in ['lxd', 'multipass']  # Don't remove critical infrastructure snaps
+        - installed_snaps is defined
+        - item not in ['core', 'core18', 'core20', 'core22', 'snapd', 'lxd', 'multipass']
       become: true
-      register: snap_removal
-      failed_when:
-        - snap_removal.rc != 0
-        - "'cannot remove' not in snap_removal.stderr | default('')"
 
-    - name: Remove core snap packages (last)
-      ansible.builtin.command: snap remove "{{ item }}"
+    - name: Remove core snap packages
+      community.general.snap:
+        name: "{{ item }}"
+        state: absent
       loop:
         - core22
         - core20

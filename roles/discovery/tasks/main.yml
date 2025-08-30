@@ -1,6 +1,24 @@
 ---
 # Simplified Discovery Role - trust Ansible's built-ins
 
+- name: Validate supported OS versions
+  ansible.builtin.fail:
+    msg: |
+      {{ ansible_distribution }} {{ ansible_distribution_version }} is not supported.
+      Supported distributions:
+      - Ubuntu 22+
+      - Debian 12+
+      - Arch Linux
+      - macOS
+  when:
+    - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 22) or
+      (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12) or
+      (ansible_distribution not in ["Archlinux", "Ubuntu", "Debian", "MacOSX"])
+  tags:
+    - always
+    - validation
+    - discovery
+
 - name: Set output path
   ansible.builtin.set_fact:
     discovery_paths:
@@ -15,6 +33,7 @@
       - "host_vars_dir: {{ discovery_paths.host_vars_dir }}"
       - "host_vars_file: {{ discovery_paths.host_vars_file }}"
   delegate_to: localhost
+  when: discovery_debug | default(false)
 
 - name: Create output directory
   ansible.builtin.file:
@@ -23,14 +42,19 @@
     mode: '0755'
   delegate_to: localhost
 
-- name: Get system facts
+- name: Gather system facts
   ansible.builtin.setup:
+
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: auto
 
 - name: Discover packages
   ansible.builtin.include_tasks: scan-packages.yml
 
-- name: Discover repositories
-  ansible.builtin.include_tasks: scan-repositories.yml
+- name: Discover APT repositories
+  ansible.builtin.include_tasks: scan-apt-repositories.yml
+  when: ansible_os_family == "Debian"
 
 - name: Discover users
   ansible.builtin.include_tasks: scan-users.yml
@@ -38,30 +62,20 @@
 - name: Discover firewall rules
   ansible.builtin.include_tasks: scan-firewall.yml
 
-- name: Get system timezone
-  ansible.builtin.command: timedatectl show -p Timezone --value
-  register: system_timezone
-  changed_when: false
-  failed_when: false
+- name: Discover language packages
+  ansible.builtin.include_tasks: scan-language-packages.yml
 
-- name: Fallback timezone detection for systems without timedatectl
-  ansible.builtin.command: readlink -f /etc/localtime
-  register: timezone_link
-  changed_when: false
+- name: Get current timezone configuration
+  community.general.timezone:
+    name: ""
+  check_mode: true
+  register: current_timezone
   failed_when: false
-  when: system_timezone.rc != 0
 
 - name: Set basic host variables (same variable names as before)
   ansible.builtin.set_fact:
     config_hostname: "{{ ansible_hostname }}"
-    config_system_timezone: >-
-      {%- if system_timezone.rc == 0 and system_timezone.stdout -%}
-        {{ system_timezone.stdout }}
-      {%- elif timezone_link.rc == 0 and timezone_link.stdout -%}
-        {{ timezone_link.stdout | regex_replace('^.*/zoneinfo/', '') }}
-      {%- else -%}
-        UTC
-      {%- endif -%}
+    config_system_timezone: "{{ current_timezone.name | default('UTC') }}"
 
 - name: Generate host variables file
   ansible.builtin.template:

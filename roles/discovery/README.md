@@ -20,7 +20,7 @@ ansible-playbook playbooks/run-discovery.yml -i inventory/hosts.yml -l target-ho
 - **Services**: Docker containers with automatic role mapping
 - **Users**: Account details, shells, groups, dotfiles repositories
 - **System**: Configuration, repositories, security settings
-- **Cross-platform**: Ubuntu 24+, Debian 12+, Arch Linux, macOS (Intel/Apple Silicon)
+- **Cross-platform**: Ubuntu 22+, Debian 12+, Arch Linux, macOS (Intel/Apple Silicon)
 
 ### 🎯 **Smart Package Filtering**
 Automatically filters out noise to focus on user-installed software:

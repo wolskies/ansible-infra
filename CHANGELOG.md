@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `dotfiles` - Automated dotfiles deployment
   - `manage_system_settings` - Performance and hardware optimization
   - `manage_language_packages` - Language ecosystem package management
-- Multi-platform support: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+- Multi-platform support: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 - Hierarchical package variable system (all/group/host levels)
 - Discovery-driven deployment workflow
 - Comprehensive documentation and examples

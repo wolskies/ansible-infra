@@ -1,78 +1,91 @@
 ---
-# Simple but functional user discovery
+# Complete user discovery using ansible.builtin.user module
 
 - name: Reset users_config to ensure clean discovery
   ansible.builtin.set_fact:
     users_config: []
 
-- name: Get user and group facts
+- name: Get user facts to find usernames
   ansible.builtin.getent:
-    database: "{{ item }}"
+    database: passwd
   become: true
-  loop:
-    - passwd
-    - group
   failed_when: false
 
-- name: Filter regular users (UID 1000-59999)
+- name: Filter to regular user accounts (UID 1000-59999)
   ansible.builtin.set_fact:
-    regular_users: "{{ regular_users | default([]) + [item] }}"
+    regular_user_names: "{{ regular_user_names | default([]) + [item.key] }}"
   loop: "{{ ansible_facts.getent_passwd | dict2items }}"
   when:
     - ansible_facts.getent_passwd is defined
     - item.value | length > 1
     - item.value[1] | string | int >= 1000
     - item.value[1] | string | int < 60000
+    - item.value[5] is defined
+    - item.value[5] != "/bin/false"
+    - item.value[5] != "/usr/sbin/nologin"
+    - item.value[5] != "/bin/nologin"
+
+- name: Query user details with ansible.builtin.user module
+  ansible.builtin.user:
+    name: "{{ item }}"
+    state: present
+  register: user_details
+  become: true
+  loop: "{{ regular_user_names | default([]) }}"
+  check_mode: true
+
 
 - name: Check for dotfiles directories
   ansible.builtin.stat:
-    path: "{{ item.value[4] }}/.dotfiles"
+    path: "{{ item.home }}/.dotfiles"
   register: dotfiles_dirs
   become: true
-  loop: "{{ regular_users }}"
-  when: regular_users | length > 0
+  loop: "{{ user_details.results | selectattr('changed', 'equalto', false) | list }}"
+  when: user_details.results is defined
 
 - name: Check for dotfiles git repositories
   ansible.builtin.stat:
-    path: "{{ item.value[4] }}/.dotfiles/.git"
+    path: "{{ item.home }}/.dotfiles/.git"
   register: dotfiles_git_dirs
   become: true
-  loop: "{{ regular_users }}"
-  when: regular_users | length > 0
+  loop: "{{ user_details.results | selectattr('changed', 'equalto', false) | list }}"
+  when: user_details.results is defined
 
 - name: Get git remote URL for dotfiles repos
-  ansible.builtin.shell: |
-    cd "{{ item.value[4] }}/.dotfiles" && git config --get remote.origin.url 2>/dev/null || echo ""
+  community.general.git_config:
+    name: remote.origin.url
+    scope: local
+    repo: "{{ item.home }}/.dotfiles"
   register: dotfiles_git_remotes
   become: true
-  loop: "{{ regular_users }}"
+  loop: "{{ user_details.results | selectattr('changed', 'equalto', false) | list }}"
   when:
-    - regular_users | length > 0
-    - dotfiles_git_dirs.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stat.exists') | first | default(false)
+    - user_details.results is defined
+    - dotfiles_git_dirs.results | selectattr('item.name', 'equalto', item.name) | map(attribute='stat.exists') | first | default(false)
   failed_when: false
-  changed_when: false
 
-- name: Build users_config for regular users (UID 1000-59999)
+- name: Build users_config from discovered user details
   ansible.builtin.set_fact:
     users_config: "{{ users_config | default([]) + [user_info] }}"
   vars:
     user_info:
-      name: "{{ item.key }}"
-      uid: "{{ item.value[1] }}"
-      gid: "{{ item.value[2] }}"
-      home: "{{ item.value[4] }}"
-      shell: "{{ item.value[5] }}"
-      groups: []  # Can be enhanced later if needed
+      name: "{{ item.name }}"
+      uid: "{{ item.uid }}"
+      home: "{{ item.home }}"
+      shell: "{{ item.shell }}"
+      comment: "{{ item.comment if item.comment != '' else omit }}"
+      groups: "{{ item.groups.split(',') if item.groups is defined and item.groups != '' else [] }}"
+      create_home: true  # Home directory exists if user was found
       dotfiles: "{{ dotfiles_config if has_dotfiles else omit }}"
     # Check if this user has dotfiles
-    has_dotfiles: "{{ dotfiles_dirs.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stat.exists') | first | default(false) }}"
+    has_dotfiles: "{{ dotfiles_dirs.results | selectattr('item.name', 'equalto', item.name) | map(attribute='stat.exists') | first | default(false) }}"
     # Get git remote URL for this user
-    git_remote_url: "{{ dotfiles_git_remotes.results | selectattr('item.key', 'equalto', item.key) | map(attribute='stdout') | first | default('') }}"
+    git_remote_url: "{{ dotfiles_git_remotes.results | selectattr('item.name', 'equalto', item.name) | map(attribute='config_value') | first | default('') }}"
     # Build dotfiles configuration
     dotfiles_config:
       enable: true
-      repo: "{{ git_remote_url if git_remote_url != '' else 'https://github.com/' + item.key + '/dotfiles' }}"
+      repo: "{{ git_remote_url if git_remote_url != '' else 'https://github.com/' + item.name + '/dotfiles' }}"
       branch: "main"
-      directory: "{{ item.value[4] }}/.dotfiles"
-  loop: "{{ regular_users }}"
-  when: regular_users | length > 0
+      directory: "{{ item.home }}/.dotfiles"
+  loop: "{{ user_details.results | selectattr('changed', 'equalto', false) | list }}"
+  when: user_details.results is defined

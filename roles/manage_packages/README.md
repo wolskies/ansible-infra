@@ -171,7 +171,7 @@ host_packages_install_Ubuntu: [redis-server, postgresql-client]
 
 ## Platform Support
 
-### Ubuntu 24.04+ / Debian 12+
+### Ubuntu 22+ / Debian 12+
 - **Package Manager**: APT with automatic cache management
 - **Repositories**: PPA and third-party repository support
 - **GPG Keys**: Automatic key import for repositories

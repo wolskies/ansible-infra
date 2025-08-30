@@ -1,7 +1,7 @@
 ---
 # manage_system_settings role defaults - SECURITY-HARDENED VERSION
 # Handles specialized system configurations with proper security controls
-# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
 # PERFORMANCE SETTINGS CONFIGURATION

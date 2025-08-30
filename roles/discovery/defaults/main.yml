@@ -1,7 +1,7 @@
 ---
 # discovery role defaults - Infrastructure discovery and inventory generation
 # This role scans existing systems and generates Ansible inventory and configuration
-# Supports: Ubuntu 24+, Debian 12+, Arch Linux, macOS
+# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
 # DISCOVERY OUTPUT CONTROL
@@ -179,6 +179,33 @@ discovery_user_configuration_defaults:
     disable_password_auth: false      # Force SSH key-only authentication
 
 # =============================================================================
+# INFRASTRUCTURE PACKAGE FILTERING
+# =============================================================================
+
+# Packages that should be filtered out because they're handled by dedicated roles
+discovery_infrastructure_packages:
+  docker:
+    - "docker-ce"
+    - "docker-ce-cli"
+    - "docker-compose-plugin"
+    - "containerd.io"
+    - "docker.io"
+    - "docker-compose"
+  nvidia:
+    - "nvidia-container-toolkit"
+    - "libnvidia-container*"
+    - "nvidia-container-runtime"
+  gitlab:
+    - "gitlab-runner"
+  # Add more infrastructure packages as needed
+
+# Additional patterns to filter (regex patterns for complex matching)
+discovery_infrastructure_patterns:
+  - "^libnvidia-.*"
+  - "^nvidia-driver-.*"
+  - "^docker-.*-plugin$"
+
+# =============================================================================
 # USAGE EXAMPLES AND INTEGRATION
 # =============================================================================
 
@@ -195,7 +222,8 @@ discovery_user_configuration_defaults:
 #   - users_config (user configuration list)
 #   - configure_* variables (system configuration)
 #   - firewall_* variables (firewall configuration)
-#   - languages_* variables (language package flags)
+#   - language_*_packages variables (discovered language-specific packages)
+#   - language_*_enable variables (language ecosystem flags)
 #   - system_settings_* variables (system optimization flags)
 #
 # CUSTOMIZING DISCOVERY BEHAVIOR:
