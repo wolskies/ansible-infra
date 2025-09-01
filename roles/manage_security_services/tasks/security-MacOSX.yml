@@ -1,0 +1,44 @@
+---
+# macOS security services configuration
+
+- name: Configure macOS Application Layer Firewall
+  block:
+    - name: Check current firewall state
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+      register: macos_firewall_state_result
+      changed_when: false
+      become: true
+
+    - name: Enable macOS Application Layer Firewall
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+      become: true
+      register: macos_firewall_enable_result
+      changed_when: "'Firewall is enabled' not in macos_firewall_state_result.stdout"
+      when: "'Firewall is enabled' not in macos_firewall_state_result.stdout"
+
+    - name: Configure stealth mode
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode {{ 'on' if security_macos_firewall.stealth_mode else 'off' }}
+      become: true
+      register: macos_stealth_result
+      changed_when: macos_stealth_result.rc == 0
+      when: security_macos_firewall.stealth_mode is defined
+
+    - name: Configure block all setting
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setblockall {{ 'on' if security_macos_firewall.block_all else 'off' }}
+      become: true
+      register: macos_blockall_result
+      changed_when: macos_blockall_result.rc == 0
+      when: security_macos_firewall.block_all is defined
+
+    - name: Configure firewall logging
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setloggingmode {{ 'on' if security_macos_firewall.logging else 'off' }}
+      become: true
+      register: macos_logging_result
+      changed_when: macos_logging_result.rc == 0
+      when: security_macos_firewall.logging is defined
+
+  when: security_macos_firewall.enabled | default(true)
+  tags:
+    - macos
+    - firewall
+    - security

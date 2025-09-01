@@ -1,0 +1,35 @@
+---
+- name: Configure Operating System
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.os_configuration
+  tags:
+    - os-configuration
+    - configure-system
+
+- name: Manage Security Services
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.manage_security_services
+  tags:
+    - security-services
+    - configure-system
+
+- name: Manage Users
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.manage_users
+  tags:
+    - users
+    - configure-system
+
+- name: Manage Packages and Repos
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.manage_packages
+  tags:
+    - packages
+    - configure-system
+
+- name: Include Third Party Packages
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.manage_third_party
+  tags:
+    - third-party
+    - configure-system

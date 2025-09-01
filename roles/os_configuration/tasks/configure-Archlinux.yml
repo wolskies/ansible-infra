@@ -1,0 +1,96 @@
+---
+- name: Configure pacman unattended upgrades (systemd timer)
+  block:
+    - name: Create pacman upgrade timer
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Pacman upgrade timer
+
+          [Timer]
+          OnCalendar=daily
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+        dest: /etc/systemd/system/pacman-upgrade.timer
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+
+    - name: Create pacman upgrade service
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Pacman upgrade
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/pacman -Syu --noconfirm
+        dest: /etc/systemd/system/pacman-upgrade.service
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+
+    - name: Enable and start pacman upgrade timer
+      ansible.builtin.systemd:
+        name: pacman-upgrade.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+      become: true
+
+  when: config_archlinux.unattended_upgrades.enabled | default(false)
+  tags:
+    - updates
+    - security
+
+- name: Arch Linux system optimizations
+  block:
+    - name: Disable unnecessary services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop: "{{ config_archlinux.services.unnecessary_services }}"
+      become: true
+      when: config_archlinux.services.disable_unnecessary | default(false)
+      failed_when: false
+
+    - name: Configure vm.swappiness
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "{{ config_archlinux.optimizations.swappiness | default(10) }}"
+        state: present
+        reload: true
+      become: true
+      when: config_archlinux.optimizations.tune_swappiness | default(false)
+  tags:
+    - optimization
+
+- name: Configure Pacman behavior
+  block:
+    - name: Configure pacman to skip confirms
+      ansible.builtin.lineinfile:
+        path: /etc/pacman.conf
+        regexp: '^#?NoConfirm'
+        line: 'NoConfirm'
+        state: present
+      become: true
+      when: config_archlinux.pacman.no_confirms | default(false)
+
+    - name: Configure pacman proxy
+      ansible.builtin.lineinfile:
+        path: /etc/pacman.conf
+        regexp: '^#?Server.*{{ config_archlinux.pacman.proxy }}'
+        insertafter: '^\[.*\]'
+        line: 'Server = {{ config_archlinux.pacman.proxy }}/$repo/os/$arch'
+        state: present
+      become: true
+      when: config_archlinux.pacman.proxy != ""
+
+  tags:
+    - pacman
+    - packages

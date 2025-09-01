@@ -1,0 +1,16 @@
+---
+# handlers file for manage_security_services
+
+- name: restart fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+  become: true
+  when: ansible_system == 'Linux'
+
+- name: reload fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: reloaded
+  become: true
+  when: ansible_system == 'Linux'

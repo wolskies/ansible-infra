@@ -1,6 +1,0 @@
----
-# Arch Linux-specific host configuration tasks
-# Platform-unique features only - common tasks handled in main.yml
-
-# Currently no Arch-specific configuration tasks
-# Reflector configuration has been moved to manage_packages role

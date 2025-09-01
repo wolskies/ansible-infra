@@ -1,0 +1,154 @@
+---
+
+- name: Configure macOS NTP time synchronization
+  block:
+    - name: Check current NTP server configuration
+      ansible.builtin.command: systemsetup -getnetworktimeserver
+      register: current_ntp_server
+      changed_when: false
+      become: true
+
+    - name: Enable network time synchronization
+      ansible.builtin.command: systemsetup -setusingnetworktime on
+      become: true
+      register: ntp_enable_result
+      changed_when: "'Network Time' in ntp_enable_result.stderr or ntp_enable_result.rc == 0"
+      when: config_common_ntp.enabled | default(true)
+
+    - name: Set NTP server (first server from list)
+      ansible.builtin.command: "systemsetup -setnetworktimeserver {{ config_common_ntp.servers[0] }}"
+      become: true
+      register: ntp_server_result
+      changed_when: ntp_server_result.rc == 0
+      when:
+        - config_common_ntp.enabled | default(true)
+        - config_common_ntp.servers | length > 0
+        - config_common_ntp.servers[0] not in current_ntp_server.stdout
+
+    - name: Disable network time synchronization
+      ansible.builtin.command: systemsetup -setusingnetworktime off
+      become: true
+      register: ntp_disable_result
+      changed_when: "'Network Time' in ntp_disable_result.stderr or ntp_disable_result.rc == 0"
+      when: not (config_common_ntp.enabled | default(true))
+
+  when: config_common_ntp is defined
+  tags:
+    - ntp
+    - time
+    - macos
+
+- name: Configure macOS locale
+  block:
+    - name: Set system locale
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleLocale
+        type: string
+        value: "{{ config_common_locale.locale.split('.')[0] }}"
+      when: config_common_locale.locale is defined
+      notify: restart cfprefsd
+
+    - name: Set preferred languages
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleLanguages
+        type: array
+        value:
+          - "{{ config_common_locale.language.split('.')[0] }}"
+      when: config_common_locale.language is defined
+      notify: restart cfprefsd
+
+  when: config_common_locale is defined
+  tags:
+    - locale
+    - language
+    - macos
+
+- name: Configure macOS hostname
+  block:
+    - name: Get current macOS ComputerName
+      ansible.builtin.command: scutil --get ComputerName
+      register: current_computer_name
+      changed_when: false
+      failed_when: false
+
+    - name: Set macOS ComputerName
+      ansible.builtin.command: scutil --set ComputerName "{{ config_macos.computer_name | default(_hostname) }}"
+      become: true
+      when:
+        - current_computer_name.rc != 0 or current_computer_name.stdout != (config_macos.computer_name | default(_hostname))
+      changed_when: true
+
+    - name: Get current macOS HostName
+      ansible.builtin.command: scutil --get HostName
+      register: current_hostname
+      changed_when: false
+      failed_when: false
+
+    - name: Set macOS HostName (FQDN)
+      ansible.builtin.command: scutil --set HostName "{{ _fqdn }}"
+      become: true
+      when:
+        - current_hostname.rc != 0 or current_hostname.stdout != _fqdn
+      changed_when: true
+
+    - name: Get current macOS LocalHostName
+      ansible.builtin.command: scutil --get LocalHostName
+      register: current_local_hostname
+      changed_when: false
+      failed_when: false
+
+    - name: Set macOS LocalHostName (Bonjour name)
+      ansible.builtin.command: scutil --set LocalHostName "{{ _hostname | regex_replace('[^a-zA-Z0-9-]', '-') }}"
+      become: true
+      when:
+        - current_local_hostname.rc != 0 or current_local_hostname.stdout != (_hostname | regex_replace('[^a-zA-Z0-9-]', '-'))
+      changed_when: true
+
+    - name: Update macOS /etc/hosts file
+      block:
+        - name: Backup /etc/hosts before modification
+          ansible.builtin.copy:
+            src: /etc/hosts
+            dest: /etc/hosts.backup.{{ ansible_date_time.epoch }}
+            owner: root
+            group: wheel
+            mode: '0644'
+            remote_src: true
+          become: true
+
+        - name: Update /etc/hosts - Add FQDN and hostname
+          ansible.builtin.lineinfile:
+            path: /etc/hosts
+            regexp: '^127\.0\.0\.1\s+.*{{ _hostname }}.*'
+            line: "127.0.0.1\tlocalhost {{ _fqdn }} {{ _hostname }}"
+            create: false
+          become: true
+
+      when: config_common_update_hosts | default(true)
+
+  when:
+    - _hostname_changed or _domain_changed
+    - ansible_distribution == 'MacOSX'
+  tags:
+    - hostname
+    - macos
+
+- name: Configure macOS automatic updates
+  community.general.osx_defaults:
+    domain: /Library/Preferences/com.apple.SoftwareUpdate
+    key: "{{ item.key }}"
+    type: bool
+    value: "{{ item.value }}"
+  loop:
+    - { key: "AutomaticCheckEnabled", value: "{{ config_macos.updates.auto_check | default(true) }}" }
+    - { key: "AutomaticDownload", value: "{{ config_macos.updates.auto_check | default(true) }}" }
+  become: true
+  notify: restart cfprefsd
+  when: config_macos.updates is defined
+  tags:
+    - macos
+    - updates
+    - system
+

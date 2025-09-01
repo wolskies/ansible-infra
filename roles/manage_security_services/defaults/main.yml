@@ -1,0 +1,75 @@
+---
+# manage_security_services role defaults
+# Security services management: fail2ban, intrusion prevention, firewall services
+# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
+
+# =============================================================================
+# CORE SECURITY SERVICES CONFIGURATION
+# =============================================================================
+
+# Enable security services management
+security_services_enabled: false       # Master switch for security services
+
+# =============================================================================
+# FIREWALL SERVICE MANAGEMENT (OS INSTALLATION)
+# =============================================================================
+
+# Basic firewall service installation and enablement
+security_firewall_install: true        # Install firewall packages (UFW, etc.)
+security_firewall_enable: true         # Enable firewall service
+security_firewall_start: true          # Start firewall service
+
+# Platform-specific firewall tools
+security_firewall_tool_preference:
+  Ubuntu: "ufw"                         # Ubuntu Uncomplicated Firewall
+  Debian: "ufw"                         # UFW is common on Debian
+  Archlinux: "ufw"                      # UFW is commonly used on Arch
+  MacOSX: "macos_alf"                   # macOS Application Layer Firewall
+
+# =============================================================================
+# MACOS FIREWALL CONFIGURATION (MOVED FROM os_configuration)
+# =============================================================================
+
+# macOS-specific firewall settings
+security_macos_firewall:
+  enabled: true                         # Enable macOS firewall management
+  stealth_mode: false                   # Enable stealth mode
+  block_all: false                      # Block all incoming connections
+  logging: false                        # Enable built-in firewall logging
+
+# =============================================================================
+# FAIL2BAN INTRUSION PREVENTION
+# =============================================================================
+
+# Fail2ban core settings
+security_fail2ban_enabled: false       # Install and configure fail2ban
+security_fail2ban_sender: "root@localhost"  # Email sender for notifications
+security_fail2ban_dest_email: ""       # Destination email for alerts
+
+# Default fail2ban settings
+security_fail2ban_default_bantime: 3600     # Default ban time (1 hour)
+security_fail2ban_default_findtime: 600     # Default find time (10 minutes)
+security_fail2ban_default_maxretry: 5       # Default max retry attempts
+
+# Fail2ban service configurations
+security_fail2ban_services:
+  - name: sshd
+    enabled: true
+    maxretry: 5
+    bantime: 3600                       # 1 hour
+    findtime: 600                       # 10 minutes
+    logpath: /var/log/auth.log
+
+# IP addresses to ignore (never ban)
+security_fail2ban_ignoreips:
+  - "127.0.0.1/8"                      # Localhost
+  - "::1"                               # IPv6 localhost
+
+# =============================================================================
+# FUTURE SECURITY SERVICES
+# =============================================================================
+
+# Placeholder for future security service integrations
+security_intrusion_detection_enabled: false  # Future: OSSEC, Suricata, etc.
+security_log_monitoring_enabled: false       # Future: Log analysis tools
+security_audit_enabled: false               # Future: Security auditing tools

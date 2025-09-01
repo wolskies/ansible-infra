@@ -1,0 +1,172 @@
+---
+# Third-party tool and service management
+# Standalone role for installing development tools and services
+
+- name: Validate supported OS versions
+  ansible.builtin.fail:
+    msg: |
+      {{ ansible_distribution }} {{ ansible_distribution_version }} is not supported.
+      Supported distributions: Ubuntu 22+, Debian 12+, Arch Linux, macOS
+  when:
+    - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 22) or
+      (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12) or
+      (ansible_distribution not in ["Archlinux", "Ubuntu", "Debian", "MacOSX"])
+  tags:
+    - always
+    - validation
+
+# =============================================================================
+# DOCKER INSTALLATION
+# =============================================================================
+
+- name: Install Docker
+  ansible.builtin.include_tasks: install-docker.yml
+  when: manage_third_party_tools.docker | default(false)
+  tags:
+    - docker
+    - third-party
+
+# =============================================================================
+# NODE.JS INSTALLATION
+# =============================================================================
+
+- name: Install Node.js
+  ansible.builtin.include_tasks: install-nodejs.yml
+  when: manage_third_party_tools.nodejs | default(false)
+  tags:
+    - nodejs
+    - third-party
+
+# =============================================================================
+# PYTHON UV INSTALLATION
+# =============================================================================
+
+- name: Install Python uv
+  ansible.builtin.include_tasks: install-python-uv.yml
+  when: manage_third_party_tools.python_uv | default(false)
+  tags:
+    - python
+    - uv
+    - third-party
+
+# =============================================================================
+# RUST INSTALLATION
+# =============================================================================
+
+- name: Install Rust
+  ansible.builtin.include_tasks: install-rust.yml
+  when: manage_third_party_tools.rust | default(false)
+  tags:
+    - rust
+    - third-party
+
+# =============================================================================
+# GO INSTALLATION
+# =============================================================================
+
+- name: Install Go
+  ansible.builtin.include_tasks: install-go.yml
+  when: manage_third_party_tools.go | default(false)
+  tags:
+    - go
+    - third-party
+
+# =============================================================================
+# INFRASTRUCTURE TOOLS
+# =============================================================================
+
+- name: Install Terraform
+  ansible.builtin.include_tasks: install-terraform.yml
+  when: manage_third_party_tools.terraform | default(false)
+  tags:
+    - terraform
+    - infrastructure
+    - third-party
+
+- name: Install kubectl
+  ansible.builtin.include_tasks: install-kubectl.yml
+  when: manage_third_party_tools.kubectl | default(false)
+  tags:
+    - kubectl
+    - kubernetes
+    - third-party
+
+- name: Install Helm
+  ansible.builtin.include_tasks: install-helm.yml
+  when: manage_third_party_tools.helm | default(false)
+  tags:
+    - helm
+    - kubernetes
+    - third-party
+
+# =============================================================================
+# HASHICORP TOOLS
+# =============================================================================
+
+- name: Install HashiCorp Vault
+  ansible.builtin.include_tasks: install-vault.yml
+  when: manage_third_party_tools.vault | default(false)
+  tags:
+    - vault
+    - hashicorp
+    - third-party
+
+- name: Install HashiCorp Consul
+  ansible.builtin.include_tasks: install-consul.yml
+  when: manage_third_party_tools.consul | default(false)
+  tags:
+    - consul
+    - hashicorp
+    - third-party
+
+# =============================================================================
+# DEVELOPMENT TOOLS
+# =============================================================================
+
+- name: Install Visual Studio Code
+  ansible.builtin.include_tasks: install-vscode.yml
+  when: manage_third_party_tools.vscode | default(false)
+  tags:
+    - vscode
+    - editor
+    - third-party
+
+- name: Install JetBrains Toolbox
+  ansible.builtin.include_tasks: install-jetbrains.yml
+  when: manage_third_party_tools.jetbrains_toolbox | default(false)
+  tags:
+    - jetbrains
+    - ide
+    - third-party
+
+# =============================================================================
+# VERSION CONTROL TOOLS
+# =============================================================================
+
+- name: Install Git LFS
+  ansible.builtin.include_tasks: install-git-lfs.yml
+  when: manage_third_party_tools.git_lfs | default(false)
+  tags:
+    - git
+    - git-lfs
+    - third-party
+
+# =============================================================================
+# ANSIBLE (LATEST VERSION)
+# =============================================================================
+
+- name: Install latest Ansible
+  ansible.builtin.include_tasks: install-ansible.yml
+  when: manage_third_party_tools.ansible | default(false)
+  tags:
+    - ansible
+    - automation
+    - third-party
+
+- name: Third-party tools installation completed
+  ansible.builtin.debug:
+    msg:
+      - "✅ Third-party tools installation completed"
+      - "Installed tools: {{ manage_third_party_tools | dict2items | selectattr('value') | map(attribute='key') | list }}"
+  tags:
+    - third-party

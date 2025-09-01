@@ -1,68 +1,42 @@
 ---
 # manage_firewall main tasks
-# Simple, idempotent firewall and fail2ban management
+# Pure firewall rule management - assumes firewall service is already installed and enabled
 
-# Firewall configuration
-- name: Configure firewall
-  block:
-    - name: Determine firewall tool
-      ansible.builtin.set_fact:
-        selected_firewall_tool: >-
-          {%- if firewall_type != 'auto' -%}
-            {{ firewall_type }}
-          {%- elif ansible_distribution in firewall_tool_preference -%}
-            {{ firewall_tool_preference[ansible_distribution] }}
-          {%- elif ansible_distribution in ['Ubuntu', 'Debian'] -%}
-            ufw
-          {%- elif ansible_os_family == 'RedHat' -%}
-            firewalld
-          {%- else -%}
-            iptables
-          {%- endif %}
-
-    - name: Validate firewall configuration
-      ansible.builtin.fail:
-        msg: "Invalid rule in firewall_custom_rules: {{ item }} - must have either 'port' or 'name'"
-      loop: "{{ firewall_custom_rules }}"
-      when:
-        - firewall_custom_rules is defined
-        - item.port is not defined and item.name is not defined
-
-    - name: Include firewall tasks
-      ansible.builtin.include_tasks: "firewall-{{ ansible_distribution }}.yml"
-      when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
-
-  when: firewall_enable | default(false)
+- name: Validate firewall rule configuration
+  ansible.builtin.fail:
+    msg: "Invalid rule in firewall_custom_rules: {{ item }} - must have either 'port' or 'name'"
+  loop: "{{ firewall_custom_rules }}"
+  when:
+    - firewall_custom_rules is defined
+    - item.port is not defined and item.name is not defined
   tags:
+    - always
+    - validation
     - firewall
 
-# Fail2ban configuration
-- name: Configure fail2ban
-  block:
-    - name: Install fail2ban
-      ansible.builtin.package:
-        name: fail2ban
-        state: present
-      become: true
+- name: Determine firewall tool
+  ansible.builtin.set_fact:
+    selected_firewall_tool: >-
+      {%- if firewall_type != 'auto' -%}
+        {{ firewall_type }}
+      {%- elif ansible_distribution in firewall_tool_preference -%}
+        {{ firewall_tool_preference[ansible_distribution] }}
+      {%- elif ansible_distribution in ['Ubuntu', 'Debian'] -%}
+        ufw
+      {%- elif ansible_os_family == 'RedHat' -%}
+        firewalld
+      {%- else -%}
+        iptables
+      {%- endif %}
+  tags:
+    - always
+    - firewall
 
-    - name: Create fail2ban local configuration
-      ansible.builtin.template:
-        src: jail.local.j2
-        dest: /etc/fail2ban/jail.local
-        owner: root
-        group: root
-        mode: '0644'
-      become: true
-      notify: restart fail2ban
-
-    - name: Ensure fail2ban is started and enabled
-      ansible.builtin.service:
-        name: fail2ban
-        state: started
-        enabled: true
-      become: true
-
-  when: firewall_enable_fail2ban | default(false)
+- name: Configure firewall rules
+  ansible.builtin.include_tasks: "firewall-{{ ansible_distribution }}.yml"
+  when:
+    - firewall_manage_rules | default(true)
+    - ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
   tags:
     - firewall
-    - fail2ban
+    - firewall-rules
