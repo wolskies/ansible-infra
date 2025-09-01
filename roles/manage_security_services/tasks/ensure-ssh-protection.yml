@@ -1,0 +1,24 @@
+---
+# Ensure SSH access is included in firewall rules to prevent lockout
+
+- name: Check if SSH rule already exists in firewall_rules
+  ansible.builtin.set_fact:
+    _ssh_rule_exists: >-
+      {{
+        (firewall_rules | default([]) | selectattr('port', 'defined') | selectattr('port', 'equalto', '22') | list | length > 0) or
+        (firewall_rules | default([]) | selectattr('name', 'defined') | selectattr('name', 'match', '(?i)ssh|openssh') | list | length > 0)
+      }}
+
+- name: Add SSH rule to firewall_rules if not present
+  ansible.builtin.set_fact:
+    firewall_rules: >-
+      {{
+        [{"rule": "allow", "port": "22", "proto": "tcp", "comment": "SSH access (prevent lockout)"}] +
+        (firewall_rules | default([]))
+      }}
+  when: not (_ssh_rule_exists | bool)
+
+- name: Apply firewall rules including SSH protection
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.manage_firewall
+  when: firewall_rules | default([]) | length > 0
