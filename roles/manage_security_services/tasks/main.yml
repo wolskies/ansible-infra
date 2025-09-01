@@ -31,11 +31,26 @@
     - security-services
     - firewall-services
 
+- name: Ensure UFW rate limiting is configured (Linux)
+  community.general.ufw:
+    rule: limit
+    port: "22"
+    proto: tcp
+    comment: "{{ security_firewall_linux.rate_limiting.comment | default('SSH rate limiting') }}"
+  become: true
+  when:
+    - ansible_system == 'Linux'
+    - security_firewall_linux.rate_limiting.enabled | default(false)
+  tags:
+    - security-services
+    - firewall-services
+    - rate-limiting
+
 - name: Ensure firewall rules are configured (Linux)
   ansible.builtin.include_role:
     name: wolskinet.infrastructure.manage_firewall
   vars:
-    firewall_custom_rules: "{{ security_firewall_common.default_rules | default([]) }}"
+    firewall_rules: "{{ security_firewall_common.default_rules | default([]) }}"
   when:
     - ansible_system == 'Linux'
     - security_firewall_common.start | default(true)

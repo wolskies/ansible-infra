@@ -1,42 +1,35 @@
 ---
 # manage_firewall main tasks
-# Pure firewall rule management - assumes firewall service is already installed and enabled
+# Pure firewall rule management - assumes firewall service is already installed and configured
 
-- name: Validate firewall rule configuration
+- name: Validate supported platforms
   ansible.builtin.fail:
-    msg: "Invalid rule in firewall_custom_rules: {{ item }} - must have either 'port' or 'name'"
-  loop: "{{ firewall_custom_rules }}"
+    msg: >-
+      {{ ansible_distribution }} is not supported.
+      Supported: Ubuntu 22+, Debian 12+, Arch Linux
   when:
-    - firewall_custom_rules is defined
-    - item.port is not defined and item.name is not defined
+    - ansible_system == 'Linux'
+    - ansible_distribution not in ['Ubuntu', 'Debian', 'Archlinux']
   tags:
     - always
     - validation
     - firewall
 
-- name: Determine firewall tool
-  ansible.builtin.set_fact:
-    selected_firewall_tool: >-
-      {%- if firewall_type != 'auto' -%}
-        {{ firewall_type }}
-      {%- elif ansible_distribution in firewall_tool_preference -%}
-        {{ firewall_tool_preference[ansible_distribution] }}
-      {%- elif ansible_distribution in ['Ubuntu', 'Debian'] -%}
-        ufw
-      {%- elif ansible_os_family == 'RedHat' -%}
-        firewalld
-      {%- else -%}
-        iptables
-      {%- endif %}
-  tags:
-    - always
-    - firewall
-
-- name: Configure firewall rules
-  ansible.builtin.include_tasks: "firewall-{{ ansible_distribution }}.yml"
+- name: Apply firewall rules (UFW backend)
+  ansible.builtin.include_tasks: firewall-ufw.yml
   when:
-    - firewall_manage_rules | default(true)
-    - ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux', 'MacOSX']
+    - ansible_system == 'Linux'
+    - firewall_backend == 'ufw'
   tags:
     - firewall
     - firewall-rules
+
+# Future: Add support for other backends
+# - name: Apply firewall rules (firewalld backend)
+#   ansible.builtin.include_tasks: firewall-firewalld.yml
+#   when:
+#     - ansible_system == 'Linux'
+#     - firewall_backend == 'firewalld'
+#   tags:
+#     - firewall
+#     - firewall-rules
