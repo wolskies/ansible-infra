@@ -6,11 +6,7 @@
 security_firewall_common:
   enabled: true
   start: true
-  default_rules:
-    - rule: allow
-      port: "22"
-      protocol: tcp
-      comment: "SSH access (prevent lockout)"
+  prevent_ssh_lockout: true             # Automatically ensure SSH access is allowed
 
 security_firewall_linux:
   package: "ufw"

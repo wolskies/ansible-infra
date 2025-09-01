@@ -46,15 +46,12 @@
     - firewall-services
     - rate-limiting
 
-- name: Ensure firewall rules are configured (Linux)
-  ansible.builtin.include_role:
-    name: wolskinet.infrastructure.manage_firewall
-  vars:
-    firewall_rules: "{{ security_firewall_common.default_rules | default([]) }}"
+- name: Ensure firewall rules include SSH protection (Linux)
+  ansible.builtin.include_tasks: ensure-ssh-protection.yml
   when:
     - ansible_system == 'Linux'
     - security_firewall_common.start | default(true)
-    - security_firewall_common.default_rules | default([]) | length > 0
+    - security_firewall_common.prevent_ssh_lockout | default(true)
   tags:
     - security-services
     - firewall-services
