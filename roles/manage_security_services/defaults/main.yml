@@ -14,6 +14,11 @@ security_firewall_common:
 
 security_firewall_linux:
   package: "ufw"
+  rate_limiting:
+    enabled: false              # Enable connection rate limiting
+    connections: 6              # Number of connections allowed
+    period: 30                  # Time period in seconds
+    comment: "Rate limiting rule"
 
 security_firewall_macosx:
   package: "macos_alf"

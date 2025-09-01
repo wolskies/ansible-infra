@@ -1,64 +1,93 @@
 ---
-# Manages firewall rules
-# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
-
 # =============================================================================
-# FIREWALL RULE CONFIGURATION
+# FIREWALL RULE MANAGEMENT
 # =============================================================================
+# This role manages firewall rules only. Service installation and configuration
+# is handled by manage_security_services role.
+#
+# All parameters match community.general.ufw module options:
+# https://docs.ansible.com/ansible/latest/collections/community/general/ufw_module.html
 
-# Core rule management
-firewall_manage_rules: true            # Whether to manage firewall rules
-firewall_type: "auto"                  # auto, ufw, firewalld, iptables, pf
-firewall_reset_to_defaults: false      # Reset firewall rules before applying new ones
+firewall_rules: []
 
-# Rule behavior
-firewall_logging: false                # Enable firewall logging
-firewall_log_level: low                # Logging level (low, medium, high, full)
-firewall_ipv6_enabled: true            # Apply rules to IPv6 as well
-
-# =============================================================================
-# ACCESS CONTROL
-# =============================================================================
-
-# Simple port lists (recommended for basic configurations)
-firewall_allowed_ports: []             # List of ports to allow (e.g., ["80", "443"])
-firewall_allowed_services: []          # List of service names (e.g., ["http", "https"])
-                                        # Note: SSH is always allowed automatically to prevent lockout
-
-# Denied ports and services
-firewall_denied_ports: []              # List of ports to explicitly deny
-firewall_denied_services: []           # List of services to explicitly deny
-
-# Advanced port configuration
-firewall_custom_rules: []              # Complex rules with source restrictions
-# Example:
-# firewall_custom_rules:
-#   - rule: allow                       # allow, deny, reject, limit
+# Example rules using all available UFW module parameters:
+# firewall_rules:
+#   # Basic port rule
+#   - rule: allow
+#     port: 80
+#     proto: tcp
+#     comment: "HTTP traffic"
+#
+#   # Port range
+#   - rule: allow
+#     port: 8000:8100
+#     proto: tcp
+#     comment: "Application port range"
+#
+#   # Service by name
+#   - rule: allow
+#     name: OpenSSH
+#     comment: "SSH service"
+#
+#   # Source-specific rule
+#   - rule: allow
 #     port: 3306
-#     protocol: tcp
-#     source: "10.0.1.0/24"
+#     proto: tcp
+#     src: 10.0.1.0/24
 #     comment: "MySQL from app subnet"
+#
+#   # Destination-specific rule
 #   - rule: allow
-#     port: 6379
-#     protocol: tcp
-#     source: "192.168.1.0/24"
-#     comment: "Redis from local network"
+#     port: 443
+#     proto: tcp
+#     dest: 192.168.1.10
+#     comment: "HTTPS to specific server"
+#
+#   # Interface-specific rule
 #   - rule: allow
-#     name: "OpenSSH"
-#     comment: "SSH access"
+#     interface: eth1
+#     direction: in
+#     port: 22
+#     proto: tcp
+#     comment: "SSH on private interface"
+#
+#   # Deny rule
+#   - rule: deny
+#     port: 23
+#     proto: tcp
+#     comment: "Block telnet"
+#
+#   # Rate limiting rule
+#   - rule: limit
+#     port: 22
+#     proto: tcp
+#     comment: "SSH rate limiting"
+#
+#   # Reject with message
+#   - rule: reject
+#     port: 25
+#     proto: tcp
+#     comment: "Reject SMTP with message"
+#
+#   # From any to any on interface
+#   - rule: allow
+#     interface: docker0
+#     direction: in
+#     comment: "Allow all docker traffic"
+#
+#   # IPv6 specific
+#   - rule: allow
+#     port: 80
+#     proto: tcp
+#     to_ip: '::1'
+#     comment: "IPv6 localhost HTTP"
+#
+#   # Delete a rule (set delete: yes)
+#   - rule: allow
+#     port: 9999
+#     proto: tcp
+#     delete: yes
+#     comment: "Remove old service port"
 
-# Rate limiting
-firewall_rate_limit_enabled: false     # Enable connection rate limiting
-firewall_rate_limit_burst: 6           # Burst connections allowed
-firewall_rate_limit_seconds: 30        # Time window for rate limiting
-
-# =============================================================================
-# PLATFORM-SPECIFIC FEATURES
-# =============================================================================
-
-# OS-specific tool preferences
-firewall_tool_preference:
-  Ubuntu: "ufw"                         # Ubuntu Uncomplicated Firewall
-  Debian: "ufw"                         # UFW is common on Debian
-  Archlinux: "ufw"                      # UFW is commonly used on Arch
-  MacOSX: "macos_alf"                   # macOS Application Layer Firewall (rule management only)
+# Firewall backend selection (for future expansion)
+firewall_backend: "ufw"  # Currently only UFW is supported

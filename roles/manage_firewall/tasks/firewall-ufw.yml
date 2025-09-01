@@ -1,0 +1,39 @@
+---
+# UFW firewall rule management
+# Assumes UFW is already installed and enabled by manage_security_services
+
+- name: Ensure SSH access is maintained (safety)
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    comment: "SSH access (prevent lockout)"
+  become: true
+  tags:
+    - firewall
+    - firewall-rules
+    - ssh-safety
+
+- name: Ensure firewall rules are applied
+  community.general.ufw:
+    rule: "{{ item.rule | default('allow') }}"
+    port: "{{ item.port | default(omit) }}"
+    proto: "{{ item.proto | default(item.protocol | default(omit)) }}"
+    name: "{{ item.name | default(omit) }}"
+    src: "{{ item.src | default(item.source | default(omit)) }}"
+    dest: "{{ item.dest | default(item.destination | default(omit)) }}"
+    to_ip: "{{ item.to_ip | default(omit) }}"
+    from_ip: "{{ item.from_ip | default(omit) }}"
+    interface: "{{ item.interface | default(omit) }}"
+    direction: "{{ item.direction | default(omit) }}"
+    delete: "{{ item.delete | default(false) }}"
+    comment: "{{ item.comment | default(omit) }}"
+    route: "{{ item.route | default(omit) }}"
+    log: "{{ item.log | default(omit) }}"
+  loop: "{{ firewall_rules }}"
+  become: true
+  when: firewall_rules | length > 0
+  notify: reload ufw
+  tags:
+    - firewall
+    - firewall-rules
