@@ -18,18 +18,19 @@ This role manages security services that complement basic OS configuration. It h
 
 See `defaults/main.yml` for complete configuration options.
 
-### Core Security Configuration
+### Tag-Based Control
 
-```yaml
-security_services_enabled: false       # Master switch for security services
-```
+This role uses tags for fine-grained control instead of enable/disable variables:
 
-### Firewall Services
+```bash
+# Install only firewall services
+ansible-playbook -t firewall-services playbook.yml
 
-```yaml
-security_firewall_install: true        # Install firewall packages
-security_firewall_enable: true         # Enable firewall service  
-security_firewall_start: true          # Start firewall service
+# Install only fail2ban
+ansible-playbook -t fail2ban playbook.yml  
+
+# Install all security services
+ansible-playbook -t security-services playbook.yml
 ```
 
 ### macOS Firewall
@@ -45,7 +46,7 @@ security_macos_firewall:
 ### Fail2ban Configuration
 
 ```yaml
-security_fail2ban_enabled: false       # Install and configure fail2ban
+# Control via tags - no enable/disable variable needed
 security_fail2ban_default_bantime: 3600     # Default ban time (1 hour)
 security_fail2ban_default_findtime: 600     # Default find time (10 minutes)
 security_fail2ban_default_maxretry: 5       # Default max retry attempts
@@ -68,12 +69,11 @@ security_fail2ban_ignoreips:
 ### Basic Security Services
 
 ```yaml
+# Install all security services
 - name: Configure security services
   include_role:
     name: wolskinet.infrastructure.manage_security_services
-  vars:
-    security_services_enabled: true
-    security_fail2ban_enabled: true
+  tags: security-services
 ```
 
 ### Server with Enhanced Protection
@@ -83,8 +83,6 @@ security_fail2ban_ignoreips:
   include_role:
     name: wolskinet.infrastructure.manage_security_services
   vars:
-    security_services_enabled: true
-    security_fail2ban_enabled: true
     security_fail2ban_services:
       - name: sshd
         enabled: true
@@ -94,6 +92,7 @@ security_fail2ban_ignoreips:
         enabled: true
         maxretry: 5
         bantime: 3600
+  tags: security-services
 ```
 
 ### macOS Security Configuration
@@ -103,11 +102,11 @@ security_fail2ban_ignoreips:
   include_role:
     name: wolskinet.infrastructure.manage_security_services
   vars:
-    security_services_enabled: true
     security_macos_firewall:
       enabled: true
       stealth_mode: true
       logging: true
+  tags: firewall-services
 ```
 
 ## Architecture
@@ -116,7 +115,34 @@ This role is designed to work with the infrastructure collection architecture:
 
 1. **os_configuration**: Basic OS setup (hostname, locale, NTP)
 2. **manage_security_services**: Install and enable security services (this role)
-3. **manage_firewall**: Configure firewall rules (uses services installed here)
+3. **manage_firewall**: Configure firewall rules and start services safely
+
+### Firewall Safety
+
+This role safely handles firewall activation using proper separation of concerns:
+
+**Architecture Flow:**
+1. **manage_security_services**: Installs firewall package and enables service
+2. **manage_firewall**: Configures rules (called automatically with SSH protection)
+3. **manage_security_services**: Starts firewall service (handlers reload on rule changes)
+
+**Linux (UFW)**: When `security_firewall_common.start: true`, the role:
+1. Installs UFW package
+2. Calls manage_firewall with default rules (minimum: SSH access)
+3. Starts UFW service (with deny-by-default policy)
+
+**macOS (Application Layer Firewall)**: ALF works differently - it's application-based, not port-based:
+- SSH access is controlled by "Remote Login" system preference, not firewall rules  
+- `default_rules` are ignored on macOS (only applies to Linux)
+- ALF controls which applications can accept incoming connections
+- Configured via `security_firewall_macosx` settings (stealth_mode, block_all, logging)
+
+```yaml
+security_firewall_common:
+  enabled: true    # Enable service for boot (implies package installation)  
+  start: true      # Start firewall service (with SSH protection via manage_firewall)
+  # default_rules automatically includes SSH protection - see defaults/main.yml
+```
 
 ## Requirements
 
