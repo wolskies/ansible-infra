@@ -1,0 +1,85 @@
+---
+# manage_security_services role main tasks
+# Security services management: firewall services, fail2ban, intrusion prevention
+
+- name: Validate supported OS versions
+  ansible.builtin.fail:
+    msg: >-
+      {{ ansible_distribution }} {{ ansible_distribution_version }}
+      is not supported. Supported versions: Ubuntu 22+, Debian 12+,
+      Arch Linux (latest), macOS
+  when:
+    - >-
+      (ansible_distribution == "Ubuntu" and
+      ansible_distribution_major_version | int < 22) or
+      (ansible_distribution == "Debian" and
+      ansible_distribution_major_version | int < 12)
+    - ansible_distribution not in ['Archlinux', 'MacOSX']
+  tags:
+    - always
+    - validation
+    - security-services
+
+- name: Configure firewall services
+  block:
+    - name: Install firewall packages (Linux)
+      ansible.builtin.package:
+        name: ufw
+        state: present
+      become: true
+      when:
+        - ansible_system == 'Linux'
+        - security_firewall_install | default(true)
+
+    - name: Enable and start firewall service (Linux)
+      ansible.builtin.systemd:
+        name: ufw
+        enabled: "{{ security_firewall_enable | default(true) }}"
+        state: "{{ 'started' if security_firewall_start | default(true) else 'stopped' }}"
+      become: true
+      when:
+        - ansible_system == 'Linux'
+        - ansible_service_mgr == "systemd"
+
+    - name: Configure macOS firewall
+      ansible.builtin.include_tasks: security-MacOSX.yml
+      when: ansible_distribution == 'MacOSX'
+
+  when: security_services_enabled | default(false)
+  tags:
+    - security-services
+    - firewall-services
+
+- name: Configure fail2ban intrusion prevention
+  block:
+    - name: Install fail2ban
+      ansible.builtin.package:
+        name: fail2ban
+        state: present
+      become: true
+
+    - name: Create fail2ban local configuration
+      ansible.builtin.template:
+        src: jail.local.j2
+        dest: /etc/fail2ban/jail.local
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      notify: restart fail2ban
+
+    - name: Ensure fail2ban is started and enabled
+      ansible.builtin.service:
+        name: fail2ban
+        state: started
+        enabled: true
+      become: true
+
+  when:
+    - security_services_enabled | default(false)
+    - security_fail2ban_enabled | default(false)
+    - ansible_system == 'Linux'
+  tags:
+    - security-services
+    - fail2ban
+    - intrusion-prevention

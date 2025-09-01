@@ -1,0 +1,35 @@
+---
+# Test playbook for hostname configuration
+# Usage: ansible-playbook test-hostname-config.yml -i localhost, -c local --ask-become-pass
+
+- name: Test hostname configuration
+  hosts: localhost
+  gather_facts: true
+  tasks:
+    - name: Test with hostname and domain
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.configure_host
+      vars:
+        config_hostname: "test-host"
+        config_domain: "test.local"
+        config_update_hosts: true
+      tags:
+        - test1
+
+    - name: Display results
+      ansible.builtin.debug:
+        msg:
+          - "Hostname should be: test-host"
+          - "Domain should be: test.local"
+          - "FQDN should be: test-host.test.local"
+          - "Check /etc/hosts for proper entries"
+
+    - name: Check /etc/hosts content
+      ansible.builtin.command: grep -E "test-host|127.0.1.1" /etc/hosts
+      register: hosts_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display /etc/hosts entries
+      ansible.builtin.debug:
+        var: hosts_check.stdout_lines

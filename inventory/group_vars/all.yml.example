@@ -1,0 +1,86 @@
+---
+# configure_host role progression
+# 1. configure system
+#    -> call manage_firewall rules
+#    -> call manage_system_customizations
+# 2. manage_users
+#    -> call manage_dotfiles
+# 3. manage_packages
+# 4. manage_third_party
+# =============================================================================
+# SYSTEM CONFIGURATION
+# =============================================================================
+
+config_hostname:
+config_domain:
+config_firewall: false
+config_journal:
+  enable: true                 
+  journal_max_size: "500M"       
+  journal_max_retention: "30d" 
+config_locale: 'en_US.UTF-8'   
+config_language: 'en_US.UTF-8' 
+config_ntp:
+  enabled: true              
+  ntp_servers:                   
+    - 0.pool.ntp.org
+    - 1.pool.ntp.org
+    - 2.pool.ntp.org
+    - 3.pool.ntp.org
+config_sysctl: 
+  enable: false                 
+  net.core.somaxconn: 65535
+  net.ipv4.tcp_max_syn_backlog: 65535
+  vm.swappiness: 10
+  fs.file-max: 2097152
+config_system_limits:
+  enable: false       
+  system_limits:
+    - domain: '*'
+      limit_type: soft
+      limit_item: nofile
+      value: 65536
+    - domain: '*'
+      limit_type: hard
+      limit_item: nofile
+      value: 65536
+config_timezone: 'UTC'  
+config_unattended_upgrades: true
+
+# =============================================================================
+# PLATFORM-SPECIFIC FEATURES
+# =============================================================================
+
+config_ubuntu:
+  disable_snap: false
+  unattended_upgrades: true
+
+config-debian:
+  unattended_upgrades: true
+
+config_archlinux:
+  enable_reflector: true
+
+config_macos:
+  configure_dock: 
+    enable: true  
+    dock_tile_size: 48   
+    dock_position: "bottom"   
+    dock_autohide: false     
+    dock_magnification: false 
+
+  configure_finder: 
+    enable: true  
+    finder_show_extensions: true 
+    finder_show_hidden: false 
+    finder_default_view: "icnv" 
+
+# System behavior
+config_macos_fast_key_repeat: true     # Enable fast key repeat
+config_macos_disable_auto_updates: false # Disable automatic macOS updates
+config_macos_require_password_immediately: true # Require password immediately after screensaver
+config_macos_show_battery_percentage: true # Show battery percentage in menu bar
+
+# Security & Privacy
+config_macos_configure_security: true  # Apply security settings
+config_macos_require_admin_password: true # Require admin password for system changes

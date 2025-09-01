@@ -1,15 +1,15 @@
 ---
+# meta file for manage_security_services
 galaxy_info:
-  role_name: manage_firewall_rules
   author: Ed Wolski
-  description: Firewall rule management (add/remove rules, fail2ban config) - assumes firewall already enabled
+  description: Security services management for fail2ban, intrusion prevention, and firewall services
   company: wolskinet
-  license: GPL-3.0-or-later
-  min_ansible_version: "2.15"
-
+  license: MIT
+  min_ansible_version: "2.12"
   platforms:
     - name: Ubuntu
       versions:
+        - "22.04"
         - "24.04"
     - name: Debian
       versions:
@@ -21,18 +21,11 @@ galaxy_info:
     - name: MacOSX
       versions:
         - all
-
   galaxy_tags:
     - security
     - firewall
-    - networking
-    - ufw
-    - firewalld
-    - iptables
     - fail2ban
+    - intrusion
+    - system
 
 dependencies: []
-
-collections:
-  - community.general
-  - ansible.posix

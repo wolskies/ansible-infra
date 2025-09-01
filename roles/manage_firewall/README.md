@@ -1,15 +1,14 @@
 # manage_firewall
 
-Cross-platform firewall and intrusion prevention management with fail2ban integration.
+Pure firewall rule management across platforms.
 
 ## Description
 
-This role provides comprehensive firewall management across Ubuntu, Debian, Arch Linux, and macOS. It supports UFW, firewalld, iptables, and macOS Application Layer Firewall with intelligent detection and configuration. The role also includes optional fail2ban integration for intrusion prevention.
+This role provides firewall rule management only, assuming firewall services are already installed and enabled. It focuses purely on configuring firewall rules across Ubuntu, Debian, Arch Linux, and macOS, supporting UFW, firewalld, iptables, and macOS Application Layer Firewall with intelligent detection.
 
 ## Features
 
-- **🔥 Multi-Platform Firewall**: UFW, firewalld, iptables, macOS ALF support
-- **🛡️ Intrusion Prevention**: fail2ban integration with service-specific rules
+- **🔥 Multi-Platform Rules**: UFW, firewalld, iptables, macOS ALF rule management
 - **⚙️ Flexible Rules**: Simple port lists, service names, or complex custom rules
 - **🔍 Auto-Detection**: Automatically selects appropriate firewall tool per OS
 - **🔒 SSH Protection**: Never blocks SSH access to prevent lockout
@@ -19,12 +18,11 @@ This role provides comprehensive firewall management across Ubuntu, Debian, Arch
 
 See `defaults/main.yml` for complete variable documentation. Key variables include:
 
-### Core Firewall Configuration
+### Core Rule Configuration
 ```yaml
-firewall_enable: false                 # Enable firewall management (opt-in for safety)
+firewall_manage_rules: true            # Whether to manage firewall rules
 firewall_type: "auto"                  # auto, ufw, firewalld, iptables, pf
-firewall_default_policy: "deny"        # Default policy for incoming connections
-firewall_logging: false                # Enable firewall logging
+firewall_reset_to_defaults: false      # Reset rules before applying new ones
 ```
 
 ### Access Control
@@ -50,50 +48,19 @@ firewall_custom_rules: []              # Complex rules with source restrictions
 #     comment: "SSH access"
 ```
 
-### Fail2ban Configuration
-```yaml
-firewall_enable_fail2ban: false        # Install and configure fail2ban
-firewall_fail2ban_services:
-  - name: sshd
-    enabled: true
-    maxretry: 5
-    bantime: 3600
-    findtime: 600
-    logpath: /var/log/auth.log
-
-firewall_fail2ban_ignoreips:
-  - "127.0.0.1/8"
-  - "::1"
-```
-
-### Platform-Specific Settings
-```yaml
-# OS-specific tool preferences
-firewall_tool_preference:
-  Ubuntu: "ufw"
-  Debian: "ufw" 
-  Archlinux: "ufw"
-  MacOSX: "macos_alf"
-
-# macOS-specific settings
-firewall_macos_stealth_mode: false     # Enable stealth mode
-firewall_macos_block_all: false        # Block all incoming connections
-```
-
 ## Dependencies
 
 - `community.general` collection (for UFW support)
 - `ansible.posix` collection (for firewalld support)
 
-## Example Playbook
+## Example Usage
 
-### Basic Web Server
+### Basic Web Server Rules
 ```yaml
 - hosts: web_servers
   roles:
     - role: wolskinet.infrastructure.manage_firewall
       vars:
-        firewall_enable: true
         firewall_allowed_services: ["ssh", "http", "https"]
 ```
 
@@ -103,7 +70,6 @@ firewall_macos_block_all: false        # Block all incoming connections
   roles:
     - role: wolskinet.infrastructure.manage_firewall
       vars:
-        firewall_enable: true
         firewall_allowed_ports: ["22"]
         firewall_custom_rules:
           - rule: allow
@@ -113,69 +79,41 @@ firewall_macos_block_all: false        # Block all incoming connections
             comment: "MySQL from application servers"
 ```
 
-### Server with Fail2ban Protection
-```yaml
-- hosts: servers
-  roles:
-    - role: wolskinet.infrastructure.manage_firewall
-      vars:
-        firewall_enable: true
-        firewall_allowed_services: ["ssh", "http", "https"]
-        firewall_enable_fail2ban: true
-        firewall_fail2ban_services:
-          - name: sshd
-            enabled: true
-            maxretry: 3
-            bantime: 7200
-          - name: nginx-http-auth
-            enabled: true
-            maxretry: 5
-            bantime: 3600
-```
+## Architecture Integration
 
-### macOS Firewall Configuration
-```yaml
-- hosts: macos_systems
-  roles:
-    - role: wolskinet.infrastructure.manage_firewall
-      vars:
-        firewall_enable: true
-        firewall_macos_stealth_mode: true
-        firewall_logging: true
-```
+This role is designed to work with the infrastructure collection architecture:
+
+1. **os_configuration**: Basic OS setup (hostname, NTP, locale)
+2. **manage_security_services**: Install and enable firewall services
+3. **manage_firewall**: Configure firewall rules (this role)
+
+## Requirements
+
+- Firewall service must be installed and enabled (handled by `manage_security_services`)
+- Appropriate sudo/admin privileges for rule configuration
 
 ## Platform Support
 
-- **Ubuntu 22+**: Full UFW and fail2ban support
-- **Debian 12+**: Full UFW and fail2ban support  
-- **Arch Linux**: UFW and fail2ban support
-- **macOS**: Application Layer Firewall (limited functionality)
+- **Ubuntu 22+**: UFW rule management
+- **Debian 12+**: UFW rule management  
+- **Arch Linux**: UFW rule management
+- **macOS**: Application Layer Firewall rule configuration (limited)
 
 ## Safety Features
 
-- **SSH Protection**: Automatically allows SSH to prevent lockout
-- **Opt-in Design**: Firewall disabled by default (`firewall_enable: false`)
+- **SSH Protection**: Automatically maintains SSH access to prevent lockout
 - **Validation**: Validates custom rules before application
-- **Rollback**: Supports firewall reset if needed
+- **Rule Reset**: Supports firewall reset if needed
 
-## Integration with Other Roles
-
-Works well with security-focused roles:
+## Integration Example
 
 ```yaml
 - hosts: servers
   roles:
-    - devsec.hardening.os_hardening        # OS security hardening
-    - devsec.hardening.ssh_hardening       # SSH security
-    - wolskinet.infrastructure.manage_firewall  # Firewall management
+    - wolskinet.infrastructure.os_configuration         # Basic OS setup
+    - wolskinet.infrastructure.manage_security_services  # Install firewall services
+    - wolskinet.infrastructure.manage_firewall          # Configure rules
 ```
-
-## File Locations
-
-The role manages these system files:
-- `/etc/ufw/` - UFW configuration (Ubuntu/Debian/Arch)
-- `/etc/fail2ban/jail.local` - Fail2ban configuration
-- macOS Application Layer Firewall via `socketfilterfw` command
 
 ## License
 
@@ -183,4 +121,4 @@ MIT
 
 ## Author Information
 
-Ed Wolski - wolskinet
+This role is part of the `wolskinet.infrastructure` Ansible collection.

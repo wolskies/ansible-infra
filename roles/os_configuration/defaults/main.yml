@@ -1,0 +1,69 @@
+---
+config_common_hostname: ""
+config_common_domain: ""
+config_common_update_hosts: true
+config_common_timezone: 'UTC'
+config_common_locale:
+  locale: 'en_US.UTF-8'
+  language: 'en_US.UTF-8'
+config_common_ntp:
+  enabled: true
+  servers:
+    - 0.pool.ntp.org
+    - 1.pool.ntp.org
+    - 2.pool.ntp.org
+    - 3.pool.ntp.org
+
+config_linux_journal:
+  enabled: true
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
+config_linux_rsyslog:
+  enabled: false
+  remote_host: ""
+  remote_port: 514
+  protocol: "udp"
+
+config_debian_family:
+  snap:
+    remove_completely: false
+  unattended_upgrades:
+    enabled: true
+    email: ""
+    auto_reboot: false
+    reboot_with_users: false
+    reboot_time: "02:00"
+  apt:
+    no_recommends: false
+    proxy: ""
+  services:
+    disable_unnecessary: false
+    unnecessary_services:
+      - bluetooth.service
+      - cups.service
+  optimizations:
+    tune_swappiness: false
+    swappiness: 10
+
+config_archlinux:
+  unattended_upgrades:
+    enabled: false
+  pacman:
+    no_confirms: false
+    proxy: ""
+  services:
+    disable_unnecessary: false
+    unnecessary_services:
+      - bluetooth.service
+      - cups.service
+  optimizations:
+    tune_swappiness: false
+    swappiness: 10
+
+config_macos:
+  computer_name: ""
+  updates:
+    auto_check: true
+

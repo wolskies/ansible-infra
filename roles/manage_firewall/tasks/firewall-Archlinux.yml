@@ -1,13 +1,8 @@
 ---
-# Arch Linux UFW firewall management
+# Arch Linux UFW firewall rule management
+# Assumes UFW is already installed and enabled by manage_security_services
 
-- name: Install UFW (Arch Linux)
-  community.general.pacman:
-    name: ufw
-    state: present
-  become: true
-
-# CRITICAL: Ensure SSH access before enabling firewall
+# CRITICAL: Ensure SSH access is maintained
 - name: Allow SSH access (prevent lockout)
   community.general.ufw:
     rule: allow

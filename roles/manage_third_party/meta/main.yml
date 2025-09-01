@@ -1,12 +1,10 @@
 ---
 galaxy_info:
-  role_name: manage_firewall_rules
   author: Ed Wolski
-  description: Firewall rule management (add/remove rules, fail2ban config) - assumes firewall already enabled
+  description: Third-party tool and service management (Docker, Node.js, Python tools, etc.)
   company: wolskinet
   license: GPL-3.0-or-later
   min_ansible_version: "2.15"
-
   platforms:
     - name: Ubuntu
       versions:
@@ -23,16 +21,11 @@ galaxy_info:
         - all
 
   galaxy_tags:
-    - security
-    - firewall
-    - networking
-    - ufw
-    - firewalld
-    - iptables
-    - fail2ban
+    - thirdparty
+    - tools
+    - docker
+    - nodejs
+    - python
+    - development
 
 dependencies: []
-
-collections:
-  - community.general
-  - ansible.posix
