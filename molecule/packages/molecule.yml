@@ -1,0 +1,95 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-packages-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - servers
+  - name: debian-packages-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - workstations
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        # Test hierarchical merging - all level
+        all_packages_install_Ubuntu:
+          - curl
+          - git
+          - htop
+        all_packages_install_Debian:
+          - curl
+          - git
+          - htop
+        # Test APT repositories - all level
+        all_apt_repositories_Ubuntu:
+          - name: docker
+            repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
+            gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+        all_apt_repositories_Debian:
+          - name: docker
+            repo_line: "deb [arch=amd64] https://download.docker.com/linux/debian bookworm stable"
+            gpg_key_url: "https://download.docker.com/linux/debian/gpg"
+      servers:
+        # Test hierarchical merging - group level
+        group_packages_install_Ubuntu:
+          - nginx
+          - certbot
+        group_packages_install_Debian:
+          - nginx
+          - certbot
+        # Test group-level repositories
+        group_apt_repositories_Ubuntu:
+          - name: nodejs
+            repo_line: "deb [arch=amd64] https://deb.nodesource.com/node_18.x jammy main"
+            gpg_key_url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+      workstations:
+        # Test different group packages
+        group_packages_install_Debian:
+          - firefox-esr
+          - libreoffice
+    host_vars:
+      ubuntu-packages-test:
+        # Test hierarchical merging - host level
+        host_packages_install_Ubuntu:
+          - redis-server
+          - postgresql-client
+        # Test host-level repositories
+        host_apt_repositories_Ubuntu:
+          - name: postgresql
+            repo_line: "deb [arch=amd64] http://apt.postgresql.org/pub/repos/apt jammy-pgdg main"
+            gpg_key_url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+        # Test removal packages
+        all_packages_remove_Ubuntu:
+          - nano
+      debian-packages-test:
+        # Test host-level packages for Debian
+        host_packages_install_Debian:
+          - vim
+          - tree
+        # Test package removal
+        all_packages_remove_Debian:
+          - nano
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

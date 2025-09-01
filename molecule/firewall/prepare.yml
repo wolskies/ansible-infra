@@ -1,0 +1,20 @@
+---
+- name: Prepare firewall test environment
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Update package cache
+      ansible.builtin.package:
+        update_cache: true
+
+    - name: Ensure systemd is running
+      ansible.builtin.service:
+        name: systemd-resolved
+        state: started
+      ignore_errors: true
+
+    - name: Install netstat for testing
+      ansible.builtin.package:
+        name: net-tools
+        state: present

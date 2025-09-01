@@ -1,0 +1,136 @@
+---
+- name: Verify firewall rules are working correctly
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    # Test 1: Verify UFW is enabled and active
+    - name: Check UFW status
+      ansible.builtin.command: ufw status
+      register: ufw_status
+      changed_when: false
+
+    - name: Verify UFW is enabled
+      ansible.builtin.assert:
+        that:
+          - "'Status: active' in ufw_status.stdout"
+        fail_msg: "UFW should be active but status is: {{ ufw_status.stdout }}"
+        success_msg: "UFW is active as expected"
+
+    # Test 2: Verify SSH protection is applied (from manage_security_services)
+    - name: Check SSH rule exists
+      ansible.builtin.command: ufw status numbered
+      register: ufw_rules
+      changed_when: false
+
+    - name: Verify SSH rule is present
+      ansible.builtin.assert:
+        that:
+          - "'22/tcp' in ufw_rules.stdout"
+          - "'ALLOW IN' in ufw_rules.stdout"
+        fail_msg: "SSH rule (port 22) should be present in UFW rules"
+        success_msg: "SSH rule is properly configured"
+
+    # Test 3: Verify initial firewall rules from inventory are applied
+    - name: Verify HTTP rule is applied
+      ansible.builtin.assert:
+        that:
+          - "'80/tcp' in ufw_rules.stdout"
+        fail_msg: "HTTP rule (port 80) should be present"
+        success_msg: "HTTP rule is configured"
+
+    - name: Verify HTTPS rule is applied
+      ansible.builtin.assert:
+        that:
+          - "'443/tcp' in ufw_rules.stdout"
+        fail_msg: "HTTPS rule (port 443) should be present"
+        success_msg: "HTTPS rule is configured"
+
+    - name: Verify restricted rule with source is applied
+      ansible.builtin.assert:
+        that:
+          - "'8080/tcp' in ufw_rules.stdout"
+          - "'192.168.1.0/24' in ufw_rules.stdout"
+        fail_msg: "App server rule (port 8080 from 192.168.1.0/24) should be present"
+        success_msg: "Source-restricted rule is configured"
+
+    - name: Verify deny rule is applied
+      ansible.builtin.assert:
+        that:
+          - "'23/tcp' in ufw_rules.stdout"
+          - "'DENY IN' in ufw_rules.stdout"
+        fail_msg: "Telnet deny rule (port 23) should be present"
+        success_msg: "Deny rule is configured"
+
+    # Test 4: Verify additional rules from second manage_firewall call are applied
+    - name: Verify additional service port is applied
+      ansible.builtin.assert:
+        that:
+          - "'9090/tcp' in ufw_rules.stdout"
+        fail_msg: "Additional service port (9090) should be present"
+        success_msg: "Additional service port is configured"
+
+    - name: Verify MySQL rule with source restriction is applied
+      ansible.builtin.assert:
+        that:
+          - "'3306/tcp' in ufw_rules.stdout"
+          - "'10.0.0.0/8' in ufw_rules.stdout"
+        fail_msg: "MySQL rule (port 3306 from 10.0.0.0/8) should be present"
+        success_msg: "MySQL source-restricted rule is configured"
+
+    # Test 5: Verify rate limiting is applied
+    - name: Check for rate limiting rules
+      ansible.builtin.assert:
+        that:
+          - "'22/tcp' in ufw_rules.stdout and 'LIMIT IN' in ufw_rules.stdout"
+        fail_msg: "SSH rate limiting should be configured"
+        success_msg: "Rate limiting is properly configured"
+
+    # Test 6: Verify fail2ban is running
+    - name: Check fail2ban service status
+      ansible.builtin.service:
+        name: fail2ban
+        state: started
+      check_mode: true
+      register: fail2ban_status
+
+    - name: Verify fail2ban is running
+      ansible.builtin.assert:
+        that:
+          - not fail2ban_status.changed
+        fail_msg: "fail2ban service should be running"
+        success_msg: "fail2ban service is running"
+
+    # Test 7: Verify fail2ban jail configuration
+    - name: Check fail2ban jail status
+      ansible.builtin.command: fail2ban-client status
+      register: fail2ban_jails
+      changed_when: false
+      ignore_errors: true
+
+    - name: Verify sshd jail is active
+      ansible.builtin.assert:
+        that:
+          - "'sshd' in fail2ban_jails.stdout"
+        fail_msg: "sshd jail should be active in fail2ban"
+        success_msg: "fail2ban sshd jail is active"
+
+    # Test 8: Verify no duplicate SSH rules exist
+    - name: Count SSH rules to ensure no duplicates
+      ansible.builtin.shell: |
+        ufw status numbered | grep -c "22/tcp.*ALLOW" || true
+      register: ssh_rule_count
+      changed_when: false
+
+    - name: Verify only one SSH ALLOW rule exists
+      ansible.builtin.assert:
+        that:
+          - ssh_rule_count.stdout | int <= 2  # IPv4 + IPv6 = max 2 rules
+        fail_msg: "Too many SSH rules found: {{ ssh_rule_count.stdout }}"
+        success_msg: "SSH rules are not duplicated"
+
+    # Test 9: Display final UFW status for debugging
+    - name: Display final UFW configuration
+      ansible.builtin.debug:
+        var: ufw_rules.stdout_lines
+      tags: debug

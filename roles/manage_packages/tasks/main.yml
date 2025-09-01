@@ -1,15 +1,5 @@
 ---
-# Package management with OS-specific delegation
-# Supports hierarchical package configuration and multi-OS package managers
-# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
-
-# Delegate to OS-specific task files for cleaner architecture
-- name: Manage packages on Linux systems
-  ansible.builtin.include_tasks: manage-linux.yml
-  when: ansible_system == "Linux"
-  tags: packages
-
-- name: Manage packages on macOS systems
-  ansible.builtin.include_tasks: manage-macos.yml
-  when: ansible_system == "Darwin"
+- name: Manage packages by OS family
+  ansible.builtin.include_tasks: "manage-packages-{{ ansible_os_family }}.yml"
+  when: ansible_os_family in ['Debian', 'Archlinux', 'Darwin']
   tags: packages
