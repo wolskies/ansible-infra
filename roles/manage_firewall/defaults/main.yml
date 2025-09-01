@@ -1,6 +1,5 @@
 ---
-# manage_firewall role defaults - Pure firewall rule management
-# Manages firewall rules only - assumes firewall service is installed and enabled
+# Manages firewall rules
 # Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================

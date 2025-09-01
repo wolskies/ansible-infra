@@ -1,0 +1,7 @@
+---
+# manage_snap_packages handlers
+
+- name: reload snap
+  ansible.builtin.command: snap refresh
+  become: true
+  listen: "reload snap"

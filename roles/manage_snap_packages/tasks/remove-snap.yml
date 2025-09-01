@@ -1,0 +1,41 @@
+---
+# Remove snap packages from system
+
+- name: Ensure list of installed snap packages is retrieved
+  ansible.builtin.shell: snap list | tail -n +2 | awk '{print $1}'
+  register: snap_packages_installed
+  changed_when: false
+  failed_when: false
+  tags:
+    - snap-packages
+    - remove-snap
+
+- name: Ensure all snap packages are removed
+  ansible.builtin.command: snap remove {{ item }}
+  loop: "{{ snap_packages_installed.stdout_lines }}"
+  become: true
+  register: snap_remove_result
+  changed_when: "'removed' in snap_remove_result.stdout"
+  when:
+    - snap_remove_all_packages | default(true)
+    - snap_packages_installed.stdout_lines | length > 0
+  failed_when: false
+  tags:
+    - snap-packages
+    - remove-snap
+
+- name: Ensure snapd services are stopped and disabled
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - snapd.service
+    - snapd.socket
+    - snapd.seeded.service
+  become: true
+  when: snap_disable_services | default(true)
+  failed_when: false
+  tags:
+    - snap-packages
+    - remove-snap
