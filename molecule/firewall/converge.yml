@@ -1,0 +1,41 @@
+---
+- name: Test firewall rules management
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    # First test: Install security services and firewall
+    - name: Apply security services configuration
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.manage_security_services
+      tags:
+        - security-services
+        - firewall-services
+
+    # Second test: Apply additional firewall rules (simulating multiple calls)
+    - name: Apply additional firewall rules
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.manage_firewall
+      vars:
+        firewall_rules:
+          - rule: allow
+            port: "9090"
+            proto: tcp
+            comment: "Additional service port"
+          - rule: allow
+            port: "3306"
+            proto: tcp
+            src: "10.0.0.0/8"
+            comment: "MySQL from private networks"
+      tags:
+        - additional-firewall
+
+    # Third test: Test rate limiting configuration
+    - name: Verify rate limiting is applied
+      community.general.ufw:
+        rule: limit
+        port: "2222"
+        proto: tcp
+        comment: "Additional SSH-like service with rate limiting"
+      tags:
+        - rate-limiting-test

@@ -1,18 +1,5 @@
 ---
 # UFW firewall rule management
-# Assumes UFW is already installed and enabled by manage_security_services
-
-- name: Ensure SSH access is maintained (safety)
-  community.general.ufw:
-    rule: allow
-    port: "22"
-    proto: tcp
-    comment: "SSH access (prevent lockout)"
-  become: true
-  tags:
-    - firewall
-    - firewall-rules
-    - ssh-safety
 
 - name: Ensure firewall rules are applied
   community.general.ufw:

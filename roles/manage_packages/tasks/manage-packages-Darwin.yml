@@ -1,0 +1,152 @@
+---
+- name: Check if Homebrew is installed
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: homebrew_check
+  loop:
+    - "/opt/homebrew/bin/brew"
+    - "/usr/local/bin/brew"
+
+- name: Set Homebrew path
+  ansible.builtin.set_fact:
+    homebrew_path: >-
+      {{
+        homebrew_check.results | selectattr('stat.exists', 'equalto', true)
+        | map(attribute='item') | first | default('')
+      }}
+
+- name: Install Homebrew if not present
+  block:
+    - name: Download and install Homebrew
+      ansible.builtin.shell: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      environment:
+        NONINTERACTIVE: "1"
+      register: homebrew_install
+      changed_when: homebrew_install.rc == 0
+      failed_when: false
+
+    - name: Warn if Homebrew installation failed
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Homebrew installation failed. This is likely because sudo access is required.
+          Please install Homebrew manually by running:
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      when: homebrew_install.rc != 0
+
+    - name: Set Homebrew path after installation
+      ansible.builtin.set_fact:
+        homebrew_path: >-
+          {{
+            "/opt/homebrew/bin/brew" if ansible_machine == "arm64"
+            else "/usr/local/bin/brew"
+          }}
+      when: homebrew_install.rc == 0
+  when:
+    - homebrew_path == ""
+    - packages_macos.homebrew.install | default(true)
+
+- name: Merge Homebrew configuration from all sources
+  ansible.builtin.set_fact:
+    merged_homebrew_taps: >-
+      {{
+        (vars.get('all_packages_homebrew_taps_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_homebrew_taps_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_homebrew_taps_' + ansible_distribution, []) | default([])) +
+        (packages_macos.homebrew.taps | default([]))
+        | unique | list
+      }}
+    merged_homebrew_packages_install: >-
+      {{
+        (vars.get('all_packages_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_install_' + ansible_distribution, []) | default([])) +
+        (packages_macos.homebrew.packages.install | default([]))
+        | unique | list
+      }}
+    merged_homebrew_packages_remove: >-
+      {{
+        (vars.get('all_packages_remove_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_remove_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_remove_' + ansible_distribution, []) | default([])) +
+        (packages_macos.homebrew.packages.remove | default([]))
+        | unique | list
+      }}
+    merged_homebrew_casks_install: >-
+      {{
+        (vars.get('all_packages_homebrew_casks_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_homebrew_casks_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_homebrew_casks_install_' + ansible_distribution, []) | default([])) +
+        (packages_macos.homebrew.casks.install | default([]))
+        | unique | list
+      }}
+    merged_homebrew_casks_remove: >-
+      {{
+        (vars.get('all_packages_homebrew_casks_remove_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_homebrew_casks_remove_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_homebrew_casks_remove_' + ansible_distribution, []) | default([])) +
+        (packages_macos.homebrew.casks.remove | default([]))
+        | unique | list
+      }}
+
+- name: Add Homebrew taps
+  community.general.homebrew_tap:
+    name: "{{ item }}"
+    state: present
+    path: "{{ homebrew_path | dirname }}"
+  loop: "{{ merged_homebrew_taps }}"
+  when:
+    - homebrew_path != ""
+    - merged_homebrew_taps | length > 0
+
+- name: Update Homebrew
+  community.general.homebrew:
+    update_homebrew: true
+    path: "{{ homebrew_path | dirname }}"
+  when:
+    - homebrew_path != ""
+    - packages_macos.homebrew.update | default(true)
+
+- name: Install packages via Homebrew
+  community.general.homebrew:
+    name: "{{ merged_homebrew_packages_install }}"
+    state: present
+    path: "{{ homebrew_path | dirname }}"
+  when:
+    - homebrew_path != ""
+    - merged_homebrew_packages_install | length > 0
+
+- name: Remove packages via Homebrew
+  community.general.homebrew:
+    name: "{{ merged_homebrew_packages_remove }}"
+    state: absent
+    path: "{{ homebrew_path | dirname }}"
+  when:
+    - homebrew_path != ""
+    - merged_homebrew_packages_remove | length > 0
+
+- name: Install casks via Homebrew
+  community.general.homebrew_cask:
+    name: "{{ merged_homebrew_casks_install }}"
+    state: present
+    path: "{{ homebrew_path | dirname }}"
+  when:
+    - homebrew_path != ""
+    - merged_homebrew_casks_install | length > 0
+
+- name: Remove casks via Homebrew
+  community.general.homebrew_cask:
+    name: "{{ merged_homebrew_casks_remove }}"
+    state: absent
+    path: "{{ homebrew_path | dirname }}"
+  when:
+    - homebrew_path != ""
+    - merged_homebrew_casks_remove | length > 0
+
+- name: Cleanup Homebrew cache
+  ansible.builtin.command: "{{ homebrew_path }} cleanup"
+  register: homebrew_cleanup
+  changed_when: "'Removing:' in homebrew_cleanup.stdout"
+  when:
+    - homebrew_path != ""
+    - packages_macos.homebrew.cleanup_cache | default(false)

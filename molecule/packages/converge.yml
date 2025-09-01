@@ -1,0 +1,32 @@
+---
+- name: Test package management functionality
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Apply package management role
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.manage_packages
+      tags:
+        - packages
+
+    # Additional test: Verify packages can be installed after repo setup
+    - name: Test installing package from custom repository (Ubuntu)
+      ansible.builtin.package:
+        name: docker-ce-cli
+        state: present
+      when:
+        - ansible_distribution == "Ubuntu"
+        - inventory_hostname == "ubuntu-packages-test"
+      tags:
+        - docker-test
+
+    - name: Test installing package from custom repository (Debian)  
+      ansible.builtin.package:
+        name: docker-ce-cli
+        state: present
+      when:
+        - ansible_distribution == "Debian"
+        - inventory_hostname == "debian-packages-test"
+      tags:
+        - docker-test

@@ -1,0 +1,149 @@
+---
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Merge Pacman packages from all sources
+  ansible.builtin.set_fact:
+    merged_pacman_packages_install: >-
+      {{
+        (vars.get('all_packages_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_install_' + ansible_distribution, []) | default([])) +
+        (packages_pacman.packages.install | default([]))
+        | unique | list
+      }}
+    merged_pacman_packages_remove: >-
+      {{
+        (vars.get('all_packages_remove_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_remove_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_remove_' + ansible_distribution, []) | default([])) +
+        (packages_pacman.packages.remove | default([]))
+        | unique | list
+      }}
+
+- name: Install packages via Pacman
+  ansible.builtin.package:
+    name: "{{ merged_pacman_packages_install }}"
+    state: present
+  become: true
+  when: merged_pacman_packages_install | length > 0
+
+- name: Remove packages via Pacman
+  ansible.builtin.package:
+    name: "{{ merged_pacman_packages_remove }}"
+    state: absent
+  become: true
+  when: merged_pacman_packages_remove | length > 0
+
+- name: Update Pacman cache
+  community.general.pacman:
+    update_cache: true
+  become: true
+
+- name: Upgrade all Pacman packages
+  community.general.pacman:
+    update_cache: false
+    upgrade: true
+  become: true
+  when: packages_pacman.system_upgrade | default(false)
+
+- name: Merge AUR packages from all sources
+  ansible.builtin.set_fact:
+    merged_aur_packages_install: >-
+      {{
+        (vars.get('all_packages_aur_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('group_packages_aur_install_' + ansible_distribution, []) | default([])) +
+        (vars.get('host_packages_aur_install_' + ansible_distribution, []) | default([])) +
+        (packages_pacman.aur_packages.install | default([]))
+        | unique | list
+      }}
+
+- name: Handle Arch Linux AUR packages
+  block:
+    - name: Install AUR packages if any configured
+      block:
+        - name: Check if paru is installed
+          ansible.builtin.command: which paru
+          register: paru_installed
+          changed_when: false
+          failed_when: false
+
+        - name: Install paru from AUR
+          block:
+            - name: Install build dependencies for AUR packages
+              ansible.builtin.package:
+                name:
+                  - base-devel
+                  - git
+                state: present
+              become: true
+
+            - name: Clone and install paru
+              become: false
+              block:
+                - name: Clone paru repository
+                  ansible.builtin.git:
+                    repo: 'https://aur.archlinux.org/paru.git'
+                    dest: '/tmp/paru-install'
+                    version: master
+
+                - name: Build and install paru
+                  ansible.builtin.command:
+                    cmd: makepkg -si --noconfirm
+                    chdir: /tmp/paru-install
+                  environment:
+                    MAKEFLAGS: "-j{{ ansible_processor_vcpus | default(1) }}"
+
+                - name: Clean up paru build directory
+                  ansible.builtin.file:
+                    path: /tmp/paru-install
+                    state: absent
+                  become: true
+          when: paru_installed.rc != 0
+
+        - name: Install AUR packages with paru
+          become: false
+          ansible.builtin.command:
+            cmd: paru -S --noconfirm --needed {{ item }}
+          loop: "{{ merged_aur_packages_install }}"
+          register: aur_install_results
+          changed_when: "'installing' in aur_install_results.stdout"
+      when: merged_aur_packages_install | length > 0
+  when: packages_pacman.enable_aur | default(true)
+
+- name: Gather package facts (Arch Linux)
+  ansible.builtin.package_facts:
+    manager: pacman
+
+- name: Check if reflector is installed
+  ansible.builtin.set_fact:
+    reflector_installed: "{{ 'reflector' in ansible_facts.packages }}"
+
+- name: Configure reflector for mirror optimization
+  block:
+    - name: Ensure reflector config directory exists
+      ansible.builtin.file:
+        path: /etc/xdg/reflector
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      become: true
+
+    - name: Configure reflector
+      ansible.builtin.template:
+        src: reflector.conf.j2
+        dest: /etc/xdg/reflector/reflector.conf
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      notify: restart reflector
+  when:
+    - reflector_installed | default(false)
+    - packages_pacman.config_reflector | default(true)
+  tags:
+    - archlinux
+    - mirrors
+    - packages

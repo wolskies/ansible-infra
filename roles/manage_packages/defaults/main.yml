@@ -1,111 +1,35 @@
 ---
-# manage_packages role defaults - System package management
-# Supports hierarchical package configuration and multi-OS package managers
-# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
+packages_apt:
+  apt_cache:
+    update: true
+    valid_time: 3600
+  system_upgrade:
+    enable: false
+    type: safe
+  repositories: []
+  packages:
+    install: []
+    remove: []
 
-# =============================================================================
-# PACKAGE MANAGEMENT SETTINGS
-# =============================================================================
+packages_pacman:
+  multilib: true
+  enable_aur: true
+  aur_helper: paru
+  config_reflector: true
+  packages:
+    install: []
+    remove: []
 
-# Cache management
-packages_update_cache: true            # Update package cache before operations
-packages_cache_valid_time: 3600        # APT cache validity time in seconds
+packages_homebrew:
+  homebrew:
+    install: true
+    update: true
+    cleanup_cache: false
+    taps: []
+    casks:
+      install: []
+      remove: []
+    packages:
+      install: []
+      remove: []
 
-# System updates
-packages_perform_system_upgrade: false # Perform full system upgrade
-packages_upgrade_type: safe            # safe, full, or dist (APT only)
-
-# Pacman configuration (Arch Linux)
-packages_pacman_multilib: true         # Enable multilib repository
-packages_enable_aur: true              # Enable AUR support (security consideration)
-packages_aur_helper: paru              # AUR helper to use (paru, yay, etc.)
-config_archlinux_reflector: true       # Configure reflector for mirror optimization
-
-# =============================================================================
-# PLATFORM-SPECIFIC FEATURES
-# =============================================================================
-
-# macOS (Homebrew) settings
-homebrew_installed: true               # Install Homebrew if not present (macOS only)
-packages_homebrew_taps: []             # List of Homebrew taps to add
-packages_homebrew_casks: []            # List of Homebrew casks to install
-packages_homebrew_casks_remove: []     # List of Homebrew casks to remove
-packages_macos_update_homebrew: true   # Update Homebrew before installing
-packages_macos_cleanup_cache: false    # Clean Homebrew cache after operations
-
-# Snap package management (Ubuntu)
-packages_snap_packages: []             # List of snap packages to install
-packages_snap_packages_remove: []      # List of snap packages to remove
-packages_snap_classic: []              # List of snap packages to install with --classic
-
-# Flatpak package management (Linux)
-packages_flatpak_packages: []          # List of Flatpak packages to install
-packages_flatpak_packages_remove: []   # List of Flatpak packages to remove
-packages_flatpak_remotes: []           # List of Flatpak remotes to add
-
-# =============================================================================
-# HIERARCHICAL PACKAGE VARIABLES
-# =============================================================================
-
-# This role allows packages to be aggregated from the all, group, and host levels
-# while respecting Ansible's built-in variable precedence. In order for the
-# functionality to work, package variables must be prepended by the level at
-# which they are defined in the inventory (all_, group_, host_).
-#
-# Package lists are merged in this order: all_ + group_ + host_
-# Define them in your inventory structure:
-#
-# group_vars/all/packages.yml:
-#   all_packages_install_Ubuntu: [curl, wget, git]
-#   all_packages_remove_Ubuntu: [snapd]
-#
-# group_vars/servers/packages.yml:
-#   group_packages_install_Ubuntu: [nginx, certbot]
-#   group_packages_remove_Ubuntu: [apache2]
-#
-# host_vars/web-01/packages.yml:
-#   host_packages_install_Ubuntu: [redis-server]
-#   host_packages_remove_Ubuntu: [mysql-server]
-#
-# Supported distributions: Ubuntu, Debian, Archlinux, MacOSX (macOS)
-# Variables follow the pattern: {level}_packages_{action}_{Distribution}
-#
-# Note: Do not define these variables in this defaults file as they will
-# apply to ALL machines. Always define them in the appropriate inventory
-# level (group_vars/all, group_vars/{group}, host_vars/{host}).
-
-# =============================================================================
-# APT REPOSITORY MANAGEMENT (UBUNTU/DEBIAN)
-# =============================================================================
-
-# Custom APT repositories can be configured using hierarchical variables
-# following the same pattern as packages. Repository lists are merged in
-# this order: all_ + group_ + host_
-#
-# Define them in your inventory structure:
-#
-# group_vars/all/repositories.yml:
-#   all_apt_repositories_Ubuntu:
-#     - name: docker-ce
-#       repo_line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-ce.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-#       gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
-#
-# group_vars/servers/repositories.yml:
-#   group_apt_repositories_Ubuntu:
-#     - name: nginx-mainline
-#       repo_line: "deb [signed-by=/usr/share/keyrings/nginx-mainline.gpg] http://nginx.org/packages/mainline/ubuntu/ {{ ansible_distribution_release }} nginx"
-#       gpg_key_url: "https://nginx.org/keys/nginx_signing.key"
-#
-# host_vars/web-01/repositories.yml:
-#   host_apt_repositories_Ubuntu:
-#     - name: custom-repo
-#       repo_line: "deb [signed-by=/usr/share/keyrings/custom-repo.gpg] https://repo.example.com/ubuntu {{ ansible_distribution_release }} main"
-#       gpg_key_url: "https://repo.example.com/gpg"
-#
-# Repository structure:
-#   - name: Identifier for the repository (used for keyring filename)
-#   - repo_line: Complete repository line for sources.list.d file
-#   - gpg_key_url: URL to download GPG key (optional)
-#
-# Supported distributions: Ubuntu, Debian
-# Variables follow the pattern: {level}_apt_repositories_{Distribution}
