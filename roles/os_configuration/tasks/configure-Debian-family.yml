@@ -1,7 +1,11 @@
 ---
 
-- name: Remove snap packages completely
-  ansible.builtin.include_tasks: ubuntu/remove-snap.yml
+- name: Manage snap packages
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.manage_snap_packages
+  vars:
+    snap_management_action: "purge"
+    snap_purge_confirm: "{{ config_debian_family.snap.remove_completely }}"
   when: config_debian_family.snap.remove_completely | default(false)
   tags:
     - snap

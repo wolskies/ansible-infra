@@ -1,6 +1,5 @@
 ---
 # manage_security_services role main tasks
-# Security services management: firewall services, fail2ban, intrusion prevention
 
 - name: Validate supported OS versions
   ansible.builtin.fail:

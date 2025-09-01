@@ -2,7 +2,6 @@
 # =============================================================================
 # FIREWALL SERVICE MANAGEMENT (OS INSTALLATION)
 # =============================================================================
-# Control via tags: --tags firewall-services
 
 security_firewall_common:
   enabled: true
@@ -25,7 +24,6 @@ security_firewall_macosx:
 # =============================================================================
 # FAIL2BAN INTRUSION PREVENTION
 # =============================================================================
-# Control via tags: --tags fail2ban
 
 security_fail2ban_common:
   enabled: true
