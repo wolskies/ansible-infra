@@ -91,5 +91,19 @@ provisioner:
     defaults:
       host_key_checking: false
       stdout_callback: yaml
+scenario:
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+  # Skip idempotence due to language package installer downloads and user package installations showing as changed
 verifier:
   name: ansible
