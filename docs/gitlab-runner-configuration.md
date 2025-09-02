@@ -17,7 +17,21 @@ To resolve Kubernetes pod connectivity issues (TLS internal errors), the followi
 
 ### Configuration Methods
 
-#### Method 1: Runner Configuration File (config.toml)
+#### Method 1: CI/CD Pipeline Variables (Recommended)
+Add the feature flag directly to your `.gitlab-ci.yml` file:
+
+```yaml
+variables:
+  FF_WAIT_FOR_POD_TO_BE_REACHABLE: 1
+```
+
+This method is preferred because:
+- No runner configuration changes required
+- Applies automatically to all jobs in the pipeline
+- Version controlled with your project
+- Works with shared runners
+
+#### Method 2: Runner Configuration File (config.toml)
 ```toml
 [[runners]]
   name = "your-runner-name"
@@ -32,12 +46,12 @@ To resolve Kubernetes pod connectivity issues (TLS internal errors), the followi
     # your kubernetes configuration
 ```
 
-#### Method 2: Environment Variable
+#### Method 3: Environment Variable
 ```bash
 export FF_WAIT_FOR_POD_TO_BE_REACHABLE=true
 ```
 
-#### Method 3: Helm Values (if using GitLab Runner Helm chart)
+#### Method 4: Helm Values (if using GitLab Runner Helm chart)
 ```yaml
 # values.yaml
 runners:
