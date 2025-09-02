@@ -23,6 +23,10 @@ platforms:
 provisioner:
   name: ansible
   inventory:
+    group_vars:
+      all:
+        # Enable consistent behavior for molecule tests
+        molecule_test: true
     host_vars:
       ubuntu-users-test:
         # Test comprehensive user management
@@ -82,7 +86,6 @@ provisioner:
             shell: /bin/dash
             comment: "User with long name and uncommon shell"
             create_home: true
-
   config_options:
     defaults:
       host_key_checking: false

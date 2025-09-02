@@ -9,6 +9,7 @@
     group: "{{ item.gid | default(omit) }}"
     home: "{{ item.home | default(omit) }}"
     shell: "{{ item.shell | default(omit) }}"
+    comment: "{{ item.comment | default(omit) }}"
     password: >-
       {{
         omit if 'password' not in item or item.password is none or item.password == ''
