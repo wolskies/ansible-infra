@@ -41,14 +41,22 @@
   delegate_to: localhost
   when: discovery_debug | default(false)
 
-- name: Create output directories
-  ansible.builtin.file:
+- name: Check if output directories exist
+  ansible.builtin.stat:
     path: "{{ item }}"
-    state: directory
-    mode: "0755"
   loop:
     - "{{ discovery_paths.host_vars_dir }}"
     - "{{ discovery_paths.gpg_keys_dir }}"
+  register: directory_stats
+  delegate_to: localhost
+
+- name: Create output directories
+  ansible.builtin.file:
+    path: "{{ item.item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ directory_stats.results }}"
+  when: not item.stat.exists
   delegate_to: localhost
 
 - name: Gather system facts

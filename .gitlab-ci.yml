@@ -72,27 +72,22 @@ pre-commit-checks:
     - echo "✅ Pre-commit checks completed"
   allow_failure: true
 
-# Quick validation tests
+# Quick validation tests (lint + syntax only)
 test-quick:
   stage: test
   image: python:3.11-slim
-  services:
-    - docker:24-dind
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+  script:
+    - apt-get update -qq && apt-get install -y -qq make
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
+    - pip install ansible yamllint
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
-  script:
-    - make test-quick
-    - echo "✅ Quick tests passed"
+    - make lint
+    - make syntax-check
+    - echo "✅ Quick validation tests passed"
 
-# Discovery role tests
+# Role-specific tests
 test-discovery:
   stage: test
   image: python:3.11-slim
@@ -109,8 +104,122 @@ test-discovery:
     - pip install -r requirements-dev.txt
     - until docker info; do sleep 1; done
   script:
-    - make test-discovery
-    - echo "✅ Discovery tests passed"
+    - molecule test -s discovery
+    - echo "✅ Discovery role tests passed"
+
+test-packages:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - until docker info; do sleep 1; done
+  script:
+    - molecule test -s packages
+    - echo "✅ Package management tests passed"
+
+test-users:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - until docker info; do sleep 1; done
+  script:
+    - molecule test -s users
+    - echo "✅ User management tests passed"
+
+test-firewall:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - until docker info; do sleep 1; done
+  script:
+    - molecule test -s firewall
+    - echo "✅ Firewall tests passed"
+
+test-system-settings:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - until docker info; do sleep 1; done
+  script:
+    - molecule test -s system_settings
+    - echo "✅ System settings tests passed"
+
+test-language-packages:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - until docker info; do sleep 1; done
+  script:
+    - molecule test -s language_packages
+    - echo "✅ Language packages tests passed"
+
+test-security:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - until docker info; do sleep 1; done
+  script:
+    - molecule test -s security
+    - echo "✅ Security services tests passed"
 
 # Integration tests
 test-integration:
