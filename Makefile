@@ -37,7 +37,7 @@ test-failures: ## Run failure scenario tests (negative testing)
 	@echo "🧪 Running failure scenario tests..."
 	cd molecule/failure-scenarios && molecule test
 
-.PHONY: test-comprehensive  
+.PHONY: test-comprehensive
 test-comprehensive: ## Run comprehensive integration tests
 	@echo "🧪 Running comprehensive integration tests..."
 	cd molecule/comprehensive-integration && molecule test

@@ -23,4 +23,4 @@
       ansible.builtin.package:
         name: gnome-software-plugin-flatpak
         state: present
-      failed_when: false  # May not be available on all systems
+      failed_when: false # May not be available on all systems

@@ -27,7 +27,7 @@ This role uses tags for fine-grained control instead of enable/disable variables
 ansible-playbook -t firewall-services playbook.yml
 
 # Install only fail2ban
-ansible-playbook -t fail2ban playbook.yml  
+ansible-playbook -t fail2ban playbook.yml
 
 # Install all security services
 ansible-playbook -t security-services playbook.yml
@@ -132,14 +132,14 @@ This role safely handles firewall activation using proper separation of concerns
 3. Starts UFW service (with deny-by-default policy)
 
 **macOS (Application Layer Firewall)**: ALF works differently - it's application-based, not port-based:
-- SSH access is controlled by "Remote Login" system preference, not firewall rules  
+- SSH access is controlled by "Remote Login" system preference, not firewall rules
 - `default_rules` are ignored on macOS (only applies to Linux)
 - ALF controls which applications can accept incoming connections
 - Configured via `security_firewall_macosx` settings (stealth_mode, block_all, logging)
 
 ```yaml
 security_firewall_common:
-  enabled: true    # Enable service for boot (implies package installation)  
+  enabled: true    # Enable service for boot (implies package installation)
   start: true      # Start firewall service (with SSH protection via manage_firewall)
   # default_rules automatically includes SSH protection - see defaults/main.yml
 ```
@@ -157,7 +157,7 @@ security_firewall_common:
 ## Platform Support
 
 - **Ubuntu 22+**: Full UFW and fail2ban support
-- **Debian 12+**: Full UFW and fail2ban support  
+- **Debian 12+**: Full UFW and fail2ban support
 - **Arch Linux**: UFW and fail2ban support
 - **macOS**: Application Layer Firewall configuration
 

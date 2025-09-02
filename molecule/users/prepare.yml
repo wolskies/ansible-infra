@@ -25,5 +25,5 @@
         state: present
       loop:
         - docker
-        - systemd-journal  # May not exist in container
-      failed_when: false  # Don't fail if group already exists or can't be created
+        - systemd-journal # May not exist in container
+      failed_when: false # Don't fail if group already exists or can't be created

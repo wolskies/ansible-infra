@@ -327,7 +327,6 @@
           {{ packages }}
   when: ansible_facts.packages is defined and 'flatpak' in ansible_facts.packages
 
-
 # Set final discovered language packages
 - name: Set discovered language packages variables
   ansible.builtin.set_fact:

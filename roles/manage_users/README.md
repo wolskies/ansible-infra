@@ -52,7 +52,7 @@ users_config:
       repo: "https://github.com/user/dotfiles" # Required: git repository URL
       branch: "main"                           # Optional: git branch (default: main)
       directory: "/home/ed/.dotfiles"          # Optional: clone directory (default: ~/.dotfiles)
-  
+
   - name: shelly
     uid: "1001"
     gid: "1001"
@@ -139,7 +139,7 @@ users_config:
           - name: admin
             groups: [sudo, adm]
 
-# macOS systems  
+# macOS systems
 - hosts: darwin
   roles:
     - role: wolskinet.infrastructure.manage_users
@@ -164,7 +164,7 @@ users_config:
 ## Platform Support
 
 - **Ubuntu 22+**: Full support with automatic stow installation
-- **Debian 12+**: Full support with automatic stow installation  
+- **Debian 12+**: Full support with automatic stow installation
 - **Arch Linux**: Full support with automatic stow installation
 - **macOS**: Full support (requires manual stow installation: `brew install stow`)
 
@@ -194,7 +194,7 @@ users_config:
 The role automatically integrates with the `dotfiles` role for users that have `dotfiles_repository_url` defined:
 
 1. **Automatic Deployment**: Calls dotfiles role per-user
-2. **Conflict Resolution**: Backs up existing files before deployment  
+2. **Conflict Resolution**: Backs up existing files before deployment
 3. **Stow Management**: Uses GNU Stow for symlink-based dotfiles
 4. **Repository Updates**: Optionally updates existing dotfiles repositories
 
@@ -203,7 +203,7 @@ The role automatically integrates with the `dotfiles` role for users that have `
 dotfiles-repo/
 ├── zsh/
 │   ├── .zshrc
-│   └── .zshenv  
+│   └── .zshenv
 ├── git/
 │   └── .gitconfig
 ├── tmux/

@@ -9,7 +9,7 @@ Our testing strategy is built around the principle: **"Test what actually breaks
 ### Key Insights from Production Failures
 
 1. **Perfect test data doesn't catch real-world issues**
-2. **Edge cases and error conditions are where systems fail**  
+2. **Edge cases and error conditions are where systems fail**
 3. **Conditional logic is fragile and needs extensive testing**
 4. **Dependency assumptions break in minimal environments**
 5. **Mixed data quality (like discovery output) exposes bugs**
@@ -24,7 +24,7 @@ Our testing strategy is built around the principle: **"Test what actually breaks
 
 **Key Features**:
 - Multiple OS variants (Ubuntu clean, minimal, with snap, Debian, Arch)
-- Realistic user data mixing valid and placeholder variables  
+- Realistic user data mixing valid and placeholder variables
 - Missing dependencies and packages
 - Various system states and configurations
 
@@ -36,7 +36,7 @@ Our testing strategy is built around the principle: **"Test what actually breaks
 - ✅ UFW service reload limitations (must use restart)
 - ✅ Language package conditional errors
 
-### 2. Failure Scenario Testing  
+### 2. Failure Scenario Testing
 **Location**: `molecule/failure-scenarios/`
 
 **Purpose**: Negative testing - deliberately creates failure conditions
@@ -49,7 +49,7 @@ Our testing strategy is built around the principle: **"Test what actually breaks
 
 **What it catches**:
 - ✅ `object has no attribute 'rc'` errors
-- ✅ Missing passlib dependency handling  
+- ✅ Missing passlib dependency handling
 - ✅ UFW profile missing scenarios
 - ✅ UFW service reload vs restart issues
 - ✅ All conditional logic edge cases
@@ -84,15 +84,15 @@ users_config:
   - name: 'gooduser'
     password: 'TestPassword123!'  # Plaintext - tests hashing
     ssh_pubkey: 'ssh-rsa AAAAB3... real_key'
-    
-  # Discovery-like user (should be handled gracefully)  
+
+  # Discovery-like user (should be handled gracefully)
   - name: 'discovereduser'
     password: 'var_users_config_discovereduser_password'  # Placeholder
     ssh_pubkey: 'var_users_config_discovereduser_ssh_pubkey'  # Placeholder
     dotfiles:
       enable: true
       repo: null  # Should be skipped
-      
+
   # Edge cases
   - name: 'customgroupuser'
     gid: 9999  # Non-existent group - tests group creation
@@ -103,7 +103,7 @@ This mimics real discovery output that caused our failures.
 ## Platform Coverage
 
 ### Test Matrix
-- **Ubuntu 24.04 Clean**: Standard geerlingguy image  
+- **Ubuntu 24.04 Clean**: Standard geerlingguy image
 - **Ubuntu 24.04 Minimal**: Bare Ubuntu with missing packages
 - **Ubuntu 24.04 with Snap**: Tests snap preservation logic
 - **Debian 13**: Tests Debian-specific differences
@@ -125,7 +125,7 @@ make test
 # Run specific failure testing
 make test-failures
 
-# Run comprehensive integration 
+# Run comprehensive integration
 make test-comprehensive
 ```
 
@@ -144,7 +144,7 @@ pre-commit run --all-files
 # CI-style testing (includes linting)
 make ci-test
 
-# Quick validation (fast feedback)  
+# Quick validation (fast feedback)
 make test-quick
 ```
 
@@ -164,12 +164,12 @@ Our pre-commit hooks specifically detect these patterns that caused production f
 **Detects**: `name: ssh` in UFW rules
 **Recommends**: Port-based fallbacks
 
-### 4. UFW Service Reload Issues  
+### 4. UFW Service Reload Issues
 **Detects**: `state: reloaded` for UFW service
 **Prevents**: "Job type reload is not applicable" errors
 **Recommends**: Use `state: restarted` for UFW
 
-### 5. Nested Loop Variables  
+### 5. Nested Loop Variables
 **Detects**: `include_role` with `loop` without `loop_var`
 **Requires**: `loop_control.loop_var` usage
 
@@ -221,7 +221,7 @@ When new failures occur:
 # Before coding
 pre-commit install
 
-# During development  
+# During development
 make test-quick        # Fast feedback
 
 # Before committing
@@ -234,7 +234,7 @@ make test              # Full test suite
 
 ### CI/CD Pipeline
 1. **Lint**: Pre-commit hooks + yamllint + ansible-lint
-2. **Unit Test**: Individual role testing  
+2. **Unit Test**: Individual role testing
 3. **Integration Test**: Full deployment scenarios
 4. **Failure Test**: Negative testing scenarios
 5. **Security**: Bandit + sensitive data detection

@@ -37,20 +37,20 @@ provisioner:
             net.core.somaxconn: 65535
             vm.swappiness: 10
             fs.file-max: 2097152
-        
+
         # Test PAM limits
         system_settings_limits:
           enabled: true
           limits:
-            - domain: '*'
+            - domain: "*"
               limit_type: soft
               limit_item: nofile
               value: 65536
-            - domain: '*'
+            - domain: "*"
               limit_type: hard
               limit_item: nofile
               value: 65536
-        
+
         # Test kernel modules
         system_settings_modules:
           load:
@@ -61,14 +61,14 @@ provisioner:
           options:
             loop:
               max_loop: 32
-        
+
         # Test services
         system_settings_services:
           enable:
             - systemd-resolved.service
           disable: []
           mask: []
-        
+
         # Test fonts (disabled for speed)
         system_settings_fonts:
           nerd_fonts:

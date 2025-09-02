@@ -6,7 +6,7 @@ Cross-platform infrastructure automation collection with discovery-driven deploy
 
 ### Group-Based Configuration
 Machines are configured through inventory group membership with role combinations:
-- **`servers`**: Security hardening + basic setup + system packages  
+- **`servers`**: Security hardening + basic setup + system packages
 - **`docker_hosts`**: Server features + Docker installation + container services
 - **`workstations`**: Basic setup + dotfiles + desktop configurations + shell enhancements
 - **Custom groups**: User-defined role combinations
@@ -16,7 +16,7 @@ Advanced package variable merging with OS-specific distribution support:
 ```yaml
 # Variable precedence (merged in order):
 all_packages_install_Ubuntu: [git, curl, htop]        # All Ubuntu machines
-group_packages_install_Ubuntu: [nginx, certbot]       # Server group only  
+group_packages_install_Ubuntu: [nginx, certbot]       # Server group only
 host_packages_install_Ubuntu: [redis-server]          # Single host (from discovery)
 # Final result: [git, curl, htop, nginx, certbot, redis-server] + conditional packages
 ```
@@ -33,7 +33,7 @@ Host-level system configuration and settings:
 - **Repository Management**: Additional APT sources and GPG keys
 - **Platform Features**: Ubuntu snap removal, Arch mirror optimization, macOS preferences
 
-### **manage_packages** - Package Management  
+### **manage_packages** - Package Management
 Advanced hierarchical package management:
 - **Variable Merging**: all_ + group_ + host_ package lists
 - **Conditional Packages**: Shell enhancements, dotfiles support
@@ -43,7 +43,7 @@ Advanced hierarchical package management:
 ### **manage_users** - User Management
 User and group administration:
 - **User Creation**: With UID, shell, groups, password management
-- **Group Management**: Create and remove system groups  
+- **Group Management**: Create and remove system groups
 - **Dotfiles Integration**: Automatic deployment for users with repositories
 - **Multi-Platform**: Linux and macOS user management
 
@@ -105,7 +105,7 @@ docker_hosts:
   hosts:
     docker-01:
       ansible_host: 192.168.1.30
-      
+
 workstations:
   hosts:
     dev-machine:
@@ -120,7 +120,7 @@ all_packages_install_Ubuntu:
   - curl
   - htop
 
-# inventory/group_vars/servers/Ubuntu.yml - Server packages  
+# inventory/group_vars/servers/Ubuntu.yml - Server packages
 group_packages_install_Ubuntu:
   - nginx
   - fail2ban
@@ -139,7 +139,7 @@ group_packages_install_Ubuntu:
   hosts: servers
   roles:
     - devsec.hardening.os_hardening
-    - devsec.hardening.ssh_hardening  
+    - devsec.hardening.ssh_hardening
     - wolskinet.infrastructure.manage_firewall
 ```
 
@@ -155,20 +155,20 @@ ansible-playbook playbooks/run-discovery.yml -i existing-server, --ask-become-pa
 - `inventory/host_vars/existing-server.yml` - Discovered configuration
 - `playbooks/existing-server_discovered.yml` - Ready-to-deploy playbook
 
-### 2. Review and Customize  
+### 2. Review and Customize
 ```yaml
 # Example generated host_vars/web-01.yml
 host_packages_install_Ubuntu:
   - nginx
   - redis-server
   - git
-  
+
 discovered_users_config:
   - name: deploy
     shell: /bin/bash
     groups: [sudo, docker]
     dotfiles_repository_url: "https://github.com/deploy/dotfiles"
-    
+
 install_docker_services:
   - role: nginx_proxy_manager
     name: proxy
@@ -239,7 +239,7 @@ install_docker_services:
 - firewalld configuration
 - Pacman hook management
 
-### macOS (Intel/Apple Silicon)  
+### macOS (Intel/Apple Silicon)
 - Homebrew package management (Intel + Apple Silicon paths)
 - Comprehensive system preferences automation
 - Platform-specific firewall configuration
@@ -284,7 +284,7 @@ collections:
 ```bash
 # Development workflow
 make lint          # Run ansible-lint, yamllint, security checks
-make test-quick    # Fast validation tests  
+make test-quick    # Fast validation tests
 make test          # Full molecule test suite
 make build         # Build collection package
 

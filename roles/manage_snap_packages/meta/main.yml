@@ -4,16 +4,16 @@ galaxy_info:
   description: Manage snap packages - install, remove, or completely purge snap from system
   role_name: manage_snap_packages
   license: MIT
-  min_ansible_version: '2.15'
+  min_ansible_version: "2.15"
   platforms:
     - name: Ubuntu
       versions:
-        - '22.04'
-        - '24.04'
+        - "22.04"
+        - "24.04"
     - name: Debian
       versions:
-        - '12'
-        - '13'
+        - "12"
+        - "13"
   galaxy_tags:
     - system
     - packages

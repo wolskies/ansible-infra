@@ -5,20 +5,20 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]
+    branches: [main, develop]
+    tags: ["v*"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * 0'  # Weekly performance tests
+    - cron: "0 2 * * 0" # Weekly performance tests
 
 env:
   COLLECTION_NAMESPACE: wolskinet
   COLLECTION_NAME: infrastructure
-  ANSIBLE_FORCE_COLOR: 'true'
-  ANSIBLE_HOST_KEY_CHECKING: 'false'
-  PY_COLORS: '1'
+  ANSIBLE_FORCE_COLOR: "true"
+  ANSIBLE_HOST_KEY_CHECKING: "false"
+  PY_COLORS: "1"
 
 jobs:
   lint-and-validate:
@@ -31,8 +31,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -74,8 +74,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -101,8 +101,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -129,7 +129,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install security tools
         run: |
@@ -168,7 +168,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Ansible
         run: |
@@ -204,7 +204,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |

@@ -73,13 +73,12 @@ discovered_users_config:
 
     # Dotfiles configuration
     dotfiles_method: "local_copy"
-    dotfiles_files_copied: true  # Files copied to ./inventory/host_vars/localhost/dotfiles/shelly/
+    dotfiles_files_copied: true # Files copied to ./inventory/host_vars/localhost/dotfiles/shelly/
     dotfiles_config_files:
       - .vimrc
       - .bashrc
       - .gitconfig
       - .tmux.conf
-
 
 # ===============================================================================
 # DOCKER CONFIGURATION - Ready for container_platform role

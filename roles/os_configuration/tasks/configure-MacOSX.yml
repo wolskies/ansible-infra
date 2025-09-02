@@ -1,5 +1,4 @@
 ---
-
 - name: Configure macOS NTP time synchronization
   block:
     - name: Check current NTP server configuration
@@ -114,7 +113,7 @@
             dest: /etc/hosts.backup.{{ ansible_date_time.epoch }}
             owner: root
             group: wheel
-            mode: '0644'
+            mode: "0644"
             remote_src: true
           become: true
 
@@ -142,8 +141,10 @@
     type: bool
     value: "{{ item.value }}"
   loop:
-    - { key: "AutomaticCheckEnabled", value: "{{ config_macos.updates.auto_check | default(true) }}" }
-    - { key: "AutomaticDownload", value: "{{ config_macos.updates.auto_check | default(true) }}" }
+    - key: "AutomaticCheckEnabled"
+      value: "{{ config_macos.updates.auto_check | default(true) }}"
+    - key: "AutomaticDownload"
+      value: "{{ config_macos.updates.auto_check | default(true) }}"
   become: true
   notify: restart cfprefsd
   when: config_macos.updates is defined
@@ -151,4 +152,3 @@
     - macos
     - updates
     - system
-

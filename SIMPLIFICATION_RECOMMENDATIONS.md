@@ -15,12 +15,12 @@ This collection has become over-engineered with complex Jinja2 logic, nested con
     database: passwd
   become: true
 
-- name: Set empty users_config 
+- name: Set empty users_config
   set_fact:
     users_config: []
 ```
 
-### 2. Package Management: 85+ lines → 15 lines  
+### 2. Package Management: 85+ lines → 15 lines
 **Before**: Complex merging, OS detection, and multi-step processes
 **After**: Trust the `package` module to handle everything
 ```yaml
@@ -39,7 +39,7 @@ This collection has become over-engineered with complex Jinja2 logic, nested con
 # Replace main.yml (164 lines) with minimal version using:
 - setup:
 - package_facts:
-- getent: 
+- getent:
 - template:
 ```
 
@@ -75,7 +75,7 @@ This collection has become over-engineered with complex Jinja2 logic, nested con
 ## Next Steps
 
 1. Replace `roles/discovery/tasks/scan-users.yml` with simplified version
-2. Replace `roles/discovery/tasks/main.yml` with minimal version  
+2. Replace `roles/discovery/tasks/main.yml` with minimal version
 3. Simplify `roles/manage_packages/tasks/` to use built-in package module
 4. Review all other roles for similar over-engineering
 5. Update templates to remove complex Jinja2 logic
@@ -83,7 +83,7 @@ This collection has become over-engineered with complex Jinja2 logic, nested con
 ## Files to Replace
 
 - `roles/discovery/tasks/scan-users.yml` → `scan-users-simple.yml`
-- `roles/discovery/tasks/main.yml` → `main-simple.yml` 
+- `roles/discovery/tasks/main.yml` → `main-simple.yml`
 - `roles/manage_packages/tasks/main.yml` → `main-simple.yml`
 - Remove: `merge-packages.yml`, `install-packages.yml`, `remove-packages.yml`
 - Simplify all OS-specific task files to use built-in modules

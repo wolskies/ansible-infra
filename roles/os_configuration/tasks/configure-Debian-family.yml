@@ -1,5 +1,4 @@
 ---
-
 - name: Manage snap packages
   ansible.builtin.include_role:
     name: wolskinet.infrastructure.manage_snap_packages
@@ -17,7 +16,7 @@
     dest: /etc/apt/apt.conf.d/50unattended-upgrades
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   become: true
   when: config_debian_family.unattended_upgrades.enabled | default(true)
   tags:
@@ -47,7 +46,6 @@
   tags:
     - optimization
 
-
 - name: Configure APT behavior
   block:
     - name: Configure APT to not install recommends
@@ -58,7 +56,7 @@
         dest: /etc/apt/apt.conf.d/99-no-recommends
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
       become: true
       when: config_debian_family.apt.no_recommends | default(false)
 
@@ -70,7 +68,7 @@
         dest: /etc/apt/apt.conf.d/99-proxy
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
       become: true
       when: config_debian_family.apt.proxy != ""
   tags:

@@ -14,7 +14,7 @@ The collection has been redesigned with a clean separation of concerns using **s
 ```
 configure_system (master orchestration)
 ├── os_configuration (OS setup after fresh install)
-├── manage_users (user/group management)  
+├── manage_users (user/group management)
 ├── manage_packages (package installation)
 └── manage_third_party (development tools)
 
@@ -41,7 +41,7 @@ Standalone utility roles:
     all_packages_install_Ubuntu: [...]
 ```
 
-### 🔧 **os_configuration** - Post-Install OS Setup  
+### 🔧 **os_configuration** - Post-Install OS Setup
 **Purpose**: OS-level configuration after fresh install
 **When to use**: Right after OS installation, basic system setup
 **What it does**:
@@ -64,7 +64,7 @@ Standalone utility roles:
 ```
 
 ### 👥 **manage_users** - User Management
-**Purpose**: Create/manage users and groups  
+**Purpose**: Create/manage users and groups
 **When to use**: User administration, team onboarding
 **What it does**:
 - User creation with SSH keys
@@ -102,7 +102,7 @@ Standalone utility roles:
       - certbot
 ```
 
-### 🛠️ **manage_third_party** - Development Tools  
+### 🛠️ **manage_third_party** - Development Tools
 **Purpose**: Install third-party tools and development environments
 **When to use**: Development setup, specific toolchains
 **What it does**:
@@ -139,7 +139,7 @@ Standalone utility roles:
         protocol: tcp
         rule: allow
         comment: "HTTP traffic"
-      - port: 443  
+      - port: 443
         protocol: tcp
         rule: allow
         comment: "HTTPS traffic"
@@ -156,19 +156,19 @@ Standalone utility roles:
         # OS configuration
         config_common_hostname: "{{ inventory_hostname }}"
         config_common_domain: "production.example.com"
-        
+
         # Users
         users_config:
           - name: admin
             groups: [sudo]
             ssh_pubkey: "{{ admin_ssh_key }}"
-            
-        # Packages  
+
+        # Packages
         all_packages_install_Ubuntu:
           - git
           - htop
           - nginx
-          
+
         # Third-party tools
         manage_third_party_tools:
           docker: true
@@ -186,7 +186,7 @@ Standalone utility roles:
           - name: developer
             groups: [docker]
 
-# Just open firewall ports for a web service  
+# Just open firewall ports for a web service
 - hosts: web_servers
   roles:
     - role: wolskinet.infrastructure.manage_firewall_rules
@@ -209,9 +209,9 @@ Standalone utility roles:
         name: wolskinet.infrastructure.manage_packages
       vars:
         group_packages_install_Ubuntu: [nginx]
-        
+
     # Configure nginx...
-    
+
     # Open firewall ports
     - name: Configure firewall for web server
       ansible.builtin.include_role:
@@ -222,7 +222,7 @@ Standalone utility roles:
             rule: allow
             comment: "HTTP"
           - port: 443
-            rule: allow  
+            rule: allow
             comment: "HTTPS"
 ```
 
@@ -238,7 +238,7 @@ Standalone utility roles:
 - Perfect for both "new machine setup" and "specific changes"
 - Can call roles multiple times with different parameters
 
-### 🚀 **Maintainability**  
+### 🚀 **Maintainability**
 - Add new functionality to specific roles
 - Easy to extend without breaking existing workflows
 - Clear documentation per role
@@ -265,10 +265,10 @@ Standalone utility roles:
   vars:
     config_common_hostname: "server"
     users_config: [...]
-    
+
 # Option 2: Use individual roles (specific tasks)
 - role: os_configuration
-- role: manage_users  
+- role: manage_users
 - role: manage_firewall_rules
 ```
 
@@ -278,7 +278,7 @@ Standalone utility roles:
 - ✅ `configure_system` - Master orchestration role
 - ✅ `os_configuration` - Renamed and refactored from configure_host
 - ✅ `manage_users` - Verified standalone-ready
-- ✅ `manage_packages` - Verified standalone-ready  
+- ✅ `manage_packages` - Verified standalone-ready
 - ✅ `manage_third_party` - Created with Docker example
 - ✅ `manage_firewall_rules` - Renamed from manage_firewall
 
@@ -287,7 +287,7 @@ Standalone utility roles:
 - 🚧 Update all README files
 - 🚧 Create example playbooks
 
-### 📋 Next Steps  
+### 📋 Next Steps
 1. Test master orchestration with all roles
 2. Create comprehensive examples
 3. Update collection documentation

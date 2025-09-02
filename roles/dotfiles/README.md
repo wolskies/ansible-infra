@@ -55,7 +55,7 @@ dotfiles_stow_packages: []                   # Specific packages ([] = all direc
 
 # Examples:
 dotfiles_stow_packages: []                   # Deploy all directories in repo
-dotfiles_stow_packages: ["zsh"]              # Deploy only zsh directory  
+dotfiles_stow_packages: ["zsh"]              # Deploy only zsh directory
 dotfiles_stow_packages: ["zsh", "git", "tmux"] # Deploy multiple directories
 ```
 
@@ -136,7 +136,7 @@ When `install_dotfiles_support=true` in basic_setup:
 - Maps discovery variables to dotfiles role variables
 - Handles user creation before dotfiles deployment
 
-### Discovery Integration  
+### Discovery Integration
 Discovery role populates dotfiles configuration:
 ```yaml
 # Discovery output in host_vars:
@@ -168,7 +168,7 @@ discovered_users_config:
 # Dotfiles: ~/.dotfiles/bash/.bashrc (to be symlinked)
 
 # Resolution process:
-# 1. Backup: ~/.bashrc → ~/.bashrc.dotfiles-backup  
+# 1. Backup: ~/.bashrc → ~/.bashrc.dotfiles-backup
 # 2. Deploy: ~/.bashrc → ~/.dotfiles/bash/.bashrc (symlink)
 # 3. Report: "Backed up ~/.bashrc to ~/.bashrc.dotfiles-backup"
 ```

@@ -41,7 +41,7 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    mode: '0755'
+    mode: "0755"
   loop:
     - "{{ discovery_paths.host_vars_dir }}"
     - "{{ discovery_paths.gpg_keys_dir }}"
@@ -99,7 +99,7 @@
   ansible.builtin.template:
     src: simple_host_vars.yml.j2
     dest: "{{ discovery_paths.host_vars_file }}"
-    mode: '0644'
+    mode: "0644"
   delegate_to: localhost
 
 - name: Show discovery completion

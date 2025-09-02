@@ -13,7 +13,7 @@
       ansible.builtin.assert:
         that:
           - "'curl' in ansible_facts.packages"
-          - "'git' in ansible_facts.packages"  
+          - "'git' in ansible_facts.packages"
           - "'htop' in ansible_facts.packages"
         fail_msg: "All-level packages should be installed on all hosts"
         success_msg: "All-level packages are installed correctly"

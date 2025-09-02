@@ -128,7 +128,7 @@
           - item.stat.isdir
         fail_msg: "Home directory for {{ item.item }} not created"
       loop: "{{ home_dirs.results }}"
-      when: 
+      when:
         - inventory_hostname == "ubuntu-users-test"
         - home_dirs is defined
 
@@ -166,7 +166,7 @@
           - "'Shell test successful' in item.stdout"
         fail_msg: "Shell access failed for {{ item.item }}"
       loop: "{{ shell_tests.results }}"
-      when: 
+      when:
         - inventory_hostname == "ubuntu-users-test"
         - shell_tests is defined
         - item.rc == 0
@@ -233,6 +233,6 @@
           - item.stat.pw_name == item.item
         fail_msg: "Home directory permissions incorrect for {{ item.item }}"
       loop: "{{ home_perms.results }}"
-      when: 
+      when:
         - inventory_hostname == "ubuntu-users-test"
         - home_perms is defined

@@ -99,7 +99,7 @@ host_packages_install_Ubuntu:
 
 ### Supported Distributions
 - **Ubuntu**: `packages_install_Ubuntu`, `packages_remove_Ubuntu`
-- **Debian**: `packages_install_Debian`, `packages_remove_Debian`  
+- **Debian**: `packages_install_Debian`, `packages_remove_Debian`
 - **Arch Linux**: `packages_install_Archlinux`, `packages_remove_Archlinux`
 - **macOS**: `packages_install_MacOSX`, `packages_remove_MacOSX`
 
@@ -175,7 +175,7 @@ None. This role is designed to be fully standalone.
 all_packages_install_Ubuntu: [git, curl, htop, vim]
 all_packages_install_Debian: [git, curl, htop, vim]
 
-# group_vars/servers/packages.yml  
+# group_vars/servers/packages.yml
 group_packages_install_Ubuntu: [nginx, fail2ban, certbot]
 group_packages_install_Debian: [nginx, fail2ban, certbot]
 
@@ -200,7 +200,7 @@ host_packages_install_Ubuntu: [redis-server, postgresql-client]
 - **GPG Keys**: Automatic key import for repositories
 - **Upgrades**: Safe, full, and distribution upgrade options
 
-### Arch Linux  
+### Arch Linux
 - **Package Manager**: Pacman for official packages
 - **AUR Support**: paru for Arch User Repository packages
 - **System Updates**: Full system upgrade via pacman -Syu
@@ -228,7 +228,7 @@ The role seamlessly integrates with the discovery role:
 # Example host_vars/server.yml from discovery
 host_packages_install_Ubuntu:
   - nginx
-  - redis-server  
+  - redis-server
   - postgresql-client
   - node-js
   - git
@@ -244,7 +244,7 @@ host_packages_install_Ubuntu:
     - role: wolskinet.infrastructure.manage_packages
   vars:
     group_packages_install_Ubuntu: >-
-      {{ ['firefox', 'libreoffice'] + 
+      {{ ['firefox', 'libreoffice'] +
          (['nvidia-driver-470'] if ansible_kernel is search('nvidia') else []) }}
 ```
 

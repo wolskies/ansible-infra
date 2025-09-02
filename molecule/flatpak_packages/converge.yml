@@ -25,7 +25,7 @@
               - org.freedesktop.Platform//22.08
           remove:
             all_packages: true
-            system_packages: false  # Keep flatpak installed for testing
+            system_packages: false # Keep flatpak installed for testing
             cleanup_directories: false
             cleanup_repositories: true
           purge:

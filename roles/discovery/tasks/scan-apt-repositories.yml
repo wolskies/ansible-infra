@@ -111,4 +111,3 @@
   when:
     - discovery_debug | default(false)
     - host_apt_repositories is defined
-

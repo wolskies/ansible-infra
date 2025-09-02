@@ -9,7 +9,7 @@ This role provides performance-focused system tuning and hardware configurations
 ## Features
 
 - **Network Performance Tuning**: BBR congestion control, connection optimizations
-- **Gaming Optimizations**: VM parameters for gaming workloads  
+- **Gaming Optimizations**: VM parameters for gaming workloads
 - **GPU Support**: NVIDIA driver configurations and kernel module loading
 - **Hardware Support**: Camera (uvcvideo), Bluetooth configurations
 - **Nerd Fonts Installation**: Downloads and installs Nerd Fonts for development environments
@@ -19,7 +19,7 @@ This role provides performance-focused system tuning and hardware configurations
 
 ### Core Settings
 - `system_settings_network_enabled: false` - Enable network performance optimizations
-- `system_settings_gaming_enabled: false` - Enable gaming optimizations  
+- `system_settings_gaming_enabled: false` - Enable gaming optimizations
 - `system_settings_gpu_enabled: false` - Enable GPU configurations
 - `system_settings_hardware_enabled: true` - Enable hardware support
 
@@ -27,7 +27,7 @@ This role provides performance-focused system tuning and hardware configurations
 - `system_settings_network_optimizations` - Network sysctl parameters
 - `system_settings_custom_sysctl: {}` - Custom sysctl parameters
 
-### Gaming Support  
+### Gaming Support
 - `system_settings_gaming_optimizations` - Gaming-specific sysctl parameters
 
 ### GPU Configuration
@@ -91,7 +91,7 @@ Quick utility for Ubuntu/Debian systems (Arch/macOS use package managers):
 ## Supported Platforms
 
 - Ubuntu 22+
-- Debian 12+  
+- Debian 12+
 - Arch Linux (latest)
 
 ## License

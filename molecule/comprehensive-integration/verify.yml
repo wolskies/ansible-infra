@@ -120,7 +120,7 @@
           register: web_firewall_rules
           changed_when: false
           failed_when: >
-            '80/tcp' not in web_firewall_rules.stdout or 
+            '80/tcp' not in web_firewall_rules.stdout or
             '443/tcp' not in web_firewall_rules.stdout
 
         - name: Check web server specific packages
@@ -158,7 +158,7 @@
           register: db_firewall_rules
           changed_when: false
           failed_when: >
-            '5432/tcp' not in db_firewall_rules.stdout or 
+            '5432/tcp' not in db_firewall_rules.stdout or
             '6379/tcp' not in db_firewall_rules.stdout
 
         - name: Check database client packages
@@ -320,7 +320,7 @@
             cmd: "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ item }} 'echo Connection successful'"
           register: ssh_test
           changed_when: false
-          failed_when: false  # Allow failure as SSH keys may not be set up
+          failed_when: false # Allow failure as SSH keys may not be set up
           loop: "{{ groups['all'] }}"
           when: item != inventory_hostname
 
@@ -345,7 +345,7 @@
 
         - name: Test that unauthorized ports are blocked
           ansible.builtin.wait_for:
-            port: 23  # Telnet - should be blocked
+            port: 23 # Telnet - should be blocked
             host: "{{ inventory_hostname }}"
             timeout: 3
           register: telnet_test

@@ -36,7 +36,7 @@
 - name: Ensure snap is removed from system PATH
   ansible.builtin.lineinfile:
     path: /etc/environment
-    regexp: '.*:/snap/bin.*'
+    regexp: ".*:/snap/bin.*"
     state: absent
   become: true
   when: snap_packages.remove.cleanup_path | default(true)

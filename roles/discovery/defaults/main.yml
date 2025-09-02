@@ -8,15 +8,15 @@
 # =============================================================================
 
 # Core discovery behavior control
-discovery_generate_configs: true               # Generate playbooks and inventory files
-discovery_timeout: 300                         # Maximum time per discovery task (seconds)
-discovery_debug: false                         # Enable detailed discovery debugging output
+discovery_generate_configs: true # Generate playbooks and inventory files
+discovery_timeout: 300 # Maximum time per discovery task (seconds)
+discovery_debug: false # Enable detailed discovery debugging output
 
 # Legacy compatibility (deprecated - use individual variables above)
 discovery:
-  generate_configs: true              # Generate playbooks and inventory files
-  timeout: 300                       # Maximum time per discovery task (seconds)
-  debug: false                       # Enable detailed discovery debugging output
+  generate_configs: true # Generate playbooks and inventory files
+  timeout: 300 # Maximum time per discovery task (seconds)
+  debug: false # Enable detailed discovery debugging output
 
 # Output paths (relative to ansible-playbook execution directory)
 # Override these in your playbook to control where files are written:
@@ -34,36 +34,36 @@ discovery:
 
 # Docker Compose search configuration
 # Discovery searches these paths for containerized services and docker-compose.yml files
-discovery_docker_compose_paths:                # Primary search paths for Docker Compose files
-  - "/opt"                                      # Common system service location
-  - "/opt/docker"                               # Docker-specific directory
-  - "/srv"                                      # Service directory (FHS standard)
-  - "/srv/docker"                               # Docker services in /srv
-  - "/home/*/docker"                            # User docker directories (auto-expanded)
+discovery_docker_compose_paths: # Primary search paths for Docker Compose files
+  - "/opt" # Common system service location
+  - "/opt/docker" # Docker-specific directory
+  - "/srv" # Service directory (FHS standard)
+  - "/srv/docker" # Docker services in /srv
+  - "/home/*/docker" # User docker directories (auto-expanded)
 
 # Legacy compatibility (deprecated - use discovery_docker_compose_paths instead)
-discovery_docker_compose_dir: "/opt/docker"    # Single directory search (deprecated)
+discovery_docker_compose_dir: "/opt/docker" # Single directory search (deprecated)
 
 # Service mapping - maps discovered container images to collection roles
 # Add custom mappings here to auto-assign roles to your Docker services
 discovery_docker_service_mapping:
   # Content management and collaboration
-  "gitlab/gitlab-ce": "gitlab"                           # GitLab Community Edition
-  "gitlab/gitlab-ee": "gitlab"                           # GitLab Enterprise Edition
-  "ghcr.io/paperless-ngx/paperless-ngx": "paperless"     # Paperless-ngx document management
-  "paperless-ngx/paperless-ngx": "paperless"             # Paperless-ngx (Docker Hub)
+  "gitlab/gitlab-ce": "gitlab" # GitLab Community Edition
+  "gitlab/gitlab-ee": "gitlab" # GitLab Enterprise Edition
+  "ghcr.io/paperless-ngx/paperless-ngx": "paperless" # Paperless-ngx document management
+  "paperless-ngx/paperless-ngx": "paperless" # Paperless-ngx (Docker Hub)
 
   # Media and entertainment
-  "jellyfin/jellyfin": "jellyfin"                        # Jellyfin media server
+  "jellyfin/jellyfin": "jellyfin" # Jellyfin media server
 
   # Web services and proxying
-  "jc21/nginx-proxy-manager": "nginx_proxy_manager"      # Nginx Proxy Manager
+  "jc21/nginx-proxy-manager": "nginx_proxy_manager" # Nginx Proxy Manager
 
   # Dashboards and monitoring
-  "ghcr.io/gethomepage/homepage": "homepage"             # Homepage dashboard
-  "benphelps/homepage": "homepage"                       # Homepage dashboard (legacy)
-  "portainer/portainer-ce": "portainer"                  # Portainer Community Edition
-  "portainer/portainer-ee": "portainer"                  # Portainer Enterprise Edition
+  "ghcr.io/gethomepage/homepage": "homepage" # Homepage dashboard
+  "benphelps/homepage": "homepage" # Homepage dashboard (legacy)
+  "portainer/portainer-ce": "portainer" # Portainer Community Edition
+  "portainer/portainer-ee": "portainer" # Portainer Enterprise Edition
 
 # To add custom services, extend this mapping:
 # discovery_docker_service_mapping:
@@ -75,45 +75,45 @@ discovery_docker_service_mapping:
 
 # Shell discovery - which shells and config files to detect
 discovery_shell_configuration:
-  supported_shells:                   # Shells to detect and configure
+  supported_shells: # Shells to detect and configure
     - /bin/bash
     - /bin/zsh
     - /usr/bin/fish
 
-  config_files:                       # Config files to scan per shell
+  config_files: # Config files to scan per shell
     bash: [.bashrc, .bash_profile, .profile]
     zsh: [.zshrc, .zsh_profile, .profile]
     fish: [.config/fish/config.fish]
 
 # Package repository detection paths and tools
 repository_detection:
-  pacman:                             # Arch Linux package management
+  pacman: # Arch Linux package management
     config: "/etc/pacman.conf"
     mirrorlist: "/etc/pacman.d/mirrorlist"
-  aur_helpers: [yay, paru, trizen]    # AUR helpers to detect
-  homebrew:                           # macOS Homebrew paths (Intel/Apple Silicon)
+  aur_helpers: [yay, paru, trizen] # AUR helpers to detect
+  homebrew: # macOS Homebrew paths (Intel/Apple Silicon)
     paths:
-      - "/opt/homebrew/bin/brew"      # Apple Silicon default
-      - "/usr/local/bin/brew"         # Intel Mac default
+      - "/opt/homebrew/bin/brew" # Apple Silicon default
+      - "/usr/local/bin/brew" # Intel Mac default
 
 discovery_repository_detection:
-  apt:                                # Debian/Ubuntu repository detection
-    keys_paths:                       # Where to find GPG keys
+  apt: # Debian/Ubuntu repository detection
+    keys_paths: # Where to find GPG keys
       - "/etc/apt/trusted.gpg.d"
       - "/usr/share/keyrings"
 
 # Dotfiles detection configuration
 discovery_dotfiles_detection:
-  repository_indicators:              # Directories that suggest dotfiles repo
+  repository_indicators: # Directories that suggest dotfiles repo
     - .dotfiles
     - .config
-  management_tools:                   # Files that indicate dotfiles management
-    - Makefile                        # Make-based installation
-    - install.sh                      # Shell script installation
-    - bootstrap.sh                    # Bootstrap script
-    - setup.sh                        # Setup script
-    - stow                            # GNU Stow usage
-    - .stow-local-ignore              # Stow configuration
+  management_tools: # Files that indicate dotfiles management
+    - Makefile # Make-based installation
+    - install.sh # Shell script installation
+    - bootstrap.sh # Bootstrap script
+    - setup.sh # Setup script
+    - stow # GNU Stow usage
+    - .stow-local-ignore # Stow configuration
 
 # =============================================================================
 # DISCOVERY OUTPUT TEMPLATES AND DEFAULTS
@@ -123,60 +123,60 @@ discovery_dotfiles_detection:
 # Users can uncomment and customize these in their generated inventory
 discovery_system_tuning_defaults:
   # Performance optimization categories
-  gaming:                             # Gaming-focused optimizations
-    enabled: false                    # Enable gaming performance tweaks
+  gaming: # Gaming-focused optimizations
+    enabled: false # Enable gaming performance tweaks
     description: "Gaming optimizations (kernel parameters, CPU governor, etc.)"
     kernel_params: ["mitigations=off"] # Kernel security vs performance tradeoffs
-    cpu_governor: "performance"       # CPU scaling governor
+    cpu_governor: "performance" # CPU scaling governor
 
-  gpu:                                # Graphics acceleration support
+  gpu: # Graphics acceleration support
     enabled: false
     description: "GPU-specific configurations and drivers"
-    nvidia_support: false             # NVIDIA proprietary drivers
-    amd_support: false                # AMD graphics support
-    intel_support: false              # Intel integrated graphics
+    nvidia_support: false # NVIDIA proprietary drivers
+    amd_support: false # AMD graphics support
+    intel_support: false # Intel integrated graphics
 
-  bluetooth:                          # Bluetooth and audio codec support
+  bluetooth: # Bluetooth and audio codec support
     enabled: false
     description: "Bluetooth support and audio codecs"
     audio_codecs: ["aptx", "ldac", "aac"] # High-quality audio codecs
 
-  camera:                             # Camera/webcam configuration
+  camera: # Camera/webcam configuration
     enabled: false
     description: "Camera/webcam support and permissions"
-    v4l2_support: true                # Video4Linux2 support
+    v4l2_support: true # Video4Linux2 support
 
-  audio:                              # Professional audio optimizations
+  audio: # Professional audio optimizations
     enabled: false
     description: "Audio system optimizations"
-    low_latency: false                # Low-latency audio for recording
-    real_time_audio: false            # Real-time audio kernel optimizations
+    low_latency: false # Low-latency audio for recording
+    real_time_audio: false # Real-time audio kernel optimizations
 
   # Security hardening options
-  security:                           # Security-focused configurations
-    ssh_hardening: false              # Advanced SSH security settings
-    firewall_strict: false            # Restrictive firewall rules
-    fail2ban: false                   # Intrusion prevention system
+  security: # Security-focused configurations
+    ssh_hardening: false # Advanced SSH security settings
+    firewall_strict: false # Restrictive firewall rules
+    fail2ban: false # Intrusion prevention system
 
   # Network performance tuning
-  network:                            # Network stack optimizations
-    performance_tuning: false         # High-throughput network tuning
-    tcp_optimization: false           # TCP/IP stack optimization
+  network: # Network stack optimizations
+    performance_tuning: false # High-throughput network tuning
+    tcp_optimization: false # TCP/IP stack optimization
 
 # User configuration template defaults
 # Controls how discovered users are configured in the output
 discovery_user_configuration_defaults:
-  primary_user:                       # Primary/admin user configuration
-    sudo_nopasswd: false              # Enable passwordless sudo access
-    additional_groups: []             # Extra groups beyond discovery results
-    docker_access: false              # Add to docker group for container access
+  primary_user: # Primary/admin user configuration
+    sudo_nopasswd: false # Enable passwordless sudo access
+    additional_groups: [] # Extra groups beyond discovery results
+    docker_access: false # Add to docker group for container access
 
-  shell:                              # Shell configuration defaults
-    default_shell: "/bin/bash"        # Default shell for discovered users
+  shell: # Shell configuration defaults
+    default_shell: "/bin/bash" # Default shell for discovered users
 
-  ssh:                                # SSH access configuration
-    key_management: false             # Enable SSH key management
-    disable_password_auth: false      # Force SSH key-only authentication
+  ssh: # SSH access configuration
+    key_management: false # Enable SSH key management
+    disable_password_auth: false # Force SSH key-only authentication
 
 # =============================================================================
 # INFRASTRUCTURE PACKAGE FILTERING
@@ -204,7 +204,6 @@ discovery_infrastructure_patterns:
   - "^libnvidia-.*"
   - "^nvidia-driver-.*"
   - "^docker-.*-plugin$"
-
 # =============================================================================
 # USAGE EXAMPLES AND INTEGRATION
 # =============================================================================

@@ -30,16 +30,16 @@ provisioner:
     group_vars:
       all:
         # Test basic system configuration
-        config_common_hostname_manage: false  # Skip hostname changes in container
+        config_common_hostname_manage: false # Skip hostname changes in container
         config_common_timezone: "UTC"
-        
+
         # Test user management
         users_config:
           - name: testuser
             groups: []
             shell: /bin/bash
             create_home: true
-        
+
         # Test package management
         all_packages_install_Ubuntu:
           - curl
@@ -49,14 +49,14 @@ provisioner:
           - curl
           - git
           - htop
-        
+
         # Test security services (minimal for container)
         security_services:
           ufw:
-            enabled: false  # Skip firewall in container
+            enabled: false # Skip firewall in container
           fail2ban:
-            enabled: false  # Skip fail2ban in container
-        
+            enabled: false # Skip fail2ban in container
+
       servers:
         # Server-specific configuration test
         configure_system:
@@ -64,7 +64,7 @@ provisioner:
             enabled: true
           system_settings:
             enabled: true
-        
+
         # Server packages
         group_packages_install_Ubuntu:
           - nginx
@@ -72,40 +72,40 @@ provisioner:
         group_packages_install_Debian:
           - nginx
           - certbot
-        
+
         # Test system settings
         system_settings_sysctl:
           enabled: true
           parameters:
             vm.swappiness: 10
             net.ipv4.tcp_keepalive_time: 120
-      
+
       workstations:
-        # Workstation-specific configuration test  
+        # Workstation-specific configuration test
         configure_system:
           snap_packages:
-            enabled: false  # Skip snap in container
+            enabled: false # Skip snap in container
           dotfiles_deployment:
-            enabled: false  # Skip dotfiles in test
-        
+            enabled: false # Skip dotfiles in test
+
         # Workstation packages
         group_packages_install_Debian:
           - firefox-esr
           - libreoffice-writer
-    
+
     host_vars:
       ubuntu-system-test:
         # Test host-specific packages
         host_packages_install_Ubuntu:
           - vim
           - tree
-      
+
       debian-system-test:
         # Test host-specific packages
         host_packages_install_Debian:
           - vim
           - tree
-        
+
         # Test system settings for Debian
         system_settings_limits:
           enabled: true
@@ -114,7 +114,7 @@ provisioner:
               limit_type: soft
               limit_item: nofile
               value: 65536
-  
+
   config_options:
     defaults:
       host_key_checking: false
