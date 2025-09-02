@@ -29,6 +29,8 @@ provisioner:
   inventory:
     group_vars:
       all:
+        # Enable consistent behavior for molecule tests
+        molecule_test: true
         # Python packages configuration for all hosts
         language_packages:
           python:
