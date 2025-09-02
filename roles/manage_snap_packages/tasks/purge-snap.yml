@@ -9,7 +9,7 @@
     state: absent
     purge: true
   become: true
-  when: snap_remove_system_packages | default(true)
+  when: snap_packages.remove.system_packages | default(true)
   failed_when: false
   tags:
     - snap-packages
@@ -27,7 +27,7 @@
     - /usr/lib/snapd
     - "{{ ansible_env.HOME | default('/home/' + ansible_user_id) }}/snap"
   become: true
-  when: snap_cleanup_directories | default(true)
+  when: snap_packages.remove.cleanup_directories | default(true)
   failed_when: false
   tags:
     - snap-packages
@@ -39,7 +39,7 @@
     regexp: '.*:/snap/bin.*'
     state: absent
   become: true
-  when: snap_cleanup_path | default(true)
+  when: snap_packages.remove.cleanup_path | default(true)
   failed_when: false
   tags:
     - snap-packages

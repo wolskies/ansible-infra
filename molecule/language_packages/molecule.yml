@@ -1,0 +1,93 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-language-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - language_hosts
+  - name: debian-language-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - language_hosts
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        # Python packages configuration for all hosts
+        language_packages:
+          python:
+            enable: true
+            packages:
+              - black
+              - ruff
+            install_method: "user"
+          nodejs:
+            enable: true
+            packages:
+              - prettier
+              - eslint
+            install_global: true
+          rust:
+            enable: false  # Disabled for testing speed
+            packages: []
+          go:
+            enable: false  # Disabled for testing speed
+            packages: []
+          config:
+            check_dependencies: true
+            install_missing_tools: true
+    host_vars:
+      ubuntu-language-test:
+        # Host-specific Python packages for Ubuntu
+        language_packages:
+          python:
+            enable: true
+            packages:
+              - black
+              - ruff
+              - pytest
+            install_method: "user"
+          nodejs:
+            enable: true
+            packages:
+              - prettier
+              - eslint
+              - typescript
+            install_global: true
+      debian-language-test:
+        # Host-specific configuration for Debian
+        language_packages:
+          python:
+            enable: true
+            packages:
+              - black
+              - mypy
+            install_method: "user"
+          nodejs:
+            enable: true
+            packages:
+              - prettier
+              - "@vue/cli"
+            install_global: true
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

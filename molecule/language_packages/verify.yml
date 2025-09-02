@@ -1,0 +1,96 @@
+---
+- name: Verify language package management functionality
+  hosts: all
+  become: false
+  gather_facts: true
+  tasks:
+    # Test 1: Verify Python packages installed with uv
+    - name: Check if uv is installed
+      ansible.builtin.command: which uv
+      register: uv_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify uv is installed
+      ansible.builtin.assert:
+        that:
+          - uv_check.rc == 0
+        fail_msg: "uv should be installed"
+        success_msg: "uv is properly installed"
+
+    - name: Check installed Python packages with uv
+      ansible.builtin.shell: "{{ ansible_env.HOME }}/.local/bin/uv tool list"
+      register: uv_packages
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
+
+    - name: Verify Python packages are installed (Ubuntu)
+      ansible.builtin.assert:
+        that:
+          - "'black' in uv_packages.stdout"
+          - "'ruff' in uv_packages.stdout"
+          - "'pytest' in uv_packages.stdout"
+        fail_msg: "Required Python packages should be installed on Ubuntu"
+        success_msg: "Python packages are installed correctly on Ubuntu"
+      when: inventory_hostname == "ubuntu-language-test"
+
+    - name: Verify Python packages are installed (Debian)
+      ansible.builtin.assert:
+        that:
+          - "'black' in uv_packages.stdout"
+          - "'mypy' in uv_packages.stdout"
+        fail_msg: "Required Python packages should be installed on Debian"
+        success_msg: "Python packages are installed correctly on Debian"
+      when: inventory_hostname == "debian-language-test"
+
+    # Test 2: Verify Node.js and npm packages
+    - name: Check if npm is installed
+      ansible.builtin.command: which npm
+      register: npm_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify npm is installed
+      ansible.builtin.assert:
+        that:
+          - npm_check.rc == 0
+        fail_msg: "npm should be installed"
+        success_msg: "npm is properly installed"
+
+    - name: Check globally installed npm packages
+      ansible.builtin.command: npm list -g --depth=0 --json
+      register: npm_packages
+      become: true
+      changed_when: false
+      failed_when: false
+
+    - name: Verify npm packages are installed (Ubuntu)
+      ansible.builtin.assert:
+        that:
+          - "'prettier' in npm_packages.stdout"
+          - "'eslint' in npm_packages.stdout"
+          - "'typescript' in npm_packages.stdout"
+        fail_msg: "Required npm packages should be installed on Ubuntu"
+        success_msg: "npm packages are installed correctly on Ubuntu"
+      when: inventory_hostname == "ubuntu-language-test"
+
+    - name: Verify npm packages are installed (Debian)
+      ansible.builtin.assert:
+        that:
+          - "'prettier' in npm_packages.stdout"
+          - "'@vue/cli' in npm_packages.stdout"
+        fail_msg: "Required npm packages should be installed on Debian"
+        success_msg: "npm packages are installed correctly on Debian"
+      when: inventory_hostname == "debian-language-test"
+
+    # Test 3: Display summary for debugging
+    - name: Display language packages summary
+      ansible.builtin.debug:
+        msg: |
+          Host: {{ inventory_hostname }}
+          Distribution: {{ ansible_distribution }}
+          UV packages: {{ uv_packages.stdout_lines | default(['none']) }}
+          NPM packages: {{ npm_packages.stdout | default('none') }}
+      tags: debug

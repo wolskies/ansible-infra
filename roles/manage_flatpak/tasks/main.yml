@@ -1,0 +1,43 @@
+---
+# manage_flatpak role main tasks
+# Comprehensive flatpak package management - install, remove, or purge
+
+- name: Validate supported OS versions
+  ansible.builtin.fail:
+    msg: >-
+      {{ ansible_distribution }} {{ ansible_distribution_version }}
+      is not supported. Supported versions: Ubuntu 22+, Debian 12+
+  when:
+    - >-
+      (ansible_distribution == "Ubuntu" and
+      ansible_distribution_major_version | int < 22) or
+      (ansible_distribution == "Debian" and
+      ansible_distribution_major_version | int < 12)
+  tags:
+    - always
+    - validation
+    - flatpak-packages
+
+- name: Ensure flatpak packages are installed
+  ansible.builtin.include_tasks: install-flatpak.yml
+  when:
+    - flatpak_packages.management_action == "install"
+  tags:
+    - flatpak-packages
+    - install-flatpak
+
+- name: Ensure flatpak packages are removed
+  ansible.builtin.include_tasks: remove-flatpak.yml
+  when: flatpak_packages.management_action in ["remove", "purge"]
+  tags:
+    - flatpak-packages
+    - remove-flatpak
+
+- name: Ensure complete flatpak purge (with confirmation)
+  ansible.builtin.include_tasks: purge-flatpak.yml
+  when:
+    - flatpak_packages.management_action == "purge"
+    - flatpak_packages.purge.confirm | default(false)
+  tags:
+    - flatpak-packages
+    - purge-flatpak

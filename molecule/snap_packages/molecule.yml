@@ -1,0 +1,51 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-snap-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - snap_hosts
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        # Test snap installation first, then removal
+        snap_packages:
+          management_action: "install"
+          packages:
+            install:
+              - hello-world
+            classic: []
+          remove:
+            all_packages: true
+            system_packages: false
+            disable_services: true
+            cleanup_directories: false
+            cleanup_path: false
+          purge:
+            confirm: false
+    host_vars:
+      ubuntu-snap-test:
+        # Host-specific snap configuration
+        snap_packages:
+          management_action: "install"
+          packages:
+            install:
+              - hello-world
+            classic: []
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

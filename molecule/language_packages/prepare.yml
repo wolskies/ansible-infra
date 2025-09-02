@@ -1,0 +1,23 @@
+---
+- name: Prepare language package test environment
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Update package cache
+      ansible.builtin.package:
+        update_cache: true
+
+    - name: Install required system dependencies
+      ansible.builtin.package:
+        name:
+          - curl
+          - wget
+          - gnupg
+        state: present
+
+    - name: Ensure systemd is running
+      ansible.builtin.service:
+        name: systemd-resolved
+        state: started
+      ignore_errors: true

@@ -1,0 +1,36 @@
+---
+- name: Prepare snap package test environment
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Update package cache
+      ansible.builtin.package:
+        update_cache: true
+
+    - name: Ensure systemd is running
+      ansible.builtin.service:
+        name: systemd-resolved
+        state: started
+      ignore_errors: true
+
+    - name: Install snapd if not present (for testing)
+      ansible.builtin.package:
+        name: snapd
+        state: present
+
+    - name: Start and enable snapd services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - snapd.service
+        - snapd.socket
+      ignore_errors: true
+
+    - name: Wait for snapd to be ready
+      ansible.builtin.command: snap wait system seed.loaded
+      changed_when: false
+      failed_when: false
+      timeout: 60

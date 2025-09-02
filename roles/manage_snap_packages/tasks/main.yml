@@ -21,15 +21,15 @@
 - name: Ensure snap packages are installed
   ansible.builtin.include_tasks: install-snap.yml
   when:
-    - snap_management_action == "install"
-    - snap_packages_install | length > 0 or snap_classic_packages | length > 0
+    - snap_packages.management_action == "install"
+    - snap_packages.packages.install | length > 0 or snap_packages.packages.classic | length > 0
   tags:
     - snap-packages
     - install-snap
 
 - name: Ensure snap packages are removed
   ansible.builtin.include_tasks: remove-snap.yml
-  when: snap_management_action in ["remove", "purge"]
+  when: snap_packages.management_action in ["remove", "purge"]
   tags:
     - snap-packages
     - remove-snap
@@ -37,8 +37,8 @@
 - name: Ensure complete snap purge (with confirmation)
   ansible.builtin.include_tasks: purge-snap.yml
   when:
-    - snap_management_action == "purge"
-    - snap_purge_confirm | default(false)
+    - snap_packages.management_action == "purge"
+    - snap_packages.purge.confirm | default(false)
   tags:
     - snap-packages
     - purge-snap

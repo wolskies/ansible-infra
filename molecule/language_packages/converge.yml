@@ -1,0 +1,11 @@
+---
+- name: Test language package management functionality
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Apply language package management role
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.manage_language_packages
+      tags:
+        - language-packages
