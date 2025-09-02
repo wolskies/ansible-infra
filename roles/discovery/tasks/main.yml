@@ -95,12 +95,19 @@
         ) | default('UTC')
       }}
 
+- name: Check if host variables file exists
+  ansible.builtin.stat:
+    path: "{{ discovery_paths.host_vars_file }}"
+  register: host_vars_file_stat
+  delegate_to: localhost
+
 - name: Generate host variables file
   ansible.builtin.template:
     src: simple_host_vars.yml.j2
     dest: "{{ discovery_paths.host_vars_file }}"
     mode: "0644"
   delegate_to: localhost
+  when: not host_vars_file_stat.stat.exists or discovery_force_regenerate | default(false)
 
 - name: Show discovery completion
   ansible.builtin.debug:
