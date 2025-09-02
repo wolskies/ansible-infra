@@ -26,12 +26,14 @@ molecule-test-basic:
     DOCKER_TLS_CERTDIR: "/certs"
     DOCKER_TLS_VERIFY: 1
     DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
-  script:
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - docker info
+    - until docker info; do sleep 1; done
+  script:
     - molecule syntax -s packages
     - echo "✅ Basic molecule test passed"
 
