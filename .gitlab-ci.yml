@@ -1,12 +1,22 @@
 stages:
   - validate
+  - security
   - test
+  - integration
   - build
+  - publish
 
 variables:
   ANSIBLE_FORCE_COLOR: "true"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-# Simple validation
+# Cache configuration for faster builds
+cache:
+  paths:
+    - .cache/pip
+    - .venv/
+
+# YAML and Ansible validation
 yaml-validation:
   stage: validate
   image: python:3.11-slim
@@ -15,8 +25,54 @@ yaml-validation:
     - yamllint .
     - echo "✅ YAML validation passed"
 
-# Basic molecule test (without templates)
-molecule-test-basic:
+ansible-lint:
+  stage: validate
+  image: python:3.11-slim
+  script:
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - ansible-lint
+    - echo "✅ Ansible lint passed"
+
+syntax-check:
+  stage: validate
+  image: python:3.11-slim
+  script:
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install ansible
+    - make syntax-check
+    - echo "✅ Syntax check passed"
+
+# Security checks
+security-bandit:
+  stage: security
+  image: python:3.11-slim
+  script:
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install bandit[toml]
+    - bandit -r . -f json || true
+    - echo "✅ Security scan completed"
+  allow_failure: true
+
+pre-commit-checks:
+  stage: security
+  image: python:3.11-slim
+  script:
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - pre-commit run --all-files || echo "Pre-commit issues found"
+    - echo "✅ Pre-commit checks completed"
+  allow_failure: true
+
+# Quick validation tests
+test-quick:
   stage: test
   image: python:3.11-slim
   services:
@@ -32,11 +88,54 @@ molecule-test-basic:
     - pip install -r requirements-dev.txt
     - until docker info; do sleep 1; done
   script:
-    - molecule syntax -s packages
-    - echo "✅ Basic molecule test passed"
+    - make test-quick
+    - echo "✅ Quick tests passed"
 
-# Simple collection build
-collection-build-simple:
+# Discovery role tests
+test-discovery:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - until docker info; do sleep 1; done
+  script:
+    - make test-discovery
+    - echo "✅ Discovery tests passed"
+
+# Integration tests
+test-integration:
+  stage: integration
+  image: python:3.11-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - until docker info; do sleep 1; done
+  script:
+    - make test-integration
+    - echo "✅ Integration tests passed"
+  only:
+    - main
+    - merge_requests
+
+# Collection build
+collection-build:
   stage: build
   image: python:3.11-slim
   script:
@@ -44,10 +143,46 @@ collection-build-simple:
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install ansible
-    - ansible-galaxy collection build --force
+    - make collection-build
     - ls -la *.tar.gz
     - echo "✅ Collection built successfully"
   artifacts:
     paths:
       - "*.tar.gz"
-    expire_in: 1 hour
+    expire_in: 1 week
+
+# Version validation and tagging
+version-check:
+  stage: build
+  image: python:3.11-slim
+  script:
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install pyyaml
+    - python3 -c "import yaml; print('Version:', yaml.safe_load(open('galaxy.yml'))['version'])"
+    - echo "✅ Version validated"
+  only:
+    - tags
+
+# Publish to Ansible Galaxy (manual trigger only)
+publish-galaxy:
+  stage: publish
+  image: python:3.11-slim
+  dependencies:
+    - collection-build
+  script:
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install ansible
+    - |
+      if [ -z "$GALAXY_API_KEY" ]; then
+        echo "❌ GALAXY_API_KEY not set - skipping publish"
+        exit 1
+      fi
+    - ansible-galaxy collection publish *.tar.gz --api-key $GALAXY_API_KEY
+    - echo "✅ Collection published to Ansible Galaxy"
+  when: manual
+  only:
+    - tags
+  variables:
+    GALAXY_API_KEY: $GALAXY_API_KEY
