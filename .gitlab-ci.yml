@@ -19,7 +19,7 @@ cache:
 # YAML and Ansible validation
 yaml-validation:
   stage: validate
-  image: python:3.11-slim
+  image: python:3.13-slim
   script:
     - pip install yamllint
     - yamllint .
@@ -27,7 +27,7 @@ yaml-validation:
 
 ansible-lint:
   stage: validate
-  image: python:3.11-slim
+  image: python:3.13-slim
   script:
     - python3 -m venv .venv
     - source .venv/bin/activate
@@ -38,7 +38,7 @@ ansible-lint:
 
 syntax-check:
   stage: validate
-  image: python:3.11-slim
+  image: python:3.13-slim
   script:
     - apt-get update -qq && apt-get install -y -qq make
     - python3 -m venv .venv
@@ -51,18 +51,19 @@ syntax-check:
 # Security checks
 security-bandit:
   stage: security
-  image: python:3.11-slim
+  image: python:3.13-slim
   script:
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install bandit[toml]
-    - bandit -r . -f json || true
+    # Scan only relevant directories, exclude test files and virtual envs
+    - bandit -r roles/ -f json --exclude '**/test*,**/molecule*' || true
     - echo "✅ Security scan completed"
   allow_failure: true
 
 pre-commit-checks:
   stage: security
-  image: python:3.11-slim
+  image: python:3.13-slim
   script:
     - python3 -m venv .venv
     - source .venv/bin/activate
@@ -75,7 +76,7 @@ pre-commit-checks:
 # Quick validation tests (lint + syntax only)
 test-quick:
   stage: test
-  image: python:3.11-slim
+  image: python:3.13-slim
   script:
     - apt-get update -qq && apt-get install -y -qq make
     - python3 -m venv .venv
@@ -90,7 +91,7 @@ test-quick:
 # Role-specific tests
 test-discovery:
   stage: test
-  image: python:3.11-slim
+  image: python:3.13-slim
   services:
     - docker:24-dind
   variables:
@@ -109,7 +110,7 @@ test-discovery:
 
 test-packages:
   stage: test
-  image: python:3.11-slim
+  image: python:3.13-slim
   services:
     - docker:24-dind
   variables:
@@ -128,7 +129,7 @@ test-packages:
 
 test-users:
   stage: test
-  image: python:3.11-slim
+  image: python:3.13-slim
   services:
     - docker:24-dind
   variables:
@@ -147,7 +148,7 @@ test-users:
 
 test-firewall:
   stage: test
-  image: python:3.11-slim
+  image: python:3.13-slim
   services:
     - docker:24-dind
   variables:
@@ -166,7 +167,7 @@ test-firewall:
 
 test-system-settings:
   stage: test
-  image: python:3.11-slim
+  image: python:3.13-slim
   services:
     - docker:24-dind
   variables:
@@ -185,7 +186,7 @@ test-system-settings:
 
 test-language-packages:
   stage: test
-  image: python:3.11-slim
+  image: python:3.13-slim
   services:
     - docker:24-dind
   variables:
@@ -204,7 +205,7 @@ test-language-packages:
 
 test-security:
   stage: test
-  image: python:3.11-slim
+  image: python:3.13-slim
   services:
     - docker:24-dind
   variables:
@@ -224,7 +225,7 @@ test-security:
 # Integration tests
 test-integration:
   stage: integration
-  image: python:3.11-slim
+  image: python:3.13-slim
   services:
     - docker:24-dind
   variables:
@@ -247,7 +248,7 @@ test-integration:
 # Collection build
 collection-build:
   stage: build
-  image: python:3.11-slim
+  image: python:3.13-slim
   script:
     - apt-get update -qq && apt-get install -y -qq make
     - python3 -m venv .venv
@@ -265,7 +266,7 @@ collection-build:
 # Version validation and tagging
 version-check:
   stage: build
-  image: python:3.11-slim
+  image: python:3.13-slim
   script:
     - python3 -m venv .venv
     - source .venv/bin/activate
@@ -278,7 +279,7 @@ version-check:
 # Publish to Ansible Galaxy (manual trigger only)
 publish-galaxy:
   stage: publish
-  image: python:3.11-slim
+  image: python:3.13-slim
   dependencies:
     - collection-build
   script:
