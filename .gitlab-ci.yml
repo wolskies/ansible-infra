@@ -33,16 +33,16 @@ cache:
     - .cache/molecule/
     - .venv/
 
+# =============================================================================
+# SHARED TEMPLATES FOR TESTING
+# =============================================================================
+
 .setup_environment: &setup_environment
   - python3 -m venv .venv
   - source .venv/bin/activate
   - pip install --upgrade pip
   - pip install -r requirements-dev.txt
   - docker --version || (echo "Docker not available - some tests may be skipped"; exit 0)
-
-# =============================================================================
-# SHARED TEMPLATES FOR TESTING
-# =============================================================================
 
 .molecule_test_template: &molecule_test_template
   image: python:3.11-slim
@@ -55,12 +55,13 @@ cache:
     DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
     ANSIBLE_COLLECTIONS_PATH: "/root/.ansible/collections:${CI_PROJECT_DIR}/..:${HOME}/.ansible/collections:/usr/share/ansible/collections"
   before_script:
-    - *setup_environment
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
     - docker info
-    # Install the current collection for testing
     - mkdir -p /root/.ansible/collections/ansible_collections/wolskinet/
     - cp -r . /root/.ansible/collections/ansible_collections/wolskinet/infrastructure
-    # Verify setup
     - ansible --version
     - molecule --version
     - ansible-galaxy collection list | grep wolskinet || echo "Collection not found in list"
@@ -73,7 +74,10 @@ cache:
 .live_test_template: &live_test_template
   image: python:3.11-slim
   before_script:
-    - *setup_environment
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | ssh-add -
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -104,8 +108,12 @@ ansible-syntax-check:
   stage: validate
   image: python:3.11-slim
   before_script:
-    - *setup_environment
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
   script:
+    - source .venv/bin/activate
     - make syntax-check
     - echo "✅ Ansible syntax validation passed"
   only:
@@ -117,8 +125,12 @@ collection-build-test:
   stage: validate
   image: python:3.11-slim
   before_script:
-    - *setup_environment
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
   script:
+    - source .venv/bin/activate
     - ansible-galaxy collection build --force
     - ls -la *.tar.gz
     - echo "✅ Collection builds successfully"
@@ -139,8 +151,12 @@ ansible-lint:
   stage: lint
   image: python:3.11-slim
   before_script:
-    - *setup_environment
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
   script:
+    - source .venv/bin/activate
     - ansible-lint --version
     - ansible-lint
     - echo "✅ Ansible linting passed"
@@ -167,8 +183,12 @@ template-validation:
   stage: lint
   image: python:3.11-slim
   before_script:
-    - *setup_environment
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
   script:
+    - source .venv/bin/activate
     - make validate-templates
     - echo "✅ Template validation passed"
   only:
@@ -342,8 +362,12 @@ collection-build:
   stage: build
   image: python:3.11-slim
   before_script:
-    - *setup_environment
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
   script:
+    - source .venv/bin/activate
     - ansible-galaxy collection build --force
     - ls -la *.tar.gz
     - echo "Collection version: $(grep '^version:' galaxy.yml | cut -d' ' -f2)"
@@ -363,8 +387,12 @@ publish-galaxy:
   stage: deploy
   image: python:3.11-slim
   before_script:
-    - *setup_environment
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
   script:
+    - source .venv/bin/activate
     - echo "Publishing to Ansible Galaxy..."
     - ansible-galaxy collection publish *.tar.gz --api-key $GALAXY_API_KEY
     - echo "✅ Successfully published to Ansible Galaxy"
