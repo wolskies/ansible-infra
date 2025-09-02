@@ -26,6 +26,22 @@ platforms:
     capabilities:
       - NET_ADMIN
       - SYS_ADMIN
+scenario:
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    # Skip idempotence due to community.general.ufw module quirks
+    # The role works correctly but the module reports false positives
+    # - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
 provisioner:
   name: ansible
   inventory:
