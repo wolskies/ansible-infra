@@ -1,0 +1,154 @@
+# Multi-OS Test Matrix Configuration for GitLab CI/CD
+# Defines testing combinations for different operating systems and scenarios
+
+# =============================================================================
+# SUPPORTED OS MATRIX
+# =============================================================================
+
+.os_matrix:
+  - &ubuntu2204
+    image: "geerlingguy/docker-ubuntu2204-ansible:latest"
+    os_family: "Debian"
+    distribution: "Ubuntu"
+    version: "22.04"
+    test_group: "ubuntu_servers"
+
+  - &ubuntu2404
+    image: "geerlingguy/docker-ubuntu2404-ansible:latest"
+    os_family: "Debian"
+    distribution: "Ubuntu"
+    version: "24.04"
+    test_group: "ubuntu_servers"
+
+  - &debian12
+    image: "geerlingguy/docker-debian12-ansible:latest"
+    os_family: "Debian"
+    distribution: "Debian"
+    version: "12"
+    test_group: "debian_servers"
+
+  - &debian13
+    image: "geerlingguy/docker-debian13-ansible:latest"
+    os_family: "Debian"
+    distribution: "Debian"
+    version: "13"
+    test_group: "debian_servers"
+
+# =============================================================================
+# TEST SCENARIO CONFIGURATIONS
+# =============================================================================
+
+.test_scenarios:
+  server_minimal: &server_minimal
+    description: "Minimal server configuration"
+    groups: ["servers"]
+    features:
+      - security_services
+      - package_management
+      - user_management
+      - firewall
+
+  server_full: &server_full
+    description: "Full server configuration with all features"
+    groups: ["servers", "docker_hosts"]
+    features:
+      - security_services
+      - package_management
+      - user_management
+      - firewall
+      - system_settings
+      - language_packages
+
+  workstation_minimal: &workstation_minimal
+    description: "Minimal workstation configuration"
+    groups: ["workstations"]
+    features:
+      - package_management
+      - user_management
+      - dotfiles
+
+  workstation_full: &workstation_full
+    description: "Full workstation configuration"
+    groups: ["workstations"]
+    features:
+      - package_management
+      - user_management
+      - dotfiles
+      - flatpak_packages
+      - snap_packages
+      - language_packages
+
+# =============================================================================
+# CRITICAL COMBINATIONS - Must always pass
+# =============================================================================
+
+critical_tests:
+  - os: *ubuntu2404
+    scenario: *server_full
+    priority: critical
+
+  - os: *ubuntu2204
+    scenario: *server_minimal
+    priority: critical
+
+  - os: *debian12
+    scenario: *server_minimal
+    priority: critical
+
+# =============================================================================
+# EXTENDED COMBINATIONS - Can have allow_failure
+# =============================================================================
+
+extended_tests:
+  - os: *ubuntu2404
+    scenario: *workstation_full
+    priority: extended
+
+  - os: *debian12
+    scenario: *workstation_minimal
+    priority: extended
+
+  - os: *debian13
+    scenario: *server_minimal
+    priority: experimental
+
+# =============================================================================
+# SECURITY-FOCUSED COMBINATIONS
+# =============================================================================
+
+security_tests:
+  - os: *ubuntu2404
+    scenario:
+      description: "Security hardening validation"
+      features:
+        - security_services
+        - firewall
+        - user_management
+    priority: security
+
+  - os: *debian12
+    scenario:
+      description: "Security services integration"
+      features:
+        - security_services
+        - firewall
+    priority: security
+
+# =============================================================================
+# PERFORMANCE TESTING COMBINATIONS
+# =============================================================================
+
+performance_tests:
+  - os: *ubuntu2404
+    scenario:
+      description: "Large-scale deployment performance"
+      scale: large
+      features: ["all"]
+    priority: performance
+
+  - os: *debian12
+    scenario:
+      description: "Memory-constrained performance"
+      scale: small
+      features: ["minimal"]
+    priority: performance

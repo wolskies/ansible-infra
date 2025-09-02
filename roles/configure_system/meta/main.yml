@@ -29,8 +29,4 @@ galaxy_info:
     - security
     - automation
 
-dependencies:
-  - role: wolskinet.infrastructure.os_configuration
-  - role: wolskinet.infrastructure.manage_users
-  - role: wolskinet.infrastructure.manage_packages
-  - role: wolskinet.infrastructure.manage_third_party
+dependencies: []

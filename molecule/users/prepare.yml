@@ -1,0 +1,29 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Update package cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 300
+      when: ansible_os_family == "Debian"
+
+    # Install shells that might not be present by default
+    - name: Install additional shells for testing
+      ansible.builtin.package:
+        name:
+          - zsh
+          - dash
+        state: present
+      when: ansible_os_family == "Debian"
+
+    # Create some groups that we'll assign users to
+    - name: Create test groups
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - docker
+        - systemd-journal  # May not exist in container
+      failed_when: false  # Don't fail if group already exists or can't be created

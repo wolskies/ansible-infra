@@ -1,0 +1,209 @@
+---
+- name: Prepare comprehensive integration test environment
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    # =============================================================================
+    # SYSTEM PREPARATION
+    # =============================================================================
+    - name: Update apt cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 300
+      when: ansible_os_family == "Debian"
+
+    - name: Install essential packages for testing
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-pip
+          - sudo
+          - systemd
+        state: present
+
+    # =============================================================================
+    # CONTAINER-SPECIFIC ADJUSTMENTS
+    # =============================================================================
+    - name: Create systemd directories for container compatibility
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /etc/systemd/system
+        - /etc/systemd/user
+        - /var/log/journal
+
+    - name: Ensure systemd services are accessible
+      ansible.builtin.systemd:
+        daemon_reload: true
+      ignore_errors: true
+
+    # =============================================================================
+    # NETWORKING SETUP FOR MULTI-HOST TESTING
+    # =============================================================================
+    - name: Create /etc/hosts entries for service discovery
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item].ansible_default_ipv4.address | default('127.0.0.1') }} {{ item }}"
+        regexp: "^.*{{ item }}$"
+      loop: "{{ groups['all'] }}"
+      when: hostvars[item].ansible_default_ipv4.address is defined
+
+    # =============================================================================
+    # SECURITY PREPARATION
+    # =============================================================================
+    - name: Ensure UFW is available for firewall testing
+      ansible.builtin.package:
+        name: ufw
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure fail2ban is available for security testing
+      ansible.builtin.package:
+        name: fail2ban
+        state: present
+      when: ansible_os_family == "Debian"
+
+    # =============================================================================
+    # SERVICE-SPECIFIC PREPARATION
+    # =============================================================================
+    - name: Prepare web server environment
+      block:
+        - name: Ensure www-data group exists
+          ansible.builtin.group:
+            name: www-data
+            state: present
+
+        - name: Create web directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            owner: root
+            group: www-data
+            mode: "0755"
+          loop:
+            - /var/www
+            - /var/log/nginx
+            - /etc/nginx
+      when: "'web_servers' in group_names"
+
+    - name: Prepare database server environment
+      block:
+        - name: Create database directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - /var/lib/postgresql
+            - /var/log/postgresql
+            - /etc/postgresql
+
+        - name: Ensure postgresql system user exists
+          ansible.builtin.user:
+            name: postgres
+            system: true
+            shell: /bin/bash
+            home: /var/lib/postgresql
+            create_home: true
+      when: "'database_servers' in group_names"
+
+    - name: Prepare workstation environment
+      block:
+        - name: Create user directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - /home
+            - /opt
+            - /usr/local/bin
+
+        - name: Ensure audio/video groups exist
+          ansible.builtin.group:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - audio
+            - video
+            - plugdev
+            - docker
+      when: "'workstations' in group_names"
+
+    # =============================================================================
+    # LANGUAGE PACKAGE PREPARATION
+    # =============================================================================
+    - name: Prepare Python environment
+      block:
+        - name: Ensure pip is available
+          ansible.builtin.package:
+            name: python3-pip
+            state: present
+
+        - name: Create Python virtual environment directory
+          ansible.builtin.file:
+            path: /opt/python-envs
+            state: directory
+            mode: "0755"
+      when: language_packages.python.enabled | default(false)
+
+    - name: Prepare Node.js environment
+      block:
+        - name: Create Node.js directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - /opt/nodejs
+            - /usr/local/lib/nodejs
+      when: language_packages.nodejs.enabled | default(false)
+
+    # =============================================================================
+    # LOGGING AND MONITORING SETUP
+    # =============================================================================
+    - name: Create log directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /var/log/ansible
+        - /var/log/applications
+
+    - name: Set up log rotation configuration directory
+      ansible.builtin.file:
+        path: /etc/logrotate.d
+        state: directory
+        mode: "0755"
+
+    # =============================================================================
+    # INTEGRATION TEST MARKERS
+    # =============================================================================
+    - name: Create integration test marker file
+      ansible.builtin.copy:
+        content: |
+          # Comprehensive Integration Test Environment
+          # Prepared at: {{ ansible_date_time.iso8601 }}
+          # Host: {{ inventory_hostname }}
+          # Groups: {{ group_names | join(', ') }}
+          # OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          # Architecture: {{ ansible_architecture }}
+        dest: /tmp/integration-test-prepared
+        mode: "0644"
+
+    - name: Display preparation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Comprehensive Integration Test Preparation Complete ==="
+          - "Host: {{ inventory_hostname }}"
+          - "Groups: {{ group_names | join(', ') }}"
+          - "OS Family: {{ ansible_os_family }}"
+          - "Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Python Version: {{ ansible_python_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "Available Memory: {{ ansible_memtotal_mb }}MB"
+          - "CPU Cores: {{ ansible_processor_vcpus }}"

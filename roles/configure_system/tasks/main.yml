@@ -1,35 +1,137 @@
 ---
-- name: Configure Operating System
-  ansible.builtin.include_role:
-    name: wolskinet.infrastructure.os_configuration
+# configure_system role main tasks
+# Orchestrates complete system configuration by executing roles in proper order
+
+- name: Display system configuration start
+  ansible.builtin.debug:
+    msg:
+      - "=== Starting System Configuration ==="
+      - "Target: {{ inventory_hostname }}"
+      - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      - "Architecture: {{ ansible_architecture }}"
+  when: configure_system_settings.show_progress | default(true)
   tags:
-    - os-configuration
+    - always
+
+# =============================================================================
+# CORE SYSTEM SETUP (Required)
+# =============================================================================
+
+- name: Configure Host (Basic System Setup)
+  ansible.builtin.include_role:
+    name: "wolskinet.infrastructure.{{ configure_system.host_configuration.role }}"
+  when: configure_system.host_configuration.enabled | default(true)
+  tags:
+    - host-configuration
     - configure-system
+  vars:
+    target_role_name: "{{ configure_system.host_configuration.role }}"
 
 - name: Manage Security Services
   ansible.builtin.include_role:
-    name: wolskinet.infrastructure.manage_security_services
+    name: "wolskinet.infrastructure.{{ configure_system.security_services.role }}"
+  when: configure_system.security_services.enabled | default(true)
   tags:
     - security-services
     - configure-system
+  vars:
+    target_role_name: "{{ configure_system.security_services.role }}"
 
-- name: Manage Users
+- name: Manage Users and Groups
   ansible.builtin.include_role:
-    name: wolskinet.infrastructure.manage_users
+    name: "wolskinet.infrastructure.{{ configure_system.user_management.role }}"
+  when: configure_system.user_management.enabled | default(true)
   tags:
     - users
+    - user-management
     - configure-system
+  vars:
+    target_role_name: "{{ configure_system.user_management.role }}"
 
-- name: Manage Packages and Repos
+- name: Manage System Packages
   ansible.builtin.include_role:
-    name: wolskinet.infrastructure.manage_packages
+    name: "wolskinet.infrastructure.{{ configure_system.package_management.role }}"
+  when: configure_system.package_management.enabled | default(true)
   tags:
     - packages
+    - package-management
     - configure-system
+  vars:
+    target_role_name: "{{ configure_system.package_management.role }}"
 
-- name: Include Third Party Packages
+# =============================================================================
+# OPTIONAL COMPONENTS
+# =============================================================================
+
+- name: Manage Language Packages
   ansible.builtin.include_role:
-    name: wolskinet.infrastructure.manage_third_party
+    name: "wolskinet.infrastructure.{{ configure_system.language_packages.role }}"
+  when: configure_system.language_packages.enabled | default(false)
   tags:
-    - third-party
+    - language-packages
     - configure-system
+  vars:
+    target_role_name: "{{ configure_system.language_packages.role }}"
+
+- name: Manage Snap Packages
+  ansible.builtin.include_role:
+    name: "wolskinet.infrastructure.{{ configure_system.snap_packages.role }}"
+  when: configure_system.snap_packages.enabled | default(false)
+  tags:
+    - snap-packages
+    - configure-system
+  vars:
+    target_role_name: "{{ configure_system.snap_packages.role }}"
+
+- name: Manage Flatpak Packages
+  ansible.builtin.include_role:
+    name: "wolskinet.infrastructure.{{ configure_system.flatpak_packages.role }}"
+  when: configure_system.flatpak_packages.enabled | default(false)
+  tags:
+    - flatpak-packages
+    - configure-system
+  vars:
+    target_role_name: "{{ configure_system.flatpak_packages.role }}"
+
+- name: Configure System Settings
+  ansible.builtin.include_role:
+    name: "wolskinet.infrastructure.{{ configure_system.system_settings.role }}"
+  when: configure_system.system_settings.enabled | default(false)
+  tags:
+    - system-settings
+    - configure-system
+  vars:
+    target_role_name: "{{ configure_system.system_settings.role }}"
+
+- name: Deploy User Dotfiles
+  ansible.builtin.include_role:
+    name: "wolskinet.infrastructure.{{ configure_system.dotfiles_deployment.role }}"
+  when: configure_system.dotfiles_deployment.enabled | default(false)
+  tags:
+    - dotfiles
+    - configure-system
+  vars:
+    target_role_name: "{{ configure_system.dotfiles_deployment.role }}"
+
+# =============================================================================
+# COMPLETION SUMMARY
+# =============================================================================
+
+- name: Display system configuration completion
+  ansible.builtin.debug:
+    msg:
+      - "=== System Configuration Complete ==="
+      - "Host: {{ inventory_hostname }}"
+      - "Configured roles:"
+      - "  ✓ Host Configuration: {{ configure_system.host_configuration.enabled | default(true) | ternary('Enabled', 'Skipped') }}"
+      - "  ✓ Security Services: {{ configure_system.security_services.enabled | default(true) | ternary('Enabled', 'Skipped') }}"
+      - "  ✓ User Management: {{ configure_system.user_management.enabled | default(true) | ternary('Enabled', 'Skipped') }}"
+      - "  ✓ Package Management: {{ configure_system.package_management.enabled | default(true) | ternary('Enabled', 'Skipped') }}"
+      - "  ✓ Language Packages: {{ configure_system.language_packages.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
+      - "  ✓ Snap Packages: {{ configure_system.snap_packages.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
+      - "  ✓ Flatpak Packages: {{ configure_system.flatpak_packages.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
+      - "  ✓ System Settings: {{ configure_system.system_settings.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
+      - "  ✓ Dotfiles: {{ configure_system.dotfiles_deployment.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
+  when: configure_system_settings.show_progress | default(true)
+  tags:
+    - always

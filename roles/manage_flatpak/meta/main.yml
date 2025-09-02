@@ -27,5 +27,4 @@ galaxy_info:
     - debian
     - flathub
 
-dependencies:
-  - name: community.general
+dependencies: []

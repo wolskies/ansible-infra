@@ -1,8 +1,8 @@
 ---
-- name: Full Infrastructure Integration Test
+- name: Converge
   hosts: all
   become: true
   tasks:
-    - name: Run complete system configuration
+    - name: Include configure_system role
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.configure_system

@@ -1,0 +1,133 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-security-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    capabilities:
+      - NET_ADMIN
+      - SYS_ADMIN
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: debian-security-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    capabilities:
+      - NET_ADMIN
+      - SYS_ADMIN
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        # Test security services configuration
+        security_services:
+          ufw:
+            enabled: true
+            default_policy:
+              incoming: deny
+              outgoing: allow
+              routed: deny
+            rules:
+              - rule: allow
+                port: 22
+                proto: tcp
+                comment: "SSH access"
+              - rule: allow
+                port: 80
+                proto: tcp
+                comment: "HTTP"
+              - rule: allow
+                port: 443
+                proto: tcp
+                comment: "HTTPS"
+              - rule: limit
+                port: 22
+                proto: tcp
+                comment: "SSH rate limiting"
+          
+          fail2ban:
+            enabled: true
+            services:
+              ssh:
+                enabled: true
+                port: 22
+                maxretry: 5
+                bantime: 600
+                findtime: 600
+              nginx:
+                enabled: false  # Not installed in test
+            jails:
+              custom-ssh:
+                enabled: true
+                filter: sshd
+                port: 22
+                maxretry: 3
+                bantime: 3600
+                logpath: /var/log/auth.log
+          
+          ssh:
+            enabled: true
+            hardening:
+              disable_root_login: true
+              disable_password_auth: false  # Keep enabled for testing
+              change_default_port: false    # Keep default for testing
+              max_auth_tries: 3
+              client_alive_interval: 300
+              client_alive_count_max: 2
+    
+    host_vars:
+      ubuntu-security-test:
+        # Test Ubuntu-specific security settings
+        security_services:
+          ufw:
+            logging: "on"
+            rules:
+              - rule: deny
+                from: 192.168.100.0/24
+                comment: "Block test subnet"
+              - rule: allow
+                port: 8080
+                proto: tcp
+                src: 10.0.0.0/8
+                comment: "Internal web access"
+          
+          fail2ban:
+            email_notifications:
+              enabled: false  # Skip email in test
+              sender: "fail2ban@example.com"
+              recipient: "admin@example.com"
+      
+      debian-security-test:
+        # Test Debian-specific security settings
+        security_services:
+          fail2ban:
+            services:
+              ssh:
+                maxretry: 6  # Different from Ubuntu
+                bantime: 1200
+            custom_filters:
+              test-filter:
+                enabled: true
+                definition: |
+                  [Definition]
+                  failregex = ^%(__prefix_line)s(?:error: PAM: )?[aA]uthentication (?:failure|error) for .* from <HOST>
+                  ignoreregex =
+  
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

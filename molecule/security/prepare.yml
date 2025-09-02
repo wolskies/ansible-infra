@@ -1,0 +1,38 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Update package cache
+      ansible.builtin.package:
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    # Ensure SSH is installed and running for testing
+    - name: Install OpenSSH server
+      ansible.builtin.package:
+        name: openssh-server
+        state: present
+
+    - name: Start SSH service for testing
+      ansible.builtin.systemd:
+        name: ssh
+        state: started
+        enabled: true
+      failed_when: false  # May not work in container
+
+    # Create log files that fail2ban expects
+    - name: Create auth.log if it doesn't exist
+      ansible.builtin.file:
+        path: /var/log/auth.log
+        state: touch
+        mode: '0640'
+        owner: root
+        group: adm
+      failed_when: false
+
+    - name: Create fail2ban log directory
+      ansible.builtin.file:
+        path: /var/log/fail2ban
+        state: directory
+        mode: '0755'

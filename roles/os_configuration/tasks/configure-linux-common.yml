@@ -100,7 +100,7 @@
           ansible.builtin.lineinfile:
             path: /etc/hosts
             regexp: '^127\.0\.0\.1\s+localhost(\s|$)'
-            line: "127.0.0.1\tlocalhost"
+            line: "127.0.0.1 localhost"
             create: false
           become: true
 

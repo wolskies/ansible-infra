@@ -1,0 +1,101 @@
+---
+- name: Verify system configuration
+  hosts: all
+  become: true
+  tasks:
+    # =============================================================================
+    # VERIFY USER MANAGEMENT
+    # =============================================================================
+    - name: Check if test user was created
+      ansible.builtin.getent:
+        database: passwd
+        key: testuser
+      register: user_check
+
+    - name: Verify user creation
+      ansible.builtin.assert:
+        that:
+          - user_check.ansible_facts.getent_passwd.testuser is defined
+        fail_msg: "Test user was not created"
+
+    # =============================================================================
+    # VERIFY PACKAGE INSTALLATION
+    # =============================================================================
+    - name: Check if basic packages are installed
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Verify core packages are installed
+      ansible.builtin.assert:
+        that:
+          - "'curl' in ansible_facts.packages"
+          - "'git' in ansible_facts.packages"
+          - "'htop' in ansible_facts.packages"
+        fail_msg: "Core packages not installed"
+
+    - name: Verify nginx is installed (servers group)
+      ansible.builtin.assert:
+        that:
+          - "'nginx' in ansible_facts.packages"
+        fail_msg: "Nginx not installed on servers"
+      when: "'servers' in group_names"
+
+    - name: Verify vim is installed (host-specific)
+      ansible.builtin.assert:
+        that:
+          - "'vim' in ansible_facts.packages"
+        fail_msg: "Vim not installed (host-specific package)"
+
+    # =============================================================================
+    # VERIFY SYSTEM SETTINGS (if enabled)
+    # =============================================================================
+    - name: Check sysctl parameters (servers only)
+      ansible.builtin.command:
+        cmd: "sysctl {{ item }}"
+      loop:
+        - vm.swappiness
+        - net.ipv4.tcp_keepalive_time
+      register: sysctl_check
+      changed_when: false
+      when: "'servers' in group_names"
+
+    - name: Verify sysctl parameters are set correctly (servers only)
+      ansible.builtin.assert:
+        that:
+          - "'vm.swappiness = 10' in sysctl_check.results[0].stdout"
+          - "'net.ipv4.tcp_keepalive_time = 120' in sysctl_check.results[1].stdout"
+        fail_msg: "Sysctl parameters not set correctly"
+      when: "'servers' in group_names"
+
+    # =============================================================================
+    # VERIFY PAM LIMITS (Debian workstations)
+    # =============================================================================
+    - name: Check PAM limits files (Debian workstations)
+      ansible.builtin.find:
+        paths: /etc/security/limits.d/
+        patterns: "*"
+      register: limits_files
+      when:
+        - ansible_distribution == "Debian"
+        - "'workstations' in group_names"
+
+    - name: Debug PAM limits configuration
+      ansible.builtin.debug:
+        msg: "Found {{ limits_files.files | length }} PAM limits files"
+      when:
+        - ansible_distribution == "Debian"
+        - "'workstations' in group_names"
+
+    # =============================================================================
+    # VERIFY ROLE EXECUTION ORDER
+    # =============================================================================
+    - name: Verify system is properly configured
+      ansible.builtin.debug:
+        msg:
+          - "=== System Verification Complete ==="
+          - "Host: {{ inventory_hostname }}"
+          - "Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Groups: {{ group_names }}"
+          - "Users created: testuser"
+          - "Packages verified: curl, git, htop, vim"
+          - "Additional verification completed for group-specific settings"

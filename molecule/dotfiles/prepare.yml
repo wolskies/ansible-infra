@@ -1,0 +1,28 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages
+      ansible.builtin.package:
+        name:
+          - git
+          - stow
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Create test users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        shell: /bin/bash
+        create_home: true
+      loop:
+        - testuser1
+        - testuser2
+      when: inventory_hostname == "debian-dotfiles-test"

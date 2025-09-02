@@ -6,23 +6,23 @@
 
 flatpak_packages:
   management_action: "install"                 # "install", "remove", "purge"
-  
+
   # Repository configuration
   repositories:
     enable_flathub: true                       # Enable Flathub repository
     cleanup: true                              # Remove repositories during purge
-  
+
   # Package installation configuration
   packages:
     install: []                                # List of flatpak packages to install
-  
+
   # Package removal configuration
   remove:
     all_packages: true                         # Remove all installed flatpak packages
     system_packages: true                      # Remove flatpak APT packages
     cleanup_directories: true                  # Remove flatpak directories
     cleanup_repositories: true                 # Remove flatpak repositories
-  
+
   # Purge safety configuration
   purge:
     confirm: false                             # Must be explicitly set to true for complete purge

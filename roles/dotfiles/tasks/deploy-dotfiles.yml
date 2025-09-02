@@ -1,0 +1,210 @@
+---
+# Deploy dotfiles for a single user
+# Variables: dotfiles_user (dict with user configuration)
+
+- name: Get user information
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ dotfiles_user.name }}"
+  register: user_info
+
+- name: Set user facts
+  ansible.builtin.set_fact:
+    user_name: "{{ dotfiles_user.name }}"
+    user_home: "{{ getent_passwd[dotfiles_user.name][4] }}"
+    user_repo_url: "{{ dotfiles_user.repository_url | default(dotfiles.repository_url) }}"
+    user_repo_branch: "{{ dotfiles_user.repository_branch | default(dotfiles.repository_branch) | default('main') }}"
+    user_repo_dest: "{{ getent_passwd[dotfiles_user.name][4] }}/{{ dotfiles_user.repository_dest | default(dotfiles.repository_dest) | default('.dotfiles') }}"
+    user_method: "{{ dotfiles_user.method | default(dotfiles.method) | default('auto') }}"
+    user_stow_packages: "{{ dotfiles_user.stow_packages | default(dotfiles.stow_packages) | default([]) }}"
+
+- name: Validate repository URL is provided
+  ansible.builtin.fail:
+    msg: "Repository URL is required for user {{ user_name }}"
+  when: user_repo_url | default('') | length == 0
+
+- name: Display deployment info
+  ansible.builtin.debug:
+    msg:
+      - "Deploying dotfiles for user: {{ user_name }}"
+      - "Repository: {{ user_repo_url }}"
+      - "Branch: {{ user_repo_branch }}"
+      - "Destination: {{ user_repo_dest }}"
+      - "Method: {{ user_method }}"
+
+# =============================================================================
+# REPOSITORY MANAGEMENT
+# =============================================================================
+- name: Check if dotfiles directory exists
+  ansible.builtin.stat:
+    path: "{{ user_repo_dest }}"
+  register: repo_exists
+
+- name: Clone dotfiles repository
+  ansible.builtin.git:
+    repo: "{{ user_repo_url }}"
+    dest: "{{ user_repo_dest }}"
+    version: "{{ user_repo_branch }}"
+    update: false
+    force: false
+  become: true
+  become_user: "{{ user_name }}"
+  when: not repo_exists.stat.exists
+
+- name: Update dotfiles repository
+  ansible.builtin.git:
+    repo: "{{ user_repo_url }}"
+    dest: "{{ user_repo_dest }}"
+    version: "{{ user_repo_branch }}"
+    update: true
+    force: "{{ dotfiles_user.update.force | default(dotfiles.update.force) | default(false) }}"
+  become: true
+  become_user: "{{ user_name }}"
+  when:
+    - repo_exists.stat.exists
+    - dotfiles_user.update.enabled | default(dotfiles.update.enabled) | default(false)
+
+# =============================================================================
+# DETERMINE DEPLOYMENT METHOD
+# =============================================================================
+- name: Check if stow is available
+  ansible.builtin.command:
+    cmd: which stow
+  register: stow_available
+  changed_when: false
+  failed_when: false
+  when: user_method in ['auto', 'stow']
+
+- name: Determine final deployment method
+  ansible.builtin.set_fact:
+    deployment_method: >-
+      {%- if user_method == 'auto' -%}
+        {%- if stow_available.rc | default(1) == 0 -%}stow{%- else -%}symlink{%- endif -%}
+      {%- else -%}
+        {{ user_method }}
+      {%- endif -%}
+
+- name: Validate stow is available when required
+  ansible.builtin.fail:
+    msg: "Stow is not installed but is required for deployment method 'stow'"
+  when:
+    - deployment_method == 'stow'
+    - stow_available.rc | default(1) != 0
+    - dotfiles.validate.check_stow | default(true)
+
+# =============================================================================
+# BACKUP EXISTING FILES
+# =============================================================================
+- name: Generate backup suffix
+  ansible.builtin.set_fact:
+    backup_suffix: >-
+      {{ dotfiles_user.backup.suffix | default(dotfiles.backup.suffix) | default('.backup') }}
+      {%- if dotfiles_user.backup.timestamp | default(dotfiles.backup.timestamp) | default(true) -%}
+      .{{ ansible_date_time.epoch }}
+      {%- endif -%}
+  when: dotfiles_user.backup.enabled | default(dotfiles.backup.enabled) | default(true)
+
+- name: Backup existing dotfiles (stow method)
+  when:
+    - deployment_method == 'stow'
+    - dotfiles_user.backup.enabled | default(dotfiles.backup.enabled) | default(true)
+  block:
+    - name: Find stow packages
+      ansible.builtin.find:
+        paths: "{{ user_repo_dest }}"
+        file_type: directory
+        recurse: false
+      register: stow_dirs
+      when: user_stow_packages | length == 0
+
+    - name: Set stow packages list
+      ansible.builtin.set_fact:
+        stow_packages_list: >-
+          {%- if user_stow_packages | length > 0 -%}
+            {{ user_stow_packages }}
+          {%- else -%}
+            {{ stow_dirs.files | map(attribute='path') | map('basename') | list }}
+          {%- endif -%}
+
+    - name: Check for conflicts with stow
+      ansible.builtin.shell:
+        cmd: "stow -n -v {{ item }} 2>&1 | grep 'existing' || true"
+        chdir: "{{ user_repo_dest }}"
+      register: stow_conflicts
+      loop: "{{ stow_packages_list }}"
+      become: true
+      become_user: "{{ user_name }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Backup conflicting files
+      ansible.builtin.shell:
+        cmd: |
+          for file in $(stow -n -v {{ item.item }} 2>&1 | grep 'existing' | sed 's/.*existing.*: //'); do
+            if [ -e "$HOME/$file" ] && [ ! -L "$HOME/$file" ]; then
+              cp -a "$HOME/$file" "$HOME/$file{{ backup_suffix }}"
+            fi
+          done
+        chdir: "{{ user_repo_dest }}"
+      loop: "{{ stow_conflicts.results }}"
+      when: item.stdout | length > 0
+      become: true
+      become_user: "{{ user_name }}"
+
+- name: Backup existing dotfiles (symlink/copy method)
+  ansible.builtin.copy:
+    src: "{{ user_home }}/{{ item }}"
+    dest: "{{ user_home }}/{{ item }}{{ backup_suffix }}"
+    remote_src: true
+  loop: "{{ dotfiles_user.files | default(dotfiles.files) | default([]) }}"
+  become: true
+  become_user: "{{ user_name }}"
+  when:
+    - deployment_method in ['symlink', 'copy']
+    - dotfiles_user.backup.enabled | default(dotfiles.backup.enabled) | default(true)
+  failed_when: false
+
+# =============================================================================
+# DEPLOY DOTFILES
+# =============================================================================
+- name: Deploy using stow
+  ansible.builtin.command:
+    cmd: "stow {{ '--adopt' if dotfiles_user.stow_adopt | default(dotfiles.stow_adopt) | default(false) else '' }} -v {{ item }}"
+    chdir: "{{ user_repo_dest }}"
+  loop: "{{ stow_packages_list | default([]) }}"
+  become: true
+  become_user: "{{ user_name }}"
+  when: deployment_method == 'stow'
+  register: stow_result
+  changed_when: "'LINK' in stow_result.stderr"
+
+- name: Deploy using symlinks
+  ansible.builtin.file:
+    src: "{{ user_repo_dest }}/{{ item }}"
+    dest: "{{ user_home }}/{{ item }}"
+    state: link
+    force: true
+  loop: "{{ dotfiles_user.files | default(dotfiles.files) | default([]) }}"
+  become: true
+  become_user: "{{ user_name }}"
+  when: deployment_method == 'symlink'
+  failed_when: false
+
+- name: Deploy using copy
+  ansible.builtin.copy:
+    src: "{{ user_repo_dest }}/{{ item }}"
+    dest: "{{ user_home }}/{{ item }}"
+    remote_src: true
+    mode: preserve
+  loop: "{{ dotfiles_user.files | default(dotfiles.files) | default([]) }}"
+  become: true
+  become_user: "{{ user_name }}"
+  when: deployment_method == 'copy'
+  failed_when: false
+
+- name: Display deployment summary
+  ansible.builtin.debug:
+    msg:
+      - "Dotfiles deployed successfully for {{ user_name }}"
+      - "Method used: {{ deployment_method }}"
+      - "Repository: {{ user_repo_dest }}"
