@@ -1,170 +1,150 @@
 ---
-# manage_system_settings role defaults - SECURITY-HARDENED VERSION
-# Handles specialized system configurations with proper security controls
+# =============================================================================
+# SYSTEM SETTINGS MANAGEMENT
+# =============================================================================
+# This role provides comprehensive system configuration management for:
+# - Kernel parameters (sysctl)
+# - PAM limits and resource controls
+# - Hardware services and modules
+# - Performance optimizations
+# - Desktop/GUI customization (macOS)
+#
 # Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
-# PERFORMANCE SETTINGS CONFIGURATION
+# KERNEL PARAMETERS (SYSCTL) - Linux only
 # =============================================================================
-
-# Control which performance setting categories are enabled
-system_settings_network_enabled: false         # Network performance optimizations
-system_settings_gaming_enabled: false          # Gaming-specific kernel parameters
-system_settings_gpu_enabled: false             # GPU driver and module configurations
-system_settings_hardware_enabled: true         # Hardware support (camera, bluetooth, etc.)
-
-# =============================================================================
-# NETWORK PERFORMANCE TUNING
-# =============================================================================
-
-# High-performance network stack optimizations (PERFORMANCE ONLY)
-system_settings_network_optimizations:
-  sysctl:
-    net.core.default_qdisc: "fq"               # Fair Queue packet scheduler
-    net.ipv4.tcp_congestion_control: "bbr"     # Google BBR congestion control
-    net.core.somaxconn: "65535"                # Increase connection backlog
-    net.ipv4.tcp_max_syn_backlog: "65535"      # Increase SYN backlog
-    net.core.netdev_max_backlog: "5000"        # Network device queue
-    net.ipv4.tcp_window_scaling: "1"           # TCP window scaling
-
-# =============================================================================
-# GAMING PERFORMANCE OPTIMIZATIONS
-# =============================================================================
-
-# Gaming-specific kernel parameter optimizations
-system_settings_gaming_optimizations:
-  sysctl:
-    vm.max_map_count: "2097152"                 # Increased memory map areas (required for Steam)
-
-# =============================================================================
-# PERFORMANCE SYSCTL PARAMETERS
-# =============================================================================
-
-# Custom performance sysctl parameters (no restrictions - security handled by devsec.hardening)
-system_settings_custom_sysctl: {}
-
-# =============================================================================
-# ADVANCED SYSTEM TUNING (MOVED FROM os_configuration)
-# =============================================================================
-
-# Kernel parameters (sysctl) - performance tuning for advanced users
-config_linux_sysctl:
+system_settings_sysctl:
   enabled: false
-  parameters:
-    # Network performance
-    net.core.somaxconn: 65535
-    net.ipv4.tcp_max_syn_backlog: 65535
-    net.ipv4.tcp_tw_reuse: 1
-    # Memory management
-    vm.swappiness: 10
-    vm.dirty_ratio: 15
-    vm.dirty_background_ratio: 5
-    # File system
-    fs.file-max: 2097152
-    fs.inotify.max_user_watches: 524288
+  file: /etc/sysctl.d/99-ansible-managed.conf
+  parameters: {}
+  # Example parameters:
+  # parameters:
+  #   # Network performance
+  #   net.core.default_qdisc: "fq"
+  #   net.ipv4.tcp_congestion_control: "bbr"
+  #   net.core.somaxconn: 65535
+  #   net.ipv4.tcp_max_syn_backlog: 65535
+  #   net.core.netdev_max_backlog: 5000
+  #   net.ipv4.tcp_window_scaling: 1
+  #   # Memory management
+  #   vm.swappiness: 10
+  #   vm.dirty_ratio: 15
+  #   vm.dirty_background_ratio: 5
+  #   vm.max_map_count: 2097152  # Required for Steam
+  #   # File system
+  #   fs.file-max: 2097152
+  #   fs.inotify.max_user_watches: 524288
 
-# PAM limits configuration - resource limits for advanced users
-config_linux_limits:
+# =============================================================================
+# PAM LIMITS - Linux only
+# =============================================================================
+system_settings_limits:
   enabled: false
-  limits:
-    - domain: '*'
-      limit_type: soft
-      limit_item: nofile
-      value: 65536
-    - domain: '*'
-      limit_type: hard
-      limit_item: nofile
-      value: 65536
-    - domain: '*'
-      limit_type: soft
-      limit_item: nproc
-      value: 32768
-    - domain: '*'
-      limit_type: hard
-      limit_item: nproc
-      value: 32768
+  limits: []
+  # Example limits:
+  # limits:
+  #   - domain: '*'
+  #     limit_type: soft
+  #     limit_item: nofile
+  #     value: 65536
+  #   - domain: '*'
+  #     limit_type: hard
+  #     limit_item: nofile
+  #     value: 65536
+  #   - domain: '@developers'
+  #     limit_type: soft
+  #     limit_item: nproc
+  #     value: 32768
 
 # =============================================================================
-# HARDWARE SERVICE MANAGEMENT
+# KERNEL MODULES - Linux only
 # =============================================================================
-
-# Hardware-related services only (security services handled by devsec.hardening)
-system_settings_services_enable: []            # Hardware services to enable
-system_settings_services_disable: []           # Hardware services to disable
-
-# =============================================================================
-# GPU AND GRAPHICS CONFIGURATION
-# =============================================================================
-
-# NVIDIA GPU support configuration
-system_settings_gpu_nvidia_enabled: false
-system_settings_gpu_nvidia_modules:
-  - "nvidia"
-  - "nvidia_modeset"
-  - "nvidia_uvm"
-  - "nvidia_drm"
+system_settings_modules:
+  load: [] # Modules to load at boot
+  blacklist: [] # Modules to blacklist
+  options: {} # Module options
+  # Examples:
+  # load:
+  #   - uvcvideo     # Camera support
+  #   - btusb        # Bluetooth USB
+  # blacklist:
+  #   - nouveau      # Disable nouveau for NVIDIA
+  # options:
+  #   nvidia_drm:
+  #     modeset: 1
+  #     fbdev: 1
 
 # =============================================================================
-# HARDWARE SUPPORT CONFIGURATION
+# HARDWARE SERVICES - Linux only
 # =============================================================================
-
-# Camera and webcam support
-system_settings_camera_support_enabled: false
-
-# Bluetooth hardware support
-system_settings_bluetooth_enabled: false
-
-# =============================================================================
-# NERD FONTS CONFIGURATION (Ubuntu/Debian only)
-# =============================================================================
-
-# Quick & dirty Nerd Fonts installation for Ubuntu/Debian
-# Note: Arch Linux and macOS users should use package managers instead
-system_config_nf_enable: false
-
-# Direct links to compressed Nerd Font files
-# Add any .zip/.tar.xz URL from GitHub releases or other sources
-system_config_nf_links:
-  - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
-  - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/FiraCode.zip"
-  - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip"
-
-# Installation directory (system-wide)
-system_config_nf_install_dir: "/usr/share/fonts/nerd-fonts"
+system_settings_services:
+  enable: [] # Services to enable and start
+  disable: [] # Services to disable and stop
+  mask: [] # Services to mask (prevent from starting)
+  # Examples:
+  # enable:
+  #   - bluetooth.service
+  #   - cups.service
+  # disable:
+  #   - ModemManager.service
+  # mask:
+  #   - sleep.target
+  #   - suspend.target
 
 # =============================================================================
-# MACOS GUI CONFIGURATION (MOVED FROM os_configuration)
+# FONTS CONFIGURATION - Ubuntu/Debian only (use packages for Arch/MacOS)
 # =============================================================================
+system_settings_fonts:
+  nerd_fonts:
+    enabled: false
+    install_dir: /usr/share/fonts/nerd-fonts
+    fonts: []
+    # Example fonts (use font names from Nerd Fonts releases):
+    # fonts:
+    #   - name: CascadiaCode
+    #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+    #   - name: FiraCode
+    #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/FiraCode.zip"
 
-# macOS GUI tweaks and desktop customizations
-config_macos_gui:
-  # Dock configuration
+# =============================================================================
+# MACOS SETTINGS - macOS only
+# =============================================================================
+system_settings_macos:
   dock:
-    enabled: true                      # Configure Dock settings
-    tile_size: 48                      # Icon size
-    position: "bottom"                 # Position (bottom, left, right)
-    autohide: false                    # Auto-hide dock
-    magnification: false               # Enable magnification
+    enabled: false
+    settings: {}
+    # Example settings:
+    # settings:
+    #   tile-size: 48
+    #   orientation: bottom
+    #   autohide: false
+    #   magnification: false
+    #   show-recents: false
 
-  # Finder configuration
   finder:
-    enabled: true                      # Configure Finder settings
-    show_extensions: true              # Show file extensions
-    show_hidden_files: false           # Show hidden files
-    default_view: "column"             # Default view (column, list, icon, cover flow)
+    enabled: false
+    settings: {}
+    # Example settings:
+    # settings:
+    #   ShowExtensions: true
+    #   ShowHidden: false
+    #   DefaultViewStyle: clmv  # Column view
 
-  # System behavior tweaks
-  behavior:
-    enabled: true                      # Configure behavior settings
-    fast_key_repeat: true              # Enable fast key repeat
+  system:
+    enabled: false
+    settings: {}
+    # Example settings:
+    # settings:
+    #   NSGlobalDomain:
+    #     KeyRepeat: 2
+    #     InitialKeyRepeat: 15
+    #     ApplePressAndHoldEnabled: false
 
-  # Security GUI settings
   security:
-    enabled: true                      # Configure GUI security settings
-    require_password_immediately: true # Require password after sleep
-    require_admin_password: true       # Require admin password for prefs
-    enable_gatekeeper: true            # Enable Gatekeeper
-
-  # Display settings
-  display:
-    show_battery_percentage: true      # Show battery percentage in menu bar
+    enabled: false
+    settings: {}
+    # Example settings:
+    # settings:
+    #   require_password_after_sleep: true
+    #   require_admin_for_preferences: true

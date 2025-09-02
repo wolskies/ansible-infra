@@ -1,0 +1,63 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-dotfiles-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: debian-dotfiles-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      ubuntu-dotfiles-test:
+        # Test single user mode with stow
+        dotfiles:
+          user: root
+          repository_url: "https://github.com/mathiasbynens/dotfiles.git"
+          repository_branch: "main"
+          method: "auto"
+          backup:
+            enabled: true
+            timestamp: false
+          update:
+            enabled: false
+      debian-dotfiles-test:
+        # Test multi-user mode with different methods
+        dotfiles:
+          users:
+            - name: root
+              repository_url: "https://github.com/mathiasbynens/dotfiles.git"
+              method: "symlink"
+              files:
+                - ".bashrc"
+                - ".gitconfig"
+            - name: testuser1
+              repository_url: "https://github.com/mathiasbynens/dotfiles.git"
+              method: "copy"
+              files:
+                - ".bashrc"
+          backup:
+            enabled: true
+            suffix: ".test-backup"
+            timestamp: false
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

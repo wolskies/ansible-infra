@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  tasks:
+    - name: Include manage_system_settings role
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.manage_system_settings

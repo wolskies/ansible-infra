@@ -1,0 +1,83 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-settings-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - test_settings
+  - name: debian-settings-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+    groups:
+      - test_settings
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      test_settings:
+        # Test sysctl settings
+        system_settings_sysctl:
+          enabled: true
+          file: /etc/sysctl.d/99-molecule-test.conf
+          parameters:
+            net.core.somaxconn: 65535
+            vm.swappiness: 10
+            fs.file-max: 2097152
+        
+        # Test PAM limits
+        system_settings_limits:
+          enabled: true
+          limits:
+            - domain: '*'
+              limit_type: soft
+              limit_item: nofile
+              value: 65536
+            - domain: '*'
+              limit_type: hard
+              limit_item: nofile
+              value: 65536
+        
+        # Test kernel modules
+        system_settings_modules:
+          load:
+            - loop
+            - overlay
+          blacklist:
+            - pcspkr
+          options:
+            loop:
+              max_loop: 32
+        
+        # Test services
+        system_settings_services:
+          enable:
+            - systemd-resolved.service
+          disable: []
+          mask: []
+        
+        # Test fonts (disabled for speed)
+        system_settings_fonts:
+          nerd_fonts:
+            enabled: false
+            install_dir: /usr/share/fonts/test-nerd-fonts
+            fonts: []
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

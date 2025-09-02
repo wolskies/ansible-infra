@@ -1,0 +1,5 @@
+---
+# configure_system role handlers
+
+# This orchestration role doesn't define its own handlers
+# All handlers are managed by individual roles that this role includes

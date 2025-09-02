@@ -19,7 +19,7 @@
         success_msg: "uv is properly installed"
 
     - name: Check installed Python packages with uv
-      ansible.builtin.shell: "{{ ansible_env.HOME }}/.local/bin/uv tool list"
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/uv tool list"
       register: uv_packages
       changed_when: false
       failed_when: false

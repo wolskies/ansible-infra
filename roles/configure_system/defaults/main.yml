@@ -1,2 +1,71 @@
 ---
-# configure_system role defaults - Master orchestration role
+# =============================================================================
+# SYSTEM CONFIGURATION ORCHESTRATION
+# =============================================================================
+# This role orchestrates multiple infrastructure roles to provide complete system setup
+# It executes other roles in the correct order for new machine configuration
+#
+# Role execution order:
+# 1. configure_host - Basic host setup (hostname, NTP, locale)
+# 2. manage_security_services - Security services (firewall, fail2ban)
+# 3. manage_users - User and group management
+# 4. manage_packages - Package installation and repository management
+# 5. manage_language_packages - Language-specific package managers (pip, npm, etc)
+# 6. manage_snap_packages - Snap package management (optional)
+# 7. manage_flatpak - Flatpak package management (optional)
+# 8. manage_system_settings - System performance tuning (optional)
+# 9. dotfiles - User dotfiles deployment (optional)
+
+# =============================================================================
+# ROLE EXECUTION CONTROL
+# =============================================================================
+configure_system:
+  # Core system setup (always executed)
+  host_configuration:
+    enabled: true
+    role: configure_host
+
+  security_services:
+    enabled: true
+    role: manage_security_services
+
+  user_management:
+    enabled: true
+    role: manage_users
+
+  package_management:
+    enabled: true
+    role: manage_packages
+
+  # Optional components (disabled by default)
+  language_packages:
+    enabled: false
+    role: manage_language_packages
+
+  snap_packages:
+    enabled: false
+    role: manage_snap_packages
+
+  flatpak_packages:
+    enabled: false
+    role: manage_flatpak
+
+  system_settings:
+    enabled: false
+    role: manage_system_settings
+
+  dotfiles_deployment:
+    enabled: false
+    role: dotfiles
+
+# =============================================================================
+# EXECUTION SETTINGS
+# =============================================================================
+configure_system_settings:
+  # Fail fast if any role fails
+  fail_on_error: true
+  # Display progress information
+  show_progress: true
+
+  # Allow selective execution via tags
+  respect_tags: true

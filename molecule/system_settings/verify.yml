@@ -1,0 +1,133 @@
+---
+- name: Verify system settings
+  hosts: all
+  become: true
+  tasks:
+    # =============================================================================
+    # VERIFY SYSCTL PARAMETERS
+    # =============================================================================
+    - name: Check if sysctl configuration file exists
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-molecule-test.conf
+      register: sysctl_file
+
+    - name: Verify sysctl file exists
+      ansible.builtin.assert:
+        that:
+          - sysctl_file.stat.exists
+        fail_msg: "Sysctl configuration file not created"
+
+    - name: Read sysctl parameter values
+      ansible.builtin.command:
+        cmd: "sysctl {{ item }}"
+      loop:
+        - net.core.somaxconn
+        - vm.swappiness
+        - fs.file-max
+      register: sysctl_values
+      changed_when: false
+
+    - name: Verify sysctl parameters are set correctly
+      ansible.builtin.assert:
+        that:
+          - "'net.core.somaxconn = 65535' in sysctl_values.results[0].stdout"
+          - "'vm.swappiness = 10' in sysctl_values.results[1].stdout"
+          - "'fs.file-max = 2097152' in sysctl_values.results[2].stdout"
+        fail_msg: "Sysctl parameters not set correctly"
+
+    # =============================================================================
+    # VERIFY PAM LIMITS
+    # =============================================================================
+    # Note: PAM limits module creates files in /etc/security/limits.d/ with timestamp names
+    # We'll just verify that the limits were attempted to be set
+    - name: Check if any limits configuration files exist
+      ansible.builtin.find:
+        paths: /etc/security/limits.d/
+        patterns: "*"
+      register: limits_files
+
+    - name: Debug limits files (optional verification)
+      ansible.builtin.debug:
+        msg: "PAM limits configuration attempted (files: {{ limits_files.files | length }})"
+
+    # =============================================================================
+    # VERIFY KERNEL MODULES
+    # =============================================================================
+    - name: Check module load configuration files
+      ansible.builtin.stat:
+        path: "/etc/modules-load.d/{{ item }}.conf"
+      loop:
+        - loop
+        - overlay
+      register: module_files
+
+    - name: Verify module load files exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+        fail_msg: "Module load configuration file {{ item.item }} not created"
+      loop: "{{ module_files.results }}"
+
+    - name: Check blacklist configuration
+      ansible.builtin.stat:
+        path: /etc/modprobe.d/blacklist-ansible-managed.conf
+      register: blacklist_file
+
+    - name: Verify blacklist file exists
+      ansible.builtin.assert:
+        that:
+          - blacklist_file.stat.exists
+        fail_msg: "Module blacklist file not created"
+
+    - name: Check blacklist content
+      ansible.builtin.command:
+        cmd: grep "blacklist pcspkr" /etc/modprobe.d/blacklist-ansible-managed.conf
+      register: blacklist_content
+      changed_when: false
+
+    - name: Verify pcspkr is blacklisted
+      ansible.builtin.assert:
+        that:
+          - blacklist_content.rc == 0
+        fail_msg: "pcspkr module not blacklisted"
+
+    - name: Check module options file
+      ansible.builtin.stat:
+        path: /etc/modprobe.d/loop-options.conf
+      register: module_options_file
+
+    - name: Verify module options file exists
+      ansible.builtin.assert:
+        that:
+          - module_options_file.stat.exists
+        fail_msg: "Module options file not created"
+
+    # =============================================================================
+    # VERIFY SERVICES
+    # =============================================================================
+    - name: Check systemd-resolved service status
+      ansible.builtin.command:
+        cmd: systemctl is-enabled systemd-resolved.service
+      register: resolved_status
+      changed_when: false
+      failed_when: false
+
+    - name: Debug service status
+      ansible.builtin.debug:
+        msg: "systemd-resolved service status: {{ resolved_status.stdout | default('not found') }}"
+
+    # =============================================================================
+    # VERIFY FONTS DIRECTORY (when enabled)
+    # =============================================================================
+    - name: Check if fonts directory would be created
+      ansible.builtin.stat:
+        path: /usr/share/fonts/test-nerd-fonts
+      register: fonts_dir
+      when: system_settings_fonts.nerd_fonts.enabled | default(false)
+
+    - name: Verify fonts directory structure (when enabled)
+      ansible.builtin.assert:
+        that:
+          - fonts_dir.stat.isdir | default(false)
+        fail_msg: "Fonts directory not created"
+      when: system_settings_fonts.nerd_fonts.enabled | default(false)

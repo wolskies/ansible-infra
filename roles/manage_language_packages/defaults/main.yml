@@ -12,7 +12,6 @@ language_packages:
     packages: []                            # List of Python packages to install
     install_method: "user"                  # Installation scope: user, global, project
     project_path: "{{ ansible_env.HOME }}/python-project"  # Path for project-based installs
-    
     # Example usage:
     # packages:
     #   - requests
@@ -32,7 +31,6 @@ language_packages:
     enable: true                            # Enable Node.js package management via npm
     packages: []                            # List of Node.js packages to install
     install_global: true                    # Install packages globally (-g flag)
-    
     # Example usage:
     # packages:
     #   - typescript
@@ -46,7 +44,6 @@ language_packages:
   rust:
     enable: false                           # Enable Rust package management via cargo (requires Rust toolchain)
     packages: []                            # List of Rust packages to install
-    
     # Example usage:
     # packages:
     #   - ripgrep
@@ -63,7 +60,6 @@ language_packages:
   go:
     enable: false                           # Enable Go package management via go install (requires Go toolchain)
     packages: []                            # List of Go packages to install
-    
     # Example usage:
     # packages:
     #   - github.com/junegunn/fzf@latest
@@ -84,5 +80,5 @@ language_packages:
 # PLATFORM-SPECIFIC FEATURES
 # =============================================================================
 # Ubuntu/Debian: Full support for all language ecosystems
-# Arch Linux: Full support for all language ecosystems  
+# Arch Linux: Full support for all language ecosystems
 # macOS: Full support for all language ecosystems (via Homebrew integration)
