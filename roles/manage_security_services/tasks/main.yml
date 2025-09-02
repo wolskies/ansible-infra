@@ -31,6 +31,16 @@
     - security-services
     - firewall-services
 
+- name: Check if UFW rate limiting already exists
+  ansible.builtin.command: ufw status numbered
+  register: ufw_status_check
+  changed_when: false
+  failed_when: false
+  become: true
+  when:
+    - ansible_system == 'Linux'
+    - security_firewall_linux.rate_limiting.enabled | default(false)
+
 - name: Ensure UFW rate limiting is configured (Linux)
   community.general.ufw:
     rule: limit
@@ -41,6 +51,8 @@
   when:
     - ansible_system == 'Linux'
     - security_firewall_linux.rate_limiting.enabled | default(false)
+    - ufw_status_check is defined
+    - "'22/tcp LIMIT' not in ufw_status_check.stdout"
   tags:
     - security-services
     - firewall-services

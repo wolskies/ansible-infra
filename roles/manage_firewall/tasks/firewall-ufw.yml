@@ -1,6 +1,13 @@
 ---
 # UFW firewall rule management
 
+- name: Check current UFW status
+  ansible.builtin.command: ufw status numbered
+  register: ufw_status
+  changed_when: false
+  become: true
+  failed_when: false
+
 - name: Ensure firewall rules are applied
   community.general.ufw:
     rule: "{{ item.rule | default('allow') }}"
@@ -19,7 +26,8 @@
     log: "{{ item.log | default(omit) }}"
   loop: "{{ firewall_rules }}"
   become: true
-  when: firewall_rules | length > 0
+  when:
+    - firewall_rules | length > 0
   notify: reload ufw
   tags:
     - firewall
