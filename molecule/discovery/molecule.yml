@@ -20,6 +20,8 @@ provisioner:
         ansible_user: root
         # Set discovery output to a test directory
         inventory_file: /tmp/test_inventory
+        # Enable static filenames for idempotence testing
+        molecule_test: true
   config_options:
     defaults:
       host_key_checking: false

@@ -23,7 +23,11 @@
   ansible.builtin.set_fact:
     discovery_paths:
       host_vars_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}"
-      host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.discovered.{{ ansible_date_time.epoch }}"
+      host_vars_file: >-
+        {{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/{{
+          'vars.discovered' if (molecule_test | default(false)) or (discovery_static_filename | default(false))
+          else 'vars.discovered.' + ansible_date_time.epoch
+        }}
       gpg_keys_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/gpg_keys"
   delegate_to: localhost
 
