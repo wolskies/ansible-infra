@@ -40,6 +40,7 @@ syntax-check:
   stage: validate
   image: python:3.11-slim
   script:
+    - apt-get update -qq && apt-get install -y -qq make
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
@@ -81,7 +82,7 @@ test-quick:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io
+    - apt-get update -qq && apt-get install -y -qq docker.io make
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
@@ -101,7 +102,7 @@ test-discovery:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io
+    - apt-get update -qq && apt-get install -y -qq docker.io make
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
@@ -121,7 +122,7 @@ test-integration:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io
+    - apt-get update -qq && apt-get install -y -qq docker.io make
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
@@ -139,6 +140,7 @@ collection-build:
   stage: build
   image: python:3.11-slim
   script:
+    - apt-get update -qq && apt-get install -y -qq make
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
