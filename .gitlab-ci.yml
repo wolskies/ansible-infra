@@ -32,6 +32,8 @@ molecule-test-basic:
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
+    - sleep 10
+    - until [ -f "$DOCKER_CERT_PATH/ca.pem" ]; do echo "Waiting for Docker certs..."; sleep 2; done
     - until docker info; do sleep 1; done
   script:
     - molecule syntax -s packages
