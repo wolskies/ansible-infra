@@ -33,12 +33,12 @@ cache:
     - .cache/molecule/
     - .venv/
 
-.setup_environment: &setup_environment |
-  python3 -m venv .venv
-  source .venv/bin/activate
-  pip install --upgrade pip
-  pip install -r requirements-dev.txt
-  docker --version || (echo "Docker not available - some tests may be skipped"; exit 0)
+.setup_environment: &setup_environment
+  - python3 -m venv .venv
+  - source .venv/bin/activate
+  - pip install --upgrade pip
+  - pip install -r requirements-dev.txt
+  - docker --version || (echo "Docker not available - some tests may be skipped"; exit 0)
 
 # =============================================================================
 # SHARED TEMPLATES FOR TESTING
