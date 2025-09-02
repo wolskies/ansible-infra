@@ -5,17 +5,17 @@
   gather_facts: true
   tasks:
     # Test 1: Verify Python packages installed with uv
-    - name: Check if uv is installed
-      ansible.builtin.command: which uv
-      register: uv_check
-      changed_when: false
-      failed_when: false
+    - name: Check if uv is installed (by path)
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.local/bin/uv"
+      register: uv_binary
 
     - name: Verify uv is installed
       ansible.builtin.assert:
         that:
-          - uv_check.rc == 0
-        fail_msg: "uv should be installed"
+          - uv_binary.stat.exists
+          - uv_binary.stat.executable
+        fail_msg: "uv should be installed at {{ ansible_env.HOME }}/.local/bin/uv"
         success_msg: "uv is properly installed"
 
     - name: Check installed Python packages with uv
