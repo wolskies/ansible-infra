@@ -11,6 +11,22 @@
         - packages
 
     # Additional test: Verify packages can be installed after repo setup
+    - name: Update package cache after repository setup
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 0
+      when: ansible_os_family == "Debian"
+
+    - name: Check if docker-ce-cli is available (Ubuntu)
+      ansible.builtin.command:
+        cmd: apt list docker-ce-cli
+      register: docker_availability_ubuntu
+      changed_when: false
+      failed_when: false
+      when:
+        - ansible_distribution == "Ubuntu"
+        - inventory_hostname == "ubuntu-packages-test"
+
     - name: Test installing package from custom repository (Ubuntu)
       ansible.builtin.package:
         name: docker-ce-cli
@@ -18,8 +34,20 @@
       when:
         - ansible_distribution == "Ubuntu"
         - inventory_hostname == "ubuntu-packages-test"
+        - docker_availability_ubuntu is defined
+        - "'docker-ce-cli' in docker_availability_ubuntu.stdout"
       tags:
         - docker-test
+
+    - name: Check if docker-ce-cli is available (Debian)
+      ansible.builtin.command:
+        cmd: apt list docker-ce-cli
+      register: docker_availability_debian
+      changed_when: false
+      failed_when: false
+      when:
+        - ansible_distribution == "Debian"
+        - inventory_hostname == "debian-packages-test"
 
     - name: Test installing package from custom repository (Debian)
       ansible.builtin.package:
@@ -28,5 +56,7 @@
       when:
         - ansible_distribution == "Debian"
         - inventory_hostname == "debian-packages-test"
+        - docker_availability_debian is defined
+        - "'docker-ce-cli' in docker_availability_debian.stdout"
       tags:
         - docker-test
