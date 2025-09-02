@@ -29,7 +29,7 @@
 
     - name: Install missing tools via system package manager
       ansible.builtin.package:
-        name: "{{ vars['packages_' + ansible_distribution | lower] }}"
+        name: "{{ result.item['packages_' + ansible_distribution | lower] }}"
         state: present
       become: true
       loop: "{{ tool_check.results }}"
@@ -40,11 +40,7 @@
         - result.rc is defined
         - result.rc != 0
         - result.item.condition | bool
-      vars:
-        packages_ubuntu: "{{ result.item.packages_ubuntu }}"
-        packages_debian: "{{ result.item.packages_debian }}"
-        packages_archlinux: "{{ result.item.packages_archlinux }}"
-        packages_macosx: "{{ result.item.packages_macosx }}"
+        - result.item['packages_' + ansible_distribution | lower] | default([]) | length > 0
 
 # Python packages via uv
 - name: Setup Python packages
