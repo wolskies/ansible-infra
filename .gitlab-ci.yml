@@ -22,18 +22,14 @@ molecule-test-basic:
   services:
     - docker:24-dind
   variables:
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
-    DOCKER_TLS_VERIFY: 1
-    DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - sleep 10
-    - until [ -f "$DOCKER_CERT_PATH/ca.pem" ]; do echo "Waiting for Docker certs..."; sleep 2; done
     - until docker info; do sleep 1; done
   script:
     - molecule syntax -s packages
