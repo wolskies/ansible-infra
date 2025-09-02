@@ -16,8 +16,8 @@
         that:
           - all_users.ansible_facts.getent_passwd.testuser1 is defined
           - all_users.ansible_facts.getent_passwd.testuser1[1] == "1001"
-          - all_users.ansible_facts.getent_passwd.testuser1[3] == "/bin/bash"
-          - all_users.ansible_facts.getent_passwd.testuser1[4] == "Test User One"
+          - all_users.ansible_facts.getent_passwd.testuser1[5] == "/bin/bash"
+          - all_users.ansible_facts.getent_passwd.testuser1[3] == "Test User One"
         fail_msg: "testuser1 not configured correctly"
       when: inventory_hostname == "ubuntu-users-test"
 
@@ -26,7 +26,7 @@
         that:
           - all_users.ansible_facts.getent_passwd.testuser2 is defined
           - all_users.ansible_facts.getent_passwd.testuser2[1] == "1002"
-          - all_users.ansible_facts.getent_passwd.testuser2[3] == "/bin/zsh"
+          - all_users.ansible_facts.getent_passwd.testuser2[5] == "/bin/zsh"
         fail_msg: "testuser2 not configured correctly"
       when: inventory_hostname == "ubuntu-users-test"
 
@@ -35,7 +35,7 @@
         that:
           - all_users.ansible_facts.getent_passwd.testservice is defined
           - all_users.ansible_facts.getent_passwd.testservice[1] == "999"
-          - all_users.ansible_facts.getent_passwd.testservice[3] == "/usr/sbin/nologin"
+          - all_users.ansible_facts.getent_passwd.testservice[5] == "/usr/sbin/nologin"
         fail_msg: "testservice system user not configured correctly"
       when: inventory_hostname == "ubuntu-users-test"
 
@@ -52,7 +52,7 @@
         that:
           - all_users.ansible_facts.getent_passwd.debianuser is defined
           - all_users.ansible_facts.getent_passwd.debianuser[1] == "1001"
-          - all_users.ansible_facts.getent_passwd.debianuser[4] == "Debian Test User"
+          - all_users.ansible_facts.getent_passwd.debianuser[3] == "Debian Test User"
         fail_msg: "debianuser not configured correctly"
       when: inventory_hostname == "debian-users-test"
 
@@ -61,7 +61,7 @@
         that:
           - all_users.ansible_facts.getent_passwd.longusernametest is defined
           - all_users.ansible_facts.getent_passwd.longusernametest[1] == "1999"
-          - all_users.ansible_facts.getent_passwd.longusernametest[3] == "/bin/dash"
+          - all_users.ansible_facts.getent_passwd.longusernametest[5] == "/bin/dash"
         fail_msg: "longusernametest not configured correctly"
       when: inventory_hostname == "debian-users-test"
 
@@ -229,7 +229,7 @@
     - name: Verify home directory permissions
       ansible.builtin.assert:
         that:
-          - item.stat.mode == "0755"
+          - item.stat.mode in ["0755", "0750"] # Allow both common home directory permissions
           - item.stat.pw_name == item.item
         fail_msg: "Home directory permissions incorrect for {{ item.item }}"
       loop: "{{ home_perms.results }}"

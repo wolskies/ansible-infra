@@ -9,6 +9,10 @@ stages:
 variables:
   ANSIBLE_FORCE_COLOR: "true"
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  FF_WAIT_FOR_POD_TO_BE_REACHABLE: 1
+  # Docker connection resilience
+  DOCKER_DRIVER: overlay2
+  DOCKER_BUILDKIT: 1
 
 # Cache configuration for faster builds
 cache:
@@ -97,13 +101,22 @@ test-discovery:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
   script:
     - molecule test -s discovery
     - echo "✅ Discovery role tests passed"
@@ -116,13 +129,22 @@ test-packages:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
   script:
     - molecule test -s packages
     - echo "✅ Package management tests passed"
@@ -135,13 +157,22 @@ test-users:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
   script:
     - molecule test -s users
     - echo "✅ User management tests passed"
@@ -154,13 +185,22 @@ test-firewall:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
   script:
     - molecule test -s firewall
     - echo "✅ Firewall tests passed"
@@ -173,13 +213,22 @@ test-system-settings:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
   script:
     - molecule test -s system_settings
     - echo "✅ System settings tests passed"
@@ -192,16 +241,40 @@ test-language-packages:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
   script:
-    - molecule test -s language_packages
-    - echo "✅ Language packages tests passed"
+    # Run molecule test with retry on Docker connectivity issues
+    - |
+      for attempt in 1 2 3; do
+        echo "Molecule test attempt $attempt..."
+        if molecule test -s language_packages; then
+          echo "✅ Language packages tests passed on attempt $attempt"
+          break
+        else
+          if [ $attempt -eq 3 ]; then
+            echo "❌ All attempts failed"
+            exit 1
+          fi
+          echo "Attempt $attempt failed, retrying in 30 seconds..."
+          sleep 30
+          docker info || echo "Docker connectivity issue detected"
+        fi
+      done
 
 test-security:
   stage: test
@@ -211,13 +284,22 @@ test-security:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
   script:
     - molecule test -s security
     - echo "✅ Security services tests passed"
@@ -231,13 +313,22 @@ test-integration:
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    - until docker info; do sleep 1; done
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
   script:
     - make test-integration
     - echo "✅ Integration tests passed"

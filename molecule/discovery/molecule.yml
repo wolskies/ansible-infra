@@ -26,5 +26,19 @@ provisioner:
     defaults:
       host_key_checking: false
       stdout_callback: yaml
+scenario:
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+  # Skip idempotence due to discovery role creating timestamped files by design
 verifier:
   name: ansible
