@@ -1,5 +1,4 @@
 ---
-
 - name: Configure NTP time synchronization
   block:
     - name: Configure systemd-timesyncd
@@ -8,7 +7,7 @@
         dest: /etc/systemd/timesyncd.conf
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
         backup: true
       become: true
       when: ansible_service_mgr == "systemd"
@@ -84,7 +83,7 @@
             dest: /etc/hosts.backup.{{ ansible_date_time.epoch }}
             owner: root
             group: root
-            mode: '0644'
+            mode: "0644"
             remote_src: true
           become: true
 
@@ -128,7 +127,7 @@
         state: directory
         owner: root
         group: root
-        mode: '0755'
+        mode: "0755"
       become: true
 
     - name: Configure systemd journal settings
@@ -137,7 +136,7 @@
         dest: /etc/systemd/journald.conf.d/00-ansible-managed.conf
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
       become: true
       notify: restart journald
   when:

@@ -96,19 +96,19 @@ All parameters from the [community.general.ufw module](https://docs.ansible.com/
         port: 22
         proto: tcp
         comment: "SSH rate limiting"
-      
+
       # Port range for application
       - rule: allow
         port: 8000:8100
         proto: tcp
         comment: "Application port range"
-      
+
       # Interface-specific rule
       - rule: allow
         interface: docker0
         direction: in
         comment: "Docker network traffic"
-      
+
       # Delete an old rule
       - rule: allow
         port: 9999
@@ -152,7 +152,7 @@ This role works in conjunction with other infrastructure roles:
     # First: Install and configure firewall service
     - role: wolskinet.infrastructure.manage_security_services
       tags: security-services
-    
+
     # Then: Apply firewall rules
     - role: wolskinet.infrastructure.manage_firewall
       vars:

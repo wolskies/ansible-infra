@@ -48,7 +48,7 @@ users_config:
 
 {% if firewall_enable is defined %}
 # =============================================================================
-# FIREWALL CONFIGURATION  
+# FIREWALL CONFIGURATION
 # =============================================================================
 firewall_enable: {{ firewall_enable | to_json }}
 {% if firewall_custom_rules is defined and firewall_custom_rules is sequence and firewall_custom_rules | length > 0 %}
@@ -136,4 +136,3 @@ host_packages_flatpak_packages:
 {{ discovered_language_packages.flatpak | to_nice_yaml(indent=2) }}
 {% endif %}
 {% endif %}
-

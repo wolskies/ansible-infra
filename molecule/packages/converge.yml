@@ -21,7 +21,7 @@
       tags:
         - docker-test
 
-    - name: Test installing package from custom repository (Debian)  
+    - name: Test installing package from custom repository (Debian)
       ansible.builtin.package:
         name: docker-ce-cli
         state: present

@@ -125,7 +125,7 @@
     - name: Verify only one SSH ALLOW rule exists
       ansible.builtin.assert:
         that:
-          - ssh_rule_count.stdout | int <= 2  # IPv4 + IPv6 = max 2 rules
+          - ssh_rule_count.stdout | int <= 2 # IPv4 + IPv6 = max 2 rules
         fail_msg: "Too many SSH rules found: {{ ssh_rule_count.stdout }}"
         success_msg: "SSH rules are not duplicated"
 

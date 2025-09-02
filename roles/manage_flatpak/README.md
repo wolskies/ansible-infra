@@ -7,7 +7,7 @@ Comprehensive Flatpak package management for Ubuntu and Debian systems. Supports
 This role provides complete Flatpak package lifecycle management:
 
 - **Install**: Set up Flatpak, enable Flathub, and install Flatpak packages
-- **Remove**: Remove Flatpak packages while keeping the system intact  
+- **Remove**: Remove Flatpak packages while keeping the system intact
 - **Purge**: Complete Flatpak removal including system packages, repositories, and directories
 
 The role includes safety mechanisms for destructive operations and supports both individual package management and system-wide Flatpak removal.
@@ -102,7 +102,7 @@ flatpak_purge_confirm: false                    # Must be true for complete purg
 # Install only
 ansible-playbook -t install-flatpak playbook.yml
 
-# Remove only  
+# Remove only
 ansible-playbook -t remove-flatpak playbook.yml
 
 # Complete purge

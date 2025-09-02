@@ -4,4 +4,3 @@
   remote_user: root
   roles:
     - roles/manage_system_settings
-

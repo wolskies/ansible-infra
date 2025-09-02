@@ -256,7 +256,7 @@ molecule-snap-packages-test:
   script:
     - cd molecule/snap_packages && molecule test
     - echo "✅ Snap packages tests passed"
-  allow_failure: true  # Snap may not be available in all containers
+  allow_failure: true # Snap may not be available in all containers
 
 molecule-flatpak-packages-test:
   stage: unit-test
@@ -264,7 +264,7 @@ molecule-flatpak-packages-test:
   script:
     - cd molecule/flatpak_packages && molecule test
     - echo "✅ Flatpak packages tests passed"
-  allow_failure: true  # Flatpak may not work in containers
+  allow_failure: true # Flatpak may not work in containers
 
 molecule-configure-system-test:
   stage: unit-test
@@ -295,7 +295,7 @@ integration-multi-os:
     # Test Debian 12 and 13
     - cd molecule/integration && MOLECULE_DISTRO=debian12 molecule test || echo "Debian 12 test completed with issues"
     - echo "✅ Multi-OS integration tests completed"
-  allow_failure: true  # Some OS variants may have known issues
+  allow_failure: true # Some OS variants may have known issues
   retry:
     max: 1
 
@@ -409,13 +409,13 @@ create-release:
   script:
     - echo "Creating release for $CI_COMMIT_TAG"
   release:
-    name: 'Release $CI_COMMIT_TAG'
-    description: 'Release $CI_COMMIT_TAG of wolskinet.infrastructure collection'
-    tag_name: '$CI_COMMIT_TAG'
+    name: "Release $CI_COMMIT_TAG"
+    description: "Release $CI_COMMIT_TAG of wolskinet.infrastructure collection"
+    tag_name: "$CI_COMMIT_TAG"
     assets:
       links:
-        - name: 'Collection Package'
-          url: '$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/raw/wolskinet-infrastructure-$CI_COMMIT_TAG.tar.gz?job=collection-build'
+        - name: "Collection Package"
+          url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/raw/wolskinet-infrastructure-$CI_COMMIT_TAG.tar.gz?job=collection-build"
   dependencies:
     - collection-build
   only:

@@ -90,4 +90,4 @@ firewall_rules: []
 #     comment: "Remove old service port"
 
 # Firewall backend selection (for future expansion)
-firewall_backend: "ufw"  # Currently only UFW is supported
+firewall_backend: "ufw" # Currently only UFW is supported

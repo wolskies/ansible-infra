@@ -102,9 +102,9 @@
           - bashrc_link.stat.exists
           - bashrc_link.stat.islnk
         fail_msg: ".bashrc should be a symlink for root user"
-      when: 
+      when:
         - inventory_hostname == "debian-dotfiles-test"
-        - false  # Disabled as the test repo may not have these files
+        - false # Disabled as the test repo may not have these files
 
     # =============================================================================
     # VERIFY REPOSITORY STRUCTURE

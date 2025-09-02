@@ -8,10 +8,10 @@ language_packages:
   # PYTHON PACKAGE MANAGEMENT (UV)
   # =============================================================================
   python:
-    enable: true                            # Enable Python package management via uv
-    packages: []                            # List of Python packages to install
-    install_method: "user"                  # Installation scope: user, global, project
-    project_path: "{{ ansible_env.HOME }}/python-project"  # Path for project-based installs
+    enable: true # Enable Python package management via uv
+    packages: [] # List of Python packages to install
+    install_method: "user" # Installation scope: user, global, project
+    project_path: "{{ ansible_env.HOME }}/python-project" # Path for project-based installs
     # Example usage:
     # packages:
     #   - requests
@@ -28,9 +28,9 @@ language_packages:
   # NODE.JS PACKAGE MANAGEMENT (NPM)
   # =============================================================================
   nodejs:
-    enable: true                            # Enable Node.js package management via npm
-    packages: []                            # List of Node.js packages to install
-    install_global: true                    # Install packages globally (-g flag)
+    enable: true # Enable Node.js package management via npm
+    packages: [] # List of Node.js packages to install
+    install_global: true # Install packages globally (-g flag)
     # Example usage:
     # packages:
     #   - typescript
@@ -42,8 +42,8 @@ language_packages:
   # RUST PACKAGE MANAGEMENT (CARGO)
   # =============================================================================
   rust:
-    enable: false                           # Enable Rust package management via cargo (requires Rust toolchain)
-    packages: []                            # List of Rust packages to install
+    enable: false # Enable Rust package management via cargo (requires Rust toolchain)
+    packages: [] # List of Rust packages to install
     # Example usage:
     # packages:
     #   - ripgrep
@@ -58,8 +58,8 @@ language_packages:
   # GO PACKAGE MANAGEMENT (GO INSTALL)
   # =============================================================================
   go:
-    enable: false                           # Enable Go package management via go install (requires Go toolchain)
-    packages: []                            # List of Go packages to install
+    enable: false # Enable Go package management via go install (requires Go toolchain)
+    packages: [] # List of Go packages to install
     # Example usage:
     # packages:
     #   - github.com/junegunn/fzf@latest
@@ -73,8 +73,8 @@ language_packages:
   # DEPENDENCY VALIDATION CONFIGURATION
   # =============================================================================
   config:
-    check_dependencies: true                # Validate required tools before installing packages
-    install_missing_tools: true            # Auto-install missing language tools via system package manager
+    check_dependencies: true # Validate required tools before installing packages
+    install_missing_tools: true # Auto-install missing language tools via system package manager
 
 # =============================================================================
 # PLATFORM-SPECIFIC FEATURES

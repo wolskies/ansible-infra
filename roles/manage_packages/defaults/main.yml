@@ -32,4 +32,3 @@ packages_homebrew:
     packages:
       install: []
       remove: []
-

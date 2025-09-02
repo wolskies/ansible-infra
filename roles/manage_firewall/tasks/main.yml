@@ -23,7 +23,6 @@
   tags:
     - firewall
     - firewall-rules
-
 # Future: Add support for other backends
 # - name: Apply firewall rules (firewalld backend)
 #   ansible.builtin.include_tasks: firewall-firewalld.yml

@@ -68,4 +68,3 @@
     - user_item.dotfiles.repo is defined
     - user_item.dotfiles.repo != ""
     - user_item.dotfiles.repo != None
-

@@ -61,7 +61,6 @@
   loop: "{{ regular_user_names | default([]) }}"
   check_mode: true
 
-
 - name: Check for dotfiles directories
   ansible.builtin.stat:
     path: "{{ item.home }}/.dotfiles"
@@ -102,7 +101,7 @@
       shell: "{{ item.shell }}"
       comment: "{{ item.comment if item.comment != '' else omit }}"
       groups: "{{ item.groups.split(',') if item.groups is defined and item.groups != '' else [] }}"
-      create_home: true  # Home directory exists if user was found
+      create_home: true # Home directory exists if user was found
       dotfiles: "{{ dotfiles_config if has_dotfiles else omit }}"
     # Check if this user has dotfiles
     has_dotfiles: "{{ dotfiles_dirs.results | selectattr('item.name', 'equalto', item.name) | map(attribute='stat.exists') | first | default(false) }}"

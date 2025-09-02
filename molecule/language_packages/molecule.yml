@@ -44,10 +44,10 @@ provisioner:
               - eslint
             install_global: true
           rust:
-            enable: false  # Disabled for testing speed
+            enable: false # Disabled for testing speed
             packages: []
           go:
-            enable: false  # Disabled for testing speed
+            enable: false # Disabled for testing speed
             packages: []
           config:
             check_dependencies: true

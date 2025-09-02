@@ -32,40 +32,40 @@
     # Additional patterns to filter out even from user-installed packages
     system_categories:
       # Common system packages across distros
-      - '^base$'           # base group itself
-      - '^base-devel$'     # development tools group
-      - '^linux$'          # kernel (managed separately)
-      - '^linux-firmware$' # firmware (managed separately)
-      - '^linux-headers$'  # kernel headers (managed separately)
-      - '^nvidia-'         # NVIDIA drivers (hardware specific)
-      - '^amd-'            # AMD drivers (hardware specific)
-      - '^cuda'            # CUDA (hardware specific)
+      - "^base$" # base group itself
+      - "^base-devel$" # development tools group
+      - "^linux$" # kernel (managed separately)
+      - "^linux-firmware$" # firmware (managed separately)
+      - "^linux-headers$" # kernel headers (managed separately)
+      - "^nvidia-" # NVIDIA drivers (hardware specific)
+      - "^amd-" # AMD drivers (hardware specific)
+      - "^cuda" # CUDA (hardware specific)
 
       # Desktop environment meta-packages (user can add individual components)
-      - '^plasma-meta$'    # KDE meta package
-      - '^plasma-workspace$' # KDE workspace
-      - '^ubuntu-desktop'  # Ubuntu desktop meta-package
-      - '^ubuntu-minimal'  # Ubuntu minimal meta-package
+      - "^plasma-meta$" # KDE meta package
+      - "^plasma-workspace$" # KDE workspace
+      - "^ubuntu-desktop" # Ubuntu desktop meta-package
+      - "^ubuntu-minimal" # Ubuntu minimal meta-package
 
       # Audio system (managed by dedicated roles)
-      - '^pipewire$'       # audio system
-      - '^pipewire-'       # audio system components
-      - '^wireplumber$'    # audio session manager
-      - '^pulseaudio$'     # audio system
+      - "^pipewire$" # audio system
+      - "^pipewire-" # audio system components
+      - "^wireplumber$" # audio session manager
+      - "^pulseaudio$" # audio system
 
       # Package manager tools (system level)
-      - '^apt$'            # package manager itself
-      - '^dpkg$'           # package system
-      - '^snapd$'          # snap package system
+      - "^apt$" # package manager itself
+      - "^dpkg$" # package system
+      - "^snapd$" # snap package system
 
       # Infrastructure packages (handled by dedicated roles)
-      - '^docker-ce'       # Docker CE packages
-      - '^docker\.io$'     # Docker from distro repos
+      - "^docker-ce" # Docker CE packages
+      - '^docker\.io$' # Docker from distro repos
       - '^containerd\.io$' # Container runtime
-      - '^docker-compose'  # Docker compose
-      - '^nvidia-container-toolkit$' # NVIDIA container support
-      - '^libnvidia-container' # NVIDIA container libs
-      - '^gitlab-runner$'  # GitLab CI runner
+      - "^docker-compose" # Docker compose
+      - "^nvidia-container-toolkit$" # NVIDIA container support
+      - "^libnvidia-container" # NVIDIA container libs
+      - "^gitlab-runner$" # GitLab CI runner
     filtered_user_packages: >-
       {{
         user_explicit_packages |
@@ -133,4 +133,3 @@
         - not homebrew_arm.stat.exists
         - not homebrew_intel.stat.exists
   when: ansible_distribution == "MacOSX"
-

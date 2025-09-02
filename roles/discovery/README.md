@@ -28,11 +28,11 @@ Automatically filters out noise to focus on user-installed software:
 - Preserves explicitly installed user applications
 - Distribution-specific intelligence (base groups, priority packages)
 
-### 🐳 **Docker Service Intelligence** 
+### 🐳 **Docker Service Intelligence**
 - Scans configurable paths: `/opt`, `/srv`, `/home/*/docker`
 - Maps container images to collection roles automatically:
   - `gitlab/gitlab-ce` → `gitlab` role
-  - `jc21/nginx-proxy-manager` → `nginx_proxy_manager` role  
+  - `jc21/nginx-proxy-manager` → `nginx_proxy_manager` role
   - `jellyfin/jellyfin` → `jellyfin` role
 - Copies compose files and environment variables
 
@@ -68,7 +68,7 @@ Automatically filters out noise to focus on user-installed software:
 # Full discovery
 ansible-playbook playbooks/run-discovery.yml -l target-host
 
-# Only packages and Docker services  
+# Only packages and Docker services
 ansible-playbook playbooks/run-discovery.yml -l target-host --tags packages,docker
 
 # Skip desktop environment detection
@@ -85,7 +85,7 @@ discovery_docker_compose_paths:
   - "/home/user/services"
   - "/srv/docker-compose"
 
-# Add custom service mappings  
+# Add custom service mappings
 discovery_docker_service_mapping:
   "myorg/custom-app": "custom_app_role"
   "postgres:15": "database_postgresql"
@@ -104,8 +104,8 @@ discovery:
 # Customize shell detection
 discovery_shell_configuration:
   supported_shells: [/bin/bash, /bin/zsh, /usr/bin/fish]
-  
-# Dotfiles detection patterns  
+
+# Dotfiles detection patterns
 discovery_dotfiles_detection:
   repository_indicators: [.dotfiles, .config]
   management_tools: [Makefile, install.sh, stow]
@@ -122,7 +122,7 @@ host_additional_repositories:
     sources: ["deb [arch=amd64] https://..."]
     apt_keys: ["https://keyserver/key.gpg"]
 
-# User configuration (for basic_setup user management)    
+# User configuration (for basic_setup user management)
 discovered_users_config:
   - name: username
     uid: 1001

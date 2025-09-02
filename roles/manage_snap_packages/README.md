@@ -7,7 +7,7 @@ Comprehensive snap package management for Ubuntu and Debian systems. Supports in
 This role provides complete snap package lifecycle management:
 
 - **Install**: Set up snapd and install snap packages (regular and classic)
-- **Remove**: Remove snap packages while keeping the system intact  
+- **Remove**: Remove snap packages while keeping the system intact
 - **Purge**: Complete snap removal including services, directories, and PATH cleanup
 
 The role includes safety mechanisms for destructive operations and supports both individual package management and system-wide snap removal.
@@ -35,7 +35,7 @@ snap_management_action: "remove"            # "install", "remove", "purge"
 
 ```yaml
 snap_remove_all_packages: true              # Remove all installed snap packages
-snap_disable_services: true                 # Stop and disable snapd services  
+snap_disable_services: true                 # Stop and disable snapd services
 snap_remove_system_packages: true           # Remove snapd APT packages
 snap_cleanup_directories: true              # Remove snap directories
 snap_cleanup_path: true                     # Remove snap from system PATH
@@ -107,7 +107,7 @@ snap_purge_confirm: false                   # Must be true for complete purge
 # Install only
 ansible-playbook -t install-snap playbook.yml
 
-# Remove only  
+# Remove only
 ansible-playbook -t remove-snap playbook.yml
 
 # Complete purge

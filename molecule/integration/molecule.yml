@@ -37,8 +37,8 @@ provisioner:
       all:
         # Global settings for all machines
         config_common_timezone: "UTC"
-        config_common_hostname_manage: false  # Skip in container
-        
+        config_common_hostname_manage: false # Skip in container
+
         # Global users
         users_config:
           - name: admin
@@ -53,7 +53,7 @@ provisioner:
             shell: /bin/bash
             comment: "System Operator"
             create_home: true
-        
+
         # Global packages
         all_packages_install_Ubuntu:
           - curl
@@ -65,7 +65,7 @@ provisioner:
           - git
           - htop
           - vim
-        
+
         # Global security
         security_services:
           ufw:
@@ -83,27 +83,27 @@ provisioner:
             services:
               ssh:
                 enabled: true
-        
+
         # Global firewall rules
         firewall_rules:
           - rule: allow
             name: OpenSSH
             comment: "SSH access"
-      
+
       servers:
         # Server-specific configuration
         group_packages_install_Ubuntu:
           - nginx
           - certbot
           - htop
-        
+
         # Enable optional components for servers
         configure_system:
           language_packages:
             enabled: true
           system_settings:
             enabled: true
-        
+
         # Language packages for development
         language_packages:
           python:
@@ -116,7 +116,7 @@ provisioner:
             packages:
               - express
               - lodash
-        
+
         # System performance tuning
         system_settings_sysctl:
           enabled: true
@@ -124,7 +124,7 @@ provisioner:
             vm.swappiness: 10
             net.core.somaxconn: 65535
             net.ipv4.tcp_keepalive_time: 120
-        
+
         # Server-specific firewall rules
         firewall_rules:
           - rule: allow
@@ -135,14 +135,14 @@ provisioner:
             port: 443
             proto: tcp
             comment: "HTTPS"
-      
+
       workstations:
         # Workstation-specific packages
         group_packages_install_Debian:
           - firefox-esr
           - libreoffice-writer
           - code
-        
+
         # Workstation user configuration
         users_config:
           - name: developer
@@ -151,14 +151,14 @@ provisioner:
             shell: /bin/zsh
             comment: "Developer User"
             create_home: true
-        
+
         # Enable workstation features
         configure_system:
           dotfiles_deployment:
-            enabled: false  # Skip in container
+            enabled: false # Skip in container
           flatpak_packages:
-            enabled: false  # Skip in container
-        
+            enabled: false # Skip in container
+
         # System settings for workstation
         system_settings_limits:
           enabled: true
@@ -167,14 +167,14 @@ provisioner:
               limit_type: soft
               limit_item: nofile
               value: 65536
-    
+
     host_vars:
       server-integration-test:
         # Server-specific host configuration
         host_packages_install_Ubuntu:
           - redis-server
           - postgresql-client
-        
+
         # Server-specific users
         users_config:
           - name: webuser
@@ -183,7 +183,7 @@ provisioner:
             shell: /usr/sbin/nologin
             comment: "Web Service User"
             create_home: false
-        
+
         # Host-specific firewall rules
         firewall_rules:
           - rule: allow
@@ -191,13 +191,13 @@ provisioner:
             proto: tcp
             src: 10.0.0.0/8
             comment: "Redis from internal network"
-      
+
       workstation-integration-test:
         # Workstation-specific host configuration
         host_packages_install_Debian:
           - gimp
           - inkscape
-        
+
         # Development user with dotfiles
         users_config:
           - name: designer
@@ -206,7 +206,7 @@ provisioner:
             shell: /bin/bash
             comment: "Graphic Designer"
             create_home: true
-  
+
   config_options:
     defaults:
       host_key_checking: false

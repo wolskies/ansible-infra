@@ -78,7 +78,7 @@ vault_user_passwords:
 vault_api_keys:
   github_token: "ghp_xxxxxxxxxxxxxxxxxxxx"
   gitlab_token: "glpat-xxxxxxxxxxxxxxxxxxxx"
-  
+
 # Database credentials
 vault_database:
   root_password: "super-secure-db-password"
@@ -88,7 +88,7 @@ vault_database:
 vault_ssl:
   private_key: |
     -----BEGIN PRIVATE KEY-----
-    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC...
+    [Your private key content here]
     -----END PRIVATE KEY-----
   certificate: |
     -----BEGIN CERTIFICATE-----
@@ -116,7 +116,7 @@ vault_container_secrets:
   postgres_password: "secure-postgres-password"
   redis_password: "secure-redis-password"
   jwt_secret: "your-jwt-signing-key"
-  
+
 # Backup credentials
 vault_backup:
   s3_access_key: "AKIAIOSFODNN7EXAMPLE"
@@ -132,7 +132,7 @@ vault_backup:
 vault_host_specific:
   service_account_key: "machine-specific-service-key"
   monitoring_token: "host-monitoring-token"
-  
+
 # Hardware-specific encryption keys
 vault_hardware:
   disk_encryption_key: "luks-encryption-passphrase"
@@ -180,7 +180,7 @@ notification_email: "{{ vault_email.notification_email }}"
     name: app
     password: "{{ database_app_password }}"
     priv: "app_db.*:ALL"
-    
+
 - name: Deploy container with secrets
   docker_container:
     name: myapp
@@ -308,7 +308,7 @@ For different environments or teams:
 # Development environment
 ansible-vault create --vault-id dev@dev-vault-pass group_vars/dev/vault.yml
 
-# Production environment  
+# Production environment
 ansible-vault create --vault-id prod@prod-vault-pass group_vars/prod/vault.yml
 
 # Run playbook with multiple vault IDs
@@ -355,7 +355,7 @@ The collection is designed to work seamlessly with vault-encrypted secrets:
 vault_dotfiles_repo: "ssh://git@gitlab.private.com:2222/configs/dotfiles.git"
 vault_gitlab_ssh_key: |
   -----BEGIN OPENSSH PRIVATE KEY-----
-  b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAA...
+  [Your SSH private key content here]
   -----END OPENSSH PRIVATE KEY-----
 
 # Reference in plain variables

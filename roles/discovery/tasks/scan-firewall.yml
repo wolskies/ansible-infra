@@ -21,7 +21,6 @@
     - ufw_status.rc is defined
     - ufw_status.rc == 0
   block:
-
     - name: Set firewall enabled status
       ansible.builtin.set_fact:
         firewall_enable: true

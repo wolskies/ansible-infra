@@ -84,8 +84,8 @@
               block:
                 - name: Clone paru repository
                   ansible.builtin.git:
-                    repo: 'https://aur.archlinux.org/paru.git'
-                    dest: '/tmp/paru-install'
+                    repo: "https://aur.archlinux.org/paru.git"
+                    dest: "/tmp/paru-install"
                     version: master
 
                 - name: Build and install paru
@@ -128,7 +128,7 @@
         state: directory
         owner: root
         group: root
-        mode: '0755'
+        mode: "0755"
       become: true
 
     - name: Configure reflector
@@ -137,7 +137,7 @@
         dest: /etc/xdg/reflector/reflector.conf
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
       become: true
       notify: restart reflector
   when:

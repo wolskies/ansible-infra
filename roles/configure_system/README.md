@@ -7,7 +7,7 @@ Master orchestration role for complete system configuration. Executes infrastruc
 This role orchestrates the execution of multiple infrastructure roles to provide complete system setup:
 
 1. **configure_host** - Basic host setup (hostname, NTP, locale)
-2. **manage_security_services** - Security services (firewall, fail2ban)  
+2. **manage_security_services** - Security services (firewall, fail2ban)
 3. **manage_users** - User and group management
 4. **manage_packages** - Package installation and repository management
 5. **manage_language_packages** - Language-specific package managers (optional)
@@ -49,7 +49,7 @@ This role orchestrates the execution of multiple infrastructure roles to provide
       tags: [host-configuration, security-services, users, packages]
 
 # Run only optional components
-- hosts: workstations  
+- hosts: workstations
   roles:
     - role: wolskinet.infrastructure.configure_system
       tags: [language-packages, system-settings, dotfiles]
@@ -78,12 +78,12 @@ configure_system:
   host_configuration:
     enabled: true
   security_services:
-    enabled: true  
+    enabled: true
   user_management:
     enabled: true
   package_management:
     enabled: true
-    
+
   # Optional components (disabled by default)
   language_packages:
     enabled: false
@@ -167,26 +167,26 @@ dotfiles:
         # Basic host configuration
         config_common_hostname: "{{ inventory_hostname }}"
         config_common_timezone: "America/New_York"
-        
+
         # Create admin user
         users_config:
           - name: admin
             groups: [sudo]
             shell: /bin/bash
             create_home: true
-        
+
         # Install server packages
         all_packages_install_Ubuntu:
           - git
           - htop
           - nginx
           - certbot
-        
+
         # Enable system tuning
         configure_system:
           system_settings:
             enabled: true
-        
+
         system_settings_sysctl:
           enabled: true
           parameters:
@@ -195,7 +195,7 @@ dotfiles:
 ```
 
 ### Developer Workstation
-```yaml  
+```yaml
 - hosts: workstations
   become: true
   roles:
@@ -209,14 +209,14 @@ dotfiles:
             enabled: true
           dotfiles_deployment:
             enabled: true
-        
+
         # Developer packages
         all_packages_install_Ubuntu:
           - git
           - vim
           - curl
           - build-essential
-        
+
         # Language package managers
         language_packages:
           nodejs:
@@ -227,7 +227,7 @@ dotfiles:
             pip_packages:
               - requests
               - flask
-        
+
         # User dotfiles
         dotfiles:
           user: developer

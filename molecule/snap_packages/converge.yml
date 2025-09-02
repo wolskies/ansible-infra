@@ -23,7 +23,7 @@
             classic: []
           remove:
             all_packages: true
-            system_packages: false  # Keep snapd installed for testing
+            system_packages: false # Keep snapd installed for testing
             disable_services: true
             cleanup_directories: false
             cleanup_path: false

@@ -22,7 +22,7 @@
           ansible.builtin.get_url:
             url: "{{ item.gpg_key_url }}"
             dest: "/tmp/{{ item.name }}.gpg"
-            mode: '0644'
+            mode: "0644"
             timeout: 30
             validate_certs: true
           loop: "{{ merged_apt_repositories }}"
@@ -44,7 +44,7 @@
           ansible.builtin.copy:
             src: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}/{{ item.item.name }}.gpg"
             dest: "/tmp/{{ item.item.name }}.gpg"
-            mode: '0644'
+            mode: "0644"
           loop: "{{ local_gpg_files.results | default([]) }}"
           when:
             - item.stat is defined
@@ -65,7 +65,7 @@
         - name: Set correct permissions on GPG keyring files
           ansible.builtin.file:
             path: "/usr/share/keyrings/{{ item.name }}.gpg"
-            mode: '0644'
+            mode: "0644"
             owner: root
             group: root
           loop: "{{ merged_apt_repositories }}"

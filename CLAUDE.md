@@ -194,7 +194,7 @@ all_packages_install_Ubuntu:
   - htop
   - vim
 
-# group_vars/servers/<Distribution>.yml - Server group packages  
+# group_vars/servers/<Distribution>.yml - Server group packages
 group_packages_install_Ubuntu:
   - nginx
   - certbot
@@ -219,7 +219,7 @@ all_apt_repositories_Ubuntu:
     repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
     gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
 
-# APT repositories with GPG key content (from discovery)  
+# APT repositories with GPG key content (from discovery)
 host_apt_repositories_Ubuntu:
   - name: docker
     repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
@@ -249,7 +249,7 @@ The `manage_users` role works seamlessly with discovery-generated user data:
 users_config:
   - name: username
     uid: 1000                    # User ID (integer)
-    home: /home/username         # Home directory path  
+    home: /home/username         # Home directory path
     shell: /bin/bash            # User's shell
     comment: "User Full Name"    # Full name/description
     groups: [group1, group2]     # List of groups (not primary group)

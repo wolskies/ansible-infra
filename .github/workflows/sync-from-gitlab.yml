@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
   schedule:
     # Sync every 6 hours to catch any missed pushes
-    - cron: '0 */6 * * *'
+    - cron: "0 */6 * * *"
 
 env:
   GITLAB_PROJECT_ID: ${{ vars.GITLAB_PROJECT_ID }}

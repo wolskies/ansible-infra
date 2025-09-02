@@ -2,10 +2,10 @@
 config_common_hostname: ""
 config_common_domain: ""
 config_common_update_hosts: true
-config_common_timezone: 'UTC'
+config_common_timezone: "UTC"
 config_common_locale:
-  locale: 'en_US.UTF-8'
-  language: 'en_US.UTF-8'
+  locale: "en_US.UTF-8"
+  language: "en_US.UTF-8"
 config_common_ntp:
   enabled: true
   servers:
@@ -66,4 +66,3 @@ config_macos:
   computer_name: ""
   updates:
     auto_check: true
-

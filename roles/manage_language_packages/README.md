@@ -46,19 +46,19 @@ This role consolidates what used to be separate concerns:
         keys:
           - url: "https://nvidia.github.io/libnvidia-container/gpgkey"
             name: "nvidia-container-toolkit"
-    
+
     # Then install packages
     third_party_packages:
       - nvidia-container-toolkit
-    
+
     pip_packages:
       - torch
       - torchvision
-    
+
     npm_packages:
       - "@angular/cli"
       - typescript
-  
+
   roles:
     - wolskinet.infrastructure.third_party_packages
 ```
@@ -120,7 +120,7 @@ pip_packages:
   - mypy
 pip_install_method: "user"  # user, global, virtualenv
 
-# Node.js packages  
+# Node.js packages
 npm_packages:
   - prettier
   - eslint

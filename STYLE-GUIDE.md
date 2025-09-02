@@ -14,7 +14,7 @@
     name: nginx
   tags: webserver
 
-# Bad - variable-based control  
+# Bad - variable-based control
 - name: Install web server
   ansible.builtin.package:
     name: nginx
@@ -34,13 +34,13 @@
 
 # Bad - too chatty
 - name: Starting firewall configuration phase
-- name: Configuring firewall rules  
+- name: Configuring firewall rules
 - name: Firewall rules configured successfully
 ```
 
 ### 3. Clear Naming Over Comments
 - ✅ Self-documenting task names
-- ✅ Descriptive variable names  
+- ✅ Descriptive variable names
 - ❌ Extensive inline comments
 - Code should read like prose
 
@@ -60,7 +60,7 @@
 
 ### Hierarchy Prefixes
 - `config_common_*` - Cross-platform settings
-- `config_linux_*` - Linux-specific settings  
+- `config_linux_*` - Linux-specific settings
 - `config_<os>_*` - OS-specific settings (ubuntu, macos, etc.)
 - `manage_*` - Role-specific configuration
 
@@ -102,7 +102,7 @@ config_macos_finder_show_extensions: true
 - name: Add user to docker group
 - name: Install Node.js via NodeEnv
 
-# Bad - generic actions  
+# Bad - generic actions
 - name: Configure firewall
 - name: Setup user
 - name: Install Node
@@ -170,7 +170,7 @@ when: enable_feature | default(true)
 ### ❌ Excessive Debug Messages
 ```yaml
 - debug: msg="Starting phase 1"
-- debug: msg="Phase 1 completed successfully"  
+- debug: msg="Phase 1 completed successfully"
 ```
 
 ### ❌ Complex Rescue Blocks

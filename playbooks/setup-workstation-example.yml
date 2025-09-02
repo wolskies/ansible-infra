@@ -18,8 +18,8 @@
   # Collections are referenced by FQCN in role names
 
   vars_files:
-    - all.yml          # Global defaults (group_vars/all/all.yml)
-    - workstation.yml  # Group defaults (group_vars/workstations/workstation.yml)
+    - all.yml # Global defaults (group_vars/all/all.yml)
+    - workstation.yml # Group defaults (group_vars/workstations/workstation.yml)
     # Note: host_vars/ files are loaded automatically by Ansible
 
   # Example: Playbook-level variable overrides (highest precedence)
@@ -103,7 +103,7 @@
       when:
         - ansible_os_family != 'Darwin'
         - ansible_service_mgr == 'systemd'
-      failed_when: false  # Services might not exist on all systems
+      failed_when: false # Services might not exist on all systems
 
     - name: Display workstation setup summary
       ansible.builtin.debug:
@@ -117,7 +117,6 @@
           - "Dotfiles: {{ 'Configured' if (dotfiles_repository_url is defined and dotfiles_repository_url != '') else 'Skipped' }}"
           - ""
           - "🎉 Your workstation is ready for development!"
-
 # Usage Examples:
 #
 # Basic workstation setup:

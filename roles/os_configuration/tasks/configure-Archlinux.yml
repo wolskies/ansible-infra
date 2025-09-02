@@ -16,7 +16,7 @@
         dest: /etc/systemd/system/pacman-upgrade.timer
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
       become: true
 
     - name: Create pacman upgrade service
@@ -31,7 +31,7 @@
         dest: /etc/systemd/system/pacman-upgrade.service
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
       become: true
 
     - name: Enable and start pacman upgrade timer
@@ -75,8 +75,8 @@
     - name: Configure pacman to skip confirms
       ansible.builtin.lineinfile:
         path: /etc/pacman.conf
-        regexp: '^#?NoConfirm'
-        line: 'NoConfirm'
+        regexp: "^#?NoConfirm"
+        line: "NoConfirm"
         state: present
       become: true
       when: config_archlinux.pacman.no_confirms | default(false)
@@ -84,9 +84,9 @@
     - name: Configure pacman proxy
       ansible.builtin.lineinfile:
         path: /etc/pacman.conf
-        regexp: '^#?Server.*{{ config_archlinux.pacman.proxy }}'
+        regexp: "^#?Server.*{{ config_archlinux.pacman.proxy }}"
         insertafter: '^\[.*\]'
-        line: 'Server = {{ config_archlinux.pacman.proxy }}/$repo/os/$arch'
+        line: "Server = {{ config_archlinux.pacman.proxy }}/$repo/os/$arch"
         state: present
       become: true
       when: config_archlinux.pacman.proxy != ""

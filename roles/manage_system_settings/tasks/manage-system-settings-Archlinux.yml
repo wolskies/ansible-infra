@@ -50,7 +50,7 @@
     path: "/etc/modules-load.d/{{ item }}.conf"
     line: "{{ item }}"
     create: true
-    mode: '0644'
+    mode: "0644"
   loop: "{{ system_settings_modules.load | default([]) }}"
   become: true
   when:
@@ -65,7 +65,7 @@
     path: /etc/modprobe.d/blacklist-ansible-managed.conf
     line: "blacklist {{ item }}"
     create: true
-    mode: '0644'
+    mode: "0644"
   loop: "{{ system_settings_modules.blacklist | default([]) }}"
   become: true
   when:
@@ -81,7 +81,7 @@
     path: "/etc/modprobe.d/{{ item.key }}-options.conf"
     line: "options {{ item.key }} {{ item.value | dict2items | map(attribute='key') | zip(item.value | dict2items | map(attribute='value')) | map('join', '=') | join(' ') }}"
     create: true
-    mode: '0644'
+    mode: "0644"
   loop: "{{ system_settings_modules.options | default({}) | dict2items }}"
   become: true
   when:

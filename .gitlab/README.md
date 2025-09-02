@@ -7,7 +7,7 @@ This directory contains the GitLab CI/CD configuration and supporting files for 
 The CI/CD pipeline implements a comprehensive 4-stage testing strategy:
 
 1. **Step 1: Linting** - Code quality and syntax validation
-2. **Step 2: Molecule Scenarios** - Individual role and integration testing  
+2. **Step 2: Molecule Scenarios** - Individual role and integration testing
 3. **Step 3: GitLab CI/CD** - Automated pipeline execution
 4. **Step 4: Live Machine Testing** - Manual testing on real infrastructure
 
@@ -19,7 +19,7 @@ The CI/CD pipeline implements a comprehensive 4-stage testing strategy:
 - Collection build validation
 - Fast feedback loop for basic issues
 
-### 2. Linting Stage  
+### 2. Linting Stage
 - `ansible-lint` for Ansible best practices
 - `yamllint` for YAML formatting
 - Template validation for Jinja2 templates
@@ -63,10 +63,10 @@ Main pipeline configuration with:
 - Live machine testing support
 - Automated collection publishing
 
-### `test-matrix.yml`  
+### `test-matrix.yml`
 Multi-OS testing matrix defining:
 - Supported operating systems (Ubuntu 22.04/24.04, Debian 12/13)
-- Test scenarios (server minimal/full, workstation minimal/full)  
+- Test scenarios (server minimal/full, workstation minimal/full)
 - Critical vs extended test combinations
 - Security and performance test suites
 
@@ -101,7 +101,7 @@ make syntax-check
 # Quick molecule test
 make test-quick
 
-# Full test suite  
+# Full test suite
 make test
 ```
 
@@ -109,7 +109,7 @@ make test
 ```bash
 # Test specific roles
 cd molecule/users && molecule test
-cd molecule/security && molecule test  
+cd molecule/security && molecule test
 cd molecule/firewall && molecule test
 
 # Integration testing
@@ -212,6 +212,6 @@ cd molecule/integration && MOLECULE_DISTRO=debian12 molecule test
 For issues with the CI/CD configuration:
 
 1. Check the GitLab pipeline logs for specific error details
-2. Review this documentation for configuration requirements  
+2. Review this documentation for configuration requirements
 3. Test locally using the same molecule scenarios
 4. Create an issue in the collection repository with pipeline logs

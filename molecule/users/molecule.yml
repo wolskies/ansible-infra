@@ -56,10 +56,10 @@ provisioner:
             comment: "Developer User"
             create_home: true
             dotfiles:
-              enable: false  # Skip in container test
+              enable: false # Skip in container test
               repo: "https://github.com/example/dotfiles"
               branch: "main"
-      
+
       debian-users-test:
         # Test different user configurations on Debian
         users_config:
@@ -82,7 +82,7 @@ provisioner:
             shell: /bin/dash
             comment: "User with long name and uncommon shell"
             create_home: true
-  
+
   config_options:
     defaults:
       host_key_checking: false
