@@ -55,6 +55,8 @@ provisioner:
   inventory:
     group_vars:
       all:
+        # Enable consistent behavior for molecule tests
+        molecule_test: true
         # Global timezone and hostname settings
         config_common_timezone: "UTC"
         config_common_hostname_manage: false # Skip in container

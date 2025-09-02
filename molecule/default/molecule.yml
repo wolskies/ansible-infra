@@ -18,6 +18,8 @@ provisioner:
     group_vars:
       all:
         ansible_user: root
+        # Enable consistent behavior for molecule tests
+        molecule_test: true
   config_options:
     defaults:
       host_key_checking: false
