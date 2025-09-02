@@ -17,7 +17,7 @@
   register: snap_remove_result
   changed_when: "'removed' in snap_remove_result.stdout"
   when:
-    - snap_remove_all_packages | default(true)
+    - snap_packages.remove.all_packages | default(true)
     - snap_packages_installed.stdout_lines | length > 0
   failed_when: false
   tags:
@@ -34,7 +34,7 @@
     - snapd.socket
     - snapd.seeded.service
   become: true
-  when: snap_disable_services | default(true)
+  when: snap_packages.remove.disable_services | default(true)
   failed_when: false
   tags:
     - snap-packages

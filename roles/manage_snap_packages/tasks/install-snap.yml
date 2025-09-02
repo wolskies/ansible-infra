@@ -28,9 +28,9 @@
   community.general.snap:
     name: "{{ item }}"
     state: present
-  loop: "{{ snap_packages_install | default([]) }}"
+  loop: "{{ snap_packages.packages.install | default([]) }}"
   become: true
-  when: snap_packages_install | length > 0
+  when: snap_packages.packages.install | length > 0
   tags:
     - snap-packages
     - install-snap
@@ -40,9 +40,9 @@
     name: "{{ item }}"
     state: present
     classic: true
-  loop: "{{ snap_classic_packages | default([]) }}"
+  loop: "{{ snap_packages.packages.classic | default([]) }}"
   become: true
-  when: snap_classic_packages | length > 0
+  when: snap_packages.packages.classic | length > 0
   tags:
     - snap-packages
     - install-snap

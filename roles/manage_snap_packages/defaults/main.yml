@@ -4,18 +4,33 @@
 # =============================================================================
 # Control via tags: --tags snap-packages
 
-snap_management_action: "remove"            # "install", "remove", "purge"
+snap_packages:
+  management_action: "remove"               # "install", "remove", "purge"
+  
+  # Package installation configuration
+  packages:
+    install: []                             # List of snap packages to install
+    classic: []                             # List of snap packages requiring --classic
+  
+  # Package removal configuration
+  remove:
+    all_packages: true                      # Remove all installed snap packages
+    system_packages: true                   # Remove snapd APT packages
+    disable_services: true                  # Stop and disable snapd services
+    cleanup_directories: true               # Remove snap directories
+    cleanup_path: true                      # Remove snap from system PATH
+  
+  # Purge safety configuration
+  purge:
+    confirm: false                          # Must be explicitly set to true for complete purge
 
-# Remove/purge configuration
-snap_remove_all_packages: true              # Remove all installed snap packages
-snap_disable_services: true                 # Stop and disable snapd services
-snap_remove_system_packages: true           # Remove snapd APT packages
-snap_cleanup_directories: true              # Remove snap directories
-snap_cleanup_path: true                     # Remove snap from system PATH
-
-# Install configuration (for future use)
-snap_packages_install: []                   # List of snap packages to install
-snap_classic_packages: []                   # List of snap packages requiring --classic
-
-# Purge safety
-snap_purge_confirm: false                   # Must be explicitly set to true for complete purge
+# Example usage:
+# snap_packages:
+#   management_action: "install"
+#   packages:
+#     install:
+#       - firefox
+#       - vlc
+#     classic:
+#       - code
+#       - slack

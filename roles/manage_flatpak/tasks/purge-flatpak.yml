@@ -1,0 +1,47 @@
+---
+# Complete flatpak purge - removes all traces of flatpak from system
+
+- name: Ensure flatpak system packages are removed (APT)
+  ansible.builtin.apt:
+    name:
+      - flatpak
+      - gnome-software-plugin-flatpak
+    state: absent
+    purge: true
+  become: true
+  when: flatpak_packages.remove.system_packages | default(true)
+  failed_when: false
+  tags:
+    - flatpak-packages
+    - purge-flatpak
+
+- name: Ensure flatpak directories are removed
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /var/lib/flatpak
+    - /usr/share/flatpak
+    - "{{ ansible_env.HOME | default('/home/' + ansible_user_id) }}/.local/share/flatpak"
+    - "{{ ansible_env.HOME | default('/home/' + ansible_user_id) }}/.var/app"
+  become: true
+  when: flatpak_packages.remove.cleanup_directories | default(true)
+  failed_when: false
+  tags:
+    - flatpak-packages
+    - purge-flatpak
+
+- name: Remove all flatpak repositories
+  ansible.builtin.shell: |
+    flatpak remote-list --columns=name 2>/dev/null | while read remote; do
+      if [[ -n "$remote" && "$remote" != "Name" ]]; then
+        flatpak remote-delete --system "$remote" 2>/dev/null || true
+      fi
+    done
+  become: true
+  when: flatpak_packages.remove.cleanup_repositories | default(true)
+  failed_when: false
+  changed_when: false
+  tags:
+    - flatpak-packages
+    - purge-flatpak

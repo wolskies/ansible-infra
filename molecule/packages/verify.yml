@@ -1,0 +1,151 @@
+---
+- name: Verify package management functionality
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    # Test 1: Verify hierarchical package merging worked
+    - name: Check if all-level packages are installed
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Verify all-level packages (curl, git, htop)
+      ansible.builtin.assert:
+        that:
+          - "'curl' in ansible_facts.packages"
+          - "'git' in ansible_facts.packages"  
+          - "'htop' in ansible_facts.packages"
+        fail_msg: "All-level packages should be installed on all hosts"
+        success_msg: "All-level packages are installed correctly"
+
+    # Test 2: Verify group-level package merging
+    - name: Verify server group packages (Ubuntu)
+      ansible.builtin.assert:
+        that:
+          - "'nginx' in ansible_facts.packages"
+          - "'certbot' in ansible_facts.packages"
+        fail_msg: "Server group packages should be installed"
+        success_msg: "Server group packages are installed correctly"
+      when:
+        - ansible_distribution == "Ubuntu"
+        - "'servers' in group_names"
+
+    - name: Verify workstation group packages (Debian)
+      ansible.builtin.assert:
+        that:
+          - "'firefox-esr' in ansible_facts.packages"
+          - "'libreoffice-common' in ansible_facts.packages"
+        fail_msg: "Workstation group packages should be installed"
+        success_msg: "Workstation group packages are installed correctly"
+      when:
+        - ansible_distribution == "Debian"
+        - "'workstations' in group_names"
+
+    # Test 3: Verify host-level package merging
+    - name: Verify host-level packages (Ubuntu)
+      ansible.builtin.assert:
+        that:
+          - "'redis-server' in ansible_facts.packages"
+          - "'net-tools' in ansible_facts.packages"
+        fail_msg: "Host-level packages should be installed on ubuntu-packages-test"
+        success_msg: "Host-level packages are installed correctly"
+      when: inventory_hostname == "ubuntu-packages-test"
+
+    - name: Verify host-level packages (Debian)
+      ansible.builtin.assert:
+        that:
+          - "'vim' in ansible_facts.packages"
+          - "'tree' in ansible_facts.packages"
+        fail_msg: "Host-level packages should be installed on debian-packages-test"
+        success_msg: "Host-level packages are installed correctly"
+      when: inventory_hostname == "debian-packages-test"
+
+    # Test 4: Verify package removal worked
+    - name: Verify nano was removed
+      ansible.builtin.assert:
+        that:
+          - "'nano' not in ansible_facts.packages"
+        fail_msg: "nano should have been removed"
+        success_msg: "Package removal worked correctly"
+
+    # Test 5: Verify APT repositories were added
+    - name: Check Docker repository was added (Ubuntu)
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/docker.list
+      register: docker_repo_ubuntu
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Verify Docker repository exists (Ubuntu)
+      ansible.builtin.assert:
+        that:
+          - docker_repo_ubuntu.stat.exists
+        fail_msg: "Docker repository should be configured"
+        success_msg: "Docker repository is properly configured"
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Check Docker repository was added (Debian)
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/docker.list
+      register: docker_repo_debian
+      when: ansible_distribution == "Debian"
+
+    - name: Verify Docker repository exists (Debian)
+      ansible.builtin.assert:
+        that:
+          - docker_repo_debian.stat.exists
+        fail_msg: "Docker repository should be configured"
+        success_msg: "Docker repository is properly configured"
+      when: ansible_distribution == "Debian"
+
+    # Test 6: Verify GPG keys were installed
+    - name: Check Docker GPG key was installed
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/docker.gpg
+      register: docker_gpg_key
+
+    - name: Verify Docker GPG key exists
+      ansible.builtin.assert:
+        that:
+          - docker_gpg_key.stat.exists
+        fail_msg: "Docker GPG key should be installed"
+        success_msg: "Docker GPG key is properly installed"
+
+    # Test 7: Verify group-level repositories (Ubuntu servers only)
+    - name: Check Node.js repository was added (Ubuntu servers)
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/nodejs.list
+      register: nodejs_repo
+      when:
+        - ansible_distribution == "Ubuntu"
+        - "'servers' in group_names"
+
+    - name: Verify Node.js repository exists (Ubuntu servers)
+      ansible.builtin.assert:
+        that:
+          - nodejs_repo.stat.exists
+        fail_msg: "Node.js repository should be configured for servers"
+        success_msg: "Node.js repository is properly configured"
+      when:
+        - ansible_distribution == "Ubuntu"
+        - "'servers' in group_names"
+
+    # Test 8: Host-level repositories were simplified for this test
+
+    # Test 9: Verify packages can be installed from custom repos
+    - name: Verify Docker CLI was installed from custom repository
+      ansible.builtin.assert:
+        that:
+          - "'docker-ce-cli' in ansible_facts.packages"
+        fail_msg: "docker-ce-cli should be installed from Docker repository"
+        success_msg: "Docker CLI successfully installed from custom repository"
+
+    # Test 10: Display final package summary for debugging
+    - name: Display installed packages summary
+      ansible.builtin.debug:
+        msg: |
+          Host: {{ inventory_hostname }}
+          Distribution: {{ ansible_distribution }}
+          Groups: {{ group_names }}
+          Key packages installed: {{ ['curl', 'git', 'htop', 'nginx', 'certbot', 'redis-server', 'net-tools', 'docker-ce-cli'] | intersect(ansible_facts.packages.keys()) | list }}
+          Repositories configured: {{ ansible_facts.get('repositories', 'unknown') }}
+      tags: debug

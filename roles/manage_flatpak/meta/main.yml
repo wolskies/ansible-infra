@@ -1,0 +1,31 @@
+---
+galaxy_info:
+  role_name: manage_flatpak
+  author: wolskinet.infrastructure
+  description: Comprehensive Flatpak package management - install, remove, or purge
+  company: Wolski Networks
+
+  license: MIT
+
+  min_ansible_version: "2.13"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "22.04"
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+
+  galaxy_tags:
+    - flatpak
+    - packages
+    - system
+    - ubuntu
+    - debian
+    - flathub
+
+dependencies:
+  - name: community.general

@@ -1,0 +1,46 @@
+---
+# Install flatpak packages and enable Flathub
+
+- name: Ensure flatpak is installed
+  ansible.builtin.apt:
+    name: flatpak
+    state: present
+    update_cache: true
+  become: true
+  tags:
+    - flatpak-packages
+    - install-flatpak
+
+- name: Ensure gnome-software-plugin-flatpak is installed
+  ansible.builtin.apt:
+    name: gnome-software-plugin-flatpak
+    state: present
+  become: true
+  failed_when: false
+  tags:
+    - flatpak-packages
+    - install-flatpak
+
+- name: Enable Flathub repository
+  community.general.flatpak_remote:
+    name: flathub
+    state: present
+    flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+    method: system
+  become: true
+  when: flatpak_packages.repositories.enable_flathub | default(true)
+  tags:
+    - flatpak-packages
+    - install-flatpak
+
+- name: Ensure flatpak packages are installed
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+    method: system
+  loop: "{{ flatpak_packages.packages.install | default([]) }}"
+  become: true
+  when: flatpak_packages.packages.install | length > 0
+  tags:
+    - flatpak-packages
+    - install-flatpak

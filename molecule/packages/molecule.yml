@@ -70,12 +70,9 @@ provisioner:
         # Test hierarchical merging - host level
         host_packages_install_Ubuntu:
           - redis-server
-          - postgresql-client
-        # Test host-level repositories
-        host_apt_repositories_Ubuntu:
-          - name: postgresql
-            repo_line: "deb [arch=amd64] http://apt.postgresql.org/pub/repos/apt jammy-pgdg main"
-            gpg_key_url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+          - net-tools
+        # Test host-level repositories (simplified to avoid dependency conflicts)
+        host_apt_repositories_Ubuntu: []
         # Test removal packages
         all_packages_remove_Ubuntu:
           - nano

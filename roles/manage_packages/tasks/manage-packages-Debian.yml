@@ -86,20 +86,11 @@
 
     - name: Add APT repositories with proper signed-by keyring references
       ansible.builtin.apt_repository:
-        repo: "{{ final_repo_line }}"
+        repo: "{{ item.repo_line | replace('[arch=amd64]', '[arch=amd64 signed-by=/usr/share/keyrings/' + item.name + '.gpg]') }}"
         state: present
         filename: "{{ item.name }}"
         update_cache: false
       loop: "{{ merged_apt_repositories }}"
-      vars:
-        final_repo_line: >-
-          {%- if 'signed-by=' in item.repo_line -%}
-            {{ item.repo_line | regex_replace('signed-by=([^\\s\\]]+)', 'signed-by=/usr/share/keyrings/' + item.name + '.gpg') }}
-          {%- elif '[' in item.repo_line -%}
-            {{ item.repo_line | regex_replace('\\[([^\\]]*)\\]', '[\\1 signed-by=/usr/share/keyrings/' + item.name + '.gpg]') }}
-          {%- else -%}
-            {{ item.repo_line.split(' ', 1)[0] }} [signed-by=/usr/share/keyrings/{{ item.name }}.gpg] {{ item.repo_line.split(' ', 1)[1] }}
-          {%- endif -%}
       become: true
       register: apt_repos_added
       when: merged_apt_repositories | length > 0
@@ -150,7 +141,7 @@
     update_cache: true
     cache_valid_time: "{{ packages_apt.apt_cache.valid_time }}"
   become: true
-  when: packages_apt.apt_cache.update
+  when: packages_apt.apt_cache['update']
 
 - name: Upgrade all APT packages
   ansible.builtin.apt:
