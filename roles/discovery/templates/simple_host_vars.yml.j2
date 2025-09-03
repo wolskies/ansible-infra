@@ -3,26 +3,54 @@
 # Host variables for {{ inventory_hostname }}
 # Structured to match configure_system role variable order
 
-{% if config_hostname is defined or config_system_timezone is defined %}
+{% if config_hostname is defined or config_domain is defined or config_system_timezone is defined or config_locale_settings is defined or config_ntp_enabled is defined %}
 # =============================================================================
 # OS CONFIGURATION
 # =============================================================================
 {% if config_hostname is defined %}
 config_common_hostname: {{ config_hostname | to_json }}
 {% endif %}
+{% if config_domain is defined and config_domain %}
+config_common_domain: {{ config_domain | to_json }}
+{% endif %}
 {% if config_system_timezone is defined %}
 config_common_timezone: {{ config_system_timezone | to_json }}
 {% endif %}
+{% if config_locale_settings is defined %}
+config_common_locale:
+  locale: {{ config_locale_settings | to_json }}
+  language: {{ config_locale_settings | to_json }}
+{% endif %}
+{% if config_ntp_enabled is defined %}
+config_common_ntp:
+  enabled: {{ config_ntp_enabled | lower }}
+{% endif %}
 {% endif %}
 
-{% if firewall_enable is defined %}
+{% if firewall_enable is defined or security_fail2ban_detected is defined or security_firewall_package is defined %}
 # =============================================================================
 # SECURITY SERVICES
 # =============================================================================
+{% if firewall_enable is defined %}
 security_firewall_common:
   enabled: {{ firewall_enable | lower }}
   start: {{ firewall_enable | lower }}  # If firewall is enabled, it should be started
   prevent_ssh_lockout: true  # Always prevent SSH lockout during deployment
+{% endif %}
+{% if security_firewall_package is defined and security_firewall_package != "unknown" %}
+{% if security_firewall_package in ["ufw", "iptables", "firewalld"] %}
+security_firewall_linux:
+  package: {{ security_firewall_package | to_json }}
+{% elif security_firewall_package == "macos_alf" %}
+security_firewall_macosx:
+  package: {{ security_firewall_package | to_json }}
+{% endif %}
+{% endif %}
+{% if security_fail2ban_detected is defined %}
+security_fail2ban_common:
+  enabled: {{ (security_fail2ban_detected and security_fail2ban_enabled) | lower }}
+  start: {{ (security_fail2ban_detected and security_fail2ban_active) | lower }}
+{% endif %}
 {% if firewall_custom_rules is defined and firewall_custom_rules is sequence and firewall_custom_rules | length > 0 %}
 
 firewall_rules:
@@ -114,6 +142,49 @@ flatpak:
   plugins:
     gnome: false
     plasma: false
+{% endif %}
+
+{% if discovered_sysctl_current is defined or discovered_modules_loaded is defined or discovered_services_enabled is defined or discovered_limits_configured is defined %}
+# =============================================================================
+# SYSTEM SETTINGS STATE (CURRENT)
+# =============================================================================
+# NOTE: This reports current system state, not configuration policy
+# Use system_settings_linux variables to configure desired state
+
+{% if discovered_sysctl_current is defined and discovered_sysctl_current | length > 0 %}
+# Current sysctl values detected on system
+discovered_sysctl_current:
+{{ discovered_sysctl_current | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if discovered_modules_loaded is defined and discovered_modules_loaded | length > 0 %}
+# Currently loaded kernel modules
+discovered_modules_loaded:
+{{ discovered_modules_loaded | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if discovered_services_enabled is defined and discovered_services_enabled | length > 0 %}
+# Currently enabled services
+discovered_services_enabled:
+{{ discovered_services_enabled | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if discovered_services_disabled is defined and discovered_services_disabled | length > 0 %}
+# Currently disabled services
+discovered_services_disabled:
+{{ discovered_services_disabled | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if discovered_services_masked is defined and discovered_services_masked | length > 0 %}
+# Currently masked services
+discovered_services_masked:
+{{ discovered_services_masked | to_nice_yaml(indent=2) }}
+{% endif %}
+
+{% if discovered_limits_configured is defined and discovered_limits_configured %}
+# Custom limits configuration detected
+discovered_limits_configured: {{ discovered_limits_configured | lower }}
+{% endif %}
 {% endif %}
 
 # Language packages discovery removed - now handled by configure_user role

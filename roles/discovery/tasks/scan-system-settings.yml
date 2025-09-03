@@ -1,0 +1,105 @@
+---
+# System settings discovery - detect current system state
+# Reports what IS configured, not what SHOULD be configured
+
+- name: Get current sysctl values for common performance parameters
+  ansible.builtin.command: sysctl {{ item }}
+  register: current_sysctl_cmd
+  loop:
+    - vm.swappiness
+    - fs.file-max
+    - net.core.somaxconn
+    - net.core.default_qdisc
+    - net.ipv4.tcp_congestion_control
+    - vm.max_map_count
+  failed_when: false
+  changed_when: false
+  when: ansible_system == "Linux"
+
+- name: Get currently loaded kernel modules
+  ansible.builtin.command: lsmod
+  register: current_modules_cmd
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Linux"
+
+- name: Get service states
+  ansible.builtin.command: systemctl list-unit-files --type=service --state={{ item }} --no-pager --no-legend
+  register: service_states_cmd
+  loop:
+    - enabled
+    - disabled
+    - masked
+  failed_when: false
+  changed_when: false
+  when: ansible_system == "Linux"
+
+- name: Check for custom limits configuration
+  ansible.builtin.find:
+    paths: /etc/security/limits.d/
+    patterns: "*.conf"
+  register: limits_files_found
+  when: ansible_system == "Linux"
+
+- name: Parse system settings discovery results
+  ansible.builtin.set_fact:
+    discovered_sysctl_current: >-
+      {%- set sysctl_values = {} -%}
+      {%- if current_sysctl_cmd.results is defined -%}
+        {%- for result in current_sysctl_cmd.results -%}
+          {%- if result.rc == 0 and '=' in result.stdout -%}
+            {%- set parts = result.stdout.split('=', 1) -%}
+            {%- set key = parts[0].strip() -%}
+            {%- set value = parts[1].strip() -%}
+            {%- set _ = sysctl_values.update({key: value}) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ sysctl_values }}
+    discovered_modules_loaded: >-
+      {%- set modules = [] -%}
+      {%- if current_modules_cmd.rc == 0 and current_modules_cmd.stdout_lines is defined -%}
+        {%- for line in current_modules_cmd.stdout_lines[1:] -%}
+          {%- if line.strip() -%}
+            {%- set module_name = line.split()[0] -%}
+            {%- set _ = modules.append(module_name) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ modules }}
+    discovered_services_enabled: >-
+      {%- set services = [] -%}
+      {%- if service_states_cmd.results[0].stdout_lines is defined -%}
+        {%- for line in service_states_cmd.results[0].stdout_lines -%}
+          {%- if line.strip() and '.service' in line -%}
+            {%- set service_name = line.split()[0] -%}
+            {%- set _ = services.append(service_name) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ services }}
+    discovered_services_disabled: >-
+      {%- set services = [] -%}
+      {%- if service_states_cmd.results[1].stdout_lines is defined -%}
+        {%- for line in service_states_cmd.results[1].stdout_lines -%}
+          {%- if line.strip() and '.service' in line -%}
+            {%- set service_name = line.split()[0] -%}
+            {%- set _ = services.append(service_name) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ services }}
+    discovered_services_masked: >-
+      {%- set services = [] -%}
+      {%- if service_states_cmd.results[2].stdout_lines is defined -%}
+        {%- for line in service_states_cmd.results[2].stdout_lines -%}
+          {%- if line.strip() and '.service' in line -%}
+            {%- set service_name = line.split()[0] -%}
+            {%- set _ = services.append(service_name) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ services }}
+    discovered_limits_configured: >-
+      {{ (limits_files_found.files | default([]) | length > 0) }}
+  when: ansible_system == "Linux"

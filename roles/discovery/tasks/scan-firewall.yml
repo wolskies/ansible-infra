@@ -108,3 +108,55 @@
   when:
     - discovery_debug | default(false)
     - firewall_custom_rules is defined
+
+# =============================================================================
+# SECURITY SERVICES DETECTION
+# =============================================================================
+
+- name: Check fail2ban service status
+  ansible.builtin.systemd:
+    name: fail2ban
+  register: fail2ban_service_status
+  failed_when: false
+  when: ansible_system == "Linux"
+
+- name: Detect firewall package type (Linux)
+  ansible.builtin.command: "{{ item }}"
+  register: firewall_detection_cmd
+  loop:
+    - "which ufw"
+    - "which iptables"
+    - "which firewalld"
+  failed_when: false
+  changed_when: false
+  when: ansible_system == "Linux"
+
+- name: Set security service detection variables
+  ansible.builtin.set_fact:
+    security_fail2ban_detected: >-
+      {{
+        (fail2ban_service_status is defined and
+         fail2ban_service_status.status is defined and
+         fail2ban_service_status.status.get('LoadState') == "loaded")
+      }}
+    security_fail2ban_enabled: >-
+      {{
+        (fail2ban_service_status is defined and
+         fail2ban_service_status.status is defined and
+         fail2ban_service_status.status.get('UnitFileState') == "enabled")
+      }}
+    security_fail2ban_active: >-
+      {{
+        (fail2ban_service_status is defined and
+         fail2ban_service_status.status is defined and
+         fail2ban_service_status.status.get('ActiveState') == "active")
+      }}
+    security_firewall_package: >-
+      {{
+        "ufw" if (firewall_detection_cmd.results | default([]) | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "ufw") | list | length > 0) else
+        "firewalld" if (firewall_detection_cmd.results | default([]) | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "firewalld") | list | length > 0) else
+        "iptables" if (firewall_detection_cmd.results | default([]) | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "iptables") | list | length > 0) else
+        "macos_alf" if ansible_system == "Darwin" else
+        "unknown"
+      }}
+  when: ansible_system in ["Linux", "Darwin"]
