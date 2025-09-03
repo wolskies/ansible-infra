@@ -19,16 +19,11 @@
     - validation
     - discovery
 
-- name: Set output paths with timestamp
+- name: Set output paths
   ansible.builtin.set_fact:
     discovery_paths:
       host_vars_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}"
-      host_vars_file: >-
-        {{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/{{
-          'vars.discovered' if (molecule_test | default(false)) or (discovery_static_filename | default(false))
-          else 'vars.discovered.' + ansible_date_time.epoch
-        }}
-      gpg_keys_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/gpg_keys"
+      host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.yml"
   delegate_to: localhost
 
 - name: Debug discovery paths
@@ -37,26 +32,21 @@
       - "inventory_file: {{ inventory_file | default('undefined') }}"
       - "host_vars_dir: {{ discovery_paths.host_vars_dir }}"
       - "host_vars_file: {{ discovery_paths.host_vars_file }}"
-      - "gpg_keys_dir: {{ discovery_paths.gpg_keys_dir }}"
   delegate_to: localhost
   when: discovery_debug | default(false)
 
-- name: Check if output directories exist
+- name: Check if output directory exists
   ansible.builtin.stat:
-    path: "{{ item }}"
-  loop:
-    - "{{ discovery_paths.host_vars_dir }}"
-    - "{{ discovery_paths.gpg_keys_dir }}"
+    path: "{{ discovery_paths.host_vars_dir }}"
   register: directory_stats
   delegate_to: localhost
 
-- name: Create output directories
+- name: Create output directory
   ansible.builtin.file:
-    path: "{{ item.item }}"
+    path: "{{ discovery_paths.host_vars_dir }}"
     state: directory
     mode: "0755"
-  loop: "{{ directory_stats.results }}"
-  when: not item.stat.exists
+  when: not directory_stats.stat.exists
   delegate_to: localhost
 
 - name: Gather system facts
@@ -80,8 +70,8 @@
 - name: Discover firewall rules
   ansible.builtin.include_tasks: scan-firewall.yml
 
-- name: Discover language packages
-  ansible.builtin.include_tasks: scan-language-packages.yml
+- name: Discover snap and flatpak packages
+  ansible.builtin.include_tasks: scan-snap-flatpak.yml
 
 - name: Get current timezone configuration
   ansible.builtin.command: timedatectl show --property=Timezone --value
@@ -107,24 +97,17 @@
         ) | default('UTC')
       }}
 
-- name: Check if host variables file exists
-  ansible.builtin.stat:
-    path: "{{ discovery_paths.host_vars_file }}"
-  register: host_vars_file_stat
-  delegate_to: localhost
-
 - name: Generate host variables file
   ansible.builtin.template:
     src: simple_host_vars.yml.j2
     dest: "{{ discovery_paths.host_vars_file }}"
     mode: "0644"
+    backup: true
   delegate_to: localhost
-  when: not host_vars_file_stat.stat.exists or discovery_force_regenerate | default(false)
 
 - name: Show discovery completion
   ansible.builtin.debug:
     msg:
       - "=== Infrastructure Discovery Completed ==="
-      - "Discovery results: {{ discovery_paths.host_vars_file }}"
-      - "GPG keys directory: {{ discovery_paths.gpg_keys_dir }}"
-      - "Note: Ansible ignores .discovered.* files - copy to vars.yml when ready"
+      - "Host variables: {{ discovery_paths.host_vars_file }}"
+      - "Ready to use with configure_system role"

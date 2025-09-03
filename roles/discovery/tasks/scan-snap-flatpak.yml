@@ -1,0 +1,90 @@
+---
+# Snap and Flatpak discovery for system-level package management
+# Language packages moved to configure_user role
+
+# Snap packages
+- name: Discover Snap packages
+  block:
+    - name: Check if snap command is available
+      ansible.builtin.command: which snap
+      register: snap_available
+      changed_when: false
+      failed_when: false
+
+    - name: Get snap packages
+      ansible.builtin.command: snap list
+      register: snap_packages_cmd
+      changed_when: false
+      failed_when: false
+      when: snap_available.rc == 0
+
+    - name: Parse snap packages for community.general.snap
+      ansible.builtin.set_fact:
+        discovered_snap_packages: >-
+          {%- set snaps = [] -%}
+          {%- if snap_packages_cmd.stdout_lines is defined and snap_packages_cmd.stdout_lines | length > 1 -%}
+            {%- for line in snap_packages_cmd.stdout_lines[1:] -%}
+              {%- set parts = line.split() -%}
+              {%- if parts | length > 0 -%}
+                {%- set snap_name = parts[0] -%}
+                {%- set _ = snaps.append(snap_name) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ snaps }}
+      when: snap_available.rc == 0
+
+# Flatpak packages
+- name: Discover Flatpak configuration
+  block:
+    - name: Check if flatpak command is available
+      ansible.builtin.command: which flatpak
+      register: flatpak_available
+      changed_when: false
+      failed_when: false
+
+    - name: Get flatpak remotes
+      ansible.builtin.command: flatpak remotes
+      register: flatpak_remotes_cmd
+      changed_when: false
+      failed_when: false
+      when: flatpak_available.rc == 0
+
+    - name: Parse flatpak remotes for community.general.flatpak_remote
+      ansible.builtin.set_fact:
+        discovered_flatpak_remotes: >-
+          {%- set remotes = [] -%}
+          {%- if flatpak_remotes_cmd.stdout_lines is defined -%}
+            {%- for line in flatpak_remotes_cmd.stdout_lines -%}
+              {%- set parts = line.split() -%}
+              {%- if parts | length >= 2 -%}
+                {%- set remote_name = parts[0] -%}
+                {%- set remote_url = parts[1] -%}
+                {%- set _ = remotes.append({'name': remote_name, 'flatpakrepo_url': remote_url, 'state': 'present'}) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ remotes }}
+      when: flatpak_available.rc == 0
+
+    - name: Get flatpak packages
+      ansible.builtin.command: flatpak list --app --columns=application
+      register: flatpak_packages_cmd
+      changed_when: false
+      failed_when: false
+      when: flatpak_available.rc == 0
+
+    - name: Parse flatpak packages for community.general.flatpak
+      ansible.builtin.set_fact:
+        discovered_flatpak_packages: >-
+          {%- set packages = [] -%}
+          {%- if flatpak_packages_cmd.stdout_lines is defined -%}
+            {%- for line in flatpak_packages_cmd.stdout_lines -%}
+              {%- set app_id = line | trim -%}
+              {%- if app_id and app_id != 'Application ID' -%}
+                {%- set _ = packages.append(app_id) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ packages }}
+      when: flatpak_available.rc == 0

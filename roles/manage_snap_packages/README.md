@@ -22,7 +22,6 @@ snap:
   disable_and_remove: true  # Remove snap entirely (default)
   packages:
     install: []            # Only used when disable_and_remove: false
-    classic: []            # Packages requiring --classic flag
     remove: []             # Packages to remove
 ```
 
@@ -55,18 +54,21 @@ snap:
   tags: snap-packages
 ```
 
-### Install Classic Snap
+### Install Multiple Snap Packages
 
 ```yaml
-- name: Install VSCode (classic snap)
+- name: Install multiple snap packages
   include_role:
     name: wolskinet.infrastructure.manage_snap_packages
   vars:
     snap:
       disable_and_remove: false
       packages:
-        classic:
-          - code
+        install:
+          - minio
+          - helm
+        remove:
+          - outdated-snap
   tags: snap-packages
 ```
 
@@ -87,7 +89,7 @@ snap:
 1. **Installs snapd** if not present
 2. **Starts snapd services**
 3. **Removes specified packages** (if any)
-4. **Installs specified packages** (regular and classic)
+4. **Installs specified packages**
 5. **Simple wrapper** around `community.general.snap`
 
 ## Integration with Infrastructure Collection

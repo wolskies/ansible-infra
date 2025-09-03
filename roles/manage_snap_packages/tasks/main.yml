@@ -38,7 +38,6 @@
     - not (snap.disable_and_remove | default(true))
     - >-
       (snap.packages.install | default([]) | length > 0) or
-      (snap.packages.classic | default([]) | length > 0) or
       (snap.packages.remove | default([]) | length > 0)
   tags:
     - snap-packages

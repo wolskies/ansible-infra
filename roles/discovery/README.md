@@ -113,30 +113,94 @@ discovery_dotfiles_detection:
 
 ## Generated Output Structure
 
-### Host Variables (`inventory/host_vars/hostname.yml`)
+The discovery role creates a structured directory for each discovered host:
+
+```
+inventory/host_vars/target-host/
+├── vars.yml                    # Main host variables (configure_system compatible)
+└── gpg_keys/                   # APT repository GPG keys
+    ├── docker.gpg
+    ├── nodejs.gpg
+    └── postgresql.gpg
+```
+
+### Host Variables (`inventory/host_vars/target-host/vars.yml`)
+
+Generated variables follow the same structure as `configure_system` defaults for seamless consumption:
+
 ```yaml
-# Hierarchical package variables (for basic_setup merging)
-host_packages_install_Ubuntu: [discovered, packages, list]
-host_additional_repositories:
-  apt:
-    sources: ["deb [arch=amd64] https://..."]
-    apt_keys: ["https://keyserver/key.gpg"]
+# =============================================================================
+# OS CONFIGURATION
+# =============================================================================
+config_common_hostname: "discovered-hostname"
+config_common_timezone: "America/New_York"
 
-# User configuration (for basic_setup user management)
-discovered_users_config:
+# =============================================================================
+# SECURITY SERVICES
+# =============================================================================
+security_firewall_common:
+  enabled: true
+firewall_rules:
+  - rule: allow
+    port: 22
+    proto: tcp
+
+# =============================================================================
+# USER MANAGEMENT
+# =============================================================================
+users:
   - name: username
-    uid: 1001
-    shell: /bin/bash
+    comment: "User Full Name"
     groups: [sudo, docker]
-    dotfiles_repository_url: "https://github.com/user/dotfiles"
-    dotfiles_uses_stow: true
-    dotfiles_stow_packages: ["zsh", "git"]
 
-# Docker services (for container_platform role)
-install_docker_services:
-  - role: gitlab
-    name: gitlab-ce
-    # ... service configuration
+# =============================================================================
+# PACKAGE MANAGEMENT
+# =============================================================================
+host_packages_install_Ubuntu:
+  - git
+  - curl
+  - docker.io
+
+host_apt_repositories_Ubuntu:
+  - name: docker
+    repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
+    gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+    gpg_key_content: "-----BEGIN PGP PUBLIC KEY BLOCK-----\n..."
+
+# =============================================================================
+# SNAP PACKAGES
+# =============================================================================
+snap:
+  disable_and_remove: false  # Discovered packages suggest keeping snap enabled
+  packages:
+    install:
+      - code
+      - discord
+
+# =============================================================================
+# FLATPAK PACKAGES
+# =============================================================================
+flatpak:
+  enabled: true
+  packages:
+    install:
+      - org.mozilla.firefox
+      - com.spotify.Client
+
+# =============================================================================
+# LANGUAGE PACKAGES
+# =============================================================================
+language_packages:
+  nodejs:
+    enable: true
+    packages:
+      - typescript
+      - "@vue/cli"
+  rust:
+    enable: true
+    packages:
+      - ripgrep
+      - bat
 ```
 
 ### Deployment Playbook (`playbooks/hostname_discovered.yml`)

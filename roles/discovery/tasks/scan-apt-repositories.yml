@@ -1,6 +1,6 @@
 ---
-# APT Repository Discovery for Ubuntu/Debian systems
-# Intelligent GPG key handling: guess URLs where possible, extract existing keys to files
+# Simplified APT Repository Discovery for Ubuntu/Debian systems
+# Works with ansible.builtin.apt_repository module - no GPG key complexity needed
 
 - name: Check if sources.list.d directory exists
   ansible.builtin.stat:
@@ -21,10 +21,20 @@
   loop: "{{ repository_files.files }}"
   when: repository_files.files is defined
 
-- name: Parse repository information and extract GPG key references
+- name: Parse repository information for deb822_repository module
   ansible.builtin.set_fact:
     discovered_repositories: >-
       {%- set repos = [] -%}
+      {%- set gpg_key_map = {
+        'docker.com': 'https://download.docker.com/linux/ubuntu/gpg',
+        'deb.nodesource.com': 'https://deb.nodesource.com/gpgkey/nodesource.gpg.key',
+        'dl.google.com': 'https://dl.google.com/linux/linux_signing_key.pub',
+        'packages.microsoft.com': 'https://packages.microsoft.com/keys/microsoft.asc',
+        'apt.postgresql.org': 'https://www.postgresql.org/media/keys/ACCC4CF8.asc',
+        'packages.redis.io': 'https://packages.redis.io/gpg',
+        'download.opensuse.org': 'https://download.opensuse.org/repositories/home:/ungoogled_chromium/Ubuntu_22.04/Release.key',
+        'ppa.launchpad.net': null
+      } -%}
       {%- if repository_contents.results is defined -%}
         {%- for file_result in repository_contents.results -%}
           {%- set file_content = file_result.content | b64decode -%}
@@ -32,82 +42,45 @@
           {%- for line in file_content.split('\n') -%}
             {%- set line = line.strip() -%}
             {%- if line and not line.startswith('#') and line.startswith('deb') -%}
-              {%- set gpg_key_path = '' -%}
-              {%- if 'signed-by=' in line -%}
-                {%- set signed_by_match = line | regex_search('signed-by=([^\\s\\]]+)', '\\1') -%}
-                {%- if signed_by_match -%}
-                  {%- set gpg_key_path = signed_by_match[0] -%}
+              {%- set parts = line.split() -%}
+              {%- if parts | length >= 4 -%}
+                {%- set repo_type = parts[0] -%}
+                {%- set repo_uri = '' -%}
+                {%- set repo_suite = '' -%}
+                {%- set repo_components = [] -%}
+                {%- set signed_by_key = null -%}
+                {%- if '[' in parts[1] -%}
+                  {%- set repo_uri = parts[2] -%}
+                  {%- set repo_suite = parts[3] -%}
+                  {%- set repo_components = parts[4:] -%}
+                {%- else -%}
+                  {%- set repo_uri = parts[1] -%}
+                  {%- set repo_suite = parts[2] -%}
+                  {%- set repo_components = parts[3:] -%}
                 {%- endif -%}
+                {%- for domain, key_url in gpg_key_map.items() -%}
+                  {%- if domain in repo_uri and key_url -%}
+                    {%- set signed_by_key = key_url -%}
+                  {%- endif -%}
+                {%- endfor -%}
+                {%- set _ = repos.append({
+                  'name': filename,
+                  'types': repo_type,
+                  'uris': repo_uri,
+                  'suites': repo_suite,
+                  'components': repo_components,
+                  'signed_by': signed_by_key,
+                  'state': 'present',
+                  'enabled': true
+                }) -%}
               {%- endif -%}
-              {%- set repo_info = {
-                'name': filename,
-                'repo_line': line,
-                'gpg_key_path': gpg_key_path,
-                'gpg_key_url': ''
-              } -%}
-              {%- set _ = repos.append(repo_info) -%}
             {%- endif -%}
           {%- endfor -%}
         {%- endfor -%}
       {%- endif -%}
       {{ repos }}
 
-- name: Enhance repository information with GPG key URL guessing
-  ansible.builtin.set_fact:
-    discovered_repositories: >-
-      {%- set enhanced_repos = [] -%}
-      {%- for repo in discovered_repositories -%}
-        {%- set repo_copy = repo.copy() -%}
-        {%- set repo_line = repo.repo_line | lower -%}
-        {%- if 'docker.com' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://download.docker.com/linux/' + ansible_distribution | lower + '/gpg'}) -%}
-        {%- elif 'nginx.org' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://nginx.org/keys/nginx_signing.key'}) -%}
-        {%- elif 'nodesource.com' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://deb.nodesource.com/gpgkey/nodesource.gpg.key'}) -%}
-        {%- elif 'packages.microsoft.com' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://packages.microsoft.com/keys/microsoft.asc'}) -%}
-        {%- elif 'dl.google.com' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://dl.google.com/linux/linux_signing_key.pub'}) -%}
-        {%- elif 'apt.postgresql.org' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://www.postgresql.org/media/keys/ACCC4CF8.asc'}) -%}
-        {%- elif 'packages.elastic.co' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://artifacts.elastic.co/GPG-KEY-elasticsearch'}) -%}
-        {%- elif 'apt.grafana.com' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://apt.grafana.com/gpg.key'}) -%}
-        {%- elif 'packages.confluent.io' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://packages.confluent.io/deb/archive.key'}) -%}
-        {%- elif 'packages.redis.io' in repo_line -%}
-          {%- set _ = repo_copy.update({'gpg_key_url': 'https://packages.redis.io/gpg'}) -%}
-        {%- endif -%}
-        {%- set _ = enhanced_repos.append(repo_copy) -%}
-      {%- endfor -%}
-      {{ enhanced_repos }}
-  when: discovered_repositories is defined and discovered_repositories | length > 0
-
-- name: Copy existing GPG keys to controller for repositories without URL guesses
-  ansible.builtin.fetch:
-    src: "{{ item.gpg_key_path }}"
-    dest: "{{ discovery_paths.gpg_keys_dir }}/{{ item.name }}.gpg"
-    flat: true
-  loop: "{{ discovered_repositories | default([]) }}"
-  when:
-    - ansible_os_family == "Debian"
-    - discovered_repositories is defined
-    - discovered_repositories | length > 0
-    - item.gpg_key_path != ""
-    - item.gpg_key_url == ""
-  failed_when: false
-
-- name: Set final repository configuration
-  ansible.builtin.set_fact:
-    host_apt_repositories: "{{ discovered_repositories | default([]) }}"
-
 - name: Debug discovered repositories
   ansible.builtin.debug:
-    msg:
-      - "Found {{ host_apt_repositories | length }} APT repositories"
-      - "{{ host_apt_repositories | to_nice_yaml }}"
-  when:
-    - discovery_debug | default(false)
-    - host_apt_repositories is defined
+    var: discovered_repositories
+  when: discovery_debug | default(false)
