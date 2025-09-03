@@ -18,86 +18,58 @@ This role orchestrates the execution of multiple infrastructure roles to provide
 
 ## Usage
 
-### Default Configuration (Core Components Only)
+### Default Configuration (All Components)
 ```yaml
 - hosts: servers
   roles:
     - wolskinet.infrastructure.configure_system
 ```
 
-### Enable Optional Components
-```yaml
-- hosts: workstations
-  roles:
-    - role: wolskinet.infrastructure.configure_system
-      vars:
-        configure_system:
-          language_packages:
-            enabled: true
-          system_settings:
-            enabled: true
-          dotfiles_deployment:
-            enabled: true
+### Core Components Only
+```bash
+# Execute only core components via command line
+ansible-playbook playbook.yml --tags core
 ```
 
 ### Selective Execution with Tags
-```yaml
-# Run only core system setup
-- hosts: servers
-  roles:
-    - role: wolskinet.infrastructure.configure_system
-      tags: [host-configuration, security-services, users, packages]
+```bash
+# Run specific components
+ansible-playbook playbook.yml --tags users,packages
 
 # Run only optional components
-- hosts: workstations
-  roles:
-    - role: wolskinet.infrastructure.configure_system
-      tags: [language-packages, system-settings, dotfiles]
+ansible-playbook playbook.yml --tags optional
+
+# Skip specific components
+ansible-playbook playbook.yml --skip-tags dotfiles,snap-packages
 ```
 
-### Disable Specific Components
-```yaml
-- hosts: servers
-  roles:
-    - role: wolskinet.infrastructure.configure_system
-      vars:
-        configure_system:
-          security_services:
-            enabled: false  # Skip security services
-          user_management:
-            enabled: false  # Skip user management
-```
+### Available Tags
+- `core` - All core components (host, security, users, packages)
+- `optional` - All optional components (language, snap, flatpak, settings, dotfiles)
+- `host-configuration` - Basic host setup
+- `security-services` - Security services
+- `user-management` or `users` - User and group management
+- `package-management` or `packages` - Package installation
+- `language-packages` - Language-specific package managers
+- `snap-packages` - Snap package management
+- `flatpak-packages` - Flatpak package management
+- `system-settings` - System performance tuning
+- `dotfiles` - User dotfiles deployment
+- `progress` - Progress messages
 
 ## Configuration
 
-### Role Control Variables
+The role uses Ansible's built-in tag system for execution control:
 
-```yaml
-configure_system:
-  # Core components (enabled by default)
-  host_configuration:
-    enabled: true
-  security_services:
-    enabled: true
-  user_management:
-    enabled: true
-  package_management:
-    enabled: true
+```bash
+# Run everything (default behavior)
+ansible-playbook playbook.yml
 
-  # Optional components (disabled by default)
-  language_packages:
-    enabled: false
-  snap_packages:
-    enabled: false
-  flatpak_packages:
-    enabled: false
-  system_settings:
-    enabled: false
-  dotfiles_deployment:
-    enabled: false
-
-# Execution settings
-configure_system_settings:
+# Run only what you need
+ansible-playbook playbook.yml --tags core
+ansible-playbook playbook.yml --tags "users,packages"
+ansible-playbook playbook.yml --skip-tags "dotfiles"
+```
   fail_on_error: true      # Stop if any role fails
   show_progress: true      # Display progress messages
   respect_tags: true       # Honor tag-based selective execution
@@ -169,7 +141,7 @@ dotfiles:
         config_common_timezone: "America/New_York"
 
         # Create admin user
-        users_config:
+        users:
           - name: admin
             groups: [sudo]
             shell: /bin/bash

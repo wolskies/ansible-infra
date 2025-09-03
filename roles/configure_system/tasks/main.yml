@@ -1,6 +1,5 @@
 ---
 # configure_system role main tasks
-# Orchestrates complete system configuration by executing roles in proper order
 
 - name: Display system configuration start
   ansible.builtin.debug:
@@ -9,109 +8,60 @@
       - "Target: {{ inventory_hostname }}"
       - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
       - "Architecture: {{ ansible_architecture }}"
-  when: configure_system_settings.show_progress | default(true)
   tags:
     - always
+    - progress
 
-# =============================================================================
-# CORE SYSTEM SETUP (Required)
-# =============================================================================
-
-- name: Configure Host (Basic System Setup)
+- name: Configure Operating System
   ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.host_configuration.role }}"
-  when: configure_system.host_configuration.enabled | default(true)
+    name: "wolskinet.infrastructure.os_configuration"
   tags:
     - host-configuration
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.host_configuration.role }}"
+    - core
 
 - name: Manage Security Services
   ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.security_services.role }}"
-  when: configure_system.security_services.enabled | default(true)
+    name: "wolskinet.infrastructure.manage_security_services"
   tags:
     - security-services
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.security_services.role }}"
+    - core
 
 - name: Manage Users and Groups
   ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.user_management.role }}"
-  when: configure_system.user_management.enabled | default(true)
+    name: "wolskinet.infrastructure.manage_users"
   tags:
     - users
     - user-management
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.user_management.role }}"
+    - core
 
 - name: Manage System Packages
   ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.package_management.role }}"
-  when: configure_system.package_management.enabled | default(true)
+    name: "wolskinet.infrastructure.manage_packages"
   tags:
     - packages
     - package-management
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.package_management.role }}"
-
-# =============================================================================
-# OPTIONAL COMPONENTS
-# =============================================================================
-
-- name: Manage Language Packages
-  ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.language_packages.role }}"
-  when: configure_system.language_packages.enabled | default(false)
-  tags:
-    - language-packages
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.language_packages.role }}"
+    - core
 
 - name: Manage Snap Packages
   ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.snap_packages.role }}"
-  when: configure_system.snap_packages.enabled | default(false)
+    name: "wolskinet.infrastructure.manage_snap_packages"
   tags:
     - snap-packages
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.snap_packages.role }}"
+    - optional
 
 - name: Manage Flatpak Packages
   ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.flatpak_packages.role }}"
-  when: configure_system.flatpak_packages.enabled | default(false)
+    name: "wolskinet.infrastructure.manage_flatpak"
   tags:
     - flatpak-packages
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.flatpak_packages.role }}"
+    - optional
 
 - name: Configure System Settings
   ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.system_settings.role }}"
-  when: configure_system.system_settings.enabled | default(false)
+    name: "wolskinet.infrastructure.manage_system_settings"
   tags:
     - system-settings
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.system_settings.role }}"
-
-- name: Deploy User Dotfiles
-  ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.{{ configure_system.dotfiles_deployment.role }}"
-  when: configure_system.dotfiles_deployment.enabled | default(false)
-  tags:
-    - dotfiles
-    - configure-system
-  vars:
-    target_role_name: "{{ configure_system.dotfiles_deployment.role }}"
+    - optional
 
 # =============================================================================
 # COMPLETION SUMMARY
@@ -122,16 +72,10 @@
     msg:
       - "=== System Configuration Complete ==="
       - "Host: {{ inventory_hostname }}"
-      - "Configured roles:"
-      - "  ✓ Host Configuration: {{ configure_system.host_configuration.enabled | default(true) | ternary('Enabled', 'Skipped') }}"
-      - "  ✓ Security Services: {{ configure_system.security_services.enabled | default(true) | ternary('Enabled', 'Skipped') }}"
-      - "  ✓ User Management: {{ configure_system.user_management.enabled | default(true) | ternary('Enabled', 'Skipped') }}"
-      - "  ✓ Package Management: {{ configure_system.package_management.enabled | default(true) | ternary('Enabled', 'Skipped') }}"
-      - "  ✓ Language Packages: {{ configure_system.language_packages.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
-      - "  ✓ Snap Packages: {{ configure_system.snap_packages.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
-      - "  ✓ Flatpak Packages: {{ configure_system.flatpak_packages.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
-      - "  ✓ System Settings: {{ configure_system.system_settings.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
-      - "  ✓ Dotfiles: {{ configure_system.dotfiles_deployment.enabled | default(false) | ternary('Enabled', 'Skipped') }}"
-  when: configure_system_settings.show_progress | default(true)
+      - "Execution complete. Use tags to control which components are executed:"
+      - "  Core components: --tags core"
+      - "  Optional components: --tags optional"
+      - "  Specific components: --tags users,packages,dotfiles"
   tags:
     - always
+    - progress

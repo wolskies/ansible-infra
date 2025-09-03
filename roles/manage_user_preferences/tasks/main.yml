@@ -1,0 +1,46 @@
+---
+# dotfiles role main tasks
+# Manages user dotfiles deployment from git repositories
+
+- name: Validate dotfiles configuration
+  ansible.builtin.fail:
+    msg: "Either dotfiles.user or dotfiles.users must be defined"
+  when:
+    - dotfiles.user | default('') | length == 0
+    - dotfiles.users | default([]) | length == 0
+  tags:
+    - always
+    - validation
+
+- name: Build list of users to configure
+  ansible.builtin.set_fact:
+    dotfiles_users_list: >-
+      {%- if dotfiles.users | default([]) | length > 0 -%}
+        {{ dotfiles.users }}
+      {%- else -%}
+        {{ [dotfiles | combine({'name': dotfiles.user})] }}
+      {%- endif -%}
+  tags:
+    - always
+
+- name: Validate git is installed
+  ansible.builtin.command:
+    cmd: which git
+  register: git_check
+  changed_when: false
+  failed_when:
+    - git_check.rc != 0
+    - dotfiles.validate.check_git | default(true)
+  tags:
+    - validation
+
+- name: Deploy dotfiles for each user
+  ansible.builtin.include_tasks: deploy-dotfiles.yml
+  vars:
+    dotfiles_user: "{{ user_config }}"
+  loop: "{{ dotfiles_users_list }}"
+  loop_control:
+    loop_var: user_config
+  tags:
+    - dotfiles
+    - deploy

@@ -19,8 +19,8 @@
     create_home: "{{ item.create_home | default(omit) }}"
     groups: "{{ item.groups | default(omit) }}"
     append: true
-  loop: "{{ users_config | default([]) }}"
-  when: users_config | default([]) | length > 0
+  loop: "{{ users | default([]) }}"
+  when: users | default([]) | length > 0
 
 - name: Add SSH public keys for users
   become: true
@@ -28,9 +28,9 @@
     user: "{{ item.name }}"
     key: "{{ item.ssh_pubkey }}"
     state: present
-  loop: "{{ users_config | default([]) }}"
+  loop: "{{ users | default([]) }}"
   when:
-    - users_config | default([]) | length > 0
+    - users | default([]) | length > 0
     - item.ssh_pubkey is defined
     - item.ssh_pubkey is not none
     - item.ssh_pubkey != ""
@@ -43,29 +43,5 @@
     name: "{{ item }}"
     state: absent
     remove: true
-  loop: "{{ users_remove | default([]) }}"
-  when: users_remove | default([]) | length > 0
-
-- name: Deploy dotfiles for users with dotfiles configuration
-  ansible.builtin.include_role:
-    name: wolskinet.infrastructure.dotfiles
-  vars:
-    dotfiles_user: "{{ user_item.name }}"
-    dotfiles_repository_url: "{{ user_item.dotfiles.repo }}"
-    dotfiles_repository_version: "{{ user_item.dotfiles.branch | default('main') }}"
-    dotfiles_directory: >-
-      {{
-        user_item.dotfiles.directory | default(
-          '~' + user_item.name + '/.dotfiles'
-        )
-      }}
-  loop: "{{ users_config | default([]) }}"
-  loop_control:
-    loop_var: user_item
-  when:
-    - users_config | default([]) | length > 0
-    - user_item.dotfiles is defined
-    - user_item.dotfiles.enable | default(false)
-    - user_item.dotfiles.repo is defined
-    - user_item.dotfiles.repo != ""
-    - user_item.dotfiles.repo != None
+  loop: "{{ users_absent | default([]) }}"
+  when: users_absent | default([]) | length > 0
