@@ -136,8 +136,13 @@
       }}
     config_ntp_enabled: >-
       {{
-        (current_ntp_cmd is defined and current_ntp_cmd.rc == 0 and current_ntp_cmd.stdout | default('') == 'yes') or
-        (current_ntp_macos_cmd is defined and current_ntp_macos_cmd.rc == 0)
+        (current_ntp_cmd is defined and
+         current_ntp_cmd.rc is defined and
+         current_ntp_cmd.rc == 0 and
+         current_ntp_cmd.stdout | default('') == 'yes') or
+        (current_ntp_macos_cmd is defined and
+         current_ntp_macos_cmd.rc is defined and
+         current_ntp_macos_cmd.rc == 0)
       }}
 
 - name: Generate host variables file
