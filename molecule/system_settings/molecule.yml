@@ -29,52 +29,49 @@ provisioner:
   inventory:
     group_vars:
       test_settings:
-        # Test sysctl settings
-        system_settings_sysctl:
-          enabled: true
-          file: /etc/sysctl.d/99-molecule-test.conf
-          parameters:
-            net.core.somaxconn: 65535
-            vm.swappiness: 10
-            fs.file-max: 2097152
+        # Test Linux system settings
+        system_settings_linux:
+          sysctl:
+            enabled: true
+            file: /etc/sysctl.d/99-molecule-test.conf
+            parameters:
+              net.core.somaxconn: 65535
+              vm.swappiness: 10
+              fs.file-max: 2097152
 
-        # Test PAM limits
-        system_settings_limits:
-          enabled: true
           limits:
-            - domain: "*"
-              limit_type: soft
-              limit_item: nofile
-              value: 65536
-            - domain: "*"
-              limit_type: hard
-              limit_item: nofile
-              value: 65536
+            enabled: true
+            limits:
+              - domain: "*"
+                limit_type: soft
+                limit_item: nofile
+                value: 65536
+              - domain: "*"
+                limit_type: hard
+                limit_item: nofile
+                value: 65536
 
-        # Test kernel modules
-        system_settings_modules:
-          load:
-            - loop
-            - overlay
-          blacklist:
-            - pcspkr
-          options:
-            loop:
-              max_loop: 32
+          modules:
+            load:
+              - loop
+              - overlay
+            blacklist:
+              - pcspkr
+            options:
+              loop:
+                max_loop: 32
 
-        # Test services
-        system_settings_services:
-          enable:
-            - systemd-resolved.service
-          disable: []
-          mask: []
+          services:
+            enable:
+              - systemd-resolved.service
+            disable: []
+            mask: []
 
-        # Test fonts (disabled for speed)
-        system_settings_fonts:
-          nerd_fonts:
-            enabled: false
-            install_dir: /usr/share/fonts/test-nerd-fonts
-            fonts: []
+          fonts:
+            nerd_fonts:
+              enabled: false
+              install_dir: /usr/share/fonts/test-nerd-fonts
+              fonts: []
   config_options:
     defaults:
       host_key_checking: false
