@@ -1,88 +1,61 @@
 # manage_users
 
-User account and group management with automated dotfiles deployment across multiple platforms.
+Simple user management with SSH keys and dotfiles support for multiple platforms.
 
 ## Description
 
-This role manages system users and groups with integrated dotfiles deployment. It handles user creation, modification, and removal while automatically deploying dotfiles configurations using GNU Stow. The role supports cross-platform user management for Linux distributions and macOS with platform-specific defaults.
+This role provides a thin wrapper around Ansible's built-in user management modules with additional support for SSH key deployment and dotfiles configuration. It handles user creation, modification, and removal in an OS-independent way.
 
 ## Features
 
-- **👤 User Management**: Create, modify, and remove system users
-- **🔑 Authentication**: Password management, account locking, and SSH key deployment
-- **👥 Group Assignment**: Add users to system and custom groups with flexible GID support
-- **🏠 Home Directories**: Custom home directory paths with automatic creation
-- **🎨 Dotfiles Integration**: Automatic dotfiles deployment via GNU Stow with nested configuration
-- **🔄 Repository Management**: Clone and update user dotfiles repositories with branch control
-- **🌐 Cross-Platform**: Linux and macOS user management support
-- **⚙️ Discovery Integration**: Works with discovered user configurations
-- **🔄 Backward Compatibility**: Supports both new nested format and legacy configuration
+- **User Management**: Create, modify, and remove system users
+- **SSH Key Deployment**: Add SSH public keys to user accounts
+- **Password Management**: Support for encrypted or plaintext passwords
+- **Group Assignment**: Add users to system and custom groups
+- **Dotfiles Integration**: Deploy user dotfiles via the dotfiles role
+- **Cross-Platform**: Works on Ubuntu, Debian, Arch Linux, and macOS
 
 ## Role Variables
 
 ### User Configuration
-- `users_config: []` - List of users to manage (see format below)
-- `users_remove: []` - List of usernames to remove from system
-- `users_default_shell: "/bin/bash"` - Default shell for new users
-- `users_create_home: true` - Create home directories by default
 
-### Platform-Specific Groups
-- `users_default_groups_linux: []` - Default groups for Linux users
-- `users_default_groups_macos: []` - Default groups for macOS users
+```yaml
+# List of users to manage on the system
+# All fields map directly to ansible.builtin.user module parameters
+users: []
 
-### Dotfiles Integration
-- `users_default_dotfiles_uses_stow: true` - Use GNU Stow for dotfiles
-- `users_default_dotfiles_stow_packages: []` - Default stow packages (empty = all)
+# List of usernames to remove from the system
+users_absent: []
+```
 
 ### User Configuration Format
 
-**Enhanced Format (Recommended):**
 ```yaml
-users_config:
-  - name: ed                                    # Required: username
-    uid: "1000"                                # Optional: specific UID (string or int)
-    gid: "1000"                                # Optional: primary group ID (string or int)
-    home: /home/ed                             # Optional: home directory path
-    shell: /bin/bash                           # Optional: user shell
-    groups: [sudo, docker]                    # Optional: additional groups
-    ssh_pubkey: var_users_config_ed_ssh_pubkey # Optional: SSH public key (variable reference)
-    password: var_users_config_ed_password     # Optional: plaintext or hash (variable reference)
-    dotfiles:                                  # Optional: dotfiles configuration
-      enable: true                             # Required if dotfiles block present
-      repo: "https://github.com/user/dotfiles" # Required: git repository URL
-      branch: "main"                           # Optional: git branch (default: main)
-      directory: "/home/ed/.dotfiles"          # Optional: clone directory (default: ~/.dotfiles)
+users:
+  - name: username                              # Required: username
+    uid: 1000                                    # Optional: specific UID (string or int)
+    gid: 1000                                    # Optional: primary group ID (string or int)
+    home: /home/username                         # Optional: home directory path
+    shell: /bin/bash                             # Optional: user shell
+    comment: "User Full Name"                    # Optional: GECOS field
+    groups: [sudo, docker]                       # Optional: additional groups (not primary)
+    create_home: true                            # Optional: create home directory
+    ssh_pubkey: "ssh-rsa AAAAB3..."             # Optional: SSH public key
+    password: "$6$salt$encrypted"               # Optional: encrypted password (or plaintext)
+    dotfiles:                                    # Optional: dotfiles configuration
+      enable: true                               # Required if dotfiles block present
+      repo: "https://github.com/user/dotfiles"  # Required: git repository URL
+      branch: "main"                             # Optional: git branch (default: main)
+      directory: "/home/user/.dotfiles"         # Optional: clone directory
 
-  - name: shelly
-    uid: "1001"
-    gid: "1001"
-    home: /home/shelly
-    ssh_pubkey: var_users_config_shelly_ssh_pubkey
-    password: var_users_config_shelly_password  # Optional: plaintext or hash (variable reference)
-    dotfiles:
-      enable: true
-      repo: "https://github.com/shelly/dotfiles"
-      branch: "main"
-      directory: "/home/shelly/.dotfiles"
-```
-
-**Legacy Format (Still Supported):**
-```yaml
-users_config:
-  - name: username                    # Required: username
-    uid: 1001                        # Optional: specific UID
-    shell: /bin/bash                 # Optional: user shell
-    groups: [sudo, docker]          # Optional: additional groups
-    password: "*"                    # Optional: plaintext, hash, or "*" (locked)
-    create_home: true                # Optional: create home directory
-    # Legacy dotfiles configuration
-    dotfiles_repository_url: https://github.com/user/dotfiles
+users_absent:
+  - olduser
+  - tempuser
 ```
 
 ## Dependencies
 
 - **Dotfiles Integration**: Calls `wolskinet.infrastructure.dotfiles` role for users with dotfiles configuration
-- **System Packages**: Requires stow package for dotfiles deployment (auto-installed on Linux)
 
 ## Example Playbook
 
@@ -92,14 +65,22 @@ users_config:
   roles:
     - role: wolskinet.infrastructure.manage_users
       vars:
-        users_config:
+        users:
           - name: developer
+            uid: 1000
             shell: /bin/zsh
-            groups: [sudo]
+            groups: [sudo, docker]
+            ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2..."
             password: "MySecurePassword123!"  # Will be hashed automatically
+
           - name: service
-            shell: /bin/bash
-            password: "*"  # Locked account
+            uid: 1001
+            shell: /bin/false
+            create_home: false
+            comment: "Service Account"
+
+        users_absent:
+          - olduser
 ```
 
 ### Users with Dotfiles
@@ -108,154 +89,49 @@ users_config:
   roles:
     - role: wolskinet.infrastructure.manage_users
       vars:
-        users_config:
-          - name: developer
-            shell: /bin/zsh
-            groups: [sudo, docker]
-            dotfiles_repository_url: "https://github.com/developer/dotfiles"
-            dotfiles_uses_stow: true
-            dotfiles_stow_packages: [zsh, git, tmux, vim]
+        users:
+          - name: alice
+            uid: 1000
+            groups: [sudo]
+            ssh_pubkey: "ssh-rsa AAAAB3..."
+            dotfiles:
+              enable: true
+              repo: "https://github.com/alice/dotfiles"
+              branch: "main"
 ```
 
-### Discovery Integration
+### Encrypted Passwords
 ```yaml
-- hosts: discovered_systems
-  roles:
-    - role: wolskinet.infrastructure.manage_users
-      vars:
-        # Use discovered user configuration
-        users_config: "{{ discovered_users_config }}"
+# Pre-encrypted password (use mkpasswd or similar)
+users:
+  - name: admin
+    password: "$6$rounds=656000$salt$hash..."
+
+# Plaintext password (will be hashed)
+users:
+  - name: user
+    password: "PlaintextPassword123"
 ```
 
-### Platform-Specific Configuration
-```yaml
-# Linux systems
-- hosts: linux
-  roles:
-    - role: wolskinet.infrastructure.manage_users
-      vars:
-        users_default_groups_linux: [sudo]
-        users_config:
-          - name: admin
-            groups: [sudo, adm]
+## How It Works
 
-# macOS systems
-- hosts: darwin
-  roles:
-    - role: wolskinet.infrastructure.manage_users
-      vars:
-        users_default_groups_macos: [admin]
-        users_config:
-          - name: developer
-            groups: [admin, staff]
-```
-
-### User Removal
-```yaml
-- hosts: all
-  roles:
-    - role: wolskinet.infrastructure.manage_users
-      vars:
-        users_remove:
-          - old_user
-          - temporary_account
-```
+1. **User Creation/Modification**: Uses `ansible.builtin.user` module to manage user accounts
+2. **SSH Key Deployment**: Uses `ansible.posix.authorized_key` module to add SSH public keys
+3. **User Removal**: Removes users and their home directories
+4. **Dotfiles Deployment**: Calls the dotfiles role for users with dotfiles configuration
 
 ## Platform Support
 
-- **Ubuntu 22+**: Full support with automatic stow installation
-- **Debian 12+**: Full support with automatic stow installation
-- **Arch Linux**: Full support with automatic stow installation
-- **macOS**: Full support (requires manual stow installation: `brew install stow`)
+- Ubuntu 22.04+
+- Debian 12+
+- Arch Linux
+- macOS
 
-## Integration with Other Roles
+The role uses only standard Ansible modules that work across all supported platforms.
 
-### With Discovery Role
-```yaml
-# Discovery generates discovered_users_config variable
-- hosts: all
-  roles:
-    - wolskinet.infrastructure.discovery  # Generates user configurations
-    - role: wolskinet.infrastructure.manage_users
-      vars:
-        users_config: "{{ discovered_users_config }}"
-```
+## Notes
 
-### With Package Management
-```yaml
-- hosts: workstations
-  roles:
-    - wolskinet.infrastructure.manage_packages  # Install stow and dependencies
-    - wolskinet.infrastructure.manage_users     # Create users with dotfiles
-```
-
-## Dotfiles Integration
-
-The role automatically integrates with the `dotfiles` role for users that have `dotfiles_repository_url` defined:
-
-1. **Automatic Deployment**: Calls dotfiles role per-user
-2. **Conflict Resolution**: Backs up existing files before deployment
-3. **Stow Management**: Uses GNU Stow for symlink-based dotfiles
-4. **Repository Updates**: Optionally updates existing dotfiles repositories
-
-### Dotfiles Repository Structure
-```
-dotfiles-repo/
-├── zsh/
-│   ├── .zshrc
-│   └── .zshenv
-├── git/
-│   └── .gitconfig
-├── tmux/
-│   └── .tmux.conf
-└── vim/
-    └── .vimrc
-```
-
-## Discovery Variables
-
-When used with the discovery role, the following variables are automatically populated:
-
-```yaml
-discovered_users_config:
-  - name: detected_user
-    shell: /bin/zsh
-    groups: [sudo, docker]
-    dotfiles_repository_url: "https://github.com/user/dotfiles"
-    dotfiles_uses_stow: true
-    dotfiles_stow_packages: [zsh, git, tmux]
-```
-
-## Security Considerations
-
-### Password Handling
-
-The role intelligently handles both plaintext and pre-hashed passwords:
-- **Plaintext passwords**: Automatically hashed using SHA-512 when detected (recommended when using Ansible Vault)
-- **Pre-hashed passwords**: Passed through unchanged (must start with `$`)
-- **Account locking**: Use `"*"` to create locked accounts
-
-Example with Ansible Vault:
-```yaml
-# group_vars/all/vault.yml (encrypted with ansible-vault)
-vault_user_password: "MySecurePassword123!"
-
-# group_vars/all/users.yml
-users_config:
-  - name: alice
-    password: "{{ vault_user_password }}"  # Will be automatically hashed
-```
-
-### Other Security Features
-
-- **Group Management**: Adds users to appropriate system groups
-- **File Permissions**: Sets proper ownership on home directories
-- **Dotfiles Security**: Uses HTTPS for repository cloning (no SSH keys required)
-
-## License
-
-MIT
-
-## Author Information
-
-Ed Wolski - wolskinet
+- Passwords can be provided as plaintext (automatically hashed) or pre-encrypted
+- SSH keys must be in valid format (ssh-rsa, ecdsa, ssh-ed25519)
+- The role does not manage sudo permissions (use sudoers configuration separately)
+- Group membership is additive (append mode) - existing groups are preserved

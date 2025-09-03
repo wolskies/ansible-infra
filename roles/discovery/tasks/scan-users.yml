@@ -1,9 +1,9 @@
 ---
 # Complete user discovery using ansible.builtin.user module
 
-- name: Reset users_config to ensure clean discovery
+- name: Reset users to ensure clean discovery
   ansible.builtin.set_fact:
-    users_config: []
+    users: []
 
 - name: Get user facts to find usernames (Linux)
   ansible.builtin.getent:
@@ -90,9 +90,9 @@
     - dotfiles_git_dirs.results | selectattr('item.name', 'equalto', item.name) | map(attribute='stat.exists') | first | default(false)
   failed_when: false
 
-- name: Build users_config from discovered user details
+- name: Build users from discovered user details
   ansible.builtin.set_fact:
-    users_config: "{{ users_config | default([]) + [user_info] }}"
+    users: "{{ users | default([]) + [user_info] }}"
   vars:
     user_info:
       name: "{{ item.name }}"

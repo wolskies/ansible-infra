@@ -4,48 +4,7 @@
   become: false
   gather_facts: true
   tasks:
-    # Test 1: Verify Python packages installed with uv
-    - name: Check if uv is installed (by path)
-      ansible.builtin.stat:
-        path: "{{ ansible_env.HOME }}/.local/bin/uv"
-      register: uv_binary
-
-    - name: Verify uv is installed
-      ansible.builtin.assert:
-        that:
-          - uv_binary.stat.exists
-          - uv_binary.stat.executable
-        fail_msg: "uv should be installed at {{ ansible_env.HOME }}/.local/bin/uv"
-        success_msg: "uv is properly installed"
-
-    - name: Check installed Python packages with uv
-      ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/uv tool list"
-      register: uv_packages
-      changed_when: false
-      failed_when: false
-      environment:
-        PATH: "{{ ansible_env.PATH }}:{{ ansible_env.HOME }}/.local/bin"
-
-    - name: Verify Python packages are installed (Ubuntu)
-      ansible.builtin.assert:
-        that:
-          - "'black' in uv_packages.stdout"
-          - "'ruff' in uv_packages.stdout"
-          - "'pytest' in uv_packages.stdout"
-        fail_msg: "Required Python packages should be installed on Ubuntu"
-        success_msg: "Python packages are installed correctly on Ubuntu"
-      when: inventory_hostname == "ubuntu-language-test"
-
-    - name: Verify Python packages are installed (Debian)
-      ansible.builtin.assert:
-        that:
-          - "'black' in uv_packages.stdout"
-          - "'mypy' in uv_packages.stdout"
-        fail_msg: "Required Python packages should be installed on Debian"
-        success_msg: "Python packages are installed correctly on Debian"
-      when: inventory_hostname == "debian-language-test"
-
-    # Test 2: Verify Node.js and npm packages
+    # Test: Verify Node.js and npm packages
     - name: Check if npm is installed
       ansible.builtin.command: which npm
       register: npm_check
@@ -85,12 +44,11 @@
         success_msg: "npm packages are installed correctly on Debian"
       when: inventory_hostname == "debian-language-test"
 
-    # Test 3: Display summary for debugging
+    # Test: Display summary for debugging
     - name: Display language packages summary
       ansible.builtin.debug:
         msg: |
           Host: {{ inventory_hostname }}
           Distribution: {{ ansible_distribution }}
-          UV packages: {{ uv_packages.stdout_lines | default(['none']) }}
           NPM packages: {{ npm_packages.stdout | default('none') }}
       tags: debug

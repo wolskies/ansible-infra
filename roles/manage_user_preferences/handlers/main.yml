@@ -1,0 +1,5 @@
+---
+# dotfiles role handlers
+
+# Currently no handlers needed for this role
+# Dotfiles deployment is idempotent by design

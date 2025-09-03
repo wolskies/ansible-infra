@@ -1,0 +1,22 @@
+---
+# Secure script installation template
+- name: "Download installer - {{ tool_name }}"
+  ansible.builtin.get_url:
+    url: "{{ download_url }}"
+    dest: "/tmp/{{ tool_name }}-install.sh"
+    mode: "0755"
+    timeout: 30
+    validate_certs: true
+
+- name: "Install - {{ tool_name }}"
+  ansible.builtin.shell: |
+    set -o pipefail
+    /tmp/{{ tool_name }}-install.sh {{ install_args | default('') }}
+  args:
+    executable: /bin/bash
+    creates: "{{ target_binary }}"
+
+- name: "Clean up installer - {{ tool_name }}"
+  ansible.builtin.file:
+    path: "/tmp/{{ tool_name }}-install.sh"
+    state: absent

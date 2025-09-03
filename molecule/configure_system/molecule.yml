@@ -30,11 +30,11 @@ provisioner:
     group_vars:
       all:
         # Test basic system configuration
-        config_common_hostname_manage: false # Skip hostname changes in container
+        config_common_hostname: "" # Skip hostname changes in container
         config_common_timezone: "UTC"
 
         # Test user management
-        users_config:
+        users:
           - name: testuser
             groups: []
             shell: /bin/bash
@@ -59,11 +59,6 @@ provisioner:
 
       servers:
         # Server-specific configuration test
-        configure_system:
-          language_packages:
-            enabled: true
-          system_settings:
-            enabled: true
 
         # Server packages
         group_packages_install_Ubuntu:
@@ -82,11 +77,6 @@ provisioner:
 
       workstations:
         # Workstation-specific configuration test
-        configure_system:
-          snap_packages:
-            enabled: false # Skip snap in container
-          dotfiles_deployment:
-            enabled: false # Skip dotfiles in test
 
         # Workstation packages
         group_packages_install_Debian:

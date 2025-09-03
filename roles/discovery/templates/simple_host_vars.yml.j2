@@ -38,12 +38,12 @@ host_apt_repositories_{{ ansible_distribution }}:
 {{ host_apt_repositories | to_nice_yaml(indent=2) }}
 {% endif %}
 
-{% if users_config is defined and users_config is sequence and users_config | length > 0 %}
+{% if users is defined and users is sequence and users | length > 0 %}
 # =============================================================================
 # USER CONFIGURATION
 # =============================================================================
-users_config:
-{{ users_config | to_nice_yaml(indent=2) }}
+users:
+{{ users | to_nice_yaml(indent=2) }}
 {% endif %}
 
 {% if firewall_enable is defined %}
@@ -75,17 +75,9 @@ config_system_timezone: {{ config_system_timezone | to_json }}
 # =============================================================================
 # Discovered language packages - configure via manage_language_packages role
 
-{% if discovered_language_packages.python is defined and discovered_language_packages.python | length > 0 %}
-# Python packages (discovered global)
-language_python_enable: true
-language_python_packages:
-{{ discovered_language_packages.python | to_nice_yaml(indent=2) }}
-{% endif %}
-
 {% if discovered_language_packages.nodejs is defined and discovered_language_packages.nodejs | length > 0 %}
 # Node.js packages (discovered global)
 language_nodejs_enable: true
-language_nodejs_install_global: true
 language_nodejs_packages:
 {{ discovered_language_packages.nodejs | to_nice_yaml(indent=2) }}
 {% endif %}

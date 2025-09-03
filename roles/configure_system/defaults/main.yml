@@ -5,67 +5,348 @@
 # This role orchestrates multiple infrastructure roles to provide complete system setup
 # It executes other roles in the correct order for new machine configuration
 #
-# Role execution order:
-# 1. configure_host - Basic host setup (hostname, NTP, locale)
-# 2. manage_security_services - Security services (firewall, fail2ban)
-# 3. manage_users - User and group management
-# 4. manage_packages - Package installation and repository management
-# 5. manage_language_packages - Language-specific package managers (pip, npm, etc)
-# 6. manage_snap_packages - Snap package management (optional)
-# 7. manage_flatpak - Flatpak package management (optional)
-# 8. manage_system_settings - System performance tuning (optional)
-# 9. dotfiles - User dotfiles deployment (optional)
+# Execution Control:
+# - Use tags to control which components are executed:
+#   --tags core         : Execute only core components (host, security, users, packages)
+#   --tags optional     : Execute only optional components (snap, flatpak, system-settings)
+#   --tags <specific>   : Execute specific components (e.g., --tags users,packages)
+#   --skip-tags <name>  : Skip specific components (e.g., --skip-tags system-settings)
+#
+# Available tags:
+#   - host-configuration  : Basic host setup (hostname, NTP, locale)
+#   - security-services   : Security services (firewall, fail2ban)
+#   - user-management     : User and group management
+#   - package-management  : Package installation and repository management
+#   - snap-packages       : Snap package management
+#   - flatpak-packages    : Flatpak package management
+#   - system-settings     : System performance tuning
+#   - core                : All core components (host, security, users, packages)
+#   - optional            : All optional components (snap, flatpak, system-settings)
+#   - progress            : Progress messages
 
 # =============================================================================
-# ROLE EXECUTION CONTROL
+# OS CONFIGURATION
 # =============================================================================
-configure_system:
-  # Core system setup (always executed)
-  host_configuration:
+
+config_common_hostname: ""
+config_common_domain: ""
+config_common_update_hosts: true
+config_common_timezone: "UTC"
+config_common_locale:
+  locale: "en_US.UTF-8"
+  language: "en_US.UTF-8"
+config_common_ntp:
+  enabled: true
+  servers:
+    - 0.pool.ntp.org
+    - 1.pool.ntp.org
+    - 2.pool.ntp.org
+    - 3.pool.ntp.org
+
+config_linux_journal:
+  enabled: true
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
+config_linux_rsyslog:
+  enabled: false
+  remote_host: ""
+  remote_port: 514
+  protocol: "udp"
+
+config_debian_family:
+  snap:
+    remove_completely: false
+  unattended_upgrades:
     enabled: true
-    role: configure_host
+    email: ""
+    auto_reboot: false
+    reboot_with_users: false
+    reboot_time: "02:00"
+  apt:
+    no_recommends: false
+    proxy: ""
+  services:
+    disable_unnecessary: false
+    unnecessary_services:
+      - bluetooth.service
+      - cups.service
+  optimizations:
+    tune_swappiness: false
+    swappiness: 10
 
-  security_services:
-    enabled: true
-    role: manage_security_services
-
-  user_management:
-    enabled: true
-    role: manage_users
-
-  package_management:
-    enabled: true
-    role: manage_packages
-
-  # Optional components (disabled by default)
-  language_packages:
+config_archlinux:
+  unattended_upgrades:
     enabled: false
-    role: manage_language_packages
+  pacman:
+    no_confirms: false
+    proxy: ""
+  services:
+    disable_unnecessary: false
+    unnecessary_services:
+      - bluetooth.service
+      - cups.service
+  optimizations:
+    tune_swappiness: false
+    swappiness: 10
 
-  snap_packages:
-    enabled: false
-    role: manage_snap_packages
-
-  flatpak_packages:
-    enabled: false
-    role: manage_flatpak
-
-  system_settings:
-    enabled: false
-    role: manage_system_settings
-
-  dotfiles_deployment:
-    enabled: false
-    role: dotfiles
+config_macos:
+  computer_name: ""
+  updates:
+    auto_check: true
 
 # =============================================================================
-# EXECUTION SETTINGS
+# SECURITY SERVICES ROLE VARIABLES
 # =============================================================================
-configure_system_settings:
-  # Fail fast if any role fails
-  fail_on_error: true
-  # Display progress information
-  show_progress: true
 
-  # Allow selective execution via tags
-  respect_tags: true
+security_firewall_common:
+  enabled: false
+  start: true
+  prevent_ssh_lockout: true
+
+security_firewall_linux:
+  package: "ufw"
+  rate_limiting:
+    enabled: false
+    connections: 6
+    period: 30
+    comment: "Rate limiting rule"
+
+security_firewall_macosx:
+  package: "macos_alf"
+  stealth_mode: false
+  block_all: false
+  logging: false
+
+security_fail2ban_common:
+  enabled: false
+  start: true
+  sender: "root@localhost"
+  dest_email: ""
+
+security_fail2ban_defaults:
+  bantime: 3600
+  findtime: 600
+  maxretry: 5
+
+security_fail2ban_services:
+  - name: sshd
+    enabled: true
+    maxretry: 5
+    bantime: 3600
+    findtime: 600
+    logpath: /var/log/auth.log
+
+security_fail2ban_ignoreips:
+  - "127.0.0.1/8"
+  - "::1"
+
+# =============================================================================
+# USER MANAGEMENT ROLE VARIABLES
+# =============================================================================
+# Example:
+# users:
+#   - name: username                              # Required: username
+#     uid: 1000                                    # Optional: specific UID
+#     gid: 1000                                    # Optional: primary group ID
+#     home: /home/username                         # Optional: home directory path
+#     shell: /bin/bash                             # Optional: user shell
+#     comment: "User Full Name"                    # Optional: GECOS field
+#     groups: [sudo, docker]                       # Optional: additional groups
+#     create_home: true                            # Optional: create home directory
+#     ssh_pubkey: "ssh-rsa AAAAB3..."             # Optional: SSH public key
+#     password: "$6$salt$encrypted"               # Optional: encrypted or plaintext password
+#     dotfiles:                                    # Optional: dotfiles configuration
+#       enable: true                               # Required if dotfiles block present
+#       repo: "https://github.com/user/dotfiles"  # Required: git repository URL
+#       branch: "main"                             # Optional: git branch
+#       directory: "/home/user/.dotfiles"         # Optional: clone directory
+users: []
+
+# Users to remove from the system (removes account and home directory)
+users_absent: []
+
+# =============================================================================
+# PACKAGE MANAGEMENT ROLE VARIABLES
+# =============================================================================
+# Ubuntu/Debian
+packages_apt:
+  apt_cache:
+    update: true
+    valid_time: 3600
+  system_upgrade:
+    enable: false
+    type: safe
+  repositories: []
+  packages:
+    install: []
+    remove: []
+
+# Arch Linux
+packages_pacman:
+  multilib: true
+  enable_aur: true
+  aur_helper: paru
+  config_reflector: true
+  packages:
+    install: []
+    remove: []
+
+# Homebrew configuration (macOS)
+packages_homebrew:
+  homebrew:
+    install: true
+    update: true
+    cleanup_cache: false
+    taps: []
+    casks:
+      install: []
+      remove: []
+    packages:
+      install: []
+      remove: []
+
+# =============================================================================
+# SNAP PACKAGES ROLE VARIABLES
+# =============================================================================
+# Variables for Snap package management
+# Used by: manage_snap_packages role (tagged: snap-packages)
+
+snap_packages:
+  management_action: "remove" # "install", "remove", "purge"
+
+  # Package installation configuration
+  packages:
+    install: [] # List of snap packages to install
+    classic: [] # List of snap packages requiring --classic
+    # Example:
+    # install: [firefox, vlc]
+    # classic: [code, slack]
+
+  # Package removal configuration
+  remove:
+    all_packages: true # Remove all installed snap packages
+    system_packages: true # Remove snapd APT packages
+    disable_services: true # Stop and disable snapd services
+    cleanup_directories: true # Remove snap directories
+    cleanup_path: true # Remove snap from system PATH
+
+  # Purge safety configuration
+  purge:
+    confirm: false # Must be explicitly set to true for complete purge
+
+# =============================================================================
+# FLATPAK PACKAGES ROLE VARIABLES
+# =============================================================================
+# Variables for Flatpak package management
+# Used by: manage_flatpak role (tagged: flatpak-packages)
+
+flatpak_packages:
+  management_action: "install" # "install", "remove", "purge"
+
+  # Repository configuration
+  repositories:
+    enable_flathub: true # Enable Flathub repository
+    cleanup: true # Remove repositories during purge
+
+  # Package installation configuration
+  packages:
+    install: [] # List of flatpak packages to install
+    # Example:
+    # install:
+    #   - org.mozilla.firefox
+    #   - com.visualstudio.code
+    #   - org.libreoffice.LibreOffice
+
+  # Package removal configuration
+  remove:
+    all_packages: true # Remove all installed flatpak packages
+    system_packages: true # Remove flatpak APT packages
+    cleanup_directories: true # Remove flatpak directories
+    cleanup_repositories: true # Remove flatpak repositories
+
+  # Purge safety configuration
+  purge:
+    confirm: false # Must be explicitly set to true for complete purge
+
+# =============================================================================
+# SYSTEM SETTINGS ROLE VARIABLES
+# =============================================================================
+# Variables for system performance tuning and kernel parameters
+# Used by: manage_system_settings role (tagged: system-settings)
+
+# Kernel parameters (sysctl) - Linux only
+system_settings_sysctl:
+  enabled: false
+  file: /etc/sysctl.d/99-ansible-managed.conf
+  parameters: {}
+  # Example parameters:
+  # parameters:
+  #   net.core.default_qdisc: "fq"
+  #   net.ipv4.tcp_congestion_control: "bbr"
+  #   vm.swappiness: 10
+  #   vm.max_map_count: 2097152  # Required for Steam
+  #   fs.file-max: 2097152
+
+# PAM limits - Linux only
+system_settings_limits:
+  enabled: false
+  limits: []
+  # Example limits:
+  # limits:
+  #   - domain: '*'
+  #     limit_type: soft
+  #     limit_item: nofile
+  #     value: 65536
+
+# Kernel modules - Linux only
+system_settings_modules:
+  load: [] # Modules to load at boot
+  blacklist: [] # Modules to blacklist
+  options: {} # Module options
+  # Example:
+  # load: [uvcvideo, btusb]
+  # blacklist: [nouveau]
+
+# Hardware services - Linux only
+system_settings_services:
+  enable: [] # Services to enable and start
+  disable: [] # Services to disable and stop
+  mask: [] # Services to mask (prevent from starting)
+  # Example:
+  # enable: [bluetooth.service, cups.service]
+  # disable: [ModemManager.service]
+
+# Fonts configuration - Ubuntu/Debian only
+system_settings_fonts:
+  nerd_fonts:
+    enabled: false
+    install_dir: /usr/share/fonts/nerd-fonts
+    fonts: []
+    # Example fonts:
+    # fonts:
+    #   - name: CascadiaCode
+    #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+
+# macOS settings - macOS only
+system_settings_macos:
+  dock:
+    enabled: false
+    settings: {}
+    # Example: tile-size: 48, autohide: false
+
+  finder:
+    enabled: false
+    settings: {}
+    # Example: ShowExtensions: true, ShowHidden: false
+
+  system:
+    enabled: false
+    settings: {}
+    # Example: KeyRepeat: 2, ApplePressAndHoldEnabled: false
+
+  security:
+    enabled: false
+    settings: {}
+    # Example: require_password_after_sleep: true

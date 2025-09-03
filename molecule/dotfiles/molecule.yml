@@ -28,8 +28,8 @@ provisioner:
         # Test single user mode with stow
         dotfiles:
           user: root
-          repository_url: "https://github.com/mathiasbynens/dotfiles.git"
-          repository_branch: "main"
+          repository_url: "https://github.com/anishathalye/dotfiles.git"
+          repository_branch: "master"
           method: "auto"
           backup:
             enabled: true
@@ -41,13 +41,13 @@ provisioner:
         dotfiles:
           users:
             - name: root
-              repository_url: "https://github.com/mathiasbynens/dotfiles.git"
+              repository_url: "https://github.com/anishathalye/dotfiles.git"
               method: "symlink"
               files:
                 - ".bashrc"
                 - ".gitconfig"
             - name: testuser1
-              repository_url: "https://github.com/mathiasbynens/dotfiles.git"
+              repository_url: "https://github.com/anishathalye/dotfiles.git"
               method: "copy"
               files:
                 - ".bashrc"
