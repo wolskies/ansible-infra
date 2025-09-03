@@ -1,18 +1,17 @@
 # manage_users
 
-Simple user management with SSH keys and dotfiles support for multiple platforms.
+Essential user management focused on authentication and system access.
 
 ## Description
 
-This role provides a thin wrapper around Ansible's built-in user management modules with additional support for SSH key deployment and dotfiles configuration. It handles user creation, modification, and removal in an OS-independent way.
+This role provides focused user management for system provisioning. It creates users with authentication (passwords and/or SSH keys) and group membership. For detailed user configuration (shell preferences, dotfiles, etc.), use the `configure_users` role.
 
 ## Features
 
-- **User Management**: Create, modify, and remove system users
+- **User Creation**: Create system users with secure defaults
 - **SSH Key Deployment**: Add SSH public keys to user accounts
 - **Password Management**: Support for encrypted or plaintext passwords
 - **Group Assignment**: Add users to system and custom groups
-- **Dotfiles Integration**: Deploy user dotfiles via the dotfiles role
 - **Cross-Platform**: Works on Ubuntu, Debian, Arch Linux, and macOS
 
 ## Role Variables
@@ -33,20 +32,10 @@ users_absent: []
 ```yaml
 users:
   - name: username                              # Required: username
-    uid: 1000                                    # Optional: specific UID (string or int)
-    gid: 1000                                    # Optional: primary group ID (string or int)
-    home: /home/username                         # Optional: home directory path
-    shell: /bin/bash                             # Optional: user shell
     comment: "User Full Name"                    # Optional: GECOS field
-    groups: [sudo, docker]                       # Optional: additional groups (not primary)
-    create_home: true                            # Optional: create home directory
+    groups: [sudo, docker]                       # Optional: additional groups
     ssh_pubkey: "ssh-rsa AAAAB3..."             # Optional: SSH public key
     password: "$6$salt$encrypted"               # Optional: encrypted password (or plaintext)
-    dotfiles:                                    # Optional: dotfiles configuration
-      enable: true                               # Required if dotfiles block present
-      repo: "https://github.com/user/dotfiles"  # Required: git repository URL
-      branch: "main"                             # Optional: git branch (default: main)
-      directory: "/home/user/.dotfiles"         # Optional: clone directory
 
 users_absent:
   - olduser
@@ -67,16 +56,11 @@ users_absent:
       vars:
         users:
           - name: developer
-            uid: 1000
-            shell: /bin/zsh
             groups: [sudo, docker]
             ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2..."
             password: "MySecurePassword123!"  # Will be hashed automatically
 
           - name: service
-            uid: 1001
-            shell: /bin/false
-            create_home: false
             comment: "Service Account"
 
         users_absent:
@@ -91,13 +75,8 @@ users_absent:
       vars:
         users:
           - name: alice
-            uid: 1000
             groups: [sudo]
             ssh_pubkey: "ssh-rsa AAAAB3..."
-            dotfiles:
-              enable: true
-              repo: "https://github.com/alice/dotfiles"
-              branch: "main"
 ```
 
 ### Encrypted Passwords

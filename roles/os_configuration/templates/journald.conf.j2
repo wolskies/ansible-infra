@@ -6,11 +6,11 @@
 Storage=persistent
 
 # Size limits
-SystemMaxUse={{ config_linux_journal.max_size }}
-RuntimeMaxUse={{ config_linux_journal.max_size }}
+SystemMaxUse={{ config_linux.journal.max_size }}
+RuntimeMaxUse={{ config_linux.journal.max_size }}
 
 # Retention settings
-MaxRetentionSec={{ config_linux_journal.max_retention }}
+MaxRetentionSec={{ config_linux.journal.max_retention }}
 
 # Compression
 Compress=yes

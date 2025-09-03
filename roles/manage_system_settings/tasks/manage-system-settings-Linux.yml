@@ -1,0 +1,167 @@
+---
+# Linux system settings tasks (Ubuntu/Debian/Arch)
+
+- name: Configure kernel parameters (sysctl)
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: "{{ system_settings_linux.sysctl.file | default('/etc/sysctl.d/99-ansible-managed.conf') }}"
+    reload: true
+  loop: "{{ system_settings_linux.sysctl.parameters | default({}) | dict2items }}"
+  become: true
+  when:
+    - system_settings_linux.sysctl.enabled | default(false) | bool
+    - system_settings_linux.sysctl.parameters is defined
+    - system_settings_linux.sysctl.parameters | length > 0
+  tags:
+    - sysctl
+    - kernel
+    - performance
+
+- name: Configure PAM limits
+  community.general.pam_limits:
+    domain: "{{ item.domain }}"
+    limit_type: "{{ item.limit_type }}"
+    limit_item: "{{ item.limit_item }}"
+    value: "{{ item.value }}"
+  loop: "{{ system_settings_linux.limits.limits | default([]) }}"
+  become: true
+  when:
+    - system_settings_linux.limits.enabled | default(false) | bool
+    - system_settings_linux.limits.limits is defined
+    - system_settings_linux.limits.limits | length > 0
+  tags:
+    - limits
+    - pam
+    - performance
+
+- name: Load kernel modules at boot
+  ansible.builtin.lineinfile:
+    path: "/etc/modules-load.d/{{ item }}.conf"
+    line: "{{ item }}"
+    create: true
+    mode: "0644"
+  loop: "{{ system_settings_linux.modules.load | default([]) }}"
+  become: true
+  when:
+    - system_settings_linux.modules.load is defined
+    - system_settings_linux.modules.load | length > 0
+  tags:
+    - modules
+    - kernel
+
+- name: Blacklist kernel modules
+  ansible.builtin.lineinfile:
+    path: /etc/modprobe.d/blacklist-ansible-managed.conf
+    line: "blacklist {{ item }}"
+    create: true
+    mode: "0644"
+  loop: "{{ system_settings_linux.modules.blacklist | default([]) }}"
+  become: true
+  when:
+    - system_settings_linux.modules.blacklist is defined
+    - system_settings_linux.modules.blacklist | length > 0
+  tags:
+    - modules
+    - kernel
+    - blacklist
+
+- name: Configure kernel module options
+  ansible.builtin.lineinfile:
+    path: "/etc/modprobe.d/{{ item.key }}-options.conf"
+    line: "options {{ item.key }} {{ item.value | dict2items | map(attribute='key') | zip(item.value | dict2items | map(attribute='value')) | map('join', '=') | join(' ') }}"
+    create: true
+    mode: "0644"
+  loop: "{{ system_settings_linux.modules.options | default({}) | dict2items }}"
+  become: true
+  when:
+    - system_settings_linux.modules.options is defined
+    - system_settings_linux.modules.options | length > 0
+  notify: "{{ 'Update mkinitcpio' if ansible_distribution == 'Archlinux' else 'Update initramfs' }}"
+  tags:
+    - modules
+    - kernel
+
+- name: Enable and start hardware services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ system_settings_linux.services.enable | default([]) }}"
+  become: true
+  when:
+    - system_settings_linux.services.enable is defined
+    - system_settings_linux.services.enable | length > 0
+  failed_when: false
+  tags:
+    - services
+    - hardware
+
+- name: Disable and stop hardware services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ system_settings_linux.services.disable | default([]) }}"
+  become: true
+  when:
+    - system_settings_linux.services.disable is defined
+    - system_settings_linux.services.disable | length > 0
+  failed_when: false
+  tags:
+    - services
+    - hardware
+
+- name: Mask services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    masked: true
+    state: stopped
+  loop: "{{ system_settings_linux.services.mask | default([]) }}"
+  become: true
+  when:
+    - system_settings_linux.services.mask is defined
+    - system_settings_linux.services.mask | length > 0
+  failed_when: false
+  tags:
+    - services
+    - hardware
+
+- name: Install Nerd Fonts
+  block:
+    - name: Ensure fonts directory exists
+      ansible.builtin.file:
+        path: "{{ system_settings_linux.fonts.nerd_fonts.install_dir }}"
+        state: directory
+        mode: "0755"
+      become: true
+
+    - name: Download and extract Nerd Fonts
+      ansible.builtin.unarchive:
+        src: "{{ item.url }}"
+        dest: "{{ system_settings_linux.fonts.nerd_fonts.install_dir }}"
+        remote_src: true
+        mode: "0644"
+        owner: root
+        group: root
+      loop: "{{ system_settings_linux.fonts.nerd_fonts.fonts | default([]) }}"
+      become: true
+      register: font_install
+
+    - name: Update font cache after installation
+      ansible.builtin.command:
+        cmd: fc-cache -fv
+      become: true
+      when: font_install is changed
+      changed_when: false
+      tags: ["skip_ansible_lint"]
+  when:
+    - ansible_os_family == "Debian"
+    - system_settings_linux.fonts.nerd_fonts.enabled | default(false) | bool
+    - system_settings_linux.fonts.nerd_fonts.fonts is defined
+    - system_settings_linux.fonts.nerd_fonts.fonts | length > 0
+  tags:
+    - fonts
+    - nerd-fonts

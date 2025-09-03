@@ -140,7 +140,7 @@
       become: true
       notify: restart journald
   when:
-    - config_linux_journal.enabled | default(true)
+    - config_linux.journal.enabled | default(true)
     - ansible_service_mgr == "systemd"
   tags:
     - journal
@@ -157,14 +157,14 @@
       ansible.builtin.lineinfile:
         path: /etc/rsyslog.conf
         regexp: '^\*\.\* @@'
-        line: "*.* @@{{ config_linux_rsyslog.remote_host }}:{{ config_linux_rsyslog.remote_port }}"
+        line: "*.* @@{{ config_linux.rsyslog.remote_host }}:{{ config_linux.rsyslog.remote_port }}"
         create: false
       become: true
       when: rsyslog_installed.stat.exists
       notify: restart rsyslog
   when:
-    - config_linux_rsyslog.enabled | default(false)
-    - config_linux_rsyslog.remote_host | default("") != ""
+    - config_linux.rsyslog.enabled | default(false)
+    - config_linux.rsyslog.remote_host | default("") != ""
   tags:
     - rsyslog
     - logging

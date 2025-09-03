@@ -48,6 +48,11 @@ test-quick: lint syntax-check ## Quick validation tests (fast feedback)
 	@echo "⚡ Running quick validation tests..."
 	molecule test -s discovery
 
+.PHONY: test-system
+test-system: ## Test core system provisioning functionality
+	@echo "🖥️  Running system provisioning tests..."
+	molecule test -s configure_system
+
 .PHONY: test-template-edge-cases
 test-template-edge-cases: ## Test template edge cases
 	@echo "Testing template edge cases..."
@@ -81,7 +86,7 @@ syntax-check: ## Check Ansible syntax for all roles
 	done
 
 .PHONY: test
-test: test-pre-commit test-comprehensive test-integration ## Run complete test suite
+test: test-pre-commit test-system test-integration ## Run complete test suite
 	@echo "✅ Complete test suite passed!"
 
 .PHONY: test-discovery
@@ -93,7 +98,7 @@ test-integration: ## Run integration tests with all roles
 	molecule test -s integration
 
 .PHONY: ci-test
-ci-test: deps test-pre-commit test-failures test-integration ## CI-style complete testing
+ci-test: deps test-pre-commit test-failures test-system test-integration ## CI-style complete testing
 	@echo "✅ CI test suite completed!"
 
 .PHONY: molecule-create

@@ -1,44 +1,44 @@
 ---
 # manage_snap_packages role main tasks
-# Comprehensive snap package management - install, remove, or purge
 
 - name: Validate supported OS versions
   ansible.builtin.fail:
     msg: >-
       {{ ansible_distribution }} {{ ansible_distribution_version }}
-      is not supported. Supported versions: Ubuntu 22+, Debian 12+
+      is not supported for snap management. Supported: Ubuntu 22+, Debian 12+
   when:
+    - ansible_os_family == "Debian"
     - >-
-      (ansible_distribution == "Ubuntu" and
-      ansible_distribution_major_version | int < 22) or
-      (ansible_distribution == "Debian" and
-      ansible_distribution_major_version | int < 12)
+      (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 22) or
+      (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
   tags:
     - always
     - validation
     - snap-packages
 
-- name: Ensure snap packages are installed
-  ansible.builtin.include_tasks: install-snap.yml
-  when:
-    - snap_packages.management_action == "install"
-    - snap_packages.packages.install | length > 0 or snap_packages.packages.classic | length > 0
+- name: Skip snap management on non-Debian systems
+  ansible.builtin.debug:
+    msg: "Skipping snap management on {{ ansible_distribution }} - snap is Ubuntu/Debian specific"
+  when: ansible_os_family != "Debian"
   tags:
     - snap-packages
-    - install-snap
 
-- name: Ensure snap packages are removed
-  ansible.builtin.include_tasks: remove-snap.yml
-  when: snap_packages.management_action in ["remove", "purge"]
-  tags:
-    - snap-packages
-    - remove-snap
-
-- name: Ensure complete snap purge (with confirmation)
-  ansible.builtin.include_tasks: purge-snap.yml
+- name: Disable and remove snap system (primary use case)
+  ansible.builtin.include_tasks: disable-snap.yml
   when:
-    - snap_packages.management_action == "purge"
-    - snap_packages.purge.confirm | default(false)
+    - ansible_os_family == "Debian"
+    - snap.disable_and_remove | default(true)
   tags:
     - snap-packages
-    - purge-snap
+
+- name: Manage specific snap packages (when snap system is enabled)
+  ansible.builtin.include_tasks: manage-packages.yml
+  when:
+    - ansible_os_family == "Debian"
+    - not (snap.disable_and_remove | default(true))
+    - >-
+      (snap.packages.install | default([]) | length > 0) or
+      (snap.packages.classic | default([]) | length > 0) or
+      (snap.packages.remove | default([]) | length > 0)
+  tags:
+    - snap-packages

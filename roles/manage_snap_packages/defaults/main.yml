@@ -1,36 +1,10 @@
 ---
 # =============================================================================
-# SNAP PACKAGE MANAGEMENT
+# SNAP PACKAGES ROLE VARIABLES
 # =============================================================================
-# Control via tags: --tags snap-packages
-
-snap_packages:
-  management_action: "remove" # "install", "remove", "purge"
-
-  # Package installation configuration
+snap:
+  disable_and_remove: true
   packages:
-    install: [] # List of snap packages to install
-    classic: [] # List of snap packages requiring --classic
-
-  # Package removal configuration
-  remove:
-    all_packages: true # Remove all installed snap packages
-    system_packages: true # Remove snapd APT packages
-    disable_services: true # Stop and disable snapd services
-    cleanup_directories: true # Remove snap directories
-    cleanup_path: true # Remove snap from system PATH
-
-  # Purge safety configuration
-  purge:
-    confirm: false # Must be explicitly set to true for complete purge
-
-# Example usage:
-# snap_packages:
-#   management_action: "install"
-#   packages:
-#     install:
-#       - firefox
-#       - vlc
-#     classic:
-#       - code
-#       - slack
+    install: []
+    classic: []
+    remove: []

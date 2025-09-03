@@ -1,19 +1,19 @@
 ---
 # =============================================================================
-# FIREWALL SERVICE MANAGEMENT (OS INSTALLATION)
+# SECURITY SERVICES ROLE VARIABLES
 # =============================================================================
 
 security_firewall_common:
   enabled: true
   start: true
-  prevent_ssh_lockout: true # Automatically ensure SSH access is allowed
+  prevent_ssh_lockout: true
 
 security_firewall_linux:
   package: "ufw"
   rate_limiting:
-    enabled: false # Enable connection rate limiting
-    connections: 6 # Number of connections allowed
-    period: 30 # Time period in seconds
+    enabled: false
+    connections: 6
+    period: 30
     comment: "Rate limiting rule"
 
 security_firewall_macosx:
@@ -22,10 +22,6 @@ security_firewall_macosx:
   block_all: false
   logging: false
 
-# =============================================================================
-# FAIL2BAN INTRUSION PREVENTION
-# =============================================================================
-
 security_fail2ban_common:
   enabled: true
   start: true
@@ -33,8 +29,8 @@ security_fail2ban_common:
   dest_email: ""
 
 security_fail2ban_defaults:
-  bantime: 3600 # 1 hour
-  findtime: 600 # 10 minutes
+  bantime: 3600
+  findtime: 600
   maxretry: 5
 
 security_fail2ban_services:
@@ -48,10 +44,6 @@ security_fail2ban_services:
 security_fail2ban_ignoreips:
   - "127.0.0.1/8"
   - "::1"
-
-# =============================================================================
-# FUTURE SECURITY SERVICES
-# =============================================================================
 
 security_intrusion_detection_enabled: false
 security_log_monitoring_enabled: false

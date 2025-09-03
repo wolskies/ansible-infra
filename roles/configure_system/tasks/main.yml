@@ -63,10 +63,6 @@
     - system-settings
     - optional
 
-# =============================================================================
-# COMPLETION SUMMARY
-# =============================================================================
-
 - name: Display system configuration completion
   ansible.builtin.debug:
     msg:
