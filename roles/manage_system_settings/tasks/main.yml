@@ -27,9 +27,16 @@
     - variables
     - system-settings
 
-- name: Include OS-specific system settings tasks
-  ansible.builtin.include_tasks: "manage-system-settings-{{ ansible_os_family }}.yml"
-  when: ansible_os_family in ['Debian', 'Archlinux', 'Darwin']
+- name: Include Linux system settings tasks
+  ansible.builtin.include_tasks: "manage-system-settings-Linux.yml"
+  when: ansible_os_family in ['Debian', 'Archlinux']
+  tags:
+    - always
+    - system-settings
+
+- name: Include macOS system settings tasks
+  ansible.builtin.include_tasks: "manage-system-settings-Darwin.yml"
+  when: ansible_os_family == 'Darwin'
   tags:
     - always
     - system-settings

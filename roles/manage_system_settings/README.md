@@ -1,103 +1,203 @@
 # manage_system_settings
 
-Performance tuning and hardware configurations for gaming, GPU support, and network optimization.
+Comprehensive system configuration management for Linux and macOS systems.
 
 ## Description
 
-This role provides performance-focused system tuning and hardware configurations. Security hardening is handled by `devsec.hardening` collection - this role focuses purely on performance optimization.
-
-## Features
-
-- **Network Performance Tuning**: BBR congestion control, connection optimizations
-- **Gaming Optimizations**: VM parameters for gaming workloads
-- **GPU Support**: NVIDIA driver configurations and kernel module loading
-- **Hardware Support**: Camera (uvcvideo), Bluetooth configurations
-- **Nerd Fonts Installation**: Downloads and installs Nerd Fonts for development environments
-- **Custom Performance Configurations**: Support for custom performance sysctl parameters
+This role provides system-level configuration management for:
+- Kernel parameters (sysctl) and system tuning
+- PAM limits and resource controls
+- Kernel module loading and blacklisting
+- Hardware service management
+- Font installation (Nerd Fonts)
+- macOS system preferences (Dock, Finder, security)
 
 ## Role Variables
 
-### Core Settings
-- `system_settings_network_enabled: false` - Enable network performance optimizations
-- `system_settings_gaming_enabled: false` - Enable gaming optimizations
-- `system_settings_gpu_enabled: false` - Enable GPU configurations
-- `system_settings_hardware_enabled: true` - Enable hardware support
+### Linux Configuration
 
-### Network Optimization
-- `system_settings_network_optimizations` - Network sysctl parameters
-- `system_settings_custom_sysctl: {}` - Custom sysctl parameters
+```yaml
+system_settings_linux:
+  sysctl:
+    enabled: false
+    file: /etc/sysctl.d/99-ansible-managed.conf
+    parameters: {}
+    # Example parameters:
+    # parameters:
+    #   net.core.default_qdisc: "fq"
+    #   net.ipv4.tcp_congestion_control: "bbr"
+    #   vm.swappiness: 10
+    #   vm.max_map_count: 2097152  # Required for Steam
+    #   fs.file-max: 2097152
 
-### Gaming Support
-- `system_settings_gaming_optimizations` - Gaming-specific sysctl parameters
+  limits:
+    enabled: false
+    limits: []
+    # Example limits:
+    # limits:
+    #   - domain: '*'
+    #     limit_type: soft
+    #     limit_item: nofile
+    #     value: 65536
 
-### GPU Configuration
-- `system_settings_gpu_nvidia_enabled: false` - Enable NVIDIA support
-- `system_settings_gpu_nvidia_modules` - NVIDIA kernel modules to load
+  modules:
+    load: []
+    blacklist: []
+    options: {}
+    # Example:
+    # load: [uvcvideo, btusb]
+    # blacklist: [nouveau]
 
-### Hardware Services
-- `system_settings_services_enable: []` - Hardware services to enable
+  services:
+    enable: []
+    disable: []
+    mask: []
+    # Example:
+    # enable: [bluetooth.service, cups.service]
+    # disable: [ModemManager.service]
 
-### Hardware Support
-- `system_settings_camera_support_enabled: false` - Enable camera support
-- `system_settings_bluetooth_enabled: false` - Enable Bluetooth support
+  fonts:
+    nerd_fonts:
+      enabled: false
+      install_dir: /usr/share/fonts/nerd-fonts
+      fonts: []
+      # Example fonts:
+      # fonts:
+      #   - name: CascadiaCode
+      #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+```
+
+### macOS Configuration
+
+```yaml
+system_settings_macos:
+  dock:
+    enabled: false
+    settings: {}
+    # Example: tile-size: 48, autohide: false
+
+  finder:
+    enabled: false
+    settings: {}
+    # Example: ShowExtensions: true, ShowHidden: false
+
+  system:
+    enabled: false
+    settings: {}
+    # Example: KeyRepeat: 2, ApplePressAndHoldEnabled: false
+
+  security:
+    enabled: false
+    settings: {}
+    # Example: require_password_after_sleep: true
+```
+
+## Usage Examples
+
+### Linux Performance Tuning
+
+```yaml
+- name: Configure system settings
+  include_role:
+    name: wolskinet.infrastructure.manage_system_settings
+  vars:
+    system_settings_linux:
+      sysctl:
+        enabled: true
+        parameters:
+          net.core.default_qdisc: "fq"
+          net.ipv4.tcp_congestion_control: "bbr"
+          vm.swappiness: 10
+          vm.max_map_count: 2097152
+      services:
+        enable:
+          - bluetooth.service
+        disable:
+          - ModemManager.service
+      fonts:
+        nerd_fonts:
+          enabled: true
+          fonts:
+            - name: CascadiaCode
+              url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+```
+
+### macOS System Configuration
+
+```yaml
+- name: Configure macOS settings
+  include_role:
+    name: wolskinet.infrastructure.manage_system_settings
+  vars:
+    system_settings_macos:
+      dock:
+        enabled: true
+        settings:
+          tile-size: 48
+          autohide: true
+          show-recents: false
+      finder:
+        enabled: true
+        settings:
+          ShowExtensions: true
+          ShowHidden: true
+      security:
+        enabled: true
+        settings:
+          require_password_after_sleep: true
+```
+
+### Gaming Workstation Setup
+
+```yaml
+- name: Gaming workstation optimization
+  include_role:
+    name: wolskinet.infrastructure.manage_system_settings
+  vars:
+    system_settings_linux:
+      sysctl:
+        enabled: true
+        parameters:
+          vm.max_map_count: 2097152  # Required for Steam
+          vm.swappiness: 1           # Reduce swap usage
+          net.core.default_qdisc: "fq"
+          net.ipv4.tcp_congestion_control: "bbr"
+      modules:
+        blacklist:
+          - nouveau  # Disable for NVIDIA
+      services:
+        enable:
+          - bluetooth.service
+        disable:
+          - ModemManager.service
+```
+
+## Platform Support
+
+- **Ubuntu 22.04+**: Full support
+- **Debian 12+**: Full support
+- **Arch Linux**: Full support
+- **macOS**: Full support
+
+## Tags
+
+This role uses context-specific tags:
+- `sysctl`, `kernel`, `performance` - Linux kernel tuning
+- `limits`, `pam` - Resource limits
+- `modules` - Kernel module management
+- `services`, `hardware` - Service management
+- `fonts`, `nerd-fonts` - Font installation
+- `macos`, `dock`, `finder`, `security` - macOS settings
+
+```bash
+# Run specific components
+ansible-playbook -t sysctl site.yml
+ansible-playbook -t macos site.yml
+```
 
 ## Dependencies
 
-None. This role is designed to be fully standalone and complements `devsec.hardening` collection.
+- `community.general` collection (for PAM limits and macOS defaults)
+- `ansible.posix` collection (for sysctl module)
 
-## Example Playbook
-
-```yaml
-- hosts: gaming_workstations
-  roles:
-    # Security first
-    - devsec.hardening.os_hardening
-    # Then performance tuning
-    - role: wolskinet.infrastructure.manage_system_settings
-      vars:
-        system_settings_gaming_enabled: true
-        system_settings_gpu_enabled: true
-        system_settings_gpu_nvidia_enabled: true
-        system_settings_camera_support_enabled: true
-        system_settings_nerd_fonts_enabled: true
-        system_settings_nerd_fonts_list:
-          - "CascadiaCode"
-          - "FiraCode"
-          - "JetBrainsMono"
-        system_settings_custom_sysctl:
-          vm.swappiness: "10"
-```
-
-### Nerd Fonts Installation (Ubuntu/Debian)
-
-Quick utility for Ubuntu/Debian systems (Arch/macOS use package managers):
-
-```yaml
-- hosts: ubuntu_workstations
-  roles:
-    - role: wolskinet.infrastructure.manage_system_settings
-      vars:
-        system_config_nf_enable: true
-        system_config_nf_links:
-          - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
-          - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/FiraCode.zip"
-          - "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip"
-```
-
-**Note**: Use package managers for other OS:
-- **Arch Linux**: `group_packages_install_Archlinux: [ttf-cascadia-code-nerd, ttf-fira-code-nerd]`
-- **macOS**: `host_packages_homebrew_casks: [font-cascadia-code-nerd-font, font-fira-code-nerd-font]`
-
-## Supported Platforms
-
-- Ubuntu 22+
-- Debian 12+
-- Arch Linux (latest)
-
-## License
-
-GPL-3.0-or-later
-
-## Author Information
-
-Ed Wolski - wolskinet
+This role is designed to complement security hardening roles and focuses on system optimization and configuration.

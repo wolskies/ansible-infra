@@ -30,7 +30,7 @@ provisioner:
     host_vars:
       ubuntu-users-test:
         # Test comprehensive user management
-        users_config:
+        users:
           # Basic user
           - name: testuser1
             uid: 1001
@@ -66,7 +66,7 @@ provisioner:
 
       debian-users-test:
         # Test different user configurations on Debian
-        users_config:
+        users:
           # Standard user
           - name: debianuser
             uid: 1001

@@ -1,0 +1,66 @@
+---
+# Thin wrapper around community.general.snap for occasional snap package management
+
+- name: Ensure snapd is installed and running
+  block:
+    - name: Install snapd package
+      ansible.builtin.apt:
+        name: snapd
+        state: present
+        update_cache: true
+      become: true
+
+    - name: Start and enable snapd services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+        daemon_reload: true
+      become: true
+      loop:
+        - snapd.service
+        - snapd.socket
+
+    - name: Wait for snapd to be ready
+      ansible.builtin.command: snap wait system seed.loaded
+      become: true
+      changed_when: false
+      failed_when: false
+
+  when: >
+    (snap.packages.install | default([]) | length > 0) or
+    (snap.packages.classic | default([]) | length > 0) or
+    (snap.packages.remove | default([]) | length > 0)
+  tags:
+    - snap-packages
+
+- name: Remove snap packages
+  community.general.snap:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ snap.packages.remove | default([]) }}"
+  become: true
+  when: snap.packages.remove | default([]) | length > 0
+  tags:
+    - snap-packages
+
+- name: Install snap packages
+  community.general.snap:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ snap.packages.install | default([]) }}"
+  become: true
+  when: snap.packages.install | default([]) | length > 0
+  tags:
+    - snap-packages
+
+- name: Install classic snap packages
+  community.general.snap:
+    name: "{{ item }}"
+    state: present
+    classic: true
+  loop: "{{ snap.packages.classic | default([]) }}"
+  become: true
+  when: snap.packages.classic | default([]) | length > 0
+  tags:
+    - snap-packages

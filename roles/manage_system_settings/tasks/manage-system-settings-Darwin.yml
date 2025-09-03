@@ -1,9 +1,6 @@
 ---
 # macOS system settings tasks
 
-# =============================================================================
-# DOCK SETTINGS
-# =============================================================================
 - name: Configure macOS Dock settings
   community.general.osx_defaults:
     domain: com.apple.dock
@@ -22,9 +19,6 @@
     - dock
     - gui
 
-# =============================================================================
-# FINDER SETTINGS
-# =============================================================================
 - name: Configure macOS Finder settings
   community.general.osx_defaults:
     domain: com.apple.finder
@@ -43,9 +37,6 @@
     - finder
     - gui
 
-# =============================================================================
-# SYSTEM-WIDE SETTINGS
-# =============================================================================
 - name: Configure macOS system-wide settings
   community.general.osx_defaults:
     domain: "{{ item.value.domain | default('NSGlobalDomain') }}"
@@ -63,9 +54,6 @@
     - system
     - performance
 
-# =============================================================================
-# SECURITY SETTINGS
-# =============================================================================
 - name: Configure macOS security settings
   block:
     - name: Set password requirements after sleep

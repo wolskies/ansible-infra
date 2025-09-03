@@ -14,17 +14,18 @@ config_common_ntp:
     - 2.pool.ntp.org
     - 3.pool.ntp.org
 
-config_linux_journal:
-  enabled: true
-  max_size: "500M"
-  max_retention: "30d"
-  forward_to_syslog: false
-  compress: true
-config_linux_rsyslog:
-  enabled: false
-  remote_host: ""
-  remote_port: 514
-  protocol: "udp"
+config_linux:
+  journal:
+    enabled: true
+    max_size: "500M"
+    max_retention: "30d"
+    forward_to_syslog: false
+    compress: true
+  rsyslog:
+    enabled: false
+    remote_host: ""
+    remote_port: 514
+    protocol: "udp"
 
 config_debian_family:
   snap:

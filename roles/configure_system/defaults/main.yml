@@ -43,17 +43,18 @@ config_common_ntp:
     - 2.pool.ntp.org
     - 3.pool.ntp.org
 
-config_linux_journal:
-  enabled: true
-  max_size: "500M"
-  max_retention: "30d"
-  forward_to_syslog: false
-  compress: true
-config_linux_rsyslog:
-  enabled: false
-  remote_host: ""
-  remote_port: 514
-  protocol: "udp"
+config_linux:
+  journal:
+    enabled: true
+    max_size: "500M"
+    max_retention: "30d"
+    forward_to_syslog: false
+    compress: true
+  rsyslog:
+    enabled: false
+    remote_host: ""
+    remote_port: 514
+    protocol: "udp"
 
 config_debian_family:
   snap:
@@ -148,20 +149,10 @@ security_fail2ban_ignoreips:
 # Example:
 # users:
 #   - name: username                              # Required: username
-#     uid: 1000                                    # Optional: specific UID
-#     gid: 1000                                    # Optional: primary group ID
-#     home: /home/username                         # Optional: home directory path
-#     shell: /bin/bash                             # Optional: user shell
 #     comment: "User Full Name"                    # Optional: GECOS field
 #     groups: [sudo, docker]                       # Optional: additional groups
-#     create_home: true                            # Optional: create home directory
 #     ssh_pubkey: "ssh-rsa AAAAB3..."             # Optional: SSH public key
 #     password: "$6$salt$encrypted"               # Optional: encrypted or plaintext password
-#     dotfiles:                                    # Optional: dotfiles configuration
-#       enable: true                               # Required if dotfiles block present
-#       repo: "https://github.com/user/dotfiles"  # Required: git repository URL
-#       branch: "main"                             # Optional: git branch
-#       directory: "/home/user/.dotfiles"         # Optional: clone directory
 users: []
 
 # Users to remove from the system (removes account and home directory)
@@ -210,126 +201,79 @@ packages_homebrew:
 # =============================================================================
 # SNAP PACKAGES ROLE VARIABLES
 # =============================================================================
-# Variables for Snap package management
-# Used by: manage_snap_packages role (tagged: snap-packages)
-
-snap_packages:
-  management_action: "remove" # "install", "remove", "purge"
-
-  # Package installation configuration
+snap:
+  disable_and_remove: true
   packages:
-    install: [] # List of snap packages to install
-    classic: [] # List of snap packages requiring --classic
-    # Example:
-    # install: [firefox, vlc]
-    # classic: [code, slack]
-
-  # Package removal configuration
-  remove:
-    all_packages: true # Remove all installed snap packages
-    system_packages: true # Remove snapd APT packages
-    disable_services: true # Stop and disable snapd services
-    cleanup_directories: true # Remove snap directories
-    cleanup_path: true # Remove snap from system PATH
-
-  # Purge safety configuration
-  purge:
-    confirm: false # Must be explicitly set to true for complete purge
+    install: []
+    classic: []
+    remove: []
 
 # =============================================================================
 # FLATPAK PACKAGES ROLE VARIABLES
 # =============================================================================
-# Variables for Flatpak package management
-# Used by: manage_flatpak role (tagged: flatpak-packages)
-
-flatpak_packages:
-  management_action: "install" # "install", "remove", "purge"
-
-  # Repository configuration
-  repositories:
-    enable_flathub: true # Enable Flathub repository
-    cleanup: true # Remove repositories during purge
-
-  # Package installation configuration
+flatpak:
+  enabled: false
   packages:
-    install: [] # List of flatpak packages to install
-    # Example:
-    # install:
-    #   - org.mozilla.firefox
-    #   - com.visualstudio.code
-    #   - org.libreoffice.LibreOffice
-
-  # Package removal configuration
-  remove:
-    all_packages: true # Remove all installed flatpak packages
-    system_packages: true # Remove flatpak APT packages
-    cleanup_directories: true # Remove flatpak directories
-    cleanup_repositories: true # Remove flatpak repositories
-
-  # Purge safety configuration
-  purge:
-    confirm: false # Must be explicitly set to true for complete purge
+    install: []
+    remove: []
+  flathub: true
+  plugins:
+    gnome: false
+    plasma: false
 
 # =============================================================================
 # SYSTEM SETTINGS ROLE VARIABLES
 # =============================================================================
-# Variables for system performance tuning and kernel parameters
-# Used by: manage_system_settings role (tagged: system-settings)
 
-# Kernel parameters (sysctl) - Linux only
-system_settings_sysctl:
-  enabled: false
-  file: /etc/sysctl.d/99-ansible-managed.conf
-  parameters: {}
-  # Example parameters:
-  # parameters:
-  #   net.core.default_qdisc: "fq"
-  #   net.ipv4.tcp_congestion_control: "bbr"
-  #   vm.swappiness: 10
-  #   vm.max_map_count: 2097152  # Required for Steam
-  #   fs.file-max: 2097152
-
-# PAM limits - Linux only
-system_settings_limits:
-  enabled: false
-  limits: []
-  # Example limits:
-  # limits:
-  #   - domain: '*'
-  #     limit_type: soft
-  #     limit_item: nofile
-  #     value: 65536
-
-# Kernel modules - Linux only
-system_settings_modules:
-  load: [] # Modules to load at boot
-  blacklist: [] # Modules to blacklist
-  options: {} # Module options
-  # Example:
-  # load: [uvcvideo, btusb]
-  # blacklist: [nouveau]
-
-# Hardware services - Linux only
-system_settings_services:
-  enable: [] # Services to enable and start
-  disable: [] # Services to disable and stop
-  mask: [] # Services to mask (prevent from starting)
-  # Example:
-  # enable: [bluetooth.service, cups.service]
-  # disable: [ModemManager.service]
-
-# Fonts configuration - Ubuntu/Debian only
-system_settings_fonts:
-  nerd_fonts:
+system_settings_linux:
+  sysctl:
     enabled: false
-    install_dir: /usr/share/fonts/nerd-fonts
-    fonts: []
-    # Example fonts:
-    # fonts:
-    #   - name: CascadiaCode
-    #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+    file: /etc/sysctl.d/99-ansible-managed.conf
+    parameters: {}
+    # Example parameters:
+    # parameters:
+    #   net.core.default_qdisc: "fq"
+    #   net.ipv4.tcp_congestion_control: "bbr"
+    #   vm.swappiness: 10
+    #   vm.max_map_count: 2097152  # Required for Steam
+    #   fs.file-max: 2097152
 
-# macOS settings - macOS only
+  limits:
+    enabled: false
+    limits: []
+    # Example limits:
+    # limits:
+    #   - domain: '*'
+    #     limit_type: soft
+    #     limit_item: nofile
+    #     value: 65536
+
+  modules:
+    load: []
+    blacklist: []
+    options: {}
+    # Example:
+    # load: [uvcvideo, btusb]
+    # blacklist: [nouveau]
+
+  services:
+    enable: []
+    disable: []
+    mask: []
+    # Example:
+    # enable: [bluetooth.service, cups.service]
+    # disable: [ModemManager.service]
+
+  fonts:
+    nerd_fonts:
+      enabled: false
+      install_dir: /usr/share/fonts/nerd-fonts
+      fonts: []
+      # Example fonts:
+      # fonts:
+      #   - name: CascadiaCode
+      #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+
 system_settings_macos:
   dock:
     enabled: false

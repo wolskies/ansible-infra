@@ -1,0 +1,93 @@
+---
+# Simple flatpak package management
+
+- name: Install flatpak package (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: flatpak
+    state: present
+    update_cache: true
+  become: true
+  when: ansible_os_family == "Debian"
+  tags: []
+
+- name: Install flatpak package (Arch Linux)
+  community.general.pacman:
+    name: flatpak
+    state: present
+  become: true
+  when: ansible_os_family == "Archlinux"
+  tags: []
+
+- name: Install GNOME Software flatpak plugin (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: gnome-software-plugin-flatpak
+    state: present
+  become: true
+  when:
+    - ansible_os_family == "Debian"
+    - flatpak.plugins.gnome | default(false)
+  failed_when: false
+  tags: []
+
+- name: Install Plasma Discover flatpak plugin (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: plasma-discover-backend-flatpak
+    state: present
+  become: true
+  when:
+    - ansible_os_family == "Debian"
+    - flatpak.plugins.plasma | default(false)
+  failed_when: false
+  tags: []
+
+- name: Install GNOME Software flatpak plugin (Arch Linux)
+  community.general.pacman:
+    name: gnome-software-flatpak
+    state: present
+  become: true
+  when:
+    - ansible_os_family == "Archlinux"
+    - flatpak.plugins.gnome | default(false)
+  failed_when: false
+  tags: []
+
+- name: Install Plasma Discover flatpak plugin (Arch Linux)
+  community.general.pacman:
+    name: discover
+    state: present
+  become: true
+  when:
+    - ansible_os_family == "Archlinux"
+    - flatpak.plugins.plasma | default(false)
+  failed_when: false
+  tags: []
+
+- name: Enable Flathub repository
+  community.general.flatpak_remote:
+    name: flathub
+    state: present
+    flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+    method: system
+  become: true
+  when: flatpak.flathub | default(true)
+  tags: []
+
+- name: Remove flatpak packages
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: absent
+    method: system
+  loop: "{{ flatpak.packages.remove | default([]) }}"
+  become: true
+  when: flatpak.packages.remove | default([]) | length > 0
+  tags: []
+
+- name: Install flatpak packages
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+    method: system
+  loop: "{{ flatpak.packages.install | default([]) }}"
+  become: true
+  when: flatpak.packages.install | default([]) | length > 0
+  tags: []

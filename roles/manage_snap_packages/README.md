@@ -1,167 +1,152 @@
 # manage_snap_packages
 
-Comprehensive snap package management for Ubuntu and Debian systems. Supports installing, removing, or completely purging snap packages from the system.
+**Primary Purpose**: Completely disable and remove snap from Ubuntu/Debian systems
+**Secondary Purpose**: Thin wrapper around `community.general.snap` for occasional snap package installation
 
 ## Description
 
-This role provides complete snap package lifecycle management:
+This role addresses the common need to **completely remove snap** from Ubuntu systems, while also providing a simple wrapper for the rare occasions when you need to install a specific snap package.
 
-- **Install**: Set up snapd and install snap packages (regular and classic)
-- **Remove**: Remove snap packages while keeping the system intact
-- **Purge**: Complete snap removal including services, directories, and PATH cleanup
+### Design Philosophy
 
-The role includes safety mechanisms for destructive operations and supports both individual package management and system-wide snap removal.
-
-## Features
-
-- **📦 Package Management**: Install/remove individual snap packages
-- **🗑️ Complete Purge**: Comprehensive snap system removal
-- **🔒 Safety Controls**: Confirmation required for destructive operations
-- **🛠️ Service Management**: Proper snapd service handling
-- **🧹 System Cleanup**: Directory and PATH cleanup
-- **🏷️ Tag-Based Control**: Fine-grained execution control
+1. **Default behavior**: Disable and remove snap entirely from the system
+2. **Override when needed**: Simple configuration to install specific snap packages (like `minio`)
+3. **Safety first**: Even if you accidentally configure snap packages to install, the removal takes precedence
 
 ## Role Variables
 
-See `defaults/main.yml` for complete configuration options.
-
-### Basic Configuration
+### Primary Configuration
 
 ```yaml
-snap_management_action: "remove"            # "install", "remove", "purge"
+snap:
+  disable_and_remove: true  # Remove snap entirely (default)
+  packages:
+    install: []            # Only used when disable_and_remove: false
+    classic: []            # Packages requiring --classic flag
+    remove: []             # Packages to remove
 ```
 
-### Remove/Purge Options
+## Usage Examples
+
+### Default Usage (Remove Snap Entirely)
 
 ```yaml
-snap_remove_all_packages: true              # Remove all installed snap packages
-snap_disable_services: true                 # Stop and disable snapd services
-snap_remove_system_packages: true           # Remove snapd APT packages
-snap_cleanup_directories: true              # Remove snap directories
-snap_cleanup_path: true                     # Remove snap from system PATH
-```
-
-### Install Options
-
-```yaml
-snap_packages_install:                      # Regular snap packages
-  - code
-  - discord
-
-snap_classic_packages:                      # Packages requiring --classic
-  - code
-  - slack
-```
-
-### Safety Controls
-
-```yaml
-snap_purge_confirm: false                   # Must be true for complete purge
-```
-
-## Example Usage
-
-### Remove All Snap Packages
-
-```yaml
-- name: Remove all snap packages
+# Default behavior - no configuration needed
+- name: Remove snap from system
   include_role:
     name: wolskinet.infrastructure.manage_snap_packages
-  vars:
-    snap_management_action: "remove"
   tags: snap-packages
 ```
 
-### Complete Snap Purge (Destructive)
+### Install Specific Snap (Rare Case)
 
 ```yaml
-- name: Completely remove snap from system
+# When you need minio or another specific snap
+- name: Install minio snap
   include_role:
     name: wolskinet.infrastructure.manage_snap_packages
   vars:
-    snap_management_action: "purge"
-    snap_purge_confirm: true  # Required for safety
+    snap:
+      disable_and_remove: false
+      packages:
+        install:
+          - minio
+          - core    # Often needed as dependency
   tags: snap-packages
 ```
 
-### Install Specific Packages
+### Install Classic Snap
 
 ```yaml
-- name: Install snap packages
+- name: Install VSCode (classic snap)
   include_role:
     name: wolskinet.infrastructure.manage_snap_packages
   vars:
-    snap_management_action: "install"
-    snap_packages_install:
-      - firefox
-      - vlc
-    snap_classic_packages:
-      - code
-      - slack
+    snap:
+      disable_and_remove: false
+      packages:
+        classic:
+          - code
   tags: snap-packages
 ```
 
-### Tag-Based Execution
+## What the Role Does
 
-```bash
-# Install only
-ansible-playbook -t install-snap playbook.yml
+### When `snap.disable_and_remove: true` (Default)
 
-# Remove only
-ansible-playbook -t remove-snap playbook.yml
+1. **Removes all installed snap packages** (including core snaps)
+2. **Stops and disables all snapd services**
+3. **Removes snapd APT packages** (purge)
+4. **Cleans up all snap directories** (`/snap`, `/var/snap`, etc.)
+5. **Removes snap from system PATH**
+6. **Prevents snapd reinstallation** via APT preferences
+7. **Ignores any package configuration** (safety feature)
 
-# Complete purge
-ansible-playbook -t purge-snap playbook.yml
-```
+### When `snap.disable_and_remove: false`
 
-## Architecture Integration
+1. **Installs snapd** if not present
+2. **Starts snapd services**
+3. **Removes specified packages** (if any)
+4. **Installs specified packages** (regular and classic)
+5. **Simple wrapper** around `community.general.snap`
 
-This role integrates with the infrastructure collection architecture:
+## Integration with Infrastructure Collection
 
-1. **os_configuration**: Calls this role for snap management during OS setup
-2. **configure_system**: Can call this role for snap management in system configuration
+### In `configure_system` Role
 
-### Integration Example
+The role is called with tags, allowing selective execution:
 
 ```yaml
-# In os_configuration role
-- name: Manage snap packages
-  include_role:
-    name: wolskinet.infrastructure.manage_snap_packages
-  vars:
-    snap_management_action: "purge"
-    snap_purge_confirm: "{{ config_debian_family.snap.remove_completely }}"
-  when: config_debian_family.snap.remove_completely | default(false)
-  tags: snap
+# Will disable snap by default
+- name: Manage Snap Packages
+  ansible.builtin.include_role:
+    name: "wolskinet.infrastructure.manage_snap_packages"
+  tags:
+    - snap-packages
+    - optional
 ```
 
-## Safety Features
+### Inventory Configuration
 
-**Confirmation Required**: Complete purge operations require explicit confirmation via `snap_purge_confirm: true`
+```yaml
+# group_vars/all.yml - Disable snap everywhere (default)
+snap:
+  disable_and_remove: true
 
-**Graceful Failures**: All operations use `failed_when: false` to handle systems where snap isn't installed
-
-**Validation**: OS version validation ensures compatibility
+# host_vars/media-server.yml - Exception for specific hosts
+snap:
+  disable_and_remove: false
+  packages:
+    install:
+      - minio
+      - jellyfin
+```
 
 ## Platform Support
 
-- **Ubuntu 22+**: Full snap management support
-- **Debian 12+**: Full snap management support
-
-## Requirements
-
-- **Ubuntu/Debian**: APT package manager
-- **All platforms**: Appropriate sudo/admin privileges
+- **Ubuntu 22.04+**: Primary target platform
+- **Debian 12+**: Supported
+- **Other OS families**: Gracefully skipped
 
 ## Dependencies
 
-- `community.general` collection (for snap module)
-- `ansible.posix` collection (for systemd management)
+- `community.general` collection (only when installing packages)
+- Standard Ansible modules (`apt`, `systemd`, `file`, etc.)
 
-## License
+## Safety Features
 
-MIT
+- **Removal takes precedence**: If `snap.disable_and_remove: true`, package lists are ignored
+- **Graceful failures**: All operations handle missing snap gracefully
+- **APT preferences**: Prevents accidental snapd reinstallation
+- **OS family detection**: Only runs on Debian-family systems
 
-## Author Information
+## Tags
 
-This role is part of the `wolskinet.infrastructure` Ansible collection.
+- `snap-packages`: All snap operations
+
+```bash
+# Run snap role
+ansible-playbook -t snap-packages site.yml
+```
+
+This role reflects the reality that most users want snap **gone**, with occasional exceptions for specific use cases.

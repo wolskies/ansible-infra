@@ -1,41 +1,15 @@
 ---
 # =============================================================================
-# USER MANAGEMENT ROLE
+# USER MANAGEMENT ROLE VARIABLES
 # =============================================================================
-# Simple user and group management with SSH keys and dotfiles support
-# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
-#
-# This role provides a thin wrapper around Ansible's user management modules
-# with additional support for SSH key deployment and dotfiles configuration.
 
-# =============================================================================
-# USER CONFIGURATION
-# =============================================================================
-# List of users to manage on the system
-# All fields map directly to ansible.builtin.user module parameters
-#
-# Example configuration:
+# Example:
 # users:
 #   - name: username                              # Required: username
-#     uid: 1000                                    # Optional: specific UID (string or int)
-#     gid: 1000                                    # Optional: primary group ID (string or int)
-#     home: /home/username                         # Optional: home directory path
-#     shell: /bin/bash                             # Optional: user shell
 #     comment: "User Full Name"                    # Optional: GECOS field
-#     groups: [sudo, docker]                       # Optional: additional groups (not primary)
-#     create_home: true                            # Optional: create home directory
+#     groups: [sudo, docker]                       # Optional: additional groups
 #     ssh_pubkey: "ssh-rsa AAAAB3..."             # Optional: SSH public key
-#     password: "$6$salt$encrypted"               # Optional: encrypted password (or plaintext)
+#     password: "$6$salt$encrypted"               # Optional: encrypted or plaintext password
 users: []
 
-# =============================================================================
-# USER REMOVAL
-# =============================================================================
-# List of usernames to remove from the system
-# Removes user account and home directory
-#
-# Example:
-# users_absent:
-#   - olduser
-#   - tempuser
 users_absent: []

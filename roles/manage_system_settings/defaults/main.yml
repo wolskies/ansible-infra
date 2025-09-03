@@ -1,150 +1,74 @@
 ---
 # =============================================================================
-# SYSTEM SETTINGS MANAGEMENT
+# SYSTEM SETTINGS ROLE VARIABLES
 # =============================================================================
-# This role provides comprehensive system configuration management for:
-# - Kernel parameters (sysctl)
-# - PAM limits and resource controls
-# - Hardware services and modules
-# - Performance optimizations
-# - Desktop/GUI customization (macOS)
-#
-# Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
-# =============================================================================
-# KERNEL PARAMETERS (SYSCTL) - Linux only
-# =============================================================================
-system_settings_sysctl:
-  enabled: false
-  file: /etc/sysctl.d/99-ansible-managed.conf
-  parameters: {}
-  # Example parameters:
-  # parameters:
-  #   # Network performance
-  #   net.core.default_qdisc: "fq"
-  #   net.ipv4.tcp_congestion_control: "bbr"
-  #   net.core.somaxconn: 65535
-  #   net.ipv4.tcp_max_syn_backlog: 65535
-  #   net.core.netdev_max_backlog: 5000
-  #   net.ipv4.tcp_window_scaling: 1
-  #   # Memory management
-  #   vm.swappiness: 10
-  #   vm.dirty_ratio: 15
-  #   vm.dirty_background_ratio: 5
-  #   vm.max_map_count: 2097152  # Required for Steam
-  #   # File system
-  #   fs.file-max: 2097152
-  #   fs.inotify.max_user_watches: 524288
-
-# =============================================================================
-# PAM LIMITS - Linux only
-# =============================================================================
-system_settings_limits:
-  enabled: false
-  limits: []
-  # Example limits:
-  # limits:
-  #   - domain: '*'
-  #     limit_type: soft
-  #     limit_item: nofile
-  #     value: 65536
-  #   - domain: '*'
-  #     limit_type: hard
-  #     limit_item: nofile
-  #     value: 65536
-  #   - domain: '@developers'
-  #     limit_type: soft
-  #     limit_item: nproc
-  #     value: 32768
-
-# =============================================================================
-# KERNEL MODULES - Linux only
-# =============================================================================
-system_settings_modules:
-  load: [] # Modules to load at boot
-  blacklist: [] # Modules to blacklist
-  options: {} # Module options
-  # Examples:
-  # load:
-  #   - uvcvideo     # Camera support
-  #   - btusb        # Bluetooth USB
-  # blacklist:
-  #   - nouveau      # Disable nouveau for NVIDIA
-  # options:
-  #   nvidia_drm:
-  #     modeset: 1
-  #     fbdev: 1
-
-# =============================================================================
-# HARDWARE SERVICES - Linux only
-# =============================================================================
-system_settings_services:
-  enable: [] # Services to enable and start
-  disable: [] # Services to disable and stop
-  mask: [] # Services to mask (prevent from starting)
-  # Examples:
-  # enable:
-  #   - bluetooth.service
-  #   - cups.service
-  # disable:
-  #   - ModemManager.service
-  # mask:
-  #   - sleep.target
-  #   - suspend.target
-
-# =============================================================================
-# FONTS CONFIGURATION - Ubuntu/Debian only (use packages for Arch/MacOS)
-# =============================================================================
-system_settings_fonts:
-  nerd_fonts:
+system_settings_linux:
+  sysctl:
     enabled: false
-    install_dir: /usr/share/fonts/nerd-fonts
-    fonts: []
-    # Example fonts (use font names from Nerd Fonts releases):
-    # fonts:
-    #   - name: CascadiaCode
-    #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
-    #   - name: FiraCode
-    #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/FiraCode.zip"
+    file: /etc/sysctl.d/99-ansible-managed.conf
+    parameters: {}
+    # Example parameters:
+    # parameters:
+    #   net.core.default_qdisc: "fq"
+    #   net.ipv4.tcp_congestion_control: "bbr"
+    #   vm.swappiness: 10
+    #   vm.max_map_count: 2097152  # Required for Steam
+    #   fs.file-max: 2097152
 
-# =============================================================================
-# MACOS SETTINGS - macOS only
-# =============================================================================
+  limits:
+    enabled: false
+    limits: []
+    # Example limits:
+    # limits:
+    #   - domain: '*'
+    #     limit_type: soft
+    #     limit_item: nofile
+    #     value: 65536
+
+  modules:
+    load: []
+    blacklist: []
+    options: {}
+    # Example:
+    # load: [uvcvideo, btusb]
+    # blacklist: [nouveau]
+
+  services:
+    enable: []
+    disable: []
+    mask: []
+    # Example:
+    # enable: [bluetooth.service, cups.service]
+    # disable: [ModemManager.service]
+
+  fonts:
+    nerd_fonts:
+      enabled: false
+      install_dir: /usr/share/fonts/nerd-fonts
+      fonts: []
+      # Example fonts:
+      # fonts:
+      #   - name: CascadiaCode
+      #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
+
 system_settings_macos:
   dock:
     enabled: false
     settings: {}
-    # Example settings:
-    # settings:
-    #   tile-size: 48
-    #   orientation: bottom
-    #   autohide: false
-    #   magnification: false
-    #   show-recents: false
+    # Example: tile-size: 48, autohide: false
 
   finder:
     enabled: false
     settings: {}
-    # Example settings:
-    # settings:
-    #   ShowExtensions: true
-    #   ShowHidden: false
-    #   DefaultViewStyle: clmv  # Column view
+    # Example: ShowExtensions: true, ShowHidden: false
 
   system:
     enabled: false
     settings: {}
-    # Example settings:
-    # settings:
-    #   NSGlobalDomain:
-    #     KeyRepeat: 2
-    #     InitialKeyRepeat: 15
-    #     ApplePressAndHoldEnabled: false
+    # Example: KeyRepeat: 2, ApplePressAndHoldEnabled: false
 
   security:
     enabled: false
     settings: {}
-    # Example settings:
-    # settings:
-    #   require_password_after_sleep: true
-    #   require_admin_for_preferences: true
+    # Example: require_password_after_sleep: true
