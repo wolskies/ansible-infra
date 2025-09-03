@@ -6,5 +6,4 @@ snap:
   disable_and_remove: true
   packages:
     install: []
-    classic: []
     remove: []

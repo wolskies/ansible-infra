@@ -29,7 +29,6 @@
 
   when: >
     (snap.packages.install | default([]) | length > 0) or
-    (snap.packages.classic | default([]) | length > 0) or
     (snap.packages.remove | default([]) | length > 0)
   tags:
     - snap-packages
@@ -51,16 +50,5 @@
   loop: "{{ snap.packages.install | default([]) }}"
   become: true
   when: snap.packages.install | default([]) | length > 0
-  tags:
-    - snap-packages
-
-- name: Install classic snap packages
-  community.general.snap:
-    name: "{{ item }}"
-    state: present
-    classic: true
-  loop: "{{ snap.packages.classic | default([]) }}"
-  become: true
-  when: snap.packages.classic | default([]) | length > 0
   tags:
     - snap-packages

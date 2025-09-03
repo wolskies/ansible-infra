@@ -8,9 +8,9 @@
     firewall_enable: false
     config_manage_unattended_upgrades: false
   tasks:
-    - name: Test configure_host role
+    - name: Test configure_system role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.configure_host
+        name: wolskinet.infrastructure.configure_system
 
     - name: Test manage_packages role
       ansible.builtin.include_role:
