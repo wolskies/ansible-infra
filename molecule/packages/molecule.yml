@@ -38,15 +38,25 @@ provisioner:
           - curl
           - git
           - htop
-        # Test APT repositories - all level
+        # Test APT repositories - all level (modern deb822 format)
         all_apt_repositories_Ubuntu:
           - name: docker
-            repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
-            gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+            types: deb
+            uris: https://download.docker.com/linux/ubuntu
+            suites: jammy
+            components: [stable]
+            signed_by: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+            enabled: true
         all_apt_repositories_Debian:
           - name: docker
-            repo_line: "deb [arch=amd64] https://download.docker.com/linux/debian bookworm stable"
-            gpg_key_url: "https://download.docker.com/linux/debian/gpg"
+            types: deb
+            uris: https://download.docker.com/linux/debian
+            suites: bookworm
+            components: [stable]
+            signed_by: https://download.docker.com/linux/debian/gpg
+            state: present
+            enabled: true
       servers:
         # Test hierarchical merging - group level
         group_packages_install_Ubuntu:
@@ -55,11 +65,16 @@ provisioner:
         group_packages_install_Debian:
           - nginx
           - certbot
-        # Test group-level repositories
+        # Test group-level repositories (modern deb822 format)
         group_apt_repositories_Ubuntu:
           - name: nodejs
-            repo_line: "deb [arch=amd64] https://deb.nodesource.com/node_18.x jammy main"
-            gpg_key_url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+            types: deb
+            uris: https://deb.nodesource.com/node_18.x
+            suites: jammy
+            components: [main]
+            signed_by: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+            state: present
+            enabled: true
       workstations:
         # Test different group packages
         group_packages_install_Debian:

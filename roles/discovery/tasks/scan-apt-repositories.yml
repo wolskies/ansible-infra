@@ -26,10 +26,10 @@
     discovered_repositories: >-
       {%- set repos = [] -%}
       {%- set gpg_key_map = {
-        'docker.com': 'https://download.docker.com/linux/ubuntu/gpg',
-        'deb.nodesource.com': 'https://deb.nodesource.com/gpgkey/nodesource.gpg.key',
-        'dl.google.com': 'https://dl.google.com/linux/linux_signing_key.pub',
-        'packages.microsoft.com': 'https://packages.microsoft.com/keys/microsoft.asc',
+        'docker.com': 'https://download.docker.com/linux/{{ ansible_distribution | lower}}/gpg',
+        'deb.gierens.de': 'https://raw.githubusercontent.com/eza-community/eza/main/deb.asc',
+        'packages.gitlab.com': 'https://packages.gitlab.com/runner/gitlab-runner/gpgkey',
+        'nvidia.github.io': 'https://nvidia.github.io/libnvidia-container/gpgkey',
         'apt.postgresql.org': 'https://www.postgresql.org/media/keys/ACCC4CF8.asc',
         'packages.redis.io': 'https://packages.redis.io/gpg',
         'download.opensuse.org': 'https://download.opensuse.org/repositories/home:/ungoogled_chromium/Ubuntu_22.04/Release.key',
