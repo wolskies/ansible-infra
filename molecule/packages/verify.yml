@@ -68,10 +68,10 @@
         fail_msg: "nano should have been removed"
         success_msg: "Package removal worked correctly"
 
-    # Test 5: Verify APT repositories were added
+    # Test 5: Verify APT repositories were added (deb822 format)
     - name: Check Docker repository was added (Ubuntu)
       ansible.builtin.stat:
-        path: /etc/apt/sources.list.d/docker.list
+        path: /etc/apt/sources.list.d/docker.sources
       register: docker_repo_ubuntu
       when: ansible_distribution == "Ubuntu"
 
@@ -85,7 +85,7 @@
 
     - name: Check Docker repository was added (Debian)
       ansible.builtin.stat:
-        path: /etc/apt/sources.list.d/docker.list
+        path: /etc/apt/sources.list.d/docker.sources
       register: docker_repo_debian
       when: ansible_distribution == "Debian"
 
@@ -97,23 +97,20 @@
         success_msg: "Docker repository is properly configured"
       when: ansible_distribution == "Debian"
 
-    # Test 6: Verify GPG keys were installed
-    - name: Check Docker GPG key was installed
-      ansible.builtin.stat:
-        path: /usr/share/keyrings/docker.gpg
-      register: docker_gpg_key
-
-    - name: Verify Docker GPG key exists
+    # Test 6: Verify repository dependencies are installed
+    - name: Verify APT repository dependencies
       ansible.builtin.assert:
         that:
-          - docker_gpg_key.stat.exists
-        fail_msg: "Docker GPG key should be installed"
-        success_msg: "Docker GPG key is properly installed"
+          - "'apt-transport-https' in ansible_facts.packages"
+          - "'ca-certificates' in ansible_facts.packages"
+          - "'gnupg' in ansible_facts.packages"
+        fail_msg: "Repository dependencies should be installed"
+        success_msg: "Repository dependencies are properly installed"
 
     # Test 7: Verify group-level repositories (Ubuntu servers only)
     - name: Check Node.js repository was added (Ubuntu servers)
       ansible.builtin.stat:
-        path: /etc/apt/sources.list.d/nodejs.list
+        path: /etc/apt/sources.list.d/nodejs.sources
       register: nodejs_repo
       when:
         - ansible_distribution == "Ubuntu"
