@@ -1,188 +1,142 @@
 ---
-# discovery role defaults - Infrastructure discovery and inventory generation
-# This role scans existing systems and generates Ansible inventory and configuration
+# Infrastructure discovery and inventory generation
 # Supports: Ubuntu 22+, Debian 12+, Arch Linux, macOS
 
 # =============================================================================
-# DISCOVERY OUTPUT CONTROL
+# DISCOVERY BEHAVIOR
 # =============================================================================
 
-# Core discovery behavior control
-discovery_generate_configs: true # Generate playbooks and inventory files
-discovery_timeout: 300 # Maximum time per discovery task (seconds)
-discovery_debug: false # Enable detailed discovery debugging output
-
-# Legacy compatibility (deprecated - use individual variables above)
-discovery:
-  generate_configs: true # Generate playbooks and inventory files
-  timeout: 300 # Maximum time per discovery task (seconds)
-  debug: false # Enable detailed discovery debugging output
-
-# Output paths (relative to ansible-playbook execution directory)
-# Override these in your playbook to control where files are written:
-#
-# Example override:
-#   discovery:
-#     inventory_dir: "/path/to/my/inventory"
-#     playbooks_dir: "/path/to/my/playbooks"
-#
-# Default: ./inventory and ./playbooks from current working directory
+discovery_generate_configs: true
+discovery_timeout: 300
+discovery_debug: false
 
 # =============================================================================
-# DOCKER DISCOVERY CONFIGURATION
+# DOCKER DISCOVERY
 # =============================================================================
 
-# Docker Compose search configuration
-# Discovery searches these paths for containerized services and docker-compose.yml files
-discovery_docker_compose_paths: # Primary search paths for Docker Compose files
-  - "/opt" # Common system service location
-  - "/opt/docker" # Docker-specific directory
-  - "/srv" # Service directory (FHS standard)
-  - "/srv/docker" # Docker services in /srv
-  - "/home/*/docker" # User docker directories (auto-expanded)
+discovery_docker_compose_paths:
+  - "/opt"
+  - "/opt/docker"
+  - "/srv"
+  - "/srv/docker"
+  - "/home/*/docker"
 
-# Legacy compatibility (deprecated - use discovery_docker_compose_paths instead)
-discovery_docker_compose_dir: "/opt/docker" # Single directory search (deprecated)
-
-# Service mapping - maps discovered container images to collection roles
-# Add custom mappings here to auto-assign roles to your Docker services
 discovery_docker_service_mapping:
-  # Content management and collaboration
-  "gitlab/gitlab-ce": "gitlab" # GitLab Community Edition
-  "gitlab/gitlab-ee": "gitlab" # GitLab Enterprise Edition
-  "ghcr.io/paperless-ngx/paperless-ngx": "paperless" # Paperless-ngx document management
-  "paperless-ngx/paperless-ngx": "paperless" # Paperless-ngx (Docker Hub)
-
-  # Media and entertainment
-  "jellyfin/jellyfin": "jellyfin" # Jellyfin media server
-
-  # Web services and proxying
-  "jc21/nginx-proxy-manager": "nginx_proxy_manager" # Nginx Proxy Manager
-
-  # Dashboards and monitoring
-  "ghcr.io/gethomepage/homepage": "homepage" # Homepage dashboard
-  "benphelps/homepage": "homepage" # Homepage dashboard (legacy)
-  "portainer/portainer-ce": "portainer" # Portainer Community Edition
-  "portainer/portainer-ee": "portainer" # Portainer Enterprise Edition
-
-# To add custom services, extend this mapping:
-# discovery_docker_service_mapping:
-#   "your/custom-image": "your_custom_role"
+  "gitlab/gitlab-ce": "gitlab"
+  "gitlab/gitlab-ee": "gitlab"
+  "ghcr.io/paperless-ngx/paperless-ngx": "paperless"
+  "paperless-ngx/paperless-ngx": "paperless"
+  "jellyfin/jellyfin": "jellyfin"
+  "jc21/nginx-proxy-manager": "nginx_proxy_manager"
+  "ghcr.io/gethomepage/homepage": "homepage"
+  "benphelps/homepage": "homepage"
+  "portainer/portainer-ce": "portainer"
+  "portainer/portainer-ee": "portainer"
 
 # =============================================================================
-# SYSTEM DETECTION CONFIGURATION
+# SYSTEM DETECTION
 # =============================================================================
 
-# Shell discovery - which shells and config files to detect
 discovery_shell_configuration:
-  supported_shells: # Shells to detect and configure
+  supported_shells:
     - /bin/bash
     - /bin/zsh
     - /usr/bin/fish
-
-  config_files: # Config files to scan per shell
+  config_files:
     bash: [.bashrc, .bash_profile, .profile]
     zsh: [.zshrc, .zsh_profile, .profile]
     fish: [.config/fish/config.fish]
 
-# Package repository detection paths and tools
-repository_detection:
-  pacman: # Arch Linux package management
-    config: "/etc/pacman.conf"
-    mirrorlist: "/etc/pacman.d/mirrorlist"
-  aur_helpers: [yay, paru, trizen] # AUR helpers to detect
-  homebrew: # macOS Homebrew paths (Intel/Apple Silicon)
-    paths:
-      - "/opt/homebrew/bin/brew" # Apple Silicon default
-      - "/usr/local/bin/brew" # Intel Mac default
-
 discovery_repository_detection:
-  apt: # Debian/Ubuntu repository detection
-    keys_paths: # Where to find GPG keys
+  apt:
+    keys_paths:
       - "/etc/apt/trusted.gpg.d"
       - "/usr/share/keyrings"
+    gpg_key_mapping:
+      "docker.com": "https://download.docker.com/linux/{{ ansible_distribution | lower}}/gpg"
+      "deb.gierens.de": "https://raw.githubusercontent.com/eza-community/eza/main/deb.asc"
+      "packages.gitlab.com": "https://packages.gitlab.com/runner/gitlab-runner/gpgkey"
+      "nvidia.github.io": "https://nvidia.github.io/libnvidia-container/gpgkey"
+      "apt.postgresql.org": "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+      "packages.redis.io": "https://packages.redis.io/gpg"
+      "download.opensuse.org": "https://download.opensuse.org/repositories/home:/ungoogled_chromium/Ubuntu_22.04/Release.key"
+      "deb.nodesource.com": "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+      "packages.microsoft.com": "https://packages.microsoft.com/keys/microsoft.asc"
+      "dl.google.com": "https://dl.google.com/linux/linux_signing_key.pub"
+      "ppa.launchpad.net": null
+  pacman:
+    config: "/etc/pacman.conf"
+    mirrorlist: "/etc/pacman.d/mirrorlist"
+  aur_helpers: [yay, paru, trizen]
+  homebrew:
+    paths:
+      - "/opt/homebrew/bin/brew"
+      - "/usr/local/bin/brew"
 
-# Dotfiles detection configuration
 discovery_dotfiles_detection:
-  repository_indicators: # Directories that suggest dotfiles repo
+  repository_indicators:
     - .dotfiles
     - .config
-  management_tools: # Files that indicate dotfiles management
-    - Makefile # Make-based installation
-    - install.sh # Shell script installation
-    - bootstrap.sh # Bootstrap script
-    - setup.sh # Setup script
-    - stow # GNU Stow usage
-    - .stow-local-ignore # Stow configuration
+  management_tools:
+    - Makefile
+    - install.sh
+    - bootstrap.sh
+    - setup.sh
+    - stow
+    - .stow-local-ignore
 
 # =============================================================================
-# DISCOVERY OUTPUT TEMPLATES AND DEFAULTS
+# OUTPUT TEMPLATE DEFAULTS
 # =============================================================================
 
-# System tuning template defaults - inserted as commented examples in output
-# Users can uncomment and customize these in their generated inventory
 discovery_system_tuning_defaults:
-  # Performance optimization categories
-  gaming: # Gaming-focused optimizations
-    enabled: false # Enable gaming performance tweaks
+  gaming:
+    enabled: false
     description: "Gaming optimizations (kernel parameters, CPU governor, etc.)"
-    kernel_params: ["mitigations=off"] # Kernel security vs performance tradeoffs
-    cpu_governor: "performance" # CPU scaling governor
-
-  gpu: # Graphics acceleration support
+    kernel_params: ["mitigations=off"]
+    cpu_governor: "performance"
+  gpu:
     enabled: false
     description: "GPU-specific configurations and drivers"
-    nvidia_support: false # NVIDIA proprietary drivers
-    amd_support: false # AMD graphics support
-    intel_support: false # Intel integrated graphics
-
-  bluetooth: # Bluetooth and audio codec support
+    nvidia_support: false
+    amd_support: false
+    intel_support: false
+  bluetooth:
     enabled: false
     description: "Bluetooth support and audio codecs"
-    audio_codecs: ["aptx", "ldac", "aac"] # High-quality audio codecs
-
-  camera: # Camera/webcam configuration
+    audio_codecs: ["aptx", "ldac", "aac"]
+  camera:
     enabled: false
     description: "Camera/webcam support and permissions"
-    v4l2_support: true # Video4Linux2 support
-
-  audio: # Professional audio optimizations
+    v4l2_support: true
+  audio:
     enabled: false
     description: "Audio system optimizations"
-    low_latency: false # Low-latency audio for recording
-    real_time_audio: false # Real-time audio kernel optimizations
+    low_latency: false
+    real_time_audio: false
+  security:
+    ssh_hardening: false
+    firewall_strict: false
+    fail2ban: false
+  network:
+    performance_tuning: false
+    tcp_optimization: false
 
-  # Security hardening options
-  security: # Security-focused configurations
-    ssh_hardening: false # Advanced SSH security settings
-    firewall_strict: false # Restrictive firewall rules
-    fail2ban: false # Intrusion prevention system
-
-  # Network performance tuning
-  network: # Network stack optimizations
-    performance_tuning: false # High-throughput network tuning
-    tcp_optimization: false # TCP/IP stack optimization
-
-# User configuration template defaults
-# Controls how discovered users are configured in the output
 discovery_user_configuration_defaults:
-  primary_user: # Primary/admin user configuration
-    sudo_nopasswd: false # Enable passwordless sudo access
-    additional_groups: [] # Extra groups beyond discovery results
-    docker_access: false # Add to docker group for container access
-
-  shell: # Shell configuration defaults
-    default_shell: "/bin/bash" # Default shell for discovered users
-
-  ssh: # SSH access configuration
-    key_management: false # Enable SSH key management
-    disable_password_auth: false # Force SSH key-only authentication
+  primary_user:
+    sudo_nopasswd: false
+    additional_groups: []
+    docker_access: false
+  shell:
+    default_shell: "/bin/bash"
+  ssh:
+    key_management: false
+    disable_password_auth: false
 
 # =============================================================================
-# INFRASTRUCTURE PACKAGE FILTERING
+# PACKAGE FILTERING
 # =============================================================================
 
-# Packages that should be filtered out because they're handled by dedicated roles
 discovery_infrastructure_packages:
   docker:
     - "docker-ce"
@@ -197,37 +151,30 @@ discovery_infrastructure_packages:
     - "nvidia-container-runtime"
   gitlab:
     - "gitlab-runner"
-  # Add more infrastructure packages as needed
 
-# Additional patterns to filter (regex patterns for complex matching)
 discovery_infrastructure_patterns:
   - "^libnvidia-.*"
   - "^nvidia-driver-.*"
   - "^docker-.*-plugin$"
+
 # =============================================================================
-# USAGE EXAMPLES AND INTEGRATION
+# LEGACY COMPATIBILITY
 # =============================================================================
 
-# BASIC DISCOVERY USAGE:
-#   ansible-playbook playbooks/run-discovery.yml -i inventory/hosts.yml -l target-host
-#
-# OUTPUT LOCATIONS:
-#   - inventory/host_vars/target-host.yml (discovered configuration)
-#   - playbooks/target-host_discovered.yml (deployment playbook)
-#
-# INTEGRATION WITH OTHER ROLES:
-#   Discovery output is consumed by collection roles via:
-#   - host_packages_install_* variables (package hierarchical merging)
-#   - users_config (user configuration list)
-#   - configure_* variables (system configuration)
-#   - firewall_* variables (firewall configuration)
-#   - language_*_packages variables (discovered language-specific packages)
-#   - language_*_enable variables (language ecosystem flags)
-#   - system_settings_* variables (system optimization flags)
-#
-# CUSTOMIZING DISCOVERY BEHAVIOR:
-#   Override these defaults in your discovery playbook or inventory to:
-#   - Change Docker search paths (discovery_docker_compose_paths)
-#   - Add custom service mappings (discovery_docker_service_mapping)
-#   - Modify shell detection (discovery_shell_configuration)
-#   - Control system tuning templates (discovery_system_tuning_defaults)
+# Deprecated - use individual variables above
+discovery:
+  generate_configs: true
+  timeout: 300
+  debug: false
+
+discovery_docker_compose_dir: "/opt/docker"
+
+repository_detection:
+  pacman:
+    config: "/etc/pacman.conf"
+    mirrorlist: "/etc/pacman.d/mirrorlist"
+  aur_helpers: [yay, paru, trizen]
+  homebrew:
+    paths:
+      - "/opt/homebrew/bin/brew"
+      - "/usr/local/bin/brew"
