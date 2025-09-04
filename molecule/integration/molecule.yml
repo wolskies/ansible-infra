@@ -40,6 +40,8 @@ provisioner:
         # Global settings for all machines
         config_common_timezone: "UTC"
         config_common_hostname_manage: false # Skip in container
+        # Skip locale generation in containers
+        config_common_locale:
 
         # Global users
         users_config:
@@ -120,12 +122,13 @@ provisioner:
               - lodash
 
         # System performance tuning
-        system_settings_sysctl:
-          enabled: true
-          parameters:
-            vm.swappiness: 10
-            net.core.somaxconn: 65535
-            net.ipv4.tcp_keepalive_time: 120
+        system_settings_linux:
+          sysctl:
+            enabled: true
+            parameters:
+              vm.swappiness: 10
+              net.core.somaxconn: 65535
+              net.ipv4.tcp_keepalive_time: 120
 
         # Server-specific firewall rules
         firewall_rules:
@@ -162,13 +165,14 @@ provisioner:
             enabled: false # Skip in container
 
         # System settings for workstation
-        system_settings_limits:
-          enabled: true
+        system_settings_linux:
           limits:
-            - domain: developer
-              limit_type: soft
-              limit_item: nofile
-              value: 65536
+            enabled: true
+            limits:
+              - domain: developer
+                limit_type: soft
+                limit_item: nofile
+                value: 65536
 
     host_vars:
       server-integration-test:
