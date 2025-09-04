@@ -50,8 +50,9 @@
     aur_candidates: >-
       {%- set failed_packages = [] -%}
       {%- if pacman_install_result.failed | default(false) and 'target not found' in (pacman_install_result.msg | default('')) -%}
+        {%- set installed_packages = ansible_facts.packages | default({}) | list -%}
         {%- for package in merged_arch_packages_install -%}
-          {%- if package not in (ansible_facts.packages | default({}).keys()) -%}
+          {%- if package not in installed_packages -%}
             {%- set _ = failed_packages.append(package) -%}
           {%- endif -%}
         {%- endfor -%}
