@@ -94,7 +94,8 @@ provisioner:
         # Global firewall rules
         firewall_rules:
           - rule: allow
-            name: OpenSSH
+            port: 22
+            proto: tcp
             comment: "SSH access"
 
       servers:
