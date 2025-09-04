@@ -10,7 +10,7 @@
         (vars.get('all_apt_repositories_' + ansible_distribution, []) | default([])) +
         (vars.get('group_apt_repositories_' + ansible_distribution, []) | default([])) +
         (vars.get('host_apt_repositories_' + ansible_distribution, []) | default([])) +
-        (packages_apt.repositories | default([]))
+        ((packages[ansible_distribution].settings.repositories if packages[ansible_distribution] is defined else []) | default([]))
         | unique | list
       }}
 
@@ -81,19 +81,14 @@
   ansible.builtin.set_fact:
     merged_apt_packages_install: >-
       {{
-        (vars.get('all_packages_install_' + ansible_distribution, []) | default([])) +
-        (vars.get('group_packages_install_' + ansible_distribution, []) | default([])) +
-        (vars.get('host_packages_install_' + ansible_distribution, []) | default([])) +
-        (packages_apt.packages.install | default([]))
+        ((packages[ansible_distribution].all if packages[ansible_distribution] is defined else []) | default([])) +
+        ((packages[ansible_distribution].group if packages[ansible_distribution] is defined else []) | default([])) +
+        ((packages[ansible_distribution].host if packages[ansible_distribution] is defined else []) | default([]))
         | unique | list
       }}
     merged_apt_packages_remove: >-
       {{
-        (vars.get('all_packages_remove_' + ansible_distribution, []) | default([])) +
-        (vars.get('group_packages_remove_' + ansible_distribution, []) | default([])) +
-        (vars.get('host_packages_remove_' + ansible_distribution, []) | default([])) +
-        (packages_apt.packages.remove | default([]))
-        | unique | list
+        (packages[ansible_distribution].remove if packages[ansible_distribution] is defined else []) | default([]) | unique | list
       }}
 
 - name: Install packages via APT
@@ -113,12 +108,12 @@
 - name: Update APT cache
   ansible.builtin.apt:
     update_cache: true
-    cache_valid_time: "{{ packages_apt.apt_cache.valid_time }}"
+    cache_valid_time: "{{ packages[ansible_distribution].settings.apt_cache.valid_time | default(3600) if packages[ansible_distribution] is defined else 3600 }}"
   become: true
-  when: packages_apt.apt_cache['update']
+  when: (packages[ansible_distribution].settings.apt_cache.update_cache | default(true)) if packages[ansible_distribution] is defined else true
 
 - name: Upgrade all APT packages
   ansible.builtin.apt:
-    upgrade: "{{ packages_apt.system_upgrade.type }}"
+    upgrade: "{{ packages[ansible_distribution].settings.system_upgrade.type | default('safe') if packages[ansible_distribution] is defined else 'safe' }}"
   become: true
-  when: packages_apt.system_upgrade.enable
+  when: (packages[ansible_distribution].settings.system_upgrade.enable | default(false)) if packages[ansible_distribution] is defined else false

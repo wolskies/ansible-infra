@@ -2,37 +2,63 @@
 # =============================================================================
 # PACKAGE MANAGEMENT ROLE VARIABLES
 # =============================================================================
+# Unified package structure organized by distribution
+# Packages are merged in order: all -> group -> host
+# Settings control package manager behavior per distribution
+# =============================================================================
 
-packages_apt:
-  apt_cache:
-    update: true
-    valid_time: 3600
-  system_upgrade:
-    enable: false
-    type: safe
-  repositories: []
-  packages:
-    install: []
-    remove: []
+packages:
+  Ubuntu:
+    all: [] # Global packages for all Ubuntu machines
+    group: [] # Group-specific packages for Ubuntu
+    host: [] # Host-specific packages for Ubuntu
+    remove: [] # Packages to remove
+    settings:
+      apt_cache:
+        update_cache: true
+        valid_time: 3600
+      system_upgrade:
+        enable: false
+        type: safe # safe, full, or dist
+      repositories: [] # APT repositories to configure
 
-packages_pacman:
-  multilib: true
-  enable_aur: true
-  aur_helper: paru
-  config_reflector: true
-  packages:
-    install: []
-    remove: []
+  Debian:
+    all: [] # Global packages for all Debian machines
+    group: [] # Group-specific packages for Debian
+    host: [] # Host-specific packages for Debian
+    remove: [] # Packages to remove
+    settings:
+      apt_cache:
+        update_cache: true
+        valid_time: 3600
+      system_upgrade:
+        enable: false
+        type: safe # safe, full, or dist
+      repositories: [] # APT repositories to configure
 
-packages_homebrew:
-  homebrew:
-    install: true
-    update: true
-    cleanup_cache: false
-    taps: []
+  Archlinux:
+    all: [] # Global packages for all Arch machines (includes AUR if enabled)
+    group: [] # Group-specific packages for Arch (includes AUR if enabled)
+    host: [] # Host-specific packages for Arch (includes AUR if enabled)
+    remove: [] # Packages to remove
+    settings:
+      multilib: true
+      enable_aur: true # When true, attempts to install packages from AUR if not in official repos
+      aur_helper: paru
+      config_reflector: true
+
+  MacOSX:
+    all: [] # Global packages for all macOS machines
+    group: [] # Group-specific packages for macOS
+    host: [] # Host-specific packages for macOS
+    remove: [] # Packages to remove
     casks:
-      install: []
-      remove: []
-    packages:
-      install: []
-      remove: []
+      all: [] # Global casks for all macOS machines
+      group: [] # Group-specific casks
+      host: [] # Host-specific casks
+      remove: [] # Casks to remove
+    settings:
+      install: true # Install Homebrew if not present
+      update_homebrew: true # Update Homebrew before installing packages
+      cleanup_cache: false # Clean up Homebrew cache after installation
+      taps: [] # Homebrew taps to add

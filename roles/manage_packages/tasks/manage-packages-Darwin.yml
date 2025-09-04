@@ -44,49 +44,35 @@
       when: homebrew_install.rc == 0
   when:
     - homebrew_path == ""
-    - packages_macos.homebrew.install | default(true)
+    - packages.MacOSX.settings.install | default(true)
 
 - name: Merge Homebrew configuration from all sources
   ansible.builtin.set_fact:
     merged_homebrew_taps: >-
       {{
-        (vars.get('all_packages_homebrew_taps_' + ansible_distribution, []) | default([])) +
-        (vars.get('group_packages_homebrew_taps_' + ansible_distribution, []) | default([])) +
-        (vars.get('host_packages_homebrew_taps_' + ansible_distribution, []) | default([])) +
-        (packages_macos.homebrew.taps | default([]))
-        | unique | list
+        packages.MacOSX.settings.taps | default([]) | unique | list
       }}
     merged_homebrew_packages_install: >-
       {{
-        (vars.get('all_packages_install_' + ansible_distribution, []) | default([])) +
-        (vars.get('group_packages_install_' + ansible_distribution, []) | default([])) +
-        (vars.get('host_packages_install_' + ansible_distribution, []) | default([])) +
-        (packages_macos.homebrew.packages.install | default([]))
+        (packages.MacOSX.all | default([])) +
+        (packages.MacOSX.group | default([])) +
+        (packages.MacOSX.host | default([]))
         | unique | list
       }}
     merged_homebrew_packages_remove: >-
       {{
-        (vars.get('all_packages_remove_' + ansible_distribution, []) | default([])) +
-        (vars.get('group_packages_remove_' + ansible_distribution, []) | default([])) +
-        (vars.get('host_packages_remove_' + ansible_distribution, []) | default([])) +
-        (packages_macos.homebrew.packages.remove | default([]))
-        | unique | list
+        packages.MacOSX.remove | default([]) | unique | list
       }}
     merged_homebrew_casks_install: >-
       {{
-        (vars.get('all_packages_homebrew_casks_install_' + ansible_distribution, []) | default([])) +
-        (vars.get('group_packages_homebrew_casks_install_' + ansible_distribution, []) | default([])) +
-        (vars.get('host_packages_homebrew_casks_install_' + ansible_distribution, []) | default([])) +
-        (packages_macos.homebrew.casks.install | default([]))
+        (packages.MacOSX.casks.all | default([])) +
+        (packages.MacOSX.casks.group | default([])) +
+        (packages.MacOSX.casks.host | default([]))
         | unique | list
       }}
     merged_homebrew_casks_remove: >-
       {{
-        (vars.get('all_packages_homebrew_casks_remove_' + ansible_distribution, []) | default([])) +
-        (vars.get('group_packages_homebrew_casks_remove_' + ansible_distribution, []) | default([])) +
-        (vars.get('host_packages_homebrew_casks_remove_' + ansible_distribution, []) | default([])) +
-        (packages_macos.homebrew.casks.remove | default([]))
-        | unique | list
+        packages.MacOSX.casks.remove | default([]) | unique | list
       }}
 
 - name: Add Homebrew taps
@@ -105,7 +91,7 @@
     path: "{{ homebrew_path | dirname }}"
   when:
     - homebrew_path != ""
-    - packages_macos.homebrew.update | default(true)
+    - packages.MacOSX.settings.update_homebrew | default(true)
 
 - name: Install packages via Homebrew
   community.general.homebrew:
@@ -149,4 +135,4 @@
   changed_when: "'Removing:' in homebrew_cleanup.stdout"
   when:
     - homebrew_path != ""
-    - packages_macos.homebrew.cleanup_cache | default(false)
+    - packages.MacOSX.settings.cleanup_cache | default(false)

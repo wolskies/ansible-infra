@@ -12,8 +12,6 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-    groups:
-      - servers
   - name: debian-packages-test
     image: geerlingguy/docker-debian12-ansible:latest
     pre_build_image: true
@@ -22,100 +20,84 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-    groups:
-      - workstations
 provisioner:
   name: ansible
   inventory:
     group_vars:
       all:
-        # Test hierarchical merging - all level
-        all_packages_install_Ubuntu:
-          - curl
-          - git
-          - htop
-        all_packages_install_Debian:
-          - curl
-          - git
-          - htop
-        # Test APT repositories - all level (modern deb822 format)
-        all_apt_repositories_Ubuntu:
-          - name: docker
-            types: deb
-            uris: https://download.docker.com/linux/ubuntu
-            suites: jammy
-            components: [stable]
-            signed_by: https://download.docker.com/linux/ubuntu/gpg
-            state: present
-            enabled: true
-        all_apt_repositories_Debian:
-          - name: docker
-            types: deb
-            uris: https://download.docker.com/linux/debian
-            suites: bookworm
-            components: [stable]
-            signed_by: https://download.docker.com/linux/debian/gpg
-            state: present
-            enabled: true
-      servers:
-        # Test hierarchical merging - group level
-        group_packages_install_Ubuntu:
-          - nginx
-          - certbot
-        group_packages_install_Debian:
-          - nginx
-          - certbot
-        # Test group-level repositories (modern deb822 format)
-        group_apt_repositories_Ubuntu:
-          - name: nodejs
-            types: deb
-            uris: https://deb.nodesource.com/node_18.x
-            suites: jammy
-            components: [main]
-            signed_by: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
-            state: present
-            enabled: true
-      workstations:
-        # Test different group packages
-        group_packages_install_Debian:
-          - firefox-esr
-          - libreoffice
+        # Base package structure - define for all distributions
+        packages:
+          Ubuntu:
+            all:
+              - curl
+              - git
+              - htop
+            group: [] # Empty, will add via combine
+            host: [] # Empty, will add via combine
+            remove: [] # Empty, will add via combine
+            settings:
+              apt_cache:
+                update_cache: true
+                valid_time: 3600
+              system_upgrade:
+                enable: false
+                type: safe
+              repositories:
+                - name: docker
+                  types: deb
+                  uris: https://download.docker.com/linux/ubuntu
+                  suites: jammy
+                  components: [stable]
+                  signed_by: https://download.docker.com/linux/ubuntu/gpg
+                  state: present
+                  enabled: true
+          Debian:
+            all:
+              - curl
+              - git
+              - htop
+            group: [] # Empty, will add via combine
+            host: [] # Empty, will add via combine
+            remove: [] # Empty, will add via combine
+            settings:
+              apt_cache:
+                update_cache: true
+                valid_time: 3600
+              system_upgrade:
+                enable: false
+                type: safe
+              repositories: []
+
     host_vars:
       ubuntu-packages-test:
-        # Test hierarchical merging - host level
-        host_packages_install_Ubuntu:
-          - redis-server
-          - net-tools
-        # Test host-level repositories (simplified to avoid dependency conflicts)
-        host_apt_repositories_Ubuntu: []
-        # Test removal packages
-        all_packages_remove_Ubuntu:
-          - nano
+        # Test hierarchical merging for Ubuntu
+        packages:
+          Ubuntu:
+            group:
+              - nginx
+              - vim
+            host:
+              - jq
+            remove:
+              - nano
+
       debian-packages-test:
-        # Test host-level packages for Debian
-        host_packages_install_Debian:
-          - vim
-          - tree
-        # Test package removal
-        all_packages_remove_Debian:
-          - nano
+        # Test hierarchical merging for Debian
+        packages:
+          Debian:
+            group:
+              - vim
+              - tree
+            host:
+              - wget
+            remove:
+              - nano
+
   config_options:
     defaults:
       host_key_checking: false
       stdout_callback: yaml
-scenario:
-  test_sequence:
-    - dependency
-    - cleanup
-    - destroy
-    - syntax
-    - create
-    - prepare
-    - converge
-    - side_effect
-    - verify
-    - cleanup
-    - destroy
-  # Skip idempotence due to GPG key downloads and temporary file cleanup showing as changed
+      # Enable deep hash merging for testing
+      hash_behaviour: merge
 verifier:
   name: ansible
