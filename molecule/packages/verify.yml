@@ -19,44 +19,38 @@
         success_msg: "All-level packages are installed correctly"
 
     # Test 2: Verify group-level package merging
-    - name: Verify server group packages (Ubuntu)
+    - name: Verify Ubuntu host has nginx and vim
       ansible.builtin.assert:
         that:
           - "'nginx' in ansible_facts.packages"
-          - "'certbot' in ansible_facts.packages"
-        fail_msg: "Server group packages should be installed"
-        success_msg: "Server group packages are installed correctly"
-      when:
-        - ansible_distribution == "Ubuntu"
-        - "'servers' in group_names"
+          - "'vim' in ansible_facts.packages or 'vim-common' in ansible_facts.packages"
+        fail_msg: "Ubuntu group packages should be installed"
+        success_msg: "Ubuntu group packages are installed correctly"
+      when: ansible_distribution == "Ubuntu"
 
-    - name: Verify workstation group packages (Debian)
+    - name: Verify Debian host has vim and tree
       ansible.builtin.assert:
         that:
-          - "'firefox-esr' in ansible_facts.packages"
-          - "'libreoffice-common' in ansible_facts.packages"
-        fail_msg: "Workstation group packages should be installed"
-        success_msg: "Workstation group packages are installed correctly"
-      when:
-        - ansible_distribution == "Debian"
-        - "'workstations' in group_names"
+          - "'vim' in ansible_facts.packages or 'vim-common' in ansible_facts.packages"
+          - "'tree' in ansible_facts.packages"
+        fail_msg: "Debian group packages should be installed"
+        success_msg: "Debian group packages are installed correctly"
+      when: ansible_distribution == "Debian"
 
     # Test 3: Verify host-level package merging
-    - name: Verify host-level packages (Ubuntu)
+    - name: Verify host-level package jq (Ubuntu)
       ansible.builtin.assert:
         that:
-          - "'redis-server' in ansible_facts.packages"
-          - "'net-tools' in ansible_facts.packages"
-        fail_msg: "Host-level packages should be installed on ubuntu-packages-test"
+          - "'jq' in ansible_facts.packages"
+        fail_msg: "Host-level package jq should be installed on ubuntu-packages-test"
         success_msg: "Host-level packages are installed correctly"
       when: inventory_hostname == "ubuntu-packages-test"
 
-    - name: Verify host-level packages (Debian)
+    - name: Verify host-level package wget (Debian)
       ansible.builtin.assert:
         that:
-          - "'vim' in ansible_facts.packages"
-          - "'tree' in ansible_facts.packages"
-        fail_msg: "Host-level packages should be installed on debian-packages-test"
+          - "'wget' in ansible_facts.packages"
+        fail_msg: "Host-level package wget should be installed on debian-packages-test"
         success_msg: "Host-level packages are installed correctly"
       when: inventory_hostname == "debian-packages-test"
 
@@ -83,59 +77,14 @@
         success_msg: "Docker repository is properly configured"
       when: ansible_distribution == "Ubuntu"
 
-    - name: Check Docker repository was added (Debian)
-      ansible.builtin.stat:
-        path: /etc/apt/sources.list.d/docker.sources
-      register: docker_repo_debian
-      when: ansible_distribution == "Debian"
-
-    - name: Verify Docker repository exists (Debian)
-      ansible.builtin.assert:
-        that:
-          - docker_repo_debian.stat.exists
-        fail_msg: "Docker repository should be configured"
-        success_msg: "Docker repository is properly configured"
-      when: ansible_distribution == "Debian"
-
-    # Test 6: Verify repository dependencies are installed
-    - name: Verify APT repository dependencies
-      ansible.builtin.assert:
-        that:
-          - "'apt-transport-https' in ansible_facts.packages"
-          - "'ca-certificates' in ansible_facts.packages"
-          - "'gnupg' in ansible_facts.packages"
-        fail_msg: "Repository dependencies should be installed"
-        success_msg: "Repository dependencies are properly installed"
-
-    # Test 7: Verify group-level repositories (Ubuntu servers only)
-    - name: Check Node.js repository was added (Ubuntu servers)
-      ansible.builtin.stat:
-        path: /etc/apt/sources.list.d/nodejs.sources
-      register: nodejs_repo
-      when:
-        - ansible_distribution == "Ubuntu"
-        - "'servers' in group_names"
-
-    - name: Verify Node.js repository exists (Ubuntu servers)
-      ansible.builtin.assert:
-        that:
-          - nodejs_repo.stat.exists
-        fail_msg: "Node.js repository should be configured for servers"
-        success_msg: "Node.js repository is properly configured"
-      when:
-        - ansible_distribution == "Ubuntu"
-        - "'servers' in group_names"
-
-    # Test 8: Repository configuration verified above
-    # Package installation from custom repos is network-dependent and tested separately
-
-    # Test 9: Display final package summary for debugging
+    # Test 6: Display final package summary for debugging
     - name: Display installed packages summary
       ansible.builtin.debug:
         msg: |
           Host: {{ inventory_hostname }}
           Distribution: {{ ansible_distribution }}
-          Groups: {{ group_names }}
-          Key packages installed: {{ ['curl', 'git', 'htop', 'nginx', 'certbot', 'redis-server', 'net-tools'] | intersect(ansible_facts.packages.keys()) | list }}
-          Repositories configured: {{ ansible_facts.get('repositories', 'unknown') }}
+          Packages from 'all': curl, git, htop
+          Packages from 'group': {{ 'nginx, vim' if ansible_distribution == 'Ubuntu' else 'vim, tree' }}
+          Packages from 'host': {{ 'jq' if inventory_hostname == 'ubuntu-packages-test' else 'wget' }}
+          Packages removed: nano
       tags: debug

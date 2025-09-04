@@ -58,17 +58,20 @@ provisioner:
             comment: "System Operator"
             create_home: true
 
-        # Global packages
-        all_packages_install_Ubuntu:
-          - curl
-          - git
-          - htop
-          - vim
-        all_packages_install_Debian:
-          - curl
-          - git
-          - htop
-          - vim
+        # Global packages (new unified structure)
+        packages:
+          Ubuntu:
+            all:
+              - curl
+              - git
+              - htop
+              - vim
+          Debian:
+            all:
+              - curl
+              - git
+              - htop
+              - vim
 
         # Global security
         security_services:
@@ -96,10 +99,12 @@ provisioner:
 
       servers:
         # Server-specific configuration
-        group_packages_install_Ubuntu:
-          - nginx
-          - certbot
-          - htop
+        packages:
+          Ubuntu:
+            group:
+              - nginx
+              - certbot
+              - htop
 
         # Enable optional components for servers
         configure_system:
@@ -143,10 +148,12 @@ provisioner:
 
       workstations:
         # Workstation-specific packages
-        group_packages_install_Debian:
-          - firefox-esr
-          - libreoffice-writer
-          - code
+        packages:
+          Debian:
+            group:
+              - firefox-esr
+              - libreoffice-writer
+              - code
 
         # Workstation user configuration
         users_config:
@@ -177,9 +184,11 @@ provisioner:
     host_vars:
       server-integration-test:
         # Server-specific host configuration
-        host_packages_install_Ubuntu:
-          - redis-server
-          - postgresql-client
+        packages:
+          Ubuntu:
+            host:
+              - redis-server
+              - postgresql-client
 
         # Server-specific users
         users_config:
@@ -200,9 +209,11 @@ provisioner:
 
       workstation-integration-test:
         # Workstation-specific host configuration
-        host_packages_install_Debian:
-          - gimp
-          - inkscape
+        packages:
+          Debian:
+            host:
+              - gimp
+              - inkscape
 
         # Development user with dotfiles
         users_config:
