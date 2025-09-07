@@ -5,9 +5,9 @@
   ansible.builtin.include_tasks: manage-flatpak.yml
   when:
     - ansible_os_family in ["Debian", "Archlinux"]
-    - infrastructure[ansible_distribution] is defined
-    - infrastructure[ansible_distribution].flatpak.enabled | default(false)
+    - infrastructure.host.flatpak is defined
+    - infrastructure.host.flatpak.enabled
     - >-
-      (infrastructure[ansible_distribution].flatpak.packages.install | default([]) | length > 0) or
-      (infrastructure[ansible_distribution].flatpak.packages.remove | default([]) | length > 0)
+      (infrastructure.host.flatpak.packages.install | length > 0) or
+      (infrastructure.host.flatpak.packages.remove | length > 0)
   tags: []

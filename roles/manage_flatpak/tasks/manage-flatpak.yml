@@ -25,7 +25,7 @@
   become: true
   when:
     - ansible_os_family == "Debian"
-    - infrastructure.host.flatpak.plugins.gnome | default(false)
+    - infrastructure.host.flatpak.plugins.gnome
   failed_when: false
   tags: []
 
@@ -36,7 +36,7 @@
   become: true
   when:
     - ansible_os_family == "Debian"
-    - infrastructure.host.flatpak.plugins.plasma | default(false)
+    - infrastructure.host.flatpak.plugins.plasma
   failed_when: false
   tags: []
 
@@ -47,7 +47,7 @@
   become: true
   when:
     - ansible_os_family == "Archlinux"
-    - infrastructure.host.flatpak.plugins.gnome | default(false)
+    - infrastructure.host.flatpak.plugins.gnome
   failed_when: false
   tags: []
 
@@ -58,7 +58,7 @@
   become: true
   when:
     - ansible_os_family == "Archlinux"
-    - infrastructure.host.flatpak.plugins.plasma | default(false)
+    - infrastructure.host.flatpak.plugins.plasma
   failed_when: false
   tags: []
 
@@ -69,7 +69,7 @@
     flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
     method: system
   become: true
-  when: infrastructure.host.flatpak.flathub | default(true)
+  when: infrastructure.host.flatpak.flathub
   tags: []
 
 - name: Remove flatpak packages
@@ -77,9 +77,9 @@
     name: "{{ item }}"
     state: absent
     method: system
-  loop: "{{ infrastructure.host.flatpak.packages.remove | default([]) }}"
+  loop: "{{ infrastructure.host.flatpak.packages.remove }}"
   become: true
-  when: infrastructure.host.flatpak.packages.remove | default([]) | length > 0
+  when: infrastructure.host.flatpak.packages.remove | length > 0
   tags: []
 
 - name: Install flatpak packages
@@ -87,7 +87,7 @@
     name: "{{ item }}"
     state: present
     method: system
-  loop: "{{ infrastructure.host.flatpak.packages.install | default([]) }}"
+  loop: "{{ infrastructure.host.flatpak.packages.install }}"
   become: true
-  when: infrastructure.host.flatpak.packages.install | default([]) | length > 0
+  when: infrastructure.host.flatpak.packages.install | length > 0
   tags: []

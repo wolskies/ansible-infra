@@ -104,8 +104,7 @@
     - name: Verify SSH keys are properly configured
       ansible.builtin.assert:
         that:
-          - "'ssh-ed25519' in (item.content | b64decode)" when item.item == "testuser1"
-          - "'ssh-rsa' in (item.content | b64decode)" when item.item == "testuser2"
+          - "(item.item == 'testuser1' and 'ssh-ed25519' in (item.content | b64decode)) or (item.item == 'testuser2' and 'ssh-rsa' in (item.content | b64decode))"
         fail_msg: "SSH key not properly configured for {{ item.item }}"
         success_msg: "SSH key properly configured for {{ item.item }}"
       loop: "{{ ssh_key_content.results }}"

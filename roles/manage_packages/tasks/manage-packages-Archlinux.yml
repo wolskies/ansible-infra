@@ -23,9 +23,9 @@
     name: "{{ merged_packages_install }}"
     state: present
   become: true
-  when: 
+  when:
     - merged_packages_install | length > 0
-    - not (infrastructure.host.packages.pacman.enable_aur | default(true))
+    - not infrastructure.host.packages.pacman.enable_aur
 
 - name: Install packages (AUR enabled - use paru)
   block:
@@ -48,7 +48,7 @@
       failed_when: paru_result.rc != 0
   when:
     - merged_packages_install | length > 0
-    - infrastructure.host.packages.pacman.enable_aur | default(true)
+    - infrastructure.host.packages.pacman.enable_aur
 
 - name: Gather package facts (Arch Linux)
   ansible.builtin.package_facts:

@@ -17,8 +17,8 @@
     create_home: "{{ item.create_home | default(omit) }}"
     groups: "{{ item.groups | default(omit) }}"
     append: true
-  loop: "{{ infrastructure.domain.users | default([]) }}"
-  when: infrastructure.domain.users | default([]) | length > 0
+  loop: "{{ infrastructure.domain.users }}"
+  when: infrastructure.domain.users | length > 0
 
 - name: Add SSH public keys for users
   become: true
@@ -26,9 +26,9 @@
     user: "{{ item.name }}"
     key: "{{ item.ssh_pubkey }}"
     state: present
-  loop: "{{ infrastructure.domain.users | default([]) }}"
+  loop: "{{ infrastructure.domain.users }}"
   when:
-    - infrastructure.domain.users | default([]) | length > 0
+    - infrastructure.domain.users | length > 0
     - item.state | default('present') == 'present'
     - item.ssh_pubkey is defined
     - item.ssh_pubkey is not none
@@ -42,5 +42,5 @@
     name: "{{ item }}"
     state: absent
     remove: true
-  loop: "{{ infrastructure.domain.users_absent | default([]) }}"
-  when: infrastructure.domain.users_absent | default([]) | length > 0
+  loop: "{{ infrastructure.domain.users_absent }}"
+  when: infrastructure.domain.users_absent | length > 0

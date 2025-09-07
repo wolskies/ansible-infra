@@ -47,7 +47,7 @@
         name: "{{ item }}"
         global: true
       loop: "{{ current_user_config.nodejs.packages }}"
-  when: 
+  when:
     - current_user_config.nodejs is defined
     - current_user_config.nodejs.packages is defined
   tags:

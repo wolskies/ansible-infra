@@ -1,27 +1,29 @@
 ---
 # =============================================================================
-# OS CONFIGURATION
+# OS CONFIGURATION ROLE VARIABLES
+# =============================================================================
+# This role handles domain-level and host-level OS configuration including
+# hostname, timezone, locale, NTP, logging, services, and system optimizations
+# Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
 infrastructure:
   domain:
-    name: ""                      
-    timezone: "UTC"                 
-    locale: "en_US.UTF-8"      
-    language: "en_US.UTF-8"    
+    name: ""
+    timezone: "UTC"
+    locale: "en_US.UTF-8"
+    language: "en_US.UTF-8"
     ntp:
-      enabled: true                
+      enabled: true
       servers:
         - 0.pool.ntp.org
         - 1.pool.ntp.org
         - 2.pool.ntp.org
         - 3.pool.ntp.org
-    users: [] 
   host:
-    hostname: ""                
-    update_hosts: true   
-
-  Ubuntu:
+    hostname: ""
+    computer_name: "" # Darwin only
+    update_hosts: true
     journal:
       configure: true
       max_size: "500M"
@@ -34,8 +36,8 @@ infrastructure:
       remote_port: 514
       protocol: "udp"
     services:
-      enable: [] 
-      disable: [] 
+      enable: []
+      disable: []
     optimizations:
       tune_swappiness: false
       swappiness: 10
@@ -59,87 +61,23 @@ infrastructure:
       # blacklist: [nouveau]
     snap:
       remove_completely: false
-    unattended_upgrades:
-      enabled: true
-      email: ""
-      auto_reboot: false
-      reboot_with_users: false
-      reboot_time: "02:00"
-    apt:
-      no_recommends: false
-      proxy: ""
-      
-  Debian:
-    journal:
-      configure: true
-      max_size: "500M"
-      max_retention: "30d"
-      forward_to_syslog: false
-      compress: true
-    rsyslog:
-      enabled: false
-      remote_host: ""
-      remote_port: 514
-      protocol: "udp"
-    services:
-      enable: []
-      disable: []
-    optimizations:
-      tune_swappiness: false
-      swappiness: 10
-    sysctl:
-      parameters: {}
-    limits:
-      limits: []
-    modules:
-      load: []
-      blacklist: []
-    snap:
-      remove_completely: false
-    unattended_upgrades:
-      enabled: true
-      email: ""
-      auto_reboot: false
-      reboot_with_users: false
-      reboot_time: "02:00"
-    apt:
-      no_recommends: false
-      proxy: ""
-      
-  Archlinux:
-    journal:
-      configure: true
-      max_size: "500M"
-      max_retention: "30d"
-      forward_to_syslog: false
-      compress: true
-    rsyslog:
-      enabled: false
-      remote_host: ""
-      remote_port: 514
-      protocol: "udp"
-    services:
-      enable: []
-      disable: []
-    optimizations:
-      tune_swappiness: false
-      swappiness: 10
-    sysctl:
-      parameters: {}
-    limits:
-      limits: []
-    modules:
-      load: []
-      blacklist: []
-    pacman:
-      no_confirms: false
-      proxy: ""
-      multilib: false
-      
-  Darwin:
-    computer_name: ""       
-    updates:
-      auto_check: true
-      auto_download: true
-    gatekeeper:
-      enabled: true          
+    packages:
+      apt:
+        no_recommends: false
+        proxy: ""
+        unattended_upgrades:
+          enabled: true
+          email: ""
+          auto_reboot: false
+          reboot_with_users: false
+          reboot_time: "02:00"
+      pacman:
+        no_confirms: false
+        proxy: ""
+        multilib: false
+      macosx:
+        updates:
+          auto_check: true
+          auto_download: true
+        gatekeeper:
+          enabled: true

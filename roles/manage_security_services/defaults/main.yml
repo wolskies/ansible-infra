@@ -2,15 +2,19 @@
 # =============================================================================
 # SECURITY SERVICES ROLE VARIABLES
 # =============================================================================
-# Distribution-specific security services configuration
+# Firewall and fail2ban configuration for Linux and macOS
+# Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
 infrastructure:
-  Ubuntu:
+  host:
     firewall:
       enabled: false
       prevent_ssh_lockout: true
       package: "ufw"
+      stealth_mode: false
+      block_all: false
+      logging: false
       rules: []
       # Rule examples:
       # - rule: allow
@@ -35,63 +39,3 @@ infrastructure:
       ignoreips:
         - "127.0.0.1/8"
         - "::1"
-        
-  Debian:
-    firewall:
-      enabled: false
-      prevent_ssh_lockout: true
-      package: "ufw"
-      rules: []
-    fail2ban:
-      enabled: false
-      sender: "root@localhost"
-      dest_email: ""
-      defaults:
-        bantime: 3600
-        findtime: 600
-        maxretry: 5
-      services:
-        - name: sshd
-          enabled: true
-          maxretry: 5
-          bantime: 3600
-          findtime: 600
-          logpath: /var/log/auth.log
-      ignoreips:
-        - "127.0.0.1/8"
-        - "::1"
-        
-  Archlinux:
-    firewall:
-      enabled: false
-      prevent_ssh_lockout: true
-      package: "ufw"
-      rules: []
-    fail2ban:
-      enabled: false
-      sender: "root@localhost"
-      dest_email: ""
-      defaults:
-        bantime: 3600
-        findtime: 600
-        maxretry: 5
-      services:
-        - name: sshd
-          enabled: true
-          maxretry: 5
-          bantime: 3600
-          findtime: 600
-          logpath: /var/log/auth.log
-      ignoreips:
-        - "127.0.0.1/8"
-        - "::1"
-        
-  Darwin:
-    firewall:
-      enabled: false
-      package: "macos_alf"
-      stealth_mode: false
-      block_all: false
-      logging: false
-    # Note: fail2ban not supported on macOS
-

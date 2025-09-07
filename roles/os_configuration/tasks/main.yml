@@ -3,7 +3,8 @@
   community.general.timezone:
     name: "{{ infrastructure.domain.timezone }}"
   become: true
-  when: 
+  when:
+    - infrastructure.domain is defined
     - infrastructure.domain.timezone is defined
     - infrastructure.domain.timezone | length > 0
   tags:
@@ -17,7 +18,7 @@
         src: /etc/hosts
         dest: /etc/hosts.backup.{{ ansible_date_time.epoch }}
         owner: root
-        group: wheel
+        group: "{{ 'wheel' if ansible_system == 'Darwin' else 'root' }}"
         mode: "0644"
         remote_src: true
       become: true
@@ -29,10 +30,14 @@
         line: "127.0.0.1\tlocalhost {{ infrastructure.host.hostname }}.{{ infrastructure.domain.name }} {{ infrastructure.host.hostname }}"
         create: false
       become: true
-  when: 
-    - infrastructure.host.update_hosts | default(true)
+  when:
+    - infrastructure.host is defined
+    - infrastructure.host.update_hosts is defined
+    - infrastructure.host.update_hosts
     - infrastructure.host.hostname is defined
     - infrastructure.host.hostname | length > 0
+    - infrastructure.domain is defined
+    - infrastructure.domain.name is defined
 
 - name: Include OS-specific configuration
   ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml

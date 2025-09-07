@@ -20,32 +20,5 @@ infrastructure:
     #   create_home: true           # Optional: create home directory
     #   state: present              # Optional: present (default) or absent
     #
-    #   # Cross-platform user preferences (handled by configure_user role)
-    #   git:
-    #     user_name: "Alice Smith"
-    #     user_email: "alice@company.com"
-    #   nodejs:
-    #     packages: [typescript, eslint, prettier]
-    #   rust:
-    #     packages: [ripgrep, fd-find, bat]
-    #   go:
-    #     packages: [github.com/charmbracelet/glow@latest]
-    #
-    #   # OS-specific preferences (handled by configure_user role)
-    #   Ubuntu:
-    #     shell: /usr/bin/zsh
-    #     dotfiles:
-    #       repository: "https://github.com/alice/dotfiles-linux"
-    #       method: stow
-    #       packages: [zsh, tmux, vim]
-    #   Darwin:
-    #     shell: /opt/homebrew/bin/zsh
-    #     dotfiles:
-    #       repository: "https://github.com/alice/dotfiles-macos"
-    #       method: stow
-    #       packages: [zsh, tmux, vim, macos]
-    #     dock:
-    #       tile_size: 48
-    #       autohide: true
-    
-    users_absent: []              # List of usernames to remove (for migration)
+
+    users_absent: [] # List of usernames to remove (for migration)

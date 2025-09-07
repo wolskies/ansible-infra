@@ -19,25 +19,26 @@ provisioner:
   inventory:
     group_vars:
       all:
-        # Test snap management using new infrastructure structure
+        # Test snap management using infrastructure structure
         infrastructure:
-          Ubuntu:
+          host:
             snap:
-              disable_and_remove: false  # Keep snap enabled for testing
+              disable_and_remove: false # Keep snap enabled for testing
               packages:
                 install:
                   - hello-world
                 remove: []
     host_vars:
       ubuntu-snap-test:
-        # Host-specific snap configuration
+        # Complete infrastructure structure with host-specific snap configuration
         infrastructure:
-          Ubuntu:
+          host:
             snap:
+              disable_and_remove: false # Keep snap enabled for testing
               packages:
                 install:
                   - hello-world
-                  - core  # Test additional package
+                  - core # Test additional package
                 remove: []
   config_options:
     defaults:

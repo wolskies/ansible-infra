@@ -21,12 +21,12 @@
 
 infrastructure:
   domain:
-    name: ""                      
-    timezone: "UTC"                 
-    locale: "en_US.UTF-8"      
-    language: "en_US.UTF-8"    
+    name: ""
+    timezone: "UTC"
+    locale: "en_US.UTF-8"
+    language: "en_US.UTF-8"
     ntp:
-      enabled: true                
+      enabled: true
       servers:
         - 0.pool.ntp.org
         - 1.pool.ntp.org
@@ -34,20 +34,20 @@ infrastructure:
         - 3.pool.ntp.org
     users: []
     # Example user with cross-platform and OS-specific preferences:
-    # - name: alice                 
-    #   comment: "Alice Developer"  
-    #   groups: [sudo, docker]      
-    #   ssh_pubkey: "ssh-ed25519 AAAAC3..." 
-    #   password: "plaintext"       
+    # - name: alice
+    #   comment: "Alice Developer"
+    #   groups: [sudo, docker]
+    #   ssh_pubkey: "ssh-ed25519 AAAAC3..."
+    #   password: "plaintext"
     #   uid: 1001                   # Optional: specific user ID
     #   home: "/custom/home"        # Optional: home directory path
     #   create_home: true           # Optional: create home directory
     #   state: present              # Optional: present (default) or absent
     #   shell: /usr/bin/zsh
-  #     dotfiles:
-  #       repository: "https://github.com/alice/dotfiles-linux"
-  #       method: stow
-  #       packages: [zsh, tmux, vim]
+    #     dotfiles:
+    #       repository: "https://github.com/alice/dotfiles-linux"
+    #       method: stow
+    #       packages: [zsh, tmux, vim]
     #   git:
     #     user_name: "Alice Smith"
     #     user_email: "alice@company.com"
@@ -61,12 +61,12 @@ infrastructure:
     #     dock:
     #       tile_size: 48
     #       autohide: true
-    
-    users_absent: []              # List of usernames to remove (for migration)
+
+    users_absent: [] # List of usernames to remove (for migration)
   host:
     hostname: ""
-    computer_name: ""             # Darwin only               
-    update_hosts: true   
+    computer_name: "" # Darwin only
+    update_hosts: true
     journal:
       configure: true
       max_size: "500M"
@@ -79,8 +79,8 @@ infrastructure:
       remote_port: 514
       protocol: "udp"
     services:
-      enable: [] 
-      disable: [] 
+      enable: []
+      disable: []
     optimizations:
       tune_swappiness: false
       swappiness: 10
@@ -133,44 +133,44 @@ infrastructure:
       ignoreips:
         - "127.0.0.1/8"
         - "::1"
-    packages:  
+    packages:
       present:
         all:
           Ubuntu: []
           Debian: []
           Archlinux: []
-          MacOSX: [] 
+          MacOSX: []
         group:
           Ubuntu: []
           Debian: []
           Archlinux: []
-          MacOSX: [] 
+          MacOSX: []
         host:
           Ubuntu: []
           Debian: []
           Archlinux: []
-          MacOSX: []  
+          MacOSX: []
       remove:
-        all: 
+        all:
           Ubuntu: []
           Debian: []
           Archlinux: []
-          MacOSX: [] 
-        group: 
+          MacOSX: []
+        group:
           Ubuntu: []
           Debian: []
           Archlinux: []
-          MacOSX: [] 
-        host: 
+          MacOSX: []
+        host:
           Ubuntu: []
           Debian: []
           Archlinux: []
-          MacOSX: [] 
+          MacOSX: []
       casks_present:
         all: []
         group: []
-        host: [] 
-      casks_remove: [] 
+        host: []
+      casks_remove: []
       apt:
         apt_cache:
           update_cache: true
@@ -187,10 +187,10 @@ infrastructure:
           type: safe
         proxy: ""
         repositories:
-          all: 
+          all:
             Ubuntu: []
-            Debian: [] 
-          group: 
+            Debian: []
+          group:
             Ubuntu: []
             Debian: []
           host:
@@ -211,16 +211,16 @@ infrastructure:
         aur_helper: paru
         config_reflector: true
       homebrew:
-        install: true 
-        update_homebrew: true 
-        cleanup_cache: false 
-        taps: [] 
+        install: true
+        update_homebrew: true
+        cleanup_cache: false
+        taps: []
       macosx:
         updates:
           auto_check: true
           auto_download: true
         gatekeeper:
-          enabled: true 
+          enabled: true
       snap:
         disable_and_remove: true
         packages:

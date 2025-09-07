@@ -2,33 +2,12 @@
 # =============================================================================
 # FLATPAK PACKAGES ROLE VARIABLES
 # =============================================================================
-# Flatpak configuration is part of the unified infrastructure structure
+# Flatpak package management for Linux systems
+# Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
 infrastructure:
-  Ubuntu:
-    flatpak:
-      enabled: false
-      packages:
-        install: []
-        remove: []
-      flathub: true
-      plugins:
-        gnome: false
-        plasma: false
-        
-  Debian:
-    flatpak:
-      enabled: false
-      packages:
-        install: []
-        remove: []
-      flathub: true
-      plugins:
-        gnome: false
-        plasma: false
-        
-  Archlinux:
+  host:
     flatpak:
       enabled: false
       packages:

@@ -2,18 +2,12 @@
 # =============================================================================
 # SNAP PACKAGES ROLE VARIABLES
 # =============================================================================
-# Snap configuration is part of the unified infrastructure structure
+# Snap package management for Ubuntu/Debian systems
+# Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
 infrastructure:
-  Ubuntu:
-    snap:
-      disable_and_remove: true
-      packages:
-        install: []
-        remove: []
-        
-  Debian:
+  host:
     snap:
       disable_and_remove: true
       packages:

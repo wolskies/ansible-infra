@@ -8,12 +8,13 @@
       failed_when: false
 
     - name: Set Darwin ComputerName
-      ansible.builtin.command: scutil --set ComputerName "{{ infrastructure[ansible_distribution].computer_name }}"
+      ansible.builtin.command: scutil --set ComputerName "{{ infrastructure.host.computer_name }}"
       become: true
       when:
-        - infrastructure[ansible_distribution].computer_name is defined
-        - infrastructure[ansible_distribution].computer_name | length > 0
-        - current_computer_name.stdout | default('') != infrastructure[ansible_distribution].computer_name
+        - infrastructure.host is defined
+        - infrastructure.host.computer_name is defined
+        - infrastructure.host.computer_name | length > 0
+        - current_computer_name.stdout | default('') != infrastructure.host.computer_name
       changed_when: true
 
     - name: Get current HostName
@@ -26,8 +27,10 @@
       ansible.builtin.command: scutil --set HostName "{{ infrastructure.host.hostname }}.{{ infrastructure.domain.name }}"
       become: true
       when:
+        - infrastructure.host is defined
         - infrastructure.host.hostname is defined
         - infrastructure.host.hostname | length > 0
+        - infrastructure.domain is defined
         - infrastructure.domain.name is defined
         - infrastructure.domain.name | length > 0
         - current_hostname.rc != 0 or current_hostname.stdout != (infrastructure.host.hostname + '.' + infrastructure.domain.name)
@@ -43,6 +46,7 @@
       ansible.builtin.command: scutil --set LocalHostName "{{ infrastructure.host.hostname | regex_replace('[^a-zA-Z0-9-]', '-') }}"
       become: true
       when:
+        - infrastructure.host is defined
         - infrastructure.host.hostname is defined
         - infrastructure.host.hostname | length > 0
         - current_local_hostname.rc != 0 or current_local_hostname.stdout != (infrastructure.host.hostname | regex_replace('[^a-zA-Z0-9-]', '-'))
@@ -59,7 +63,9 @@
         key: AppleLocale
         type: string
         value: "{{ infrastructure.domain.locale.split('.')[0] }}"
-      when: infrastructure.domain.locale is defined
+      when:
+        - infrastructure.domain is defined
+        - infrastructure.domain.locale is defined
       notify: restart cfprefsd
 
     - name: Set preferred languages
@@ -69,7 +75,9 @@
         type: array
         value:
           - "{{ infrastructure.domain.language.split('.')[0] }}"
-      when: infrastructure.domain.language is defined
+      when:
+        - infrastructure.domain is defined
+        - infrastructure.domain.language is defined
       notify: restart cfprefsd
   tags:
     - locale
@@ -89,7 +97,11 @@
       become: true
       register: ntp_enable_result
       changed_when: "'Network Time' in ntp_enable_result.stderr or ntp_enable_result.rc == 0"
-      when: infrastructure.domain.ntp.enabled | default(true)
+      when:
+        - infrastructure.domain is defined
+        - infrastructure.domain.ntp is defined
+        - infrastructure.domain.ntp.enabled is defined
+        - infrastructure.domain.ntp.enabled
 
     - name: Set NTP server (first server from list)
       ansible.builtin.command: "systemsetup -setnetworktimeserver {{ infrastructure.domain.ntp.servers[0] }}"
@@ -97,8 +109,12 @@
       register: ntp_server_result
       changed_when: ntp_server_result.rc == 0
       when:
-        - infrastructure.domain.ntp.enabled | default(true)
-        - infrastructure.domain.ntp.servers | default([]) | length > 0
+        - infrastructure.domain is defined
+        - infrastructure.domain.ntp is defined
+        - infrastructure.domain.ntp.enabled is defined
+        - infrastructure.domain.ntp.enabled
+        - infrastructure.domain.ntp.servers is defined
+        - infrastructure.domain.ntp.servers | length > 0
         - infrastructure.domain.ntp.servers[0] not in current_ntp_server.stdout
 
     - name: Disable network time synchronization
@@ -106,7 +122,11 @@
       become: true
       register: ntp_disable_result
       changed_when: "'Network Time' in ntp_disable_result.stderr or ntp_disable_result.rc == 0"
-      when: not (infrastructure.domain.ntp.enabled | default(true))
+      when:
+        - infrastructure.domain is defined
+        - infrastructure.domain.ntp is defined
+        - infrastructure.domain.ntp.enabled is defined
+        - not infrastructure.domain.ntp.enabled
   tags:
     - ntp
     - time
@@ -120,11 +140,17 @@
     value: "{{ item.value }}"
   loop:
     - key: "AutomaticCheckEnabled"
-      value: "{{ infrastructure[ansible_distribution].updates.auto_check | default(true) }}"
+      value: "{{ infrastructure.host.macosx.updates.auto_check }}"
     - key: "AutomaticDownload"
-      value: "{{ infrastructure[ansible_distribution].updates.auto_download | default(true) }}"
+      value: "{{ infrastructure.host.macosx.updates.auto_download }}"
   become: true
   notify: restart cfprefsd
+  when:
+    - infrastructure.host is defined
+    - infrastructure.host.macosx is defined
+    - infrastructure.host.macosx.updates is defined
+    - infrastructure.host.macosx.updates.auto_check is defined
+    - infrastructure.host.macosx.updates.auto_download is defined
   tags:
     - Darwin
     - updates
@@ -132,11 +158,15 @@
 
 - name: Configure macOS Gatekeeper
   ansible.builtin.command:
-    cmd: "spctl --master-{{ infrastructure[ansible_distribution].gatekeeper.enabled | default(true) | ternary('enable', 'disable') }}"
+    cmd: "spctl --master-{{ infrastructure.host.macosx.gatekeeper.enabled | ternary('enable', 'disable') }}"
   become: true
   register: gatekeeper_result
   changed_when: gatekeeper_result.rc == 0
-  when: infrastructure[ansible_distribution].gatekeeper is defined
+  when:
+    - infrastructure.host is defined
+    - infrastructure.host.macosx is defined
+    - infrastructure.host.macosx.gatekeeper is defined
+    - infrastructure.host.macosx.gatekeeper.enabled is defined
   tags:
     - Darwin
     - security

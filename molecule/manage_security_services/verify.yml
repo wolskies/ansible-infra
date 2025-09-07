@@ -6,7 +6,7 @@
     - name: Verify UFW package is installed
       ansible.builtin.package_facts:
         manager: auto
-      
+
     - name: Check UFW package is present
       ansible.builtin.assert:
         that:
@@ -16,7 +16,7 @@
 
     - name: Check UFW service status
       ansible.builtin.service_facts:
-        
+
     - name: Verify UFW service is active
       ansible.builtin.assert:
         that:
@@ -53,7 +53,7 @@
     - name: Check fail2ban service status (when enabled)
       ansible.builtin.service_facts:
       when: security.fail2ban.enabled
-        
+
     - name: Verify fail2ban service is active (when enabled)
       ansible.builtin.assert:
         that:

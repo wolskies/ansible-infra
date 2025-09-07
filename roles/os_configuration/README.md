@@ -4,12 +4,11 @@ Essential OS-level configuration for Ubuntu 22+, Debian 12+, Arch Linux, and mac
 
 ## Description
 
-Configures foundational OS settings using the unified infrastructure hierarchy. Domain-level settings (timezone, locale, NTP) are shared across hosts, while host-specific settings (hostname) and distribution-specific settings (services, journals) are isolated appropriately.
+Configures foundational OS settings using the unified infrastructure hierarchy. Handles basic OS configuration (timezone, locale, NTP, hostname) and distribution-specific settings (services, journals).
 
 ## Features
 
-- **Domain-level**: Shared timezone, locale, NTP configuration across environment
-- **Host-level**: Individual hostname and /etc/hosts management  
+- **Basic OS settings**: timezone, locale, NTP, hostname, /etc/hosts management
 - **Distribution-specific**: systemd services, journald, unattended upgrades, platform optimizations
 - **Cross-platform**: Ubuntu/Debian/Arch Linux/macOS with unified variable structure
 
@@ -28,11 +27,10 @@ Configures foundational OS settings using the unified infrastructure hierarchy. 
 
 ### Infrastructure Hierarchy
 
-Uses the unified infrastructure structure with domain/host/distribution separation:
+Uses the unified infrastructure structure with domain/host separation:
 
 ```yaml
 infrastructure:
-  # Domain-level: shared across all hosts
   domain:
     name: "company.com"             # Domain name
     timezone: "UTC"                 # Shared timezone
@@ -43,87 +41,76 @@ infrastructure:
       servers:
         - 0.pool.ntp.org
         - 1.pool.ntp.org
-    users: []                       # Domain users (used by other roles)
 
-  # Host-level: per-host settings  
   host:
     hostname: ""                    # Individual hostname (empty = keep current)
+    computer_name: ""               # macOS computer name (Darwin only)
     update_hosts: true              # Update /etc/hosts with hostname
 
-  # Distribution-specific: OS-specific settings
-  Ubuntu:
-    # systemd journal configuration
+    # systemd journal configuration (Linux)
     journal:
       configure: true
       max_size: "500M"
       max_retention: "30d"
       forward_to_syslog: false
       compress: true
-    
-    # Remote logging via rsyslog
+
+    # Remote logging via rsyslog (Linux)
     rsyslog:
       enabled: false
       remote_host: ""
       remote_port: 514
       protocol: "udp"
-    
-    # System service management
+
+    # System service management (Linux)
     services:
       enable: []                    # Services to enable and start
       disable: []                   # Services to disable and stop
-    
-    # System optimizations
+
+    # System optimizations (Linux)
     optimizations:
       tune_swappiness: false
       swappiness: 10
-    
-    # Kernel parameters (sysctl)
+
+    # Kernel parameters (sysctl) (Linux)
     sysctl:
       parameters: {}
       # Example: { "net.core.default_qdisc": "fq" }
-    
-    # PAM limits configuration
+
+    # PAM limits configuration (Linux)
     limits:
       limits: []
       # Example: [{ domain: "*", limit_type: "soft", limit_item: "nofile", value: 65536 }]
-    
-    # Kernel module management
+
+    # Kernel module management (Linux)
     modules:
       load: []                      # Modules to load at boot
       blacklist: []                 # Modules to blacklist
-    
-    # Ubuntu-specific settings
+
+    # Snap package system settings (Ubuntu/Debian)
     snap:
       remove_completely: false
-    unattended_upgrades:
-      enabled: true
-      email: ""
-      auto_reboot: false
-      reboot_time: "02:00"
-    apt:
-      no_recommends: false
-      proxy: ""
-      
-  # Debian has same structure as Ubuntu
-  Debian:
-    # ... identical structure to Ubuntu
-    
-  # Arch Linux variations
-  Archlinux:
-    # ... same Linux settings plus:
-    pacman:
-      no_confirms: false
-      proxy: ""
-      multilib: true              # Enable multilib repository
-      
-  # macOS-specific settings
-  Darwin:
-    computer_name: ""             # macOS computer name (user-friendly)
-    updates:
-      auto_check: true
-      auto_download: true
-    gatekeeper:
-      enabled: true               # macOS security feature
+
+    # Package manager settings
+    packages:
+      apt:                          # Ubuntu/Debian settings
+        no_recommends: false
+        proxy: ""
+        unattended_upgrades:
+          enabled: true
+          email: ""
+          auto_reboot: false
+          reboot_time: "02:00"
+      pacman:                       # Arch Linux settings
+        no_confirms: false
+        proxy: ""
+        multilib: false
+      macosx:                       # macOS settings
+        updates:
+          auto_check: true
+          auto_download: true
+        gatekeeper:
+          enabled: true
 ```
 
 **Note**: GUI-related macOS settings (Dock, Finder, behavior tweaks) have been moved to the `manage_system_settings` role for better separation of concerns. Use that role for desktop customizations.
@@ -154,13 +141,12 @@ infrastructure:
   vars:
     infrastructure:
       domain:
-        name: "internal.company.com" 
+        name: "internal.company.com"
         timezone: "America/New_York"
         ntp:
           servers: [ntp1.company.com, ntp2.company.com]
       host:
         hostname: "db-primary"
-      Ubuntu:
         journal:
           configure: true
           max_size: "1G"
@@ -170,13 +156,14 @@ infrastructure:
         optimizations:
           tune_swappiness: true
           swappiness: 1
-        unattended_upgrades:
-          enabled: true
-          email: "admin@company.com"
-          auto_reboot: true
-          reboot_time: "03:00"
-        apt:
-          no_recommends: true
+        packages:
+          apt:
+            no_recommends: true
+            unattended_upgrades:
+              enabled: true
+              email: "admin@company.com"
+              auto_reboot: true
+              reboot_time: "03:00"
 ```
 
 ### macOS Workstation
@@ -192,11 +179,12 @@ infrastructure:
         timezone: "America/Los_Angeles"
       host:
         hostname: "MacBook-Pro"
-      Darwin:
         computer_name: "MacBook Pro"
-        updates:
-          auto_check: true
-          auto_download: false
+        packages:
+          macosx:
+            updates:
+              auto_check: true
+              auto_download: false
 ```
 
 ### Multi-Host Environment
@@ -211,11 +199,10 @@ infrastructure:
     ntp:
       servers: [0.pool.ntp.org, 1.pool.ntp.org]
 
-# inventory/host_vars/web01.yml  
+# inventory/host_vars/web01.yml
 infrastructure:
   host:
     hostname: "web01"
-  Ubuntu:
     services:
       disable: [bluetooth]
 ```

@@ -18,31 +18,31 @@ infrastructure:
     locale: "en_US.UTF-8"
     language: "en_US.UTF-8"
     update_hosts: true
-    
+
     # Time synchronization
     ntp:
       enabled: true
       servers:
         - 0.pool.ntp.org
         - 1.pool.ntp.org
-    
+
     # System logging
     journal:
       configure: true
       max_size: "500M"
       max_retention: "30d"
-    
+
     # Service management
     services:
       enable: [systemd-timesyncd]
       disable: [bluetooth, cups]
-    
+
     # Kernel parameters
     sysctl:
       parameters:
         vm.swappiness: 10
         net.core.default_qdisc: "fq"
-    
+
     # Resource limits
     limits:
       limits:
@@ -50,7 +50,7 @@ infrastructure:
           limit_type: soft
           limit_item: nofile
           value: 65536
-    
+
     # Package Management (manage_packages role)
     packages:
       all: [git, vim, htop, curl, wget]
@@ -67,7 +67,7 @@ infrastructure:
         apt_cache:
           update_cache: true
           valid_time: 3600
-    
+
     # Security Services (manage_security_services role)
     firewall:
       enabled: false
@@ -86,7 +86,7 @@ infrastructure:
           port: 443
           proto: tcp
           comment: "HTTPS"
-    
+
     fail2ban:
       enabled: false
       sender: "root@localhost"
@@ -96,7 +96,7 @@ infrastructure:
           enabled: true
           maxretry: 3
           bantime: 3600
-    
+
     # Ubuntu-specific settings
     snap:
       remove_completely: true
@@ -106,14 +106,14 @@ infrastructure:
       auto_reboot: false
     apt:
       no_recommends: true
-      
+
   Debian:
     # Similar structure to Ubuntu
     hostname: ""
     domain: "example.com"
     timezone: "America/New_York"
     # ... rest of Debian settings
-    
+
   Archlinux:
     # Arch-specific structure
     hostname: ""
@@ -128,23 +128,23 @@ infrastructure:
     pacman:
       multilib: true
       no_confirms: false
-      
+
   Darwin:
     # macOS-specific structure
     hostname: ""
     domain: "local"
     timezone: "America/New_York"
     computer_name: "MacBook Pro"
-    
+
     # macOS updates
     updates:
       auto_check: true
       auto_download: false
-    
+
     # Security
     gatekeeper:
       enabled: true
-    
+
     # Packages via Homebrew
     packages:
       all: [git, vim, htop, wget]
@@ -165,7 +165,7 @@ users:
     shell: /bin/bash
     ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@example.com"
     password: "$6$salt$encryptedhash"  # or plaintext to be hashed
-    
+
     # User preferences per distribution
     Ubuntu:
       git:
@@ -177,7 +177,7 @@ users:
           dest: .bashrc
         - src: vimrc.j2
           dest: .vimrc
-          
+
     Darwin:
       git:
         name: "Alice Smith"
@@ -193,16 +193,16 @@ users:
       system:
         KeyRepeat: 2
         InitialKeyRepeat: 15
-        
+
   - username: bob
     state: present
     groups: [users]
     ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2... bob@example.com"
-    
+
     Ubuntu:
       git:
         name: "Bob Jones"
         email: "bob@example.com"
-        
+
   - username: olduser
     state: absent  # This user will be removed

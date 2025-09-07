@@ -29,82 +29,177 @@ provisioner:
         molecule_test: true
         # Test package configuration using infrastructure structure
         infrastructure:
-          Ubuntu:
+          host:
             packages:
-              all:
-                - curl
-                - wget
-                - git
-                - htop
-                - vim
-              group: []
-              host: []
+              present:
+                all:
+                  Ubuntu:
+                    - curl
+                    - wget
+                    - git
+                    - htop
+                    - vim
+                  Debian:
+                    - curl
+                    - wget
+                    - git
+                    - htop
+                    - vim
+                group:
+                  Ubuntu: []
+                  Debian: []
+                host:
+                  Ubuntu: []
+                  Debian: []
               remove:
-                - nano  # Test package removal
-              settings:
+                all:
+                  Ubuntu:
+                    - nano # Test package removal
+                  Debian:
+                    - nano
+                group:
+                  Ubuntu: []
+                  Debian: []
+                host:
+                  Ubuntu: []
+                  Debian: []
+              apt:
                 apt_cache:
                   update_cache: true
                   valid_time: 3600
                 system_upgrade:
                   enable: false
                   type: safe
-              repositories:
-                all: []
-                group: []
-                host: []
-          Debian:
-            packages:
-              all:
-                - curl
-                - wget
-                - git
-                - htop
-                - vim
-              group: []
-              host: []
-              remove:
-                - nano  # Test package removal
-              settings:
-                apt_cache:
-                  update_cache: true
-                  valid_time: 3600
-                system_upgrade:
-                  enable: false
-                  type: safe
-              repositories:
-                all: []
-                group: []
-                host: []
+                repositories:
+                  all:
+                    Ubuntu: []
+                    Debian: []
+                  group:
+                    Ubuntu: []
+                    Debian: []
+                  host:
+                    Ubuntu: []
+                    Debian: []
     host_vars:
       ubuntu-packages-test:
-        # Test Ubuntu-specific packages
+        # Complete infrastructure structure with Ubuntu-specific packages
         infrastructure:
-          Ubuntu:
+          host:
             packages:
-              host:
-                - tree
-                - jq
-              repositories:
+              present:
+                all:
+                  Ubuntu:
+                    - curl
+                    - wget
+                    - git
+                    - htop
+                    - vim
+                  Debian:
+                    - curl
+                    - wget
+                    - git
+                    - htop
+                    - vim
+                group:
+                  Ubuntu: []
+                  Debian: []
                 host:
-                  - name: "test-ppa"
-                    types: "deb"
-                    uris: "http://ppa.launchpad.net/git-core/ppa/ubuntu"
-                    suites: "{{ ansible_distribution_release }}"
-                    components: "main"
-                    signed_by: "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xE1DD270288B4E6030699E45FA1715D88E1DF1F24"
-                    state: present
+                  Ubuntu:
+                    - tree
+                    - jq
+                  Debian: []
+              remove:
+                all:
+                  Ubuntu:
+                    - nano
+                  Debian:
+                    - nano
+                group:
+                  Ubuntu: []
+                  Debian: []
+                host:
+                  Ubuntu: []
+                  Debian: []
+              apt:
+                apt_cache:
+                  update_cache: true
+                  valid_time: 3600
+                system_upgrade:
+                  enable: false
+                  type: safe
+                repositories:
+                  all:
+                    Ubuntu: []
+                    Debian: []
+                  group:
+                    Ubuntu: []
+                    Debian: []
+                  host:
+                    Ubuntu:
+                      - name: "test-ppa"
+                        types: "deb"
+                        uris: "http://ppa.launchpad.net/git-core/ppa/ubuntu"
+                        suites: "{{ ansible_distribution_release }}"
+                        components: "main"
+                        signed_by: "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xE1DD270288B4E6030699E45FA1715D88E1DF1F24"
+                        state: present
+                    Debian: []
       debian-packages-test:
-        # Test Debian-specific packages
+        # Complete infrastructure structure with Debian-specific packages
         infrastructure:
-          Debian:
+          host:
             packages:
-              host:
-                - tree
-                - jq
-              settings:
+              present:
+                all:
+                  Ubuntu:
+                    - curl
+                    - wget
+                    - git
+                    - htop
+                    - vim
+                  Debian:
+                    - curl
+                    - wget
+                    - git
+                    - htop
+                    - vim
+                group:
+                  Ubuntu: []
+                  Debian: []
+                host:
+                  Ubuntu: []
+                  Debian:
+                    - tree
+                    - jq
+              remove:
+                all:
+                  Ubuntu:
+                    - nano
+                  Debian:
+                    - nano
+                group:
+                  Ubuntu: []
+                  Debian: []
+                host:
+                  Ubuntu: []
+                  Debian: []
+              apt:
+                apt_cache:
+                  update_cache: true
+                  valid_time: 3600
                 system_upgrade:
                   enable: true
                   type: safe
+                repositories:
+                  all:
+                    Ubuntu: []
+                    Debian: []
+                  group:
+                    Ubuntu: []
+                    Debian: []
+                  host:
+                    Ubuntu: []
+                    Debian: []
   config_options:
     defaults:
       host_key_checking: false

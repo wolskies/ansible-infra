@@ -3,9 +3,9 @@
   ansible.builtin.set_fact:
     merged_apt_repositories: >-
       {{
-        (infrastructure.host.packages.repositories.all.ansible_distribution | default([])) +
-        (infrastructure.host.packages.repositories.group.ansible_distribution | default([])) +
-        (infrastructure.host.packages.repositories.host.ansible_distribution | default([]))
+        (infrastructure.host.packages.apt.repositories.all[ansible_distribution]) +
+        (infrastructure.host.packages.apt.repositories.group[ansible_distribution]) +
+        (infrastructure.host.packages.apt.repositories.host[ansible_distribution])
         | unique | list
       }}
 
@@ -61,30 +61,30 @@
 
 - name: Update APT cache
   ansible.builtin.apt:
-    update_cache: "{{ infrastructure.host.packages.apt.apt_cache.update_cache | default(true) }}"
-    cache_valid_time: "{{ infrastructure.host.packages.apt.apt_cache.valid_time | default(3600) }}"
+    update_cache: "{{ infrastructure.host.packages.apt.apt_cache.update_cache }}"
+    cache_valid_time: "{{ infrastructure.host.packages.apt.apt_cache.valid_time }}"
   become: true
-  when: infrastructure.host.packages.apt.apt_cache.update_cache | default(true)
+  when: infrastructure.host.packages.apt.apt_cache.update_cache
 
 - name: Remove packages via APT
   ansible.builtin.apt:
-    name: "{{ merged_apt_packages_remove }}"
+    name: "{{ merged_packages_remove }}"
     state: absent
   become: true
   when: merged_packages_remove | length > 0
 
 - name: Install packages via APT
   ansible.builtin.apt:
-    name: "{{ merged_apt_packages_install }}"
+    name: "{{ merged_packages_install }}"
     state: present
   become: true
   when: merged_packages_install | length > 0
 
 - name: Upgrade all APT packages
   ansible.builtin.apt:
-    upgrade: "{{ infrastructure.host.packages.apt.system_upgrade.type | default('safe') }}"
+    upgrade: "{{ infrastructure.host.packages.apt.system_upgrade.type }}"
   become: true
-  when: infrastructure.host.packages.apt.system_upgrade.enable | default(false)
+  when: infrastructure.host.packages.apt.system_upgrade.enable
 
 - name: Gather package facts (Debian family)
   ansible.builtin.package_facts:

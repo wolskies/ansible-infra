@@ -51,7 +51,7 @@
   become: false
   become_user: "{{ item.username }}"
   loop: "{{ users | default([]) | selectattr('state', 'equalto', 'present') | list }}"
-  when: 
+  when:
     - users is defined
     - item[ansible_distribution] is defined
   tags:

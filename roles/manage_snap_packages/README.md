@@ -18,11 +18,13 @@ This role addresses the common need to **completely remove snap** from Ubuntu sy
 ### Primary Configuration
 
 ```yaml
-snap:
-  disable_and_remove: true  # Remove snap entirely (default)
-  packages:
-    install: []            # Only used when disable_and_remove: false
-    remove: []             # Packages to remove
+infrastructure:
+  host:
+    snap:
+      disable_and_remove: true  # Remove snap entirely (default)
+      packages:
+        install: []            # Only used when disable_and_remove: false
+        remove: []             # Packages to remove
 ```
 
 ## Usage Examples
@@ -45,12 +47,14 @@ snap:
   include_role:
     name: wolskinet.infrastructure.manage_snap_packages
   vars:
-    snap:
-      disable_and_remove: false
-      packages:
-        install:
-          - minio
-          - core    # Often needed as dependency
+    infrastructure:
+      host:
+        snap:
+          disable_and_remove: false
+          packages:
+            install:
+              - minio
+              - core    # Often needed as dependency
   tags: snap-packages
 ```
 
@@ -61,20 +65,22 @@ snap:
   include_role:
     name: wolskinet.infrastructure.manage_snap_packages
   vars:
-    snap:
-      disable_and_remove: false
-      packages:
-        install:
-          - minio
-          - helm
-        remove:
-          - outdated-snap
+    infrastructure:
+      host:
+        snap:
+          disable_and_remove: false
+          packages:
+            install:
+              - minio
+              - helm
+            remove:
+              - outdated-snap
   tags: snap-packages
 ```
 
 ## What the Role Does
 
-### When `snap.disable_and_remove: true` (Default)
+### When `infrastructure.host.snap.disable_and_remove: true` (Default)
 
 1. **Removes all installed snap packages** (including core snaps)
 2. **Stops and disables all snapd services**
@@ -84,7 +90,7 @@ snap:
 6. **Prevents snapd reinstallation** via APT preferences
 7. **Ignores any package configuration** (safety feature)
 
-### When `snap.disable_and_remove: false`
+### When `infrastructure.host.snap.disable_and_remove: false`
 
 1. **Installs snapd** if not present
 2. **Starts snapd services**
@@ -111,17 +117,21 @@ The role is called with tags, allowing selective execution:
 ### Inventory Configuration
 
 ```yaml
-# group_vars/all.yml - Disable snap everywhere (default)
-snap:
-  disable_and_remove: true
+# group_vars/all.yml
+infrastructure:
+  host:
+    snap:
+      disable_and_remove: true
 
-# host_vars/media-server.yml - Exception for specific hosts
-snap:
-  disable_and_remove: false
-  packages:
-    install:
-      - minio
-      - jellyfin
+# host_vars/media-server.yml
+infrastructure:
+  host:
+    snap:
+      disable_and_remove: false
+      packages:
+        install:
+          - minio
+          - jellyfin
 ```
 
 ## Platform Support
@@ -137,7 +147,7 @@ snap:
 
 ## Safety Features
 
-- **Removal takes precedence**: If `snap.disable_and_remove: true`, package lists are ignored
+- **Removal takes precedence**: If `infrastructure.host.snap.disable_and_remove: true`, package lists are ignored
 - **Graceful failures**: All operations handle missing snap gracefully
 - **APT preferences**: Prevents accidental snapd reinstallation
 - **OS family detection**: Only runs on Debian-family systems

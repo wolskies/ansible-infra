@@ -3,28 +3,24 @@
   ansible.builtin.set_fact:
     merged_homebrew_casks_install: >-
       {{
-        (infrastructure[ansible_distribution].packages.casks_present.all | default([])) +
-        (infrastructure[ansible_distribution].packages.casks_present.group | default([])) +
-        (infrastructure[ansible_distribution].packages.casks_present.host | default([]))
+        (infrastructure.host.packages.casks_present.all) +
+        (infrastructure.host.packages.casks_present.group) +
+        (infrastructure.host.packages.casks_present.host)
         | unique | list
       }}
     merged_homebrew_casks_remove: >-
       {{
-        (infrastructure[ansible_distribution].packages.casks_remove.all | default([])) +
-        (infrastructure[ansible_distribution].packages.casks_remove.group | default([])) +
-        (infrastructure[ansible_distribution].packages.casks_remove.host | default([]))
+        (infrastructure.host.packages.casks_remove)
         | unique | list
       }}
 
-- name: Manage packages via Homebrew 
-  ansible.builtin.include_role: 
+- name: Manage packages via Homebrew
+  ansible.builtin.include_role:
     name: geerlingguy.mac.homebrew
   vars:
     homebrew_installed_packages: "{{ merged_packages_install }}"
     homebrew_uninstalled_packages: "{{ merged_packages_remove }}"
     homebrew_cask_apps: "{{ merged_homebrew_casks_install }}"
     homebrew_cask_uninstalled_apps: "{{ merged_homebrew_casks_remove }}"
-    homebrew_taps: "{{ infrastructure.host.packages.homebrew.taps | default([]) }}"
-    homebrew_clear_cache: "{{ infrastructure.host.packages.homebrew.cleanup_cache | default(false) }}"
-
-
+    homebrew_taps: "{{ infrastructure.host.packages.homebrew.taps }}"
+    homebrew_clear_cache: "{{ infrastructure.host.packages.homebrew.cleanup_cache }}"

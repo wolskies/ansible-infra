@@ -36,8 +36,9 @@ infrastructure:
         # System account fields (used by manage_users role)
         groups: [sudo]
         ssh_pubkey: "ssh-ed25519 AAAAC3..."
-        
+
         # Cross-platform preferences (used by this role)
+        shell: /bin/zsh                    # Cross-platform shell preference
         git:
           user_name: "Alice Smith"
           user_email: "alice@company.com"
@@ -48,20 +49,13 @@ infrastructure:
           packages: [ripgrep, fd-find, bat]         # Auto-installs rustup if missing
         go:
           packages: [github.com/charmbracelet/glow@latest]  # Auto-installs golang if missing
-        
-        # OS-specific preferences
-        Ubuntu:
-          shell: /usr/bin/zsh              # Set user's shell
-          dotfiles:
-            repository: "https://github.com/alice/dotfiles-linux"
-            method: stow                   # Currently only stow supported
-            packages: [zsh, tmux, vim]     # Stow packages to deploy
-        Darwin:
-          shell: /opt/homebrew/bin/zsh
-          dotfiles:
-            repository: "https://github.com/alice/dotfiles-macos"
-            method: stow
-            packages: [zsh, tmux, vim, macos]
+        dotfiles:
+          repository: "https://github.com/alice/dotfiles"
+          method: stow                     # Currently only stow supported
+          packages: [zsh, tmux, vim]       # Stow packages to deploy
+
+        # Only macOS-specific GUI preferences need their own section
+        macosx:
           dock:
             tile_size: 48
             autohide: true
@@ -130,7 +124,7 @@ infrastructure:
 ### Execution Flow
 
 1. **Validation**: Ensures `target_user` is defined and exists in `infrastructure.domain.users[]`
-2. **User lookup**: Finds the target user's configuration 
+2. **User lookup**: Finds the target user's configuration
 3. **Cross-platform config**: Applies Git settings and language packages
 4. **OS-specific config**: Applies shell, dotfiles, GUI preferences
 

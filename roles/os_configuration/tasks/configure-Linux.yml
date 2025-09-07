@@ -1,8 +1,9 @@
 ---
 - name: Configure hostname
   ansible.builtin.hostname:
-    name: infrastructure.host.hostname
+    name: "{{ infrastructure.host.hostname }}"
   when:
+    - infrastructure.host is defined
     - infrastructure.host.hostname is defined
     - infrastructure.host.hostname | length > 0
 
@@ -11,10 +12,20 @@
     name: "{{ infrastructure.domain.locale }}"
     state: present
   become: true
-  when: infrastructure.domain.locale is defined
+  when:
+    - infrastructure.domain is defined
+    - infrastructure.domain.locale is defined
 
 - name: Configure system language
-  when: infrastructure.domain.language is defines
+  ansible.builtin.lineinfile:
+    path: /etc/default/locale
+    regexp: "^LANGUAGE="
+    line: "LANGUAGE={{ infrastructure.domain.language }}"
+    create: true
+  become: true
+  when:
+    - infrastructure.domain is defined
+    - infrastructure.domain.language is defined
 
 - name: Configure NTP time synchronization
   block:
@@ -35,7 +46,11 @@
         backup: true
       become: true
       notify: restart timesyncd
-  when: infrastructure.domain.ntp.enabled | default(true)
+  when:
+    - infrastructure.domain is defined
+    - infrastructure.domain.ntp is defined
+    - infrastructure.domain.ntp.enabled is defined
+    - infrastructure.domain.ntp.enabled
   tags:
     - ntp
     - time
@@ -61,7 +76,10 @@
       become: true
       notify: restart journald
   when:
-    - infrastructure.host.journal.configure | default(true)
+    - infrastructure.host is defined
+    - infrastructure.host.journal is defined
+    - infrastructure.host.journal.configure is defined
+    - infrastructure.host.journal.configure
     - ansible_service_mgr == "systemd"
   tags:
     - journal
@@ -84,8 +102,12 @@
       when: rsyslog_installed.stat.exists
       notify: restart rsyslog
   when:
-    - infrastructure.host.rsyslog.enabled | default(false)
-    - infrastructure.host.rsyslog.remote_host | default("") | length > 0
+    - infrastructure.host is defined
+    - infrastructure.host.rsyslog is defined
+    - infrastructure.host.rsyslog.enabled is defined
+    - infrastructure.host.rsyslog.enabled
+    - infrastructure.host.rsyslog.remote_host is defined
+    - infrastructure.host.rsyslog.remote_host | length > 0
   tags:
     - rsyslog
     - logging
@@ -97,27 +119,41 @@
         name: "{{ item }}"
         enabled: true
         state: started
-      loop: "{{ infrastructure.host.services.enable | default([]) }}"
+      loop: "{{ infrastructure.host.services.enable }}"
       become: true
       failed_when: false
-      
+      when:
+        - infrastructure.host is defined
+        - infrastructure.host.services is defined
+        - infrastructure.host.services.enable is defined
+        - infrastructure.host.services.enable | length > 0
+
     - name: Disable unnecessary services
       ansible.builtin.systemd:
         name: "{{ item }}"
         enabled: false
         state: stopped
-      loop: "{{ infrastructure.host.services.disable | default([]) }}"
+      loop: "{{ infrastructure.host.services.disable }}"
       become: true
       failed_when: false
+      when:
+        - infrastructure.host is defined
+        - infrastructure.host.services is defined
+        - infrastructure.host.services.disable is defined
+        - infrastructure.host.services.disable | length > 0
 
     - name: Configure vm.swappiness
       ansible.posix.sysctl:
         name: vm.swappiness
-        value: "{{ infrastructure.host.optimizations.swappiness | default(10) }}"
+        value: "{{ infrastructure.host.optimizations.swappiness }}"
         state: present
         reload: true
       become: true
-      when: infrastructure.host.optimizations.tune_swappiness | default(false)
+      when:
+        - infrastructure.host is defined
+        - infrastructure.host.optimizations is defined
+        - infrastructure.host.optimizations.tune_swappiness is defined
+        - infrastructure.host.optimizations.tune_swappiness
   tags:
     - optimization
     - services
@@ -129,9 +165,11 @@
     state: present
     sysctl_file: "/etc/sysctl.d/99-ansible-managed.conf"
     reload: true
-  loop: "{{ infrastructure.host.sysctl.parameters | default({}) | dict2items }}"
+  loop: "{{ infrastructure.host.sysctl.parameters | dict2items }}"
   become: true
   when:
+    - infrastructure.host is defined
+    - infrastructure.host.sysctl is defined
     - infrastructure.host.sysctl.parameters is defined
     - infrastructure.host.sysctl.parameters | length > 0
   tags:
@@ -144,9 +182,11 @@
     limit_type: "{{ item.limit_type }}"
     limit_item: "{{ item.limit_item }}"
     value: "{{ item.value }}"
-  loop: "{{ infrastructure.host.limits.limits | default([]) }}"
+  loop: "{{ infrastructure.host.limits.limits }}"
   become: true
   when:
+    - infrastructure.host is defined
+    - infrastructure.host.limits is defined
     - infrastructure.host.limits.limits is defined
     - infrastructure.host.limits.limits | length > 0
   tags:
@@ -159,9 +199,11 @@
     line: "{{ item }}"
     create: true
     mode: "0644"
-  loop: "{{ infrastructure.host.modules.load | default([]) }}"
+  loop: "{{ infrastructure.host.modules.load }}"
   become: true
   when:
+    - infrastructure.host is defined
+    - infrastructure.host.modules is defined
     - infrastructure.host.modules.load is defined
     - infrastructure.host.modules.load | length > 0
   tags:
@@ -174,9 +216,11 @@
     line: "blacklist {{ item }}"
     create: true
     mode: "0644"
-  loop: "{{ infrastructure.host.modules.blacklist | default([]) }}"
+  loop: "{{ infrastructure.host.modules.blacklist }}"
   become: true
   when:
+    - infrastructure.host is defined
+    - infrastructure.host.modules is defined
     - infrastructure.host.modules.blacklist is defined
     - infrastructure.host.modules.blacklist | length > 0
   tags:

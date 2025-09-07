@@ -1,219 +1,194 @@
-# Configure System Role
+# configure_system
 
-Master orchestration role for complete system configuration. Executes infrastructure roles in the proper order to fully configure new machines.
+Orchestration role that applies infrastructure roles based on inventory membership and configuration.
 
-## Purpose
+## Description
 
-This role orchestrates the execution of multiple infrastructure roles to provide complete system setup:
+Entry point role that executes appropriate infrastructure roles in sequence without forcing specific group structures. Roles are applied based on the unified `infrastructure` variable structure and inventory membership.
 
-1. **os_configuration** - OS setup (hostname, NTP, locale, kernel settings)
-2. **manage_security_services** - Security services (firewall, fail2ban)
-3. **manage_users** - User and group management
-4. **manage_packages** - Package installation and repository management
-5. **manage_snap_packages** - Snap package management (optional)
-6. **manage_flatpak** - Flatpak package management (optional)
-7. **configure_user** - User preferences and dotfiles (optional)
+## Role Execution Order
 
-## Usage
+1. **os_configuration** - Essential OS-level configuration (timezone, hostname, services)
+2. **manage_users** - System-level user account management (requires sudo)
+3. **manage_packages** - Distribution-specific package installation
+4. **manage_security_services** - Firewall and fail2ban configuration
+5. **manage_snap_packages** - Snap management (Ubuntu/Debian, optional)
+6. **manage_flatpak** - Flatpak management (Linux, optional)
+7. **configure_user** - Per-user preferences and dotfiles (per-user execution)
 
-### Default Configuration (All Components)
+## Configuration
+
+Uses the unified infrastructure variable structure:
+
+```yaml
+infrastructure:
+  domain:
+    name: "company.com"
+    timezone: "America/New_York"
+    users:
+      - name: alice
+        groups: [sudo]
+        git: { user_name: "Alice", user_email: "alice@company.com" }
+        nodejs: { packages: [typescript] }
+
+  host:
+    hostname: "web01"
+    packages:
+      present:
+        all:
+          Ubuntu: [git, curl, htop]
+        group:
+          Ubuntu: [nginx]
+        host:
+          Ubuntu: [redis-server]
+    firewall:
+      enabled: true
+      rules:
+        - { port: 80, proto: tcp }
+    snap:
+      disable_and_remove: true
+```
+
+## Usage Examples
+
+### Basic Server Setup
+
 ```yaml
 - hosts: servers
   roles:
     - wolskinet.infrastructure.configure_system
+  vars:
+    infrastructure:
+      domain:
+        name: "company.com"
+        timezone: "UTC"
+        users:
+          - name: admin
+            groups: [sudo]
+            ssh_pubkey: "ssh-ed25519 AAAAC3..."
+      host:
+        hostname: "{{ inventory_hostname }}"
+        packages:
+          present:
+            all:
+              Ubuntu: [git, htop, nginx]
 ```
 
-### Core Components Only
-```bash
-# Execute only core components via command line
-ansible-playbook playbook.yml --tags core
-```
-
-### Selective Execution with Tags
-```bash
-# Run specific components
-ansible-playbook playbook.yml --tags users,packages
-
-# Run only optional components
-ansible-playbook playbook.yml --tags optional
-
-# Skip specific components
-ansible-playbook playbook.yml --skip-tags dotfiles,snap-packages
-```
-
-### Available Tags
-- `core` - All core components (os, security, users, packages)
-- `optional` - All optional components (snap, flatpak, user preferences)
-- `host-configuration` - OS configuration
-- `security-services` - Security services
-- `user-management` or `users` - User account management
-- `package-management` or `packages` - System packages
-- `snap-packages` - Snap packages
-- `flatpak-packages` - Flatpak packages
-- `user-preferences` - User-specific settings and dotfiles
-- `progress` - Progress messages
-
-## Configuration
-
-The role uses Ansible's built-in tag system for execution control:
-
-```bash
-# Run everything (default behavior)
-ansible-playbook playbook.yml
-
-# Run only what you need
-ansible-playbook playbook.yml --tags core
-ansible-playbook playbook.yml --tags "users,packages"
-ansible-playbook playbook.yml --skip-tags "dotfiles"
-```
-  fail_on_error: true      # Stop if any role fails
-  show_progress: true      # Display progress messages
-  respect_tags: true       # Honor tag-based selective execution
-```
-
-### Individual Role Variables
-
-All variables for individual roles are passed through unchanged. Configure roles using their native variable structures:
+### Multi-Group Configuration
 
 ```yaml
-# Host configuration
-config_common_hostname: "server01"
-config_common_timezone: "UTC"
+# inventory/group_vars/all.yml
+infrastructure:
+  domain:
+    name: "company.local"
+    timezone: "America/New_York"
+    users:
+      - name: deploy
+        groups: [sudo]
+        git: { user_name: "Deploy User", user_email: "deploy@company.com" }
+  host:
+    packages:
+      present:
+        all:
+          Ubuntu: [git, curl, vim]
 
-# User management
-users_config:
-  - name: admin
-    groups: [sudo, docker]
-    shell: /bin/bash
+# inventory/group_vars/webservers.yml
+infrastructure:
+  host:
+    packages:
+      present:
+        group:
+          Ubuntu: [nginx, certbot]
+    firewall:
+      enabled: true
+      rules:
+        - { port: 80, proto: tcp }
+        - { port: 443, proto: tcp }
 
-# Package management
-all_packages_install_Ubuntu:
-  - git
-  - htop
-  - nginx
+# inventory/host_vars/web01.yml
+infrastructure:
+  host:
+    hostname: "web01"
+    packages:
+      present:
+        host:
+          Ubuntu: [redis-server]
+```
 
-# System settings (when enabled)
-system_settings_sysctl:
-  enabled: true
-  parameters:
-    vm.swappiness: 10
-    net.ipv4.tcp_keepalive_time: 120
+### User Configuration
 
-# Dotfiles (when enabled)
-dotfiles:
-  user: admin
-  repository_url: "https://github.com/user/dotfiles"
-  method: "stow"
+After system setup, configure user preferences:
+
+```yaml
+# Configure user preferences (runs as each user)
+- hosts: all
+  vars:
+    target_user: "{{ item }}"
+  include_role:
+    name: wolskinet.infrastructure.configure_user
+  become: true
+  become_user: "{{ item }}"
+  loop: "{{ infrastructure.domain.users | map(attribute='name') | list }}"
 ```
 
 ## Tags
 
 ### Component Tags
-- `host-configuration` - Host setup only
-- `security-services` - Security services only
-- `users` / `user-management` - User management only
-- `packages` / `package-management` - Package management only
-- `language-packages` - Language package managers only
+- `os-configuration` - OS setup only
+- `security-services` - Firewall/fail2ban only
+- `users` - User management only
+- `packages` - Package management only
 - `snap-packages` - Snap packages only
 - `flatpak-packages` - Flatpak packages only
-- `system-settings` - System tuning only
-- `dotfiles` - Dotfiles deployment only
+- `user-preferences` - User configuration only
 
-### Meta Tags
-- `configure-system` - All components
-- `always` - Progress messages and summaries
+### Usage
+```bash
+# Run only core system components
+ansible-playbook -t os-configuration,users,packages playbook.yml
 
-## Examples
+# Run only security configuration
+ansible-playbook -t security-services playbook.yml
 
-### New Server Setup
-```yaml
-- hosts: new_servers
-  become: true
-  roles:
-    - role: wolskinet.infrastructure.configure_system
-      vars:
-        # Basic host configuration
-        config_common_hostname: "{{ inventory_hostname }}"
-        config_common_timezone: "America/New_York"
-
-        # Create admin user
-        users:
-          - name: admin
-            groups: [sudo]
-            shell: /bin/bash
-            create_home: true
-
-        # Install server packages
-        all_packages_install_Ubuntu:
-          - git
-          - htop
-          - nginx
-          - certbot
-
-        # Enable system tuning
-        configure_system:
-          system_settings:
-            enabled: true
-
-        system_settings_sysctl:
-          enabled: true
-          parameters:
-            vm.swappiness: 10
-            net.core.somaxconn: 65535
+# Skip optional components
+ansible-playbook --skip-tags snap-packages,flatpak-packages playbook.yml
 ```
 
-### Developer Workstation
+## Architecture
+
+### Non-Opinionated Group Structure
+
+The collection doesn't force specific inventory group naming. Use whatever group structure fits your environment:
+
 ```yaml
-- hosts: workstations
-  become: true
-  roles:
-    - role: wolskinet.infrastructure.configure_system
-      vars:
-        # Enable all optional components
-        configure_system:
-          language_packages:
-            enabled: true
-          system_settings:
-            enabled: true
-          dotfiles_deployment:
-            enabled: true
+# Works with any group structure
+[webservers]
+web01
+web02
 
-        # Developer packages
-        all_packages_install_Ubuntu:
-          - git
-          - vim
-          - curl
-          - build-essential
+[databases]
+db01
+db02
 
-        # Language package managers
-        language_packages:
-          nodejs:
-            enabled: true
-            version: "lts"
-          python:
-            enabled: true
-            pip_packages:
-              - requests
-              - flask
-
-        # User dotfiles
-        dotfiles:
-          user: developer
-          repository_url: "https://github.com/developer/dotfiles"
-          method: "auto"
+[all:vars]
+infrastructure.domain.name=company.com
 ```
+
+### Distribution Detection
+
+Roles use `{{ ansible_distribution }}` and `{{ ansible_os_family }}` facts for OS-specific behavior within the unified variable structure.
 
 ## Dependencies
 
-This role requires all the individual infrastructure roles to be available:
+Required roles (all included in collection):
 - `wolskinet.infrastructure.os_configuration`
-- `wolskinet.infrastructure.manage_security_services`
 - `wolskinet.infrastructure.manage_users`
 - `wolskinet.infrastructure.manage_packages`
-- `wolskinet.infrastructure.manage_language_packages`
+- `wolskinet.infrastructure.manage_security_services`
 - `wolskinet.infrastructure.manage_snap_packages`
 - `wolskinet.infrastructure.manage_flatpak`
-- `wolskinet.infrastructure.manage_system_settings`
-- `wolskinet.infrastructure.dotfiles`
+- `wolskinet.infrastructure.configure_user`
 
-See individual role documentation for detailed configuration options.
+## License
+
+MIT
