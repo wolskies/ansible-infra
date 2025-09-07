@@ -1,296 +1,337 @@
 # Ansible Collection - wolskinet.infrastructure
 
-Cross-platform infrastructure automation collection with discovery-driven deployment for Ubuntu 22+, Debian 12+, Arch Linux, and macOS. Features inventory-group-based architecture and hierarchical package management.
+Multi-OS infrastructure automation with unified variable taxonomy for Ubuntu 22+, Debian 12+, Arch Linux, and macOS. Provides declarative configuration through a domain/host/distribution hierarchy.
 
 ## Architecture Overview
 
-### Group-Based Configuration
-Machines are configured through inventory group membership with role combinations:
-- **`servers`**: Security hardening + basic setup + system packages
-- **`docker_hosts`**: Server features + Docker installation + container services
-- **`workstations`**: Basic setup + dotfiles + desktop configurations + shell enhancements
-- **Custom groups**: User-defined role combinations
+### Unified Variable Structure
+Infrastructure is configured through a three-tier hierarchy that separates concerns cleanly:
 
-### Hierarchical Package Management
-Advanced package variable merging with OS-specific distribution support:
 ```yaml
-# Variable precedence (merged in order):
-all_packages_install_Ubuntu: [git, curl, htop]        # All Ubuntu machines
-group_packages_install_Ubuntu: [nginx, certbot]       # Server group only
-host_packages_install_Ubuntu: [redis-server]          # Single host (from discovery)
-# Final result: [git, curl, htop, nginx, certbot, redis-server] + conditional packages
+infrastructure:
+  # Domain-level: shared across all hosts in your environment
+  domain:
+    name: "company.com"           # Domain name
+    timezone: "America/New_York"  # Shared timezone
+    locale: "en_US.UTF-8"         # Shared locale/language
+    ntp:                          # NTP configuration
+      enabled: true
+      servers: [0.pool.ntp.org, 1.pool.ntp.org]
+    users: []                     # Domain users (consistent across hosts)
+    
+  # Host-level: per-host settings  
+  host:
+    hostname: "web01"             # Individual hostname
+    update_hosts: true            # /etc/hosts management
+    
+  # Distribution-specific: OS-specific settings
+  Ubuntu:
+    packages: { all: [git, curl], repositories: {...} }
+    snap: { disable_and_remove: true, packages: {...} }
+    firewall: { enabled: false, rules: [] }
+  Darwin:
+    packages: { all: [git, curl] }
+    # macOS-specific settings...
 ```
 
-Supported distributions: `Ubuntu`, `Debian`, `Archlinux`, `MacOSX`
+**Key Insight**: Users set variables declaratively at any inventory level (group_vars, host_vars) without being forced into specific group structures. The `{{ ansible_distribution }}` fact drives OS-specific behavior.
 
 ## Core Roles
 
+### **configure_system** - Orchestration
+Entry point that applies appropriate roles based on inventory membership. Handles role sequencing without forcing specific group structures.
 
-### **configure_host** - System Configuration
-Host-level system configuration and settings:
-- **System Config**: Locale, timezone settings
-- **Firewall Setup**: UFW/firewalld installation and basic configuration
-- **Repository Management**: Additional APT sources and GPG keys
-- **Platform Features**: Ubuntu snap removal, Arch mirror optimization, macOS preferences
+### **os_configuration** - System Foundation  
+Essential OS-level configuration using the domain/host separation:
+- **Domain settings**: timezone, locale, NTP (consistent across environment)
+- **Host settings**: hostname, /etc/hosts management
+- **Distribution settings**: journal, services, unattended upgrades, platform specifics
+
+### **manage_users** - System Account Management
+System-level user account creation and management (requires sudo):
+- **Domain users**: `infrastructure.domain.users[]` - consistent accounts across hosts
+- **SSH key deployment**: automated authorized_key management
+- **Password handling**: automatic SHA-512 hashing for plaintext passwords
+- **Account lifecycle**: creation, removal, group membership
+
+### **configure_user** - User Preference Configuration
+Per-user preference configuration (executed as target user):
+- **Cross-platform**: Git config, language packages (nodejs, rust, go)
+- **OS-specific**: Shell settings, dotfiles deployment, GUI preferences
+- **Auto-dependency installation**: installs nodejs/rustup/golang if packages requested
+- **Dotfiles integration**: Stow-based dotfiles deployment from repositories
 
 ### **manage_packages** - Package Management
-Advanced hierarchical package management:
-- **Variable Merging**: all_ + group_ + host_ package lists
-- **Conditional Packages**: Shell enhancements, dotfiles support
-- **Multi-OS Support**: APT, Pacman, Homebrew package managers
-- **System Updates**: Configurable package upgrades via manage_packages role
+Distribution-specific package installation with hierarchical merging:
+- **Package categories**: `all`, `group`, `host` - merged in precedence order  
+- **Repository management**: APT sources, Homebrew taps, AUR helpers
+- **Multi-package-manager**: handles APT, pacman, Homebrew transparently
 
-### **manage_users** - User Management
-User and group administration:
-- **User Creation**: With UID, shell, groups, password management
-- **Group Management**: Create and remove system groups
-- **Dotfiles Integration**: Automatic deployment for users with repositories
-- **Multi-Platform**: Linux and macOS user management
+### **manage_security_services** - Security Configuration
+Firewall and intrusion prevention using distribution detection:
+- **UFW** (Ubuntu/Debian), **firewalld** (Arch), **macOS firewall**
+- **fail2ban**: intrusion detection with distribution-specific jails
+- **Rule management**: declarative firewall rule configuration
 
-### **discovery** - Infrastructure Scanning
-Automated discovery and inventory generation:
-- **System Discovery**: Packages, services, Docker containers, users, configuration
-- **Smart Filtering**: Excludes system packages, focuses on user-installed software
-- **Output Generation**: host_vars and deployment playbooks ready for use
-- **Cross-Platform**: Full support for Linux distros and macOS
-
-### **dotfiles** - Configuration Management
-Automated dotfiles deployment with conflict resolution:
-- **Stow Integration**: GNU Stow-based symlink management
-- **Conflict Resolution**: Intelligent backup of existing files
-- **Multi-User Support**: Per-user dotfiles deployment
-
-### **manage_firewall** - Firewall and Security Configuration
-Independent firewall configuration and intrusion prevention:
-- **Firewall Management**: UFW (Ubuntu/Debian), firewalld (Arch), macOS firewall
-- **Fail2ban Integration**: Intrusion detection and prevention
-- **Rule Management**: Port-based and custom firewall rules
-- **Standalone Operation**: No dependencies on other roles
+### **manage_snap_packages** / **manage_flatpak** - Alternative Package Systems
+- **Snap**: Ubuntu/Debian snap management (install/remove or complete system removal)
+- **Flatpak**: Linux flatpak management with repository and plugin handling
 
 
-### **manage_system_settings** - Performance Optimization
-Hardware and performance optimization:
-- **Gaming Optimization**: Kernel parameters, CPU governor settings
-- **Media Support**: GPU drivers, codec installation
-- **Hardware Support**: Bluetooth, camera, audio optimizations
-
-### **manage_language_packages** - Language Ecosystems
-Language ecosystem package management with dependency checking:
-- **Python**: uv package management with user/global/project methods
-- **Node.js**: npm global package management
-- **Rust**: cargo package installation with rustup
-- **Go**: go module installation
-- **Dependency Checking**: Automatic installation of missing language tools
-
-## Installation & Quick Start
+## Installation & Usage
 
 ```bash
-# Install collection
 ansible-galaxy collection install wolskinet.infrastructure
 
-# Basic inventory structure
-mkdir -p inventory/{group_vars/{all,servers,docker_hosts,workstations},host_vars}
+# Create inventory structure (flexible - organize as needed)
+mkdir -p inventory/{group_vars/all,host_vars}
 mkdir -p playbooks
 ```
 
-### Example Inventory
+### Declarative Configuration
+Variables are set anywhere in your inventory hierarchy:
+
 ```yaml
-# inventory/hosts.yml
-servers:
-  hosts:
-    web-server:
-      ansible_host: 192.168.1.20
-
-docker_hosts:
-  hosts:
-    docker-01:
-      ansible_host: 192.168.1.30
-
-workstations:
-  hosts:
-    dev-machine:
-      ansible_host: 192.168.1.10
+# inventory/group_vars/all.yml - Domain-wide configuration
+infrastructure:
+  domain:
+    name: "company.local"
+    timezone: "America/New_York"  
+    ntp:
+      servers: [time1.company.com, time2.company.com]
+    users:
+      - name: deploy
+        comment: "Deployment User"
+        groups: [sudo]
+        ssh_pubkey: "ssh-ed25519 AAAAC3..."
+        
+        # Cross-platform user preferences
+        git:
+          user_name: "Deploy User"
+          user_email: "deploy@company.com"
+        nodejs:
+          packages: [pm2, typescript]
+        rust:
+          packages: [ripgrep, bat]
+          
+        # OS-specific preferences
+        Ubuntu:
+          shell: /usr/bin/zsh
+          dotfiles:
+            repository: "https://github.com/deploy/dotfiles-linux"
+            method: stow
+            packages: [zsh, tmux]
+        Darwin:
+          shell: /opt/homebrew/bin/zsh
+          dotfiles:
+            repository: "https://github.com/deploy/dotfiles-macos"
+            method: stow
+            packages: [zsh, tmux, macos]
+        
+  Ubuntu:
+    packages:
+      all: [git, curl, htop, vim]
+    snap:
+      disable_and_remove: true
+      
+# inventory/group_vars/webservers.yml - Web server group
+infrastructure:
+  Ubuntu:
+    packages:
+      group: [nginx, certbot]
+    firewall:
+      enabled: true
+      rules:
+        - { port: 80, protocol: tcp }
+        - { port: 443, protocol: tcp }
+        
+# inventory/host_vars/web01.yml - Individual host  
+infrastructure:
+  host:
+    hostname: "web01"
+  Ubuntu:
+    packages:
+      host: [redis-server]
 ```
 
-### Hierarchical Variables
-```yaml
-# inventory/group_vars/all/Ubuntu.yml - Global packages
-all_packages_install_Ubuntu:
-  - git
-  - curl
-  - htop
-
-# inventory/group_vars/servers/Ubuntu.yml - Server packages
-group_packages_install_Ubuntu:
-  - nginx
-  - fail2ban
-  - certbot
-```
-
-### Main Playbook
+### Basic Playbook
 ```yaml
 # playbooks/site.yml
-- name: Basic infrastructure setup
-  hosts: all
+- hosts: all
   roles:
-    - wolskinet.infrastructure.configure_host
+    - wolskinet.infrastructure.os_configuration
+    - wolskinet.infrastructure.manage_users        # Creates user accounts
+    - wolskinet.infrastructure.manage_packages
 
-- name: Security configuration
-  hosts: servers
+- hosts: webservers  
   roles:
-    - devsec.hardening.os_hardening
-    - devsec.hardening.ssh_hardening
-    - wolskinet.infrastructure.manage_firewall
-```
+    - wolskinet.infrastructure.manage_security_services
 
-## Discovery-Driven Deployment
-
-### 1. Discover Existing Infrastructure
-```bash
-# Scan existing machine to generate configuration
-ansible-playbook playbooks/run-discovery.yml -i existing-server, --ask-become-pass
-```
-
-**Generated Output:**
-- `inventory/host_vars/existing-server.yml` - Discovered configuration
-- `playbooks/existing-server_discovered.yml` - Ready-to-deploy playbook
-
-### 2. Review and Customize
-```yaml
-# Example generated host_vars/web-01.yml
-host_packages_install_Ubuntu:
-  - nginx
-  - redis-server
-  - git
-
-discovered_users_config:
-  - name: deploy
-    shell: /bin/bash
-    groups: [sudo, docker]
-    dotfiles_repository_url: "https://github.com/deploy/dotfiles"
-
-install_docker_services:
-  - role: nginx_proxy_manager
-    name: proxy
-    # ... service configuration
-```
-
-### 3. Deploy to New Machines
-```bash
-# Use discovered configuration for new deployments
-ansible-playbook playbooks/web-01_discovered.yml -i inventory/hosts.yml -l new-server
+# Configure user preferences (runs as each user)
+- hosts: all
+  vars:
+    target_user: "{{ item }}"
+  include_role:
+    name: wolskinet.infrastructure.configure_user
+  become: true
+  become_user: "{{ item }}"
+  loop: "{{ infrastructure.domain.users | map(attribute='name') | list }}"
 ```
 
 ## Advanced Configuration
 
-### Shell Enhancement Integration
+### Multi-OS Package Management
 ```yaml
-# Automatic modern shell tool installation
-install_shell_enhancements: true  # Adds: zsh, starship, zoxide, eza, fzf, bat
+infrastructure:
+  Ubuntu:
+    packages:
+      all: [git, curl, htop]
+      repositories:
+        all:
+          - name: docker
+            types: deb
+            uris: https://download.docker.com/linux/ubuntu
+            suites: "{{ ansible_distribution_release }}"
+            components: stable
+            signed_by: https://download.docker.com/linux/ubuntu/gpg
+            
+  Darwin:
+    packages:
+      all: [git, curl, htop]  # Installed via Homebrew
+      
+  Archlinux:
+    packages:
+      all: [git, curl, htop]  # Installed via pacman
 ```
 
-### macOS System Preferences (geerlingguy-inspired)
+### Firewall Configuration
 ```yaml
-# Comprehensive macOS customization
-macos_configure_dock: true
-macos_dock_tile_size: 48
-macos_dock_autohide: true
-macos_finder_show_extensions: true
-macos_enable_full_keyboard_access: true
+infrastructure:
+  Ubuntu:
+    firewall:
+      enabled: true
+      rules:
+        - port: 22
+          protocol: tcp
+          src: "192.168.1.0/24"
+          comment: "SSH from local network"
+        - port: [80, 443]
+          protocol: tcp  
+          comment: "HTTP/HTTPS"
+    fail2ban:
+      enabled: true
+      jails:
+        - name: sshd
+          enabled: true
+          bantime: 3600
 ```
 
-### Dotfiles Integration
+### Alternative Package Systems
 ```yaml
-# Per-user dotfiles deployment
-dotfiles_enable: true
-discovered_users_config:
-  - name: developer
-    dotfiles_repository_url: "https://github.com/developer/dotfiles"
-    dotfiles_uses_stow: true
-    dotfiles_stow_packages: ["zsh", "git", "tmux"]
+infrastructure:
+  Ubuntu:
+    snap:
+      disable_and_remove: true  # Complete snap removal
+      # OR for managed snap usage:
+      # disable_and_remove: false
+      # packages:
+      #   install: [hello-world]
+      
+    flatpak:
+      enabled: true
+      packages:
+        install: [org.mozilla.firefox]
+      flathub: true
+      plugins:
+        gnome: true
 ```
 
-### Ubuntu Snap Management
+### User Language Development Environments
+User-scoped language packages are configured per-user with automatic dependency installation:
+
 ```yaml
-# Complete snap removal for Ubuntu
-ubuntu_disable_snap: true  # Removes all snaps, disables snapd service
+infrastructure:
+  domain:
+    users:
+      - name: developer
+        # Cross-platform language packages (auto-installs tools if missing)
+        nodejs:
+          packages: [typescript, eslint, prettier]  # Auto-installs nodejs
+        rust:
+          packages: [ripgrep, fd-find, bat]         # Auto-installs rustup
+        go:
+          packages: [github.com/charmbracelet/glow@latest]  # Auto-installs golang
+        
+        Ubuntu:
+          shell: /usr/bin/zsh
+        Darwin:
+          shell: /opt/homebrew/bin/zsh
 ```
 
-### Container Service Mapping
-```yaml
-# Automatic Docker service role mapping
-install_docker_services:
-  - role: gitlab                    # From gitlab/gitlab-ce image
-  - role: jellyfin                  # From jellyfin/jellyfin image
-  - role: nginx_proxy_manager       # From jc21/nginx-proxy-manager image
-```
+Language tools are installed automatically when user requests packages:
+- `nodejs.packages` → installs `nodejs` system package if `npm` not found
+- `rust.packages` → installs `rustup` system package if `cargo` not found  
+- `go.packages` → installs `golang` system package if `go` not found
 
 ## Platform Support
 
-### Ubuntu 22+ / Debian 12+
-- Full APT package management with additional repositories
-- Optional snap removal with complete cleanup
-- UFW firewall configuration
-- Automatic security update configuration
+**Ubuntu 22+ / Debian 12+**
+- APT package management with repository handling
+- Snap system management (complete removal or controlled usage)
+- UFW firewall with fail2ban integration
+- Unattended upgrades configuration
 
-### Arch Linux
-- Native pacman + AUR packages via paru
-- Automated mirror optimization with reflector
+**Arch Linux**  
+- Pacman package management
+- Flatpak support  
 - firewalld configuration
-- Pacman hook management
+- systemd journal/service management
 
-### macOS (Intel/Apple Silicon)
-- Homebrew package management (Intel + Apple Silicon paths)
-- Comprehensive system preferences automation
-- Platform-specific firewall configuration
-- Xcode Command Line Tools installation
+**macOS (Intel/Apple Silicon)**
+- Homebrew package management
+- System preference automation
+- Built-in firewall configuration  
+- Xcode Command Line Tools requirement
 
-## Security Integration
+## Variable Hierarchy & Merging
 
-This collection complements the devsec.hardening collection:
+The `infrastructure` structure supports flexible configuration patterns:
 
 ```yaml
-# Recommended security layering
-- name: Complete security setup
-  hosts: servers
-  roles:
-    - wolskinet.infrastructure.configure_host      # Foundation + firewall install
-    - devsec.hardening.os_hardening            # OS-level security hardening
-    - devsec.hardening.ssh_hardening           # SSH security configuration
-    - wolskinet.infrastructure.manage_firewall  # Firewall rules + fail2ban
+# Variables merge by precedence: all < group < host
+# inventory/group_vars/all.yml
+infrastructure:
+  Ubuntu:
+    packages:
+      all: [git, curl]
+
+# inventory/group_vars/webservers.yml  
+infrastructure:
+  Ubuntu:
+    packages:
+      group: [nginx]
+
+# inventory/host_vars/web01.yml
+infrastructure:
+  Ubuntu:
+    packages:
+      host: [redis-server]
+
+# Final result: [git, curl, nginx, redis-server]
 ```
+
+**Key Point**: Variable names like `infrastructure.Ubuntu.packages.all` vs `infrastructure.Ubuntu.packages.group` indicate *scope* not *precedence*. Ansible's standard variable precedence (group_vars < host_vars) still applies.
 
 ## Dependencies
 
 **Required Collections:**
-```yaml
-# galaxy.yml dependencies
-collections:
-  - community.general
-  - ansible.posix
-```
-
-**Recommended Collections:**
-- `devsec.hardening` - Comprehensive security hardening
+- `community.general` - firewall, package management, macOS defaults
+- `ansible.posix` - sysctl, authorized_key, other POSIX utilities
 
 **System Requirements:**
-- **Ansible**: 2.9+ (tested with ansible-core 2.12+)
-- **Python**: 2.7+/3.6+ on target systems
-- **Privileges**: Sudo access for system configuration
-- **macOS**: Homebrew installation for package management
-
-## Development & Testing
-
-```bash
-# Development workflow
-make lint          # Run ansible-lint, yamllint, security checks
-make test-quick    # Fast validation tests
-make test          # Full molecule test suite
-make build         # Build collection package
-
-# Individual role testing
-make test-discovery # Test discovery role
-```
+- **Ansible**: Core 2.12+  
+- **Target Systems**: Python 3.6+, sudo access
+- **macOS**: Xcode Command Line Tools (`xcode-select --install`)
 
 ## License
 
@@ -298,10 +339,8 @@ MIT
 
 ---
 
-**Key Features Summary:**
-- **Discovery-Driven**: Scan existing infrastructure, generate deployment configs
-- **Cross-Platform**: Ubuntu, Debian, Arch Linux, macOS support
-- **Hierarchical Variables**: Smart package merging across all/group/host levels
-- **Modern Tooling**: Shell enhancements, dotfiles automation, macOS preferences
-- **Security-Ready**: Integrates seamlessly with devsec.hardening collection
-- **Container-Aware**: Docker service discovery and automatic role mapping
+**Architecture Summary:**
+- **Domain/Host/Distribution** separation eliminates configuration duplication
+- **Distribution fact-driven** OS detection - no forced inventory structure  
+- **Declarative configuration** - users specify desired state, roles handle implementation
+- **Multi-platform** with unified variable taxonomy across Ubuntu/Debian/Arch/macOS

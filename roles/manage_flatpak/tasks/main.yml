@@ -1,33 +1,13 @@
 ---
 # manage_flatpak role main tasks
 
-- name: Validate supported OS versions
-  ansible.builtin.fail:
-    msg: >-
-      {{ ansible_distribution }} {{ ansible_distribution_version }}
-      is not supported for flatpak management. Supported: Ubuntu 22+, Debian 12+, Arch Linux
-  when:
-    - ansible_os_family == "Debian"
-    - >-
-      (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 22) or
-      (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12)
-  tags:
-    - always
-    - validation
-
-- name: Skip flatpak management on unsupported systems
-  ansible.builtin.debug:
-    msg: "Skipping flatpak management on {{ ansible_distribution }} - not supported"
-  when:
-    - ansible_os_family not in ["Debian", "Archlinux"]
-  tags: []
-
 - name: Manage flatpak packages
   ansible.builtin.include_tasks: manage-flatpak.yml
   when:
     - ansible_os_family in ["Debian", "Archlinux"]
-    - flatpak.enabled | default(false)
+    - infrastructure[ansible_distribution] is defined
+    - infrastructure[ansible_distribution].flatpak.enabled | default(false)
     - >-
-      (flatpak.packages.install | default([]) | length > 0) or
-      (flatpak.packages.remove | default([]) | length > 0)
+      (infrastructure[ansible_distribution].flatpak.packages.install | default([]) | length > 0) or
+      (infrastructure[ansible_distribution].flatpak.packages.remove | default([]) | length > 0)
   tags: []

@@ -1,176 +1,250 @@
 # manage_security_services
 
-Security services management: firewall services, fail2ban, and intrusion prevention.
+Security services management: UFW wrapper for Linux, native ALF control for macOS, and fail2ban configuration.
 
 ## Description
 
-This role manages security services that complement basic OS configuration. It handles firewall service installation/enablement, fail2ban intrusion prevention, and platform-specific security configurations. This role assumes basic OS setup is complete and focuses on security service deployment.
+This role provides platform-specific security service management. On Linux, it acts as a wrapper around `community.general.ufw` with SSH anti-lockout protection. On macOS, it directly manages the Application Layer Firewall via `socketfilterfw` commands. The role also handles fail2ban configuration on Linux systems.
 
 ## Features
 
-- **🔥 Firewall Services**: Install and enable UFW, macOS ALF, and other firewall services
-- **🛡️ Intrusion Prevention**: Complete fail2ban installation and configuration
-- **🍎 macOS Security**: Application Layer Firewall with stealth mode and logging
-- **🔧 Service Management**: Proper service enablement and startup configuration
-- **📧 Alert Integration**: Email notifications for security events
+- **Linux**: Direct pass-through to `community.general.ufw` with SSH anti-lockout
+- **macOS**: Native Application Layer Firewall control via `socketfilterfw`
+- **fail2ban**: Jail configuration and service management (Linux only)
+- **Platform detection**: Automatic OS-specific task routing
 
 ## Role Variables
 
-See `defaults/main.yml` for complete configuration options.
-
-### Tag-Based Control
-
-This role uses tags for fine-grained control instead of enable/disable variables:
-
-```bash
-# Install only firewall services
-ansible-playbook -t firewall-services playbook.yml
-
-# Install only fail2ban
-ansible-playbook -t fail2ban playbook.yml
-
-# Install all security services
-ansible-playbook -t security-services playbook.yml
-```
-
-### macOS Firewall
+### Core Configuration
 
 ```yaml
-security_macos_firewall:
-  enabled: true                         # Enable macOS firewall management
-  stealth_mode: false                   # Enable stealth mode
-  block_all: false                      # Block all incoming connections
-  logging: false                        # Enable firewall logging
-```
-
-### Fail2ban Configuration
-
-```yaml
-# Control via tags - no enable/disable variable needed
-security_fail2ban_default_bantime: 3600     # Default ban time (1 hour)
-security_fail2ban_default_findtime: 600     # Default find time (10 minutes)
-security_fail2ban_default_maxretry: 5       # Default max retry attempts
-
-security_fail2ban_services:
-  - name: sshd
-    enabled: true
-    maxretry: 5
-    bantime: 3600
-    findtime: 600
-    logpath: /var/log/auth.log
-
-security_fail2ban_ignoreips:
-  - "127.0.0.1/8"
-  - "::1"
-```
-
-## Example Usage
-
-### Basic Security Services
-
-```yaml
-# Install all security services
-- name: Configure security services
-  include_role:
-    name: wolskinet.infrastructure.manage_security_services
-  tags: security-services
-```
-
-### Server with Enhanced Protection
-
-```yaml
-- name: Configure server security
-  include_role:
-    name: wolskinet.infrastructure.manage_security_services
-  vars:
-    security_fail2ban_services:
-      - name: sshd
-        enabled: true
-        maxretry: 3
-        bantime: 7200
-      - name: nginx-http-auth
-        enabled: true
-        maxretry: 5
+# Distribution-specific security configuration
+security_config:
+  Ubuntu:
+    firewall:
+      enabled: false
+      prevent_ssh_lockout: true
+      package: "ufw"
+      rules: []                   # Passed to community.general.ufw
+    fail2ban:
+      enabled: false
+      sender: "root@localhost"
+      dest_email: ""
+      defaults:
         bantime: 3600
-  tags: security-services
+        findtime: 600
+        maxretry: 5
+      services:
+        - name: sshd
+          enabled: true
+          maxretry: 5
+          bantime: 3600
+          findtime: 600
+          logpath: /var/log/auth.log
+      ignoreips:
+        - "127.0.0.1/8"
+        - "::1"
+        
+  Debian:
+    firewall:
+      enabled: false
+      prevent_ssh_lockout: true
+      package: "ufw"
+      rules: []
+    fail2ban:
+      enabled: false
+      sender: "root@localhost"
+      dest_email: ""
+      # ... same structure as Ubuntu
+      
+  Archlinux:
+    firewall:
+      enabled: false
+      prevent_ssh_lockout: true
+      package: "ufw"
+      rules: []
+    fail2ban:
+      enabled: false
+      # ... same structure as Ubuntu
+      
+  Darwin:
+    firewall:
+      enabled: false
+      package: "macos_alf"        # Identifier (not actually installed)
+      stealth_mode: false         # macOS socketfilterfw --setstealthmode
+      block_all: false            # macOS socketfilterfw --setblockall
+      logging: false              # macOS socketfilterfw --setloggingmode
+    # Note: fail2ban not supported on macOS
+
+# Backward compatibility - these will override distribution-specific if set
+security:
+  firewall:
+    all_os:
+      enabled: false
+      prevent_ssh_lockout: true
+    linux:
+      package: "ufw"
+    darwin:
+      package: "macos_alf"
+      stealth_mode: false
+      block_all: false
+      logging: false
+    rules: []
+  fail2ban:
+    enabled: false
+    # ... full structure available
 ```
 
-### macOS Security Configuration
+## Platform-Specific Implementation
+
+### Linux (UFW via community.general.ufw)
+
+On Linux systems, firewall rules are passed directly to `community.general.ufw`:
 
 ```yaml
-- name: Configure macOS security
-  include_role:
-    name: wolskinet.infrastructure.manage_security_services
-  vars:
-    security_macos_firewall:
-      enabled: true
-      stealth_mode: true
-      logging: true
-  tags: firewall-services
+security:
+  firewall:
+    rules:  # All parameters from community.general.ufw supported
+      - rule: allow/deny/limit/reject
+        port: 80
+        proto: tcp/udp/any
+        from: "10.0.0.0/8"
+        to: "any"
+        comment: "Description"
+        delete: false
+        direction: in/out/routed
+        interface: eth0
+        log: false
 ```
 
-## Architecture
+**SSH Anti-Lockout**: When `prevent_ssh_lockout: true`, automatically prepends SSH allow rule if not present in rules list.
 
-This role is designed to work with the infrastructure collection architecture:
+### macOS (Native ALF Control)
 
-1. **os_configuration**: Basic OS setup (hostname, locale, NTP)
-2. **manage_security_services**: Install and enable security services (this role)
-3. **manage_firewall**: Configure firewall rules and start services safely
-
-### Firewall Safety
-
-This role safely handles firewall activation using proper separation of concerns:
-
-**Architecture Flow:**
-1. **manage_security_services**: Installs firewall package and enables service
-2. **manage_firewall**: Configures rules (called automatically with SSH protection)
-3. **manage_security_services**: Starts firewall service (handlers reload on rule changes)
-
-**Linux (UFW)**: When `security_firewall_common.start: true`, the role:
-1. Installs UFW package
-2. Calls manage_firewall with default rules (minimum: SSH access)
-3. Starts UFW service (with deny-by-default policy)
-
-**macOS (Application Layer Firewall)**: ALF works differently - it's application-based, not port-based:
-- SSH access is controlled by "Remote Login" system preference, not firewall rules
-- `default_rules` are ignored on macOS (only applies to Linux)
-- ALF controls which applications can accept incoming connections
-- Configured via `security_firewall_macosx` settings (stealth_mode, block_all, logging)
+On macOS, the role uses `/usr/libexec/ApplicationFirewall/socketfilterfw` directly:
 
 ```yaml
-security_firewall_common:
-  enabled: true    # Enable service for boot (implies package installation)
-  start: true      # Start firewall service (with SSH protection via manage_firewall)
-  # default_rules automatically includes SSH protection - see defaults/main.yml
+security:
+  firewall:
+    darwin:
+      stealth_mode: true   # --setstealthmode on/off
+      block_all: false     # --setblockall on/off  
+      logging: true        # --setloggingmode on/off
+    # Note: 'rules' are ignored on macOS - ALF is application-based, not port-based
 ```
 
-## Requirements
+**Important**: macOS ALF works differently than UFW:
+- Controls which applications can receive incoming connections
+- Does not use port-based rules
+- SSH access controlled via System Preferences → Sharing → Remote Login
 
-- **macOS**: Xcode Command Line Tools (`xcode-select --install`)
-- **All platforms**: Appropriate sudo/admin privileges
+## Usage Examples
+
+### Linux Firewall with UFW
+```yaml
+- hosts: linux_servers
+  roles:
+    - role: wolskinet.infrastructure.manage_security_services
+      vars:
+        security_config:
+          Ubuntu:
+            firewall:
+              enabled: true
+              prevent_ssh_lockout: true
+              rules:  # Standard community.general.ufw parameters
+                - rule: allow
+                  port: 80
+                  proto: tcp
+                  comment: "HTTP"
+                - rule: allow
+                  port: 443
+                  proto: tcp
+                  comment: "HTTPS"
+                - rule: limit
+                  port: 22
+                  proto: tcp
+                  from: 10.0.0.0/8
+                  comment: "SSH from internal"
+```
+
+### macOS Firewall Configuration
+```yaml
+- hosts: macos_hosts
+  roles:
+    - role: wolskinet.infrastructure.manage_security_services
+      vars:
+        security_config:
+          Darwin:
+            firewall:
+              enabled: true
+              stealth_mode: true    # Don't respond to ping
+              block_all: false      # Don't block all incoming
+              logging: true         # Log firewall events
+              # rules: ignored on macOS
+```
+
+### fail2ban (Linux Only)
+```yaml
+- hosts: linux_servers
+  roles:
+    - role: wolskinet.infrastructure.manage_security_services
+      vars:
+        security_config:
+          Ubuntu:
+            fail2ban:
+              enabled: true
+              services:
+                - name: sshd
+                  enabled: true
+                  maxretry: 3
+                  bantime: 7200
+                  findtime: 600
+                  logpath: /var/log/auth.log
+```
+
+### Backward Compatibility
+```yaml
+# Legacy format still supported (overrides distribution-specific)
+- hosts: linux_servers
+  roles:
+    - role: wolskinet.infrastructure.manage_security_services
+      vars:
+        security:
+          firewall:
+            all_os:
+              enabled: true
+            rules:
+              - rule: allow
+                port: 80
+```
+
+## What This Role Adds
+
+### For Linux
+- **SSH Anti-Lockout**: Prevents accidental lockout when enabling UFW
+- **Service Management**: UFW package installation and enablement
+- **fail2ban Integration**: Complete jail.local templating
+
+### For macOS
+- **Native ALF Control**: Direct socketfilterfw command execution
+- **Simplified Interface**: Manages stealth mode, logging, and block_all settings
+- **No fail2ban**: macOS uses different security model
 
 ## Dependencies
 
-- `community.general` collection (for service management)
-- `ansible.posix` collection (for systemd management)
+- `community.general.ufw` - Linux firewall management
+- `ansible.posix` - Service management
 
-## Platform Support
+## See Also
 
-- **Ubuntu 22+**: Full UFW and fail2ban support
-- **Debian 12+**: Full UFW and fail2ban support
-- **Arch Linux**: UFW and fail2ban support
-- **macOS**: Application Layer Firewall configuration
+- [community.general.ufw documentation](https://docs.ansible.com/ansible/latest/collections/community/general/ufw_module.html) (Linux)
+- [macOS Application Layer Firewall](https://support.apple.com/guide/mac-help/block-connections-to-your-mac-with-a-firewall-mh34041/mac) (macOS)
+- [fail2ban documentation](https://www.fail2ban.org/) (Linux)
 
-## Integration
+## Testing
 
-Works seamlessly with other infrastructure roles:
-
-```yaml
-- hosts: servers
-  roles:
-    - wolskinet.infrastructure.os_configuration      # Basic OS setup
-    - wolskinet.infrastructure.manage_security_services  # Security services
-    - wolskinet.infrastructure.manage_firewall       # Firewall rules
+```bash
+molecule test -s manage_security_services
 ```
 
 ## License
@@ -179,4 +253,4 @@ MIT
 
 ## Author Information
 
-This role is part of the `wolskinet.infrastructure` Ansible collection.
+Ed Wolski - wolskinet

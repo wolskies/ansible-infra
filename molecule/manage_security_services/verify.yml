@@ -1,0 +1,92 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Verify UFW package is installed
+      ansible.builtin.package_facts:
+        manager: auto
+      
+    - name: Check UFW package is present
+      ansible.builtin.assert:
+        that:
+          - "'ufw' in ansible_facts.packages"
+        fail_msg: "UFW package not installed"
+        success_msg: "UFW package is installed"
+
+    - name: Check UFW service status
+      ansible.builtin.service_facts:
+        
+    - name: Verify UFW service is active
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts.services['ufw.service'].state == 'active'"
+        fail_msg: "UFW service is not active"
+        success_msg: "UFW service is active"
+
+    - name: Get UFW status
+      ansible.builtin.command: ufw status numbered
+      register: ufw_status
+      become: true
+      changed_when: false
+
+    - name: Verify SSH rule exists in UFW
+      ansible.builtin.assert:
+        that:
+          - "'22/tcp' in ufw_status.stdout or 'OpenSSH' in ufw_status.stdout"
+        fail_msg: "SSH rule not found in UFW configuration"
+        success_msg: "SSH rule found in UFW configuration"
+
+    - name: Verify fail2ban package is installed (when enabled)
+      ansible.builtin.package_facts:
+        manager: auto
+      when: security.fail2ban.enabled
+
+    - name: Check fail2ban package is present (when enabled)
+      ansible.builtin.assert:
+        that:
+          - "'fail2ban' in ansible_facts.packages"
+        fail_msg: "fail2ban package not installed"
+        success_msg: "fail2ban package is installed"
+      when: security.fail2ban.enabled
+
+    - name: Check fail2ban service status (when enabled)
+      ansible.builtin.service_facts:
+      when: security.fail2ban.enabled
+        
+    - name: Verify fail2ban service is active (when enabled)
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts.services['fail2ban.service'].state == 'active'"
+        fail_msg: "fail2ban service is not active"
+        success_msg: "fail2ban service is active"
+      when: security.fail2ban.enabled
+
+    - name: Check fail2ban jail configuration (when enabled)
+      ansible.builtin.stat:
+        path: /etc/fail2ban/jail.local
+      register: jail_config
+      when: security.fail2ban.enabled
+
+    - name: Verify fail2ban jail.local exists (when enabled)
+      ansible.builtin.assert:
+        that:
+          - jail_config.stat.exists
+        fail_msg: "fail2ban jail.local configuration not found"
+        success_msg: "fail2ban jail.local configuration exists"
+      when: security.fail2ban.enabled
+
+    - name: Test UFW syntax by checking rule count
+      ansible.builtin.shell: |
+        set -o pipefail
+        ufw status numbered | grep -c '\[.*\]' || echo 0
+      register: ufw_rule_count
+      become: true
+      changed_when: false
+
+    - name: Verify UFW has configured rules
+      ansible.builtin.assert:
+        that:
+          - ufw_rule_count.stdout | int >= 1
+        fail_msg: "No UFW rules configured"
+        success_msg: "UFW rules are configured"

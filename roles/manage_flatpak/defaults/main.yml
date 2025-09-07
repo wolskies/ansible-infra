@@ -2,12 +2,39 @@
 # =============================================================================
 # FLATPAK PACKAGES ROLE VARIABLES
 # =============================================================================
-flatpak:
-  enabled: false
-  packages:
-    install: []
-    remove: []
-  flathub: true
-  plugins:
-    gnome: false
-    plasma: false
+# Flatpak configuration is part of the unified infrastructure structure
+# =============================================================================
+
+infrastructure:
+  Ubuntu:
+    flatpak:
+      enabled: false
+      packages:
+        install: []
+        remove: []
+      flathub: true
+      plugins:
+        gnome: false
+        plasma: false
+        
+  Debian:
+    flatpak:
+      enabled: false
+      packages:
+        install: []
+        remove: []
+      flathub: true
+      plugins:
+        gnome: false
+        plasma: false
+        
+  Archlinux:
+    flatpak:
+      enabled: false
+      packages:
+        install: []
+        remove: []
+      flathub: true
+      plugins:
+        gnome: false
+        plasma: false

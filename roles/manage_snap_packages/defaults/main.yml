@@ -2,8 +2,20 @@
 # =============================================================================
 # SNAP PACKAGES ROLE VARIABLES
 # =============================================================================
-snap:
-  disable_and_remove: true
-  packages:
-    install: []
-    remove: []
+# Snap configuration is part of the unified infrastructure structure
+# =============================================================================
+
+infrastructure:
+  Ubuntu:
+    snap:
+      disable_and_remove: true
+      packages:
+        install: []
+        remove: []
+        
+  Debian:
+    snap:
+      disable_and_remove: true
+      packages:
+        install: []
+        remove: []

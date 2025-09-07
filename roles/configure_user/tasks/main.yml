@@ -1,0 +1,27 @@
+---
+# This role configures a single user's preferences and must be called with target_user variable
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - target_user is defined
+      - target_user | length > 0
+      - infrastructure.domain.users is defined
+    fail_msg: "configure_user role requires target_user variable and infrastructure.domain.users defined"
+
+- name: Find target user configuration
+  ansible.builtin.set_fact:
+    current_user_config: "{{ infrastructure.domain.users | selectattr('name', 'equalto', target_user) | first }}"
+  failed_when: current_user_config is not defined
+
+- name: Configure cross-platform user preferences
+  ansible.builtin.include_tasks: configure-cross-platform.yml
+  tags:
+    - user-config
+    - cross-platform
+
+- name: Configure OS-specific user preferences
+  ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
+  when: current_user_config[ansible_distribution] is defined
+  tags:
+    - user-config
+    - os-specific

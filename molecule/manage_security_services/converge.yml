@@ -1,0 +1,6 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  roles:
+    - role: wolskinet.infrastructure.manage_security_services

@@ -1,0 +1,90 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-users-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: debian-users-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # Test user configuration using new infrastructure structure
+        infrastructure:
+          domain:
+            users:
+              - name: testuser1
+                comment: "Test User One"
+                shell: /bin/bash
+                groups:
+                  - sudo
+                ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGKb8Vz6VPZZQmKv4uOqGKq1GKqKGKGKGKGKGKGKGK testuser1@test"
+                password: "testpassword"
+                create_home: true
+              - name: testuser2
+                comment: "Test User Two"
+                shell: /bin/bash
+                groups:
+                  - users
+                ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7... testuser2@test"
+                password: "$6$salt$encrypted_password_hash"
+                create_home: true
+              - name: testuser3
+                comment: "Test User Three - Minimal Config"
+                shell: /bin/sh
+                create_home: true
+              - name: testuser4
+                comment: "Test User for Removal"
+                state: absent  # Test user removal using state
+            users_absent:  # Legacy removal method for migration testing
+              - olduser1
+              - olduser2
+    host_vars:
+      ubuntu-users-test:
+        # Host-specific additional users (merged with domain users)
+        infrastructure:
+          domain:
+            users:
+              - name: ubuntu_specific
+                comment: "Ubuntu Specific User"
+                shell: /bin/bash
+                groups:
+                  - sudo
+                  - adm
+                create_home: true
+      debian-users-test:
+        # Host-specific additional users (merged with domain users)
+        infrastructure:
+          domain:
+            users:
+              - name: debian_specific
+                comment: "Debian Specific User"
+                shell: /bin/bash
+                groups:
+                  - sudo
+                  - staff
+                create_home: true
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

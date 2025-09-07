@@ -2,49 +2,96 @@
 # =============================================================================
 # SECURITY SERVICES ROLE VARIABLES
 # =============================================================================
+# Distribution-specific security services configuration
+# =============================================================================
 
-security_firewall_common:
-  enabled: true
-  start: true
-  prevent_ssh_lockout: true
+infrastructure:
+  Ubuntu:
+    firewall:
+      enabled: false
+      prevent_ssh_lockout: true
+      package: "ufw"
+      rules: []
+      # Rule examples:
+      # - rule: allow
+      #   port: 80
+      #   proto: tcp
+      #   comment: "HTTP traffic"
+    fail2ban:
+      enabled: false
+      sender: "root@localhost"
+      dest_email: ""
+      defaults:
+        bantime: 3600
+        findtime: 600
+        maxretry: 5
+      services:
+        - name: sshd
+          enabled: true
+          maxretry: 5
+          bantime: 3600
+          findtime: 600
+          logpath: /var/log/auth.log
+      ignoreips:
+        - "127.0.0.1/8"
+        - "::1"
+        
+  Debian:
+    firewall:
+      enabled: false
+      prevent_ssh_lockout: true
+      package: "ufw"
+      rules: []
+    fail2ban:
+      enabled: false
+      sender: "root@localhost"
+      dest_email: ""
+      defaults:
+        bantime: 3600
+        findtime: 600
+        maxretry: 5
+      services:
+        - name: sshd
+          enabled: true
+          maxretry: 5
+          bantime: 3600
+          findtime: 600
+          logpath: /var/log/auth.log
+      ignoreips:
+        - "127.0.0.1/8"
+        - "::1"
+        
+  Archlinux:
+    firewall:
+      enabled: false
+      prevent_ssh_lockout: true
+      package: "ufw"
+      rules: []
+    fail2ban:
+      enabled: false
+      sender: "root@localhost"
+      dest_email: ""
+      defaults:
+        bantime: 3600
+        findtime: 600
+        maxretry: 5
+      services:
+        - name: sshd
+          enabled: true
+          maxretry: 5
+          bantime: 3600
+          findtime: 600
+          logpath: /var/log/auth.log
+      ignoreips:
+        - "127.0.0.1/8"
+        - "::1"
+        
+  Darwin:
+    firewall:
+      enabled: false
+      package: "macos_alf"
+      stealth_mode: false
+      block_all: false
+      logging: false
+    # Note: fail2ban not supported on macOS
 
-security_firewall_linux:
-  package: "ufw"
-  rate_limiting:
-    enabled: false
-    connections: 6
-    period: 30
-    comment: "Rate limiting rule"
-
-security_firewall_macosx:
-  package: "macos_alf"
-  stealth_mode: false
-  block_all: false
-  logging: false
-
-security_fail2ban_common:
-  enabled: true
-  start: true
-  sender: "root@localhost"
-  dest_email: ""
-
-security_fail2ban_defaults:
-  bantime: 3600
-  findtime: 600
-  maxretry: 5
-
-security_fail2ban_services:
-  - name: sshd
-    enabled: true
-    maxretry: 5
-    bantime: 3600
-    findtime: 600
-    logpath: /var/log/auth.log
-
-security_fail2ban_ignoreips:
-  - "127.0.0.1/8"
-  - "::1"
-
-security_intrusion_detection_enabled: false
-security_log_monitoring_enabled: false
-security_audit_enabled: false

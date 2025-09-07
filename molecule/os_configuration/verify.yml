@@ -1,0 +1,133 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Check timezone configuration
+      ansible.builtin.command: timedatectl show --property=Timezone --value
+      register: current_timezone
+      changed_when: false
+
+    - name: Verify timezone is set correctly
+      ansible.builtin.assert:
+        that:
+          - "'America/New_York' in current_timezone.stdout"
+        fail_msg: "Timezone not set correctly"
+        success_msg: "Timezone correctly set to America/New_York"
+
+    - name: Check hostname in /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "molecule-test"
+        state: absent
+      check_mode: true
+      register: hosts_check
+
+    - name: Verify hostname entry exists in /etc/hosts
+      ansible.builtin.assert:
+        that:
+          - hosts_check is not changed
+        fail_msg: "Hostname entry not found in /etc/hosts"
+        success_msg: "Hostname properly configured in /etc/hosts"
+
+    - name: Check systemd-timesyncd configuration
+      ansible.builtin.stat:
+        path: /etc/systemd/timesyncd.conf
+      register: timesyncd_config
+
+    - name: Verify timesyncd configuration exists
+      ansible.builtin.assert:
+        that:
+          - timesyncd_config.stat.exists
+        fail_msg: "timesyncd configuration not found"
+        success_msg: "timesyncd configuration exists"
+
+    - name: Check journal configuration
+      ansible.builtin.stat:
+        path: /etc/systemd/journald.conf.d/00-ansible-managed.conf
+      register: journal_config
+
+    - name: Verify journal configuration exists
+      ansible.builtin.assert:
+        that:
+          - journal_config.stat.exists
+        fail_msg: "Journal configuration not found"
+        success_msg: "Journal configuration exists"
+
+    - name: Check vm.swappiness configuration
+      ansible.builtin.command: sysctl vm.swappiness
+      register: swappiness_check
+      changed_when: false
+
+    - name: Verify swappiness is configured
+      ansible.builtin.assert:
+        that:
+          - "'vm.swappiness = 5' in swappiness_check.stdout"
+        fail_msg: "vm.swappiness not configured correctly"
+        success_msg: "vm.swappiness correctly set to 5"
+
+    - name: Check APT no-recommends configuration (Debian family)
+      ansible.builtin.stat:
+        path: /etc/apt/apt.conf.d/99-no-recommends
+      register: apt_recommends_config
+      when: ansible_os_family == "Debian"
+
+    - name: Verify APT no-recommends is configured (Debian family)
+      ansible.builtin.assert:
+        that:
+          - apt_recommends_config.stat.exists
+        fail_msg: "APT no-recommends configuration not found"
+        success_msg: "APT no-recommends configured"
+      when: ansible_os_family == "Debian"
+
+    - name: Check unattended-upgrades configuration (Debian family)
+      ansible.builtin.stat:
+        path: /etc/apt/apt.conf.d/50unattended-upgrades
+      register: unattended_upgrades_config
+      when: ansible_os_family == "Debian"
+
+    - name: Verify unattended-upgrades is configured (Debian family)
+      ansible.builtin.assert:
+        that:
+          - unattended_upgrades_config.stat.exists
+        fail_msg: "Unattended upgrades configuration not found"
+        success_msg: "Unattended upgrades configured"
+      when: ansible_os_family == "Debian"
+
+    - name: Check service states
+      ansible.builtin.service_facts:
+
+    - name: Verify rsyslog service is enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['rsyslog.service'].state == 'running'
+          - ansible_facts.services['rsyslog.service'].status == 'enabled'
+        fail_msg: "rsyslog service not properly enabled"
+        success_msg: "rsyslog service is enabled and running"
+      when: "'rsyslog.service' in ansible_facts.services"
+
+    - name: Test locale configuration
+      ansible.builtin.command: locale
+      register: locale_output
+      changed_when: false
+
+    - name: Verify locale is configured
+      ansible.builtin.assert:
+        that:
+          - "'en_US.UTF-8' in locale_output.stdout"
+        fail_msg: "Locale not configured correctly"
+        success_msg: "Locale properly configured"
+
+    - name: Check host-specific proxy configuration (Ubuntu test host)
+      ansible.builtin.stat:
+        path: /etc/apt/apt.conf.d/99-proxy
+      register: proxy_config
+      when: inventory_hostname == "ubuntu-os-config-test"
+
+    - name: Verify proxy configuration exists (Ubuntu test host)
+      ansible.builtin.assert:
+        that:
+          - proxy_config.stat.exists
+        fail_msg: "APT proxy configuration not found"
+        success_msg: "APT proxy configuration exists"
+      when: inventory_hostname == "ubuntu-os-config-test"

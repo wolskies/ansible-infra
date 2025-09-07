@@ -1,0 +1,113 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-packages-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: debian-packages-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # Test package configuration using infrastructure structure
+        infrastructure:
+          Ubuntu:
+            packages:
+              all:
+                - curl
+                - wget
+                - git
+                - htop
+                - vim
+              group: []
+              host: []
+              remove:
+                - nano  # Test package removal
+              settings:
+                apt_cache:
+                  update_cache: true
+                  valid_time: 3600
+                system_upgrade:
+                  enable: false
+                  type: safe
+              repositories:
+                all: []
+                group: []
+                host: []
+          Debian:
+            packages:
+              all:
+                - curl
+                - wget
+                - git
+                - htop
+                - vim
+              group: []
+              host: []
+              remove:
+                - nano  # Test package removal
+              settings:
+                apt_cache:
+                  update_cache: true
+                  valid_time: 3600
+                system_upgrade:
+                  enable: false
+                  type: safe
+              repositories:
+                all: []
+                group: []
+                host: []
+    host_vars:
+      ubuntu-packages-test:
+        # Test Ubuntu-specific packages
+        infrastructure:
+          Ubuntu:
+            packages:
+              host:
+                - tree
+                - jq
+              repositories:
+                host:
+                  - name: "test-ppa"
+                    types: "deb"
+                    uris: "http://ppa.launchpad.net/git-core/ppa/ubuntu"
+                    suites: "{{ ansible_distribution_release }}"
+                    components: "main"
+                    signed_by: "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xE1DD270288B4E6030699E45FA1715D88E1DF1F24"
+                    state: present
+      debian-packages-test:
+        # Test Debian-specific packages
+        infrastructure:
+          Debian:
+            packages:
+              host:
+                - tree
+                - jq
+              settings:
+                system_upgrade:
+                  enable: true
+                  type: safe
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

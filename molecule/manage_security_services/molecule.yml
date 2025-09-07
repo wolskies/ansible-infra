@@ -1,0 +1,105 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-security-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    capabilities:
+      - NET_ADMIN
+      - SYS_ADMIN
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: debian-security-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    capabilities:
+      - NET_ADMIN
+      - SYS_ADMIN
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # Test security configuration using current variable structure
+        security:
+          firewall:
+            all_os:
+              enabled: true
+              prevent_ssh_lockout: true
+            linux:
+              package: "ufw"
+            rules:
+              - rule: allow
+                port: 22
+                proto: tcp
+                comment: "SSH access"
+              - rule: allow
+                port: 80
+                proto: tcp
+                comment: "HTTP"
+              - rule: limit
+                port: 443
+                proto: tcp
+                comment: "HTTPS rate limiting"
+          fail2ban:
+            enabled: true
+            sender: "root@localhost"
+            dest_email: ""
+            defaults:
+              bantime: 3600
+              findtime: 600
+              maxretry: 5
+            services:
+              - name: sshd
+                enabled: true
+                maxretry: 5
+                bantime: 3600
+                findtime: 600
+                logpath: /var/log/auth.log
+            ignoreips:
+              - "127.0.0.1/8"
+              - "::1"
+    host_vars:
+      ubuntu-security-test:
+        # Ubuntu-specific firewall rules
+        security:
+          firewall:
+            rules:
+              - rule: allow
+                port: 8080
+                proto: tcp
+                src: "10.0.0.0/8"
+                comment: "Internal web access"
+              - rule: deny
+                from: "192.168.100.0/24"
+                comment: "Block test subnet"
+      debian-security-test:
+        # Debian-specific fail2ban configuration
+        security:
+          fail2ban:
+            services:
+              - name: sshd
+                enabled: true
+                maxretry: 6
+                bantime: 1200
+                findtime: 600
+                logpath: /var/log/auth.log
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

@@ -1,0 +1,37 @@
+---
+# Install paru AUR helper on Arch Linux
+
+- name: Install build dependencies for paru
+  community.general.pacman:
+    name:
+      - base-devel
+      - git
+    state: present
+  become: true
+
+- name: Create temporary directory for paru installation
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: paru
+  register: paru_temp_dir
+
+- name: Clone paru repository
+  ansible.builtin.git:
+    repo: https://aur.archlinux.org/paru.git
+    dest: "{{ paru_temp_dir.path }}/paru"
+    version: master
+  become: false
+
+- name: Build and install paru
+  ansible.builtin.command:
+    cmd: makepkg -si --noconfirm
+    chdir: "{{ paru_temp_dir.path }}/paru"
+  register: paru_build
+  changed_when: paru_build.rc == 0
+  become: false
+
+- name: Clean up paru installation directory
+  ansible.builtin.file:
+    path: "{{ paru_temp_dir.path }}"
+    state: absent
+  become: true

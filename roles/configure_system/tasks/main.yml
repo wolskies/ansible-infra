@@ -1,17 +1,6 @@
 ---
 # configure_system role main tasks
 
-- name: Display system configuration start
-  ansible.builtin.debug:
-    msg:
-      - "=== Starting System Configuration ==="
-      - "Target: {{ inventory_hostname }}"
-      - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
-      - "Architecture: {{ ansible_architecture }}"
-  tags:
-    - always
-    - progress
-
 - name: Configure Operating System
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.os_configuration"
@@ -56,11 +45,17 @@
     - flatpak-packages
     - optional
 
-- name: Configure System Settings
+- name: Configure User Preferences
   ansible.builtin.include_role:
-    name: "wolskinet.infrastructure.manage_system_settings"
+    name: "wolskinet.infrastructure.configure_user"
+  become: false
+  become_user: "{{ item.username }}"
+  loop: "{{ users | default([]) | selectattr('state', 'equalto', 'present') | list }}"
+  when: 
+    - users is defined
+    - item[ansible_distribution] is defined
   tags:
-    - system-settings
+    - user-preferences
     - optional
 
 - name: Display system configuration completion

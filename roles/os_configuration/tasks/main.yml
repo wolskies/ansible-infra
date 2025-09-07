@@ -1,85 +1,40 @@
 ---
-- name: Validate supported OS versions
-  ansible.builtin.fail:
-    msg: |
-      {{ ansible_distribution }} {{ ansible_distribution_version }} is not supported.
-      Supported distributions: Ubuntu 22+, Debian 12+, Arch Linux, macOS
-  when:
-    - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 22) or
-      (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12) or
-      (ansible_distribution not in ["Archlinux", "Ubuntu", "Debian", "MacOSX"])
-  tags:
-    - always
-    - validation
-
-- name: Set hostname configuration facts
-  ansible.builtin.set_fact:
-    _hostname: "{{ config_common_hostname if config_common_hostname != '' else ansible_hostname }}"
-    _domain: "{{ config_common_domain if config_common_domain != '' else 'localdomain' }}"
-    _hostname_changed: "{{ (config_common_hostname != '' and config_common_hostname != ansible_hostname) | bool }}"
-    _domain_changed: "{{ (config_common_domain != '') | bool }}"
-  tags:
-    - hostname
-    - os-configuration
-
-- name: Set FQDN fact
-  ansible.builtin.set_fact:
-    _fqdn: "{{ _hostname }}.{{ _domain }}"
-  tags:
-    - hostname
-    - os-configuration
-
-- name: Validate hostname format
-  ansible.builtin.fail:
-    msg: "Invalid hostname '{{ _hostname }}'. Hostname must contain only letters, numbers, and hyphens, and cannot start or end with a hyphen."
-  when:
-    - (config_common_hostname != "") or (config_common_domain != "")
-    - _hostname_changed
-    - not _hostname is match('^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$')
-  tags:
-    - hostname
-    - validation
-    - os-configuration
-
-- name: Validate domain format
-  ansible.builtin.fail:
-    msg: "Invalid domain '{{ _domain }}'. Domain must be a valid DNS domain name."
-  when:
-    - (config_common_hostname != "") or (config_common_domain != "")
-    - _domain_changed
-    - _domain != 'localdomain'
-    - not _domain is match('^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$')
-  tags:
-    - hostname
-    - validation
-    - os-configuration
-
 - name: Set system timezone
   community.general.timezone:
-    name: "{{ config_common_timezone }}"
+    name: "{{ infrastructure.domain.timezone }}"
   become: true
-  when: config_common_timezone != ""
+  when: 
+    - infrastructure.domain.timezone is defined
+    - infrastructure.domain.timezone | length > 0
   tags:
     - timezone
     - os-configuration
 
-- name: Include Linux common configurations
-  ansible.builtin.include_tasks: configure-linux-common.yml
-  when: ansible_system == 'Linux'
-  tags:
-    - linux
-    - os-configuration
+- name: Update /etc/hosts file
+  block:
+    - name: Backup /etc/hosts before modification
+      ansible.builtin.copy:
+        src: /etc/hosts
+        dest: /etc/hosts.backup.{{ ansible_date_time.epoch }}
+        owner: root
+        group: wheel
+        mode: "0644"
+        remote_src: true
+      become: true
 
-- name: Include Debian family configuration
-  ansible.builtin.include_tasks: configure-Debian-family.yml
-  when: ansible_distribution in ['Ubuntu', 'Debian']
-  tags:
-    - os-specific
-    - os-configuration
+    - name: Update /etc/hosts - Add FQDN and hostname
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.0\.1\s+.*{{ infrastructure.host.hostname | regex_escape }}.*'
+        line: "127.0.0.1\tlocalhost {{ infrastructure.host.hostname }}.{{ infrastructure.domain.name }} {{ infrastructure.host.hostname }}"
+        create: false
+      become: true
+  when: 
+    - infrastructure.host.update_hosts | default(true)
+    - infrastructure.host.hostname is defined
+    - infrastructure.host.hostname | length > 0
 
-- name: Include distribution-specific configuration
-  ansible.builtin.include_tasks: "configure-{{ ansible_distribution }}.yml"
-  when: ansible_distribution in ['Archlinux', 'MacOSX']
+- name: Include OS-specific configuration
+  ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
   tags:
-    - os-specific
     - os-configuration

@@ -2,8 +2,8 @@
 # systemd-timesyncd configuration
 
 [Time]
-{% if config_common_ntp.servers | length > 0 %}
-NTP={{ config_common_ntp.servers | join(' ') }}
+{% if infrastructure.domain.ntp.servers | length > 0 %}
+NTP={{ infrastructure.domain.ntp.servers | join(' ') }}
 {% endif %}
 #FallbackNTP=0.arch.pool.ntp.org 1.arch.pool.ntp.org 2.arch.pool.ntp.org 3.arch.pool.ntp.org
 #RootDistanceMaxSec=5

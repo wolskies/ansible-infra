@@ -1,6 +1,4 @@
 ---
-# Enhanced user management with SSH keys, passwords, and nested dotfiles support
-
 - name: Add users to system
   become: true
   ansible.builtin.user:
@@ -15,12 +13,12 @@
         omit if 'password' not in item or item.password is none or item.password == ''
         else (item.password if item.password.startswith('$') else item.password | password_hash('sha512'))
       }}
-    state: present
+    state: "{{ item.state | default('present') }}"
     create_home: "{{ item.create_home | default(omit) }}"
     groups: "{{ item.groups | default(omit) }}"
     append: true
-  loop: "{{ users | default([]) }}"
-  when: users | default([]) | length > 0
+  loop: "{{ infrastructure.domain.users | default([]) }}"
+  when: infrastructure.domain.users | default([]) | length > 0
 
 - name: Add SSH public keys for users
   become: true
@@ -28,20 +26,21 @@
     user: "{{ item.name }}"
     key: "{{ item.ssh_pubkey }}"
     state: present
-  loop: "{{ users | default([]) }}"
+  loop: "{{ infrastructure.domain.users | default([]) }}"
   when:
-    - users | default([]) | length > 0
+    - infrastructure.domain.users | default([]) | length > 0
+    - item.state | default('present') == 'present'
     - item.ssh_pubkey is defined
     - item.ssh_pubkey is not none
     - item.ssh_pubkey != ""
     - not item.ssh_pubkey.startswith('var_')
     - item.ssh_pubkey is match('^ssh-.*') or item.ssh_pubkey is match('^ecdsa-.*') or item.ssh_pubkey is match('^ssh-ed25519.*')
 
-- name: Remove users from system
+- name: Remove users from system (migration support)
   become: true
   ansible.builtin.user:
     name: "{{ item }}"
     state: absent
     remove: true
-  loop: "{{ users_absent | default([]) }}"
-  when: users_absent | default([]) | length > 0
+  loop: "{{ infrastructure.domain.users_absent | default([]) }}"
+  when: infrastructure.domain.users_absent | default([]) | length > 0

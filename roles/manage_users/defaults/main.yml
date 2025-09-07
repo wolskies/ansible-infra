@@ -1,15 +1,51 @@
 ---
 # =============================================================================
-# USER MANAGEMENT ROLE VARIABLES
+# USER MANAGEMENT ROLE VARIABLES - System-level account management
+# =============================================================================
+# Creates/removes user accounts, groups, SSH keys (requires sudo)
+# User preferences are configured separately by configure_user role
 # =============================================================================
 
-# Example:
-# users:
-#   - name: username                              # Required: username
-#     comment: "User Full Name"                    # Optional: GECOS field
-#     groups: [sudo, docker]                       # Optional: additional groups
-#     ssh_pubkey: "ssh-rsa AAAAB3..."             # Optional: SSH public key
-#     password: "$6$salt$encrypted"               # Optional: encrypted or plaintext password
-users: []
-
-users_absent: []
+infrastructure:
+  domain:
+    users: []
+    # Example user with cross-platform and OS-specific preferences:
+    # - name: alice                 # Required: username
+    #   comment: "Alice Developer"  # Optional: GECOS field
+    #   groups: [sudo, docker]      # Optional: additional groups
+    #   ssh_pubkey: "ssh-ed25519 AAAAC3..." # Optional: SSH public key
+    #   password: "plaintext"       # Optional: password (auto-hashed if plaintext)
+    #   uid: 1001                   # Optional: specific user ID
+    #   home: "/custom/home"        # Optional: home directory path
+    #   create_home: true           # Optional: create home directory
+    #   state: present              # Optional: present (default) or absent
+    #
+    #   # Cross-platform user preferences (handled by configure_user role)
+    #   git:
+    #     user_name: "Alice Smith"
+    #     user_email: "alice@company.com"
+    #   nodejs:
+    #     packages: [typescript, eslint, prettier]
+    #   rust:
+    #     packages: [ripgrep, fd-find, bat]
+    #   go:
+    #     packages: [github.com/charmbracelet/glow@latest]
+    #
+    #   # OS-specific preferences (handled by configure_user role)
+    #   Ubuntu:
+    #     shell: /usr/bin/zsh
+    #     dotfiles:
+    #       repository: "https://github.com/alice/dotfiles-linux"
+    #       method: stow
+    #       packages: [zsh, tmux, vim]
+    #   Darwin:
+    #     shell: /opt/homebrew/bin/zsh
+    #     dotfiles:
+    #       repository: "https://github.com/alice/dotfiles-macos"
+    #       method: stow
+    #       packages: [zsh, tmux, vim, macos]
+    #     dock:
+    #       tile_size: 48
+    #       autohide: true
+    
+    users_absent: []              # List of usernames to remove (for migration)

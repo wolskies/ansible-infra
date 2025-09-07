@@ -1,32 +1,6 @@
 ---
 # manage_system_settings role main tasks
 
-- name: Validate supported OS versions
-  ansible.builtin.fail:
-    msg: >-
-      {{ ansible_distribution }} {{ ansible_distribution_version }}
-      is not supported. Supported versions: Ubuntu 22+, Debian 12+,
-      Arch Linux (latest), macOS
-  when:
-    - >-
-      (ansible_distribution == "Ubuntu" and
-      ansible_distribution_major_version | int < 22) or
-      (ansible_distribution == "Debian" and
-      ansible_distribution_major_version | int < 12)
-    - ansible_distribution not in ['Archlinux', 'MacOSX']
-  tags:
-    - always
-    - validation
-    - system-settings
-
-- name: Load OS-specific variables
-  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
-  when: ansible_distribution in ['Ubuntu', 'Debian', 'Archlinux']
-  tags:
-    - always
-    - variables
-    - system-settings
-
 - name: Include Linux system settings tasks
   ansible.builtin.include_tasks: "manage-system-settings-Linux.yml"
   when: ansible_os_family in ['Debian', 'Archlinux']

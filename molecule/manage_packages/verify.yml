@@ -1,0 +1,84 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Get package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Verify core packages are installed
+      ansible.builtin.assert:
+        that:
+          - item in ansible_facts.packages
+        fail_msg: "Package {{ item }} is not installed"
+        success_msg: "Package {{ item }} is installed"
+      loop:
+        - curl
+        - wget
+        - git
+        - htop
+        - vim
+
+    - name: Verify host-specific packages are installed
+      ansible.builtin.assert:
+        that:
+          - item in ansible_facts.packages
+        fail_msg: "Host-specific package {{ item }} is not installed"
+        success_msg: "Host-specific package {{ item }} is installed"
+      loop:
+        - tree
+        - jq
+
+    - name: Verify removed packages are not present
+      ansible.builtin.assert:
+        that:
+          - item not in ansible_facts.packages
+        fail_msg: "Package {{ item }} should have been removed but is still present"
+        success_msg: "Package {{ item }} was successfully removed"
+      loop:
+        - nano
+
+    - name: Test APT cache update (Debian family)
+      ansible.builtin.stat:
+        path: /var/cache/apt/pkgcache.bin
+      register: apt_cache
+      when: ansible_os_family == "Debian"
+
+    - name: Verify APT cache exists and is recent (Debian family)
+      ansible.builtin.assert:
+        that:
+          - apt_cache.stat.exists
+          - (ansible_date_time.epoch | int) - apt_cache.stat.mtime < 7200  # Less than 2 hours old
+        fail_msg: "APT cache is missing or stale"
+        success_msg: "APT cache is present and recent"
+      when: ansible_os_family == "Debian"
+
+    - name: Check repository configuration (Ubuntu only)
+      ansible.builtin.find:
+        paths: /etc/apt/sources.list.d/
+        patterns: "*test-ppa*"
+      register: repo_files
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Verify repository was added (Ubuntu only)
+      ansible.builtin.assert:
+        that:
+          - repo_files.matched > 0
+        fail_msg: "Test repository was not configured"
+        success_msg: "Test repository was configured"
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Test package manager availability
+      ansible.builtin.command: "{{ package_manager }} --version"
+      register: pkg_manager_version
+      vars:
+        package_manager: "{{ 'apt' if ansible_os_family == 'Debian' else 'pacman' }}"
+      changed_when: false
+
+    - name: Verify package manager is functional
+      ansible.builtin.assert:
+        that:
+          - pkg_manager_version.rc == 0
+        fail_msg: "Package manager is not functional"
+        success_msg: "Package manager is functional"

@@ -6,15 +6,13 @@ Master orchestration role for complete system configuration. Executes infrastruc
 
 This role orchestrates the execution of multiple infrastructure roles to provide complete system setup:
 
-1. **configure_host** - Basic host setup (hostname, NTP, locale)
+1. **os_configuration** - OS setup (hostname, NTP, locale, kernel settings)
 2. **manage_security_services** - Security services (firewall, fail2ban)
 3. **manage_users** - User and group management
 4. **manage_packages** - Package installation and repository management
-5. **manage_language_packages** - Language-specific package managers (optional)
-6. **manage_snap_packages** - Snap package management (optional)
-7. **manage_flatpak** - Flatpak package management (optional)
-8. **manage_system_settings** - System performance tuning (optional)
-9. **dotfiles** - User dotfiles deployment (optional)
+5. **manage_snap_packages** - Snap package management (optional)
+6. **manage_flatpak** - Flatpak package management (optional)
+7. **configure_user** - User preferences and dotfiles (optional)
 
 ## Usage
 
@@ -44,17 +42,15 @@ ansible-playbook playbook.yml --skip-tags dotfiles,snap-packages
 ```
 
 ### Available Tags
-- `core` - All core components (host, security, users, packages)
-- `optional` - All optional components (language, snap, flatpak, settings, dotfiles)
-- `host-configuration` - Basic host setup
+- `core` - All core components (os, security, users, packages)
+- `optional` - All optional components (snap, flatpak, user preferences)
+- `host-configuration` - OS configuration
 - `security-services` - Security services
-- `user-management` or `users` - User and group management
-- `package-management` or `packages` - Package installation
-- `language-packages` - Language-specific package managers
-- `snap-packages` - Snap package management
-- `flatpak-packages` - Flatpak package management
-- `system-settings` - System performance tuning
-- `dotfiles` - User dotfiles deployment
+- `user-management` or `users` - User account management
+- `package-management` or `packages` - System packages
+- `snap-packages` - Snap packages
+- `flatpak-packages` - Flatpak packages
+- `user-preferences` - User-specific settings and dotfiles
 - `progress` - Progress messages
 
 ## Configuration
@@ -210,7 +206,7 @@ dotfiles:
 ## Dependencies
 
 This role requires all the individual infrastructure roles to be available:
-- `wolskinet.infrastructure.configure_host`
+- `wolskinet.infrastructure.os_configuration`
 - `wolskinet.infrastructure.manage_security_services`
 - `wolskinet.infrastructure.manage_users`
 - `wolskinet.infrastructure.manage_packages`

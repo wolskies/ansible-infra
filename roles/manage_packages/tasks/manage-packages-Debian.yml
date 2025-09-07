@@ -1,22 +1,16 @@
 ---
-- name: Gather package facts
-  ansible.builtin.package_facts:
-    manager: auto
-
 - name: Merge APT repositories from all sources
   ansible.builtin.set_fact:
     merged_apt_repositories: >-
       {{
-        (vars.get('all_apt_repositories_' + ansible_distribution, []) | default([])) +
-        (vars.get('group_apt_repositories_' + ansible_distribution, []) | default([])) +
-        (vars.get('host_apt_repositories_' + ansible_distribution, []) | default([])) +
-        ((packages[ansible_distribution].settings.repositories if packages[ansible_distribution] is defined else []) | default([]))
+        (infrastructure.host.packages.repositories.all.ansible_distribution | default([])) +
+        (infrastructure.host.packages.repositories.group.ansible_distribution | default([])) +
+        (infrastructure.host.packages.repositories.host.ansible_distribution | default([]))
         | unique | list
       }}
 
-- name: Manage APT repositories (Jeff Geerling's battle-tested approach)
+- name: Manage APT repositories
   block:
-    # Clean up old/legacy repository files first
     - name: Ensure old apt keys are not present in trusted.gpg.d
       ansible.builtin.file:
         path: "/etc/apt/trusted.gpg.d/{{ item.name }}.asc"
@@ -40,7 +34,6 @@
         loop_var: file_item
       become: true
 
-    # Ensure required dependencies for repository management
     - name: Ensure APT repository dependencies are installed
       ansible.builtin.apt:
         name:
@@ -53,8 +46,7 @@
         cache_valid_time: 3600
       become: true
 
-    # Add repositories using modern deb822 format
-    - name: Add or remove APT repositories using modern deb822 format
+    - name: Add or remove APT repositories
       ansible.builtin.deb822_repository:
         name: "{{ item.name }}"
         types: "{{ item.types | default('deb') }}"
@@ -63,57 +55,37 @@
         components: "{{ item.components | default(['main']) }}"
         signed_by: "{{ item.signed_by | default(omit) }}"
         state: "{{ item.state | default('present') }}"
-        enabled: "{{ item.enabled | default(true) }}"
       loop: "{{ merged_apt_repositories }}"
       become: true
       register: repositories_changed
 
-    # Immediately update APT cache if repositories changed
-    - name: Update APT cache after repository changes # noqa: no-handler
-      ansible.builtin.apt:
-        update_cache: true
-        cache_valid_time: 0
-      become: true
-      when: repositories_changed is changed
-  when: merged_apt_repositories | length > 0
-
-- name: Merge APT packages from all sources
-  ansible.builtin.set_fact:
-    merged_apt_packages_install: >-
-      {{
-        ((packages[ansible_distribution].all if packages[ansible_distribution] is defined else []) | default([])) +
-        ((packages[ansible_distribution].group if packages[ansible_distribution] is defined else []) | default([])) +
-        ((packages[ansible_distribution].host if packages[ansible_distribution] is defined else []) | default([]))
-        | unique | list
-      }}
-    merged_apt_packages_remove: >-
-      {{
-        (packages[ansible_distribution].remove if packages[ansible_distribution] is defined else []) | default([]) | unique | list
-      }}
-
-- name: Install packages via APT
-  ansible.builtin.package:
-    name: "{{ merged_apt_packages_install }}"
-    state: present
+- name: Update APT cache
+  ansible.builtin.apt:
+    update_cache: "{{ infrastructure.host.packages.apt.apt_cache.update_cache | default(true) }}"
+    cache_valid_time: "{{ infrastructure.host.packages.apt.apt_cache.valid_time | default(3600) }}"
   become: true
-  when: merged_apt_packages_install | length > 0
+  when: infrastructure.host.packages.apt.apt_cache.update_cache | default(true)
 
 - name: Remove packages via APT
-  ansible.builtin.package:
+  ansible.builtin.apt:
     name: "{{ merged_apt_packages_remove }}"
     state: absent
   become: true
-  when: merged_apt_packages_remove | length > 0
+  when: merged_packages_remove | length > 0
 
-- name: Update APT cache
+- name: Install packages via APT
   ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: "{{ packages[ansible_distribution].settings.apt_cache.valid_time | default(3600) if packages[ansible_distribution] is defined else 3600 }}"
+    name: "{{ merged_apt_packages_install }}"
+    state: present
   become: true
-  when: (packages[ansible_distribution].settings.apt_cache.update_cache | default(true)) if packages[ansible_distribution] is defined else true
+  when: merged_packages_install | length > 0
 
 - name: Upgrade all APT packages
   ansible.builtin.apt:
-    upgrade: "{{ packages[ansible_distribution].settings.system_upgrade.type | default('safe') if packages[ansible_distribution] is defined else 'safe' }}"
+    upgrade: "{{ infrastructure.host.packages.apt.system_upgrade.type | default('safe') }}"
   become: true
-  when: (packages[ansible_distribution].settings.system_upgrade.enable | default(false)) if packages[ansible_distribution] is defined else false
+  when: infrastructure.host.packages.apt.system_upgrade.enable | default(false)
+
+- name: Gather package facts (Debian family)
+  ansible.builtin.package_facts:
+    manager: auto

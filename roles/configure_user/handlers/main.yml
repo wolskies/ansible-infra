@@ -1,0 +1,8 @@
+---
+- name: Restart Dock
+  ansible.builtin.command: killall Dock
+  when: ansible_system == "Darwin"
+
+- name: Restart Finder
+  ansible.builtin.command: killall Finder
+  when: ansible_system == "Darwin"
