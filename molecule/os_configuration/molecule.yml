@@ -43,7 +43,7 @@ provisioner:
 
           host:
             hostname: "molecule-test"
-            update_hosts: true
+            update_hosts: false # Disabled for Docker container testing
             journal:
               configure: true
               max_size: "100M"
@@ -85,7 +85,7 @@ provisioner:
             users: []
           host:
             hostname: "molecule-test"
-            update_hosts: true
+            update_hosts: false # Disabled for Docker container testing
             journal:
               configure: true
               max_size: "100M"
@@ -124,7 +124,7 @@ provisioner:
             users: []
           host:
             hostname: "molecule-test"
-            update_hosts: true
+            update_hosts: false # Disabled for Docker container testing
             journal:
               configure: true
               max_size: "100M"
