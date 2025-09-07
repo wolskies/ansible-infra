@@ -9,44 +9,44 @@
 - name: Configure infrastructure and users
   hosts: all
   become: true
-  
+
   tasks:
     # ---------------------------------------------------------------------
     # INFRASTRUCTURE CONFIGURATION (system-level, requires sudo)
     # ---------------------------------------------------------------------
-    
+
     - name: Configure operating system
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.os_configuration
       tags:
         - os
         - infrastructure
-    
+
     - name: Manage system packages
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.manage_packages
       tags:
         - packages
         - infrastructure
-    
+
     - name: Configure security services
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.manage_security_services
       tags:
         - security
         - infrastructure
-    
+
     # ---------------------------------------------------------------------
     # USER CONFIGURATION
     # ---------------------------------------------------------------------
-    
+
     - name: Manage user accounts
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.manage_users
       tags:
         - users
         - accounts
-    
+
     - name: Configure user preferences
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.configure_user

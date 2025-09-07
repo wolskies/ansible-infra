@@ -29,20 +29,9 @@ provisioner:
   inventory:
     group_vars:
       all:
-        # Test flatpak management using new infrastructure structure
+        # Test flatpak management using infrastructure structure
         infrastructure:
-          Ubuntu:
-            flatpak:
-              enabled: true
-              packages:
-                install:
-                  - org.freedesktop.Platform//22.08
-                remove: []
-              flathub: true
-              plugins:
-                gnome: false
-                plasma: false
-          Debian:
+          host:
             flatpak:
               enabled: true
               packages:
@@ -55,23 +44,35 @@ provisioner:
                 plasma: false
     host_vars:
       ubuntu-flatpak-test:
-        # Host-specific flatpak configuration
+        # Complete infrastructure structure with Ubuntu-specific flatpak configuration
         infrastructure:
-          Ubuntu:
+          host:
             flatpak:
+              enabled: true
               packages:
                 install:
                   - org.freedesktop.Platform//22.08
-                  - org.freedesktop.Sdk//22.08  # Test additional package
+                  - org.freedesktop.Sdk//22.08 # Test additional package
+                remove: []
+              flathub: true
+              plugins:
+                gnome: false
+                plasma: false
       debian-flatpak-test:
-        # Host-specific flatpak configuration  
+        # Complete infrastructure structure with Debian-specific flatpak configuration
         infrastructure:
-          Debian:
+          host:
             flatpak:
+              enabled: true
               packages:
                 install:
                   - org.freedesktop.Platform//22.08
-                  - org.freedesktop.Sdk//22.08  # Test additional package
+                  - org.freedesktop.Sdk//22.08 # Test additional package
+                remove: []
+              flathub: true
+              plugins:
+                gnome: false
+                plasma: false
   config_options:
     defaults:
       host_key_checking: false

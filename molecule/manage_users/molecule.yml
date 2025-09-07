@@ -37,7 +37,6 @@ provisioner:
                 groups:
                   - sudo
                 ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGKb8Vz6VPZZQmKv4uOqGKq1GKqKGKGKGKGKGKGKGK testuser1@test"
-                password: "testpassword"
                 create_home: true
               - name: testuser2
                 comment: "Test User Two"
@@ -45,7 +44,6 @@ provisioner:
                 groups:
                   - users
                 ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7... testuser2@test"
-                password: "$6$salt$encrypted_password_hash"
                 create_home: true
               - name: testuser3
                 comment: "Test User Three - Minimal Config"
@@ -53,16 +51,37 @@ provisioner:
                 create_home: true
               - name: testuser4
                 comment: "Test User for Removal"
-                state: absent  # Test user removal using state
-            users_absent:  # Legacy removal method for migration testing
+                state: absent # Test user removal using state
+            users_absent: # Legacy removal method for migration testing
               - olduser1
               - olduser2
     host_vars:
       ubuntu-users-test:
-        # Host-specific additional users (merged with domain users)
+        # Complete infrastructure structure with host-specific users
         infrastructure:
           domain:
             users:
+              - name: testuser1
+                comment: "Test User One"
+                shell: /bin/bash
+                groups:
+                  - sudo
+                ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGKb8Vz6VPZZQmKv4uOqGKq1GKqKGKGKGKGKGKGKGK testuser1@test"
+                create_home: true
+              - name: testuser2
+                comment: "Test User Two"
+                shell: /bin/bash
+                groups:
+                  - users
+                ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7... testuser2@test"
+                create_home: true
+              - name: testuser3
+                comment: "Test User Three - Minimal Config"
+                shell: /bin/sh
+                create_home: true
+              - name: testuser4
+                comment: "Test User for Removal"
+                state: absent
               - name: ubuntu_specific
                 comment: "Ubuntu Specific User"
                 shell: /bin/bash
@@ -70,11 +89,35 @@ provisioner:
                   - sudo
                   - adm
                 create_home: true
+            users_absent:
+              - olduser1
+              - olduser2
       debian-users-test:
-        # Host-specific additional users (merged with domain users)
+        # Complete infrastructure structure with host-specific users
         infrastructure:
           domain:
             users:
+              - name: testuser1
+                comment: "Test User One"
+                shell: /bin/bash
+                groups:
+                  - sudo
+                ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGKb8Vz6VPZZQmKv4uOqGKq1GKqKGKGKGKGKGKGKGK testuser1@test"
+                create_home: true
+              - name: testuser2
+                comment: "Test User Two"
+                shell: /bin/bash
+                groups:
+                  - users
+                ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7... testuser2@test"
+                create_home: true
+              - name: testuser3
+                comment: "Test User Three - Minimal Config"
+                shell: /bin/sh
+                create_home: true
+              - name: testuser4
+                comment: "Test User for Removal"
+                state: absent
               - name: debian_specific
                 comment: "Debian Specific User"
                 shell: /bin/bash
@@ -82,6 +125,9 @@ provisioner:
                   - sudo
                   - staff
                 create_home: true
+            users_absent:
+              - olduser1
+              - olduser2
   config_options:
     defaults:
       host_key_checking: false

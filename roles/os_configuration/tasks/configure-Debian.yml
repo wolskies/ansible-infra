@@ -5,7 +5,11 @@
   vars:
     snap_management_action: "purge"
     snap_purge_confirm: "{{ infrastructure.host.snap.remove_completely | default(false) }}"
-  when: infrastructure.host.snap.remove_completely | default(false)
+  when:
+    - infrastructure.host is defined
+    - infrastructure.host.snap is defined
+    - infrastructure.host.snap.remove_completely is defined
+    - infrastructure.host.snap.remove_completely
   tags:
     - snap
     - cleanup
@@ -18,7 +22,13 @@
     group: root
     mode: "0644"
   become: true
-  when: infrastructure.host.packages.apt.unattended_upgrades.enabled | default(true)
+  when:
+    - infrastructure.host is defined
+    - infrastructure.host.packages is defined
+    - infrastructure.host.packages.apt is defined
+    - infrastructure.host.packages.apt.unattended_upgrades is defined
+    - infrastructure.host.packages.apt.unattended_upgrades.enabled is defined
+    - infrastructure.host.packages.apt.unattended_upgrades.enabled
   tags:
     - updates
     - security
@@ -35,7 +45,12 @@
         group: root
         mode: "0644"
       become: true
-      when: infrastructure.host.packages.apt.no_recommends | default(false)
+      when:
+        - infrastructure.host is defined
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.apt is defined
+        - infrastructure.host.packages.apt.no_recommends is defined
+        - infrastructure.host.packages.apt.no_recommends
 
     - name: Configure APT proxy
       ansible.builtin.copy:
@@ -47,9 +62,12 @@
         group: root
         mode: "0644"
       become: true
-      when: 
-        - infrastructure.hosts.packages.apt.proxy is defined
-        - infrastructure.hosts.packages.apt.proxy | length > 0
+      when:
+        - infrastructure.host is defined
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.apt is defined
+        - infrastructure.host.packages.apt.proxy is defined
+        - infrastructure.host.packages.apt.proxy | length > 0
   tags:
     - apt
     - packages

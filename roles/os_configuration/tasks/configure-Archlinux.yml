@@ -8,7 +8,12 @@
         line: "NoConfirm"
         state: present
       become: true
-      when: infrastructure.host.packages.pacman.no_confirms | default(false)
+      when:
+        - infrastructure.host is defined
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.pacman is defined
+        - infrastructure.host.packages.pacman.no_confirms is defined
+        - infrastructure.host.packages.pacman.no_confirms
 
     - name: Configure multilib repository
       ansible.builtin.lineinfile:
@@ -17,7 +22,12 @@
         line: "[multilib]"
         state: present
       become: true
-      when: infrastructure.host.packages.pacman.multilib
+      when:
+        - infrastructure.host is defined
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.pacman is defined
+        - infrastructure.host.packages.pacman.multilib is defined
+        - infrastructure.host.packages.pacman.multilib
 
     - name: Enable multilib repository Include line
       ansible.builtin.lineinfile:
@@ -27,17 +37,22 @@
         insertafter: "^\\[multilib\\]"
         state: present
       become: true
-      when: infrastructure.host.packagews.pacman.multilib
+      when:
+        - infrastructure.host is defined
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.pacman is defined
+        - infrastructure.host.packages.pacman.multilib is defined
+        - infrastructure.host.packages.pacman.multilib
 
     - name: Configure pacman proxy
       ansible.builtin.lineinfile:
         path: /etc/pacman.conf
-        regexp: "^#?Server.*{{ infrastructure.hosts.packages.pacman.proxy | regex_escape }}"
+        regexp: "^#?Server.*{{ infrastructure.host.packages.pacman.proxy | regex_escape }}"
         insertafter: '^\\[.*\\]'
-        line: "Server = {{ infrastructure.hosts.packages.pacman.proxy }}/$repo/os/$arch"
+        line: "Server = {{ infrastructure.host.packages.pacman.proxy }}/$repo/os/$arch"
         state: present
       become: true
-      when: 
+      when:
         - infrastructure.host.packages.pacman.proxy is defined
         - infrastructure.host.packages.pacman.proxy | length > 0
   tags:

@@ -27,9 +27,8 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
-        # Test OS configuration using new infrastructure structure
+        # Test OS configuration using infrastructure structure
         infrastructure:
-          # Domain-level configuration (shared across all hosts)
           domain:
             name: "test.local"
             timezone: "America/New_York"
@@ -41,14 +40,10 @@ provisioner:
                 - 0.pool.ntp.org
                 - 1.pool.ntp.org
             users: []
-            
-          # Host-level configuration  
+
           host:
             hostname: "molecule-test"
             update_hosts: true
-            
-          # Distribution-specific configuration
-          Ubuntu:
             journal:
               configure: true
               max_size: "100M"
@@ -59,60 +54,101 @@ provisioner:
               enabled: false
             services:
               enable:
-                - rsyslog  # Test service enablement
+                - rsyslog
               disable: []
             optimizations:
               tune_swappiness: true
               swappiness: 5
-            snap:
-              remove_completely: false
-            unattended_upgrades:
-              enabled: true
-              email: ""
-              auto_reboot: false
-            apt:
-              no_recommends: true
-              proxy: ""
-              
-          Debian:
-            journal:
-              configure: true
-              max_size: "100M"
-              max_retention: "7d"
-              forward_to_syslog: false
-              compress: true
-            rsyslog:
-              enabled: false
-            services:
-              enable:
-                - rsyslog  # Test service enablement
-              disable: []
-            optimizations:
-              tune_swappiness: true
-              swappiness: 5
-            snap:
-              remove_completely: false
-            unattended_upgrades:
-              enabled: true
-              email: ""
-              auto_reboot: false
-            apt:
-              no_recommends: true
-              proxy: ""
+            packages:
+              apt:
+                no_recommends: true
+                proxy: ""
+                unattended_upgrades:
+                  enabled: true
+                  email: ""
+                  auto_reboot: false
     host_vars:
       ubuntu-os-config-test:
-        # Ubuntu-specific test configuration
+        # Host-specific APT proxy configuration
+        apt_proxy: "http://proxy.example.com:8080"
         infrastructure:
-          Ubuntu:
-            apt:
-              proxy: "http://proxy.example.com:8080"
-      debian-os-config-test:
-        # Debian-specific test configuration
-        infrastructure:
-          Debian:
+          domain:
+            name: "test.local"
+            timezone: "America/New_York"
+            locale: "en_US.UTF-8"
+            language: "en_US.UTF-8"
+            ntp:
+              enabled: true
+              servers:
+                - 0.pool.ntp.org
+                - 1.pool.ntp.org
+            users: []
+          host:
+            hostname: "molecule-test"
+            update_hosts: true
+            journal:
+              configure: true
+              max_size: "100M"
+              max_retention: "7d"
+              forward_to_syslog: false
+              compress: true
+            rsyslog:
+              enabled: false
             services:
+              enable:
+                - rsyslog
+              disable: []
+            optimizations:
+              tune_swappiness: true
+              swappiness: 5
+            packages:
+              apt:
+                no_recommends: true
+                proxy: "http://proxy.example.com:8080"
+                unattended_upgrades:
+                  enabled: true
+                  email: ""
+                  auto_reboot: false
+      debian-os-config-test:
+        infrastructure:
+          domain:
+            name: "test.local"
+            timezone: "America/New_York"
+            locale: "en_US.UTF-8"
+            language: "en_US.UTF-8"
+            ntp:
+              enabled: true
+              servers:
+                - 0.pool.ntp.org
+                - 1.pool.ntp.org
+            users: []
+          host:
+            hostname: "molecule-test"
+            update_hosts: true
+            journal:
+              configure: true
+              max_size: "100M"
+              max_retention: "7d"
+              forward_to_syslog: false
+              compress: true
+            rsyslog:
+              enabled: false
+            services:
+              enable:
+                - rsyslog
               disable:
-                - bluetooth  # Test service disabling on Debian
+                - bluetooth
+            optimizations:
+              tune_swappiness: true
+              swappiness: 5
+            packages:
+              apt:
+                no_recommends: true
+                proxy: ""
+                unattended_upgrades:
+                  enabled: true
+                  email: ""
+                  auto_reboot: false
   config_options:
     defaults:
       host_key_checking: false

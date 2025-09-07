@@ -28,8 +28,8 @@
       failed_when: false
 
   when: >
-    (infrastructure.host.snap.packages.install | default([]) | length > 0) or
-    (infrastructure.host.snap.packages.remove | default([]) | length > 0)
+    (infrastructure.host.snap.packages.install | length > 0) or
+    (infrastructure.host.snap.packages.remove | length > 0)
   tags:
     - snap-packages
 
@@ -37,9 +37,9 @@
   community.general.snap:
     name: "{{ item }}"
     state: absent
-  loop: "{{ infrastructure.host.snap.packages.remove | default([]) }}"
+  loop: "{{ infrastructure.host.snap.packages.remove }}"
   become: true
-  when: infrastructure.host.snap.packages.remove | default([]) | length > 0
+  when: infrastructure.host.snap.packages.remove | length > 0
   tags:
     - snap-packages
 
@@ -47,8 +47,8 @@
   community.general.snap:
     name: "{{ item }}"
     state: present
-  loop: "{{ infrastructure.host.snap.packages.install | default([]) }}"
+  loop: "{{ infrastructure.host.snap.packages.install }}"
   become: true
-  when: infrastructure.host.snap.packages.install | default([]) | length > 0
+  when: infrastructure.host.snap.packages.install | length > 0
   tags:
     - snap-packages

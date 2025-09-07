@@ -12,15 +12,17 @@ This role provides straightforward Flatpak package management:
 ## Role Variables
 
 ```yaml
-flatpak:
-  enabled: false          # Enable flatpak package management
-  packages:
-    install: []          # List of flatpak packages to install
-    remove: []           # List of flatpak packages to remove
-  flathub: true          # Enable Flathub repository
-  plugins:
-    gnome: false         # Install GNOME Software flatpak plugin
-    plasma: false        # Install KDE Discover flatpak plugin
+infrastructure:
+  host:
+    flatpak:
+      enabled: false          # Enable flatpak package management
+      packages:
+        install: []          # List of flatpak packages to install
+        remove: []           # List of flatpak packages to remove
+      flathub: true          # Enable Flathub repository
+      plugins:
+        gnome: false         # Install GNOME Software flatpak plugin
+        plasma: false        # Install KDE Discover flatpak plugin
 ```
 
 ## Usage Examples
@@ -32,15 +34,17 @@ flatpak:
   include_role:
     name: wolskinet.infrastructure.manage_flatpak
   vars:
-    flatpak:
-      enabled: true
-      packages:
-        install:
-          - org.mozilla.firefox
-          - com.visualstudio.code
-          - org.libreoffice.LibreOffice
-      plugins:
-        gnome: true  # Enable GNOME Software integration
+    infrastructure:
+      host:
+        flatpak:
+          enabled: true
+          packages:
+            install:
+              - org.mozilla.firefox
+              - com.visualstudio.code
+              - org.libreoffice.LibreOffice
+          plugins:
+            gnome: true  # Enable GNOME Software integration
 ```
 
 ### Remove Specific Packages
@@ -50,25 +54,29 @@ flatpak:
   include_role:
     name: wolskinet.infrastructure.manage_flatpak
   vars:
-    flatpak:
-      enabled: true
-      packages:
-        remove:
-          - old-package
-          - unused-app
+    infrastructure:
+      host:
+        flatpak:
+          enabled: true
+          packages:
+            remove:
+              - old-package
+              - unused-app
 ```
 
 ### Minimal Setup
 
 ```yaml
 # Just enable flatpak with Flathub
-flatpak:
-  enabled: true
+infrastructure:
+  host:
+    flatpak:
+      enabled: true
 ```
 
 ## What the Role Does
 
-When `flatpak.enabled: true`:
+When `infrastructure.host.flatpak.enabled: true`:
 
 1. **Installs flatpak** system package
 2. **Enables Flathub repository** (if `flathub: true`)
@@ -80,14 +88,16 @@ When `flatpak.enabled: true`:
 
 ```yaml
 # group_vars/workstations.yml
-flatpak:
-  enabled: true
-  packages:
-    install:
-      - org.mozilla.firefox
-      - org.gimp.GIMP
-  plugins:
-    gnome: true
+infrastructure:
+  host:
+    flatpak:
+      enabled: true
+      packages:
+        install:
+          - org.mozilla.firefox
+          - org.gimp.GIMP
+      plugins:
+        gnome: true
 ```
 
 ## Platform Support
@@ -104,6 +114,6 @@ flatpak:
 
 ## Tags
 
-This role does not use specific tags - it runs based on the `flatpak.enabled` configuration.
+This role does not use specific tags - it runs based on the `infrastructure.host.flatpak.enabled` configuration.
 
 This role is designed for desktop/workstation environments where Flatpak provides additional application options alongside traditional package management.

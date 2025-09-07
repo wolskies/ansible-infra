@@ -6,7 +6,7 @@
     name: "{{ target_user }}"
     shell: "{{ current_user_config.Darwin.shell }}"
   become: true
-  when: 
+  when:
     - current_user_config.Darwin.shell is defined
     - current_user_config.Darwin.shell | length > 0
   tags:
@@ -23,7 +23,7 @@
       ansible.builtin.file:
         path: "{{ ansible_env.HOME }}/dotfiles"
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Clone dotfiles repository
       ansible.builtin.git:
@@ -41,7 +41,7 @@
       loop: "{{ current_user_config.Darwin.dotfiles.packages }}"
       when: current_user_config.Darwin.dotfiles.packages is defined
 
-  when: 
+  when:
     - current_user_config.Darwin.dotfiles is defined
     - current_user_config.Darwin.dotfiles.method | default('') == 'stow'
   tags:
@@ -58,8 +58,12 @@
   loop:
     - { key: "tilesize", type: "int", value: "{{ current_user_config.Darwin.dock.tile_size }}" }
     - { key: "autohide", type: "bool", value: "{{ current_user_config.Darwin.dock.autohide }}" }
-    - { key: "minimize-to-application", type: "bool", value: "{{ current_user_config.Darwin.dock.minimize_to_application | default(false) }}" }
-  when: 
+    - {
+      key: "minimize-to-application",
+      type: "bool",
+      value: "{{ current_user_config.Darwin.dock.minimize_to_application | default(false) }}",
+    }
+  when:
     - current_user_config.Darwin.dock is defined
     - item.value is defined
   tags:
@@ -74,10 +78,22 @@
     value: "{{ item.value }}"
   notify: restart finder
   loop:
-    - { key: "AppleShowAllExtensions", type: "bool", value: "{{ current_user_config.Darwin.finder.show_extensions }}" }
-    - { key: "AppleShowAllFiles", type: "bool", value: "{{ current_user_config.Darwin.finder.show_hidden }}" }
-    - { key: "ShowPathbar", type: "bool", value: "{{ current_user_config.Darwin.finder.show_pathbar | default(true) }}" }
-  when: 
+    - {
+      key: "AppleShowAllExtensions",
+      type: "bool",
+      value: "{{ current_user_config.Darwin.finder.show_extensions }}",
+    }
+    - {
+      key: "AppleShowAllFiles",
+      type: "bool",
+      value: "{{ current_user_config.Darwin.finder.show_hidden }}",
+    }
+    - {
+      key: "ShowPathbar",
+      type: "bool",
+      value: "{{ current_user_config.Darwin.finder.show_pathbar | default(true) }}",
+    }
+  when:
     - current_user_config.Darwin.finder is defined
     - item.value is defined
   tags:

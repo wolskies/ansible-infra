@@ -6,7 +6,7 @@
     name: "{{ target_user }}"
     shell: "{{ current_user_config[ansible_distribution].shell }}"
   become: true
-  when: 
+  when:
     - current_user_config[ansible_distribution].shell is defined
     - current_user_config[ansible_distribution].shell | length > 0
   tags:
@@ -24,7 +24,7 @@
       ansible.builtin.file:
         path: "{{ ansible_env.HOME }}/dotfiles"
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Clone dotfiles repository
       ansible.builtin.git:
@@ -42,7 +42,7 @@
       loop: "{{ current_user_config[ansible_distribution].dotfiles.packages }}"
       when: current_user_config[ansible_distribution].dotfiles.packages is defined
 
-  when: 
+  when:
     - current_user_config[ansible_distribution].dotfiles is defined
     - current_user_config[ansible_distribution].dotfiles.method | default('') == 'stow'
   tags:

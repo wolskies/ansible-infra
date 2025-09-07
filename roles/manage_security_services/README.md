@@ -4,7 +4,7 @@ Security services management: UFW wrapper for Linux, native ALF control for macO
 
 ## Description
 
-This role provides platform-specific security service management. On Linux, it acts as a wrapper around `community.general.ufw` with SSH anti-lockout protection. On macOS, it directly manages the Application Layer Firewall via `socketfilterfw` commands. The role also handles fail2ban configuration on Linux systems.
+Configures security services using the unified infrastructure hierarchy. On Linux, it acts as a wrapper around `community.general.ufw` with SSH anti-lockout protection. On macOS, it directly manages the Application Layer Firewall via `socketfilterfw` commands. The role also handles fail2ban configuration on Linux systems.
 
 ## Features
 
@@ -17,16 +17,23 @@ This role provides platform-specific security service management. On Linux, it a
 
 ### Core Configuration
 
+Uses the unified infrastructure structure:
+
 ```yaml
-# Distribution-specific security configuration
-security_config:
-  Ubuntu:
+infrastructure:
+  host:
     firewall:
       enabled: false
       prevent_ssh_lockout: true
-      package: "ufw"
       rules: []                   # Passed to community.general.ufw
-    fail2ban:
+      # Linux-specific settings
+      package: "ufw"             # Set automatically per platform
+      # macOS-specific settings
+      stealth_mode: false         # macOS socketfilterfw --setstealthmode
+      block_all: false            # macOS socketfilterfw --setblockall
+      logging: false              # macOS socketfilterfw --setloggingmode
+
+    fail2ban:                   # Linux only
       enabled: false
       sender: "root@localhost"
       dest_email: ""
@@ -44,55 +51,6 @@ security_config:
       ignoreips:
         - "127.0.0.1/8"
         - "::1"
-        
-  Debian:
-    firewall:
-      enabled: false
-      prevent_ssh_lockout: true
-      package: "ufw"
-      rules: []
-    fail2ban:
-      enabled: false
-      sender: "root@localhost"
-      dest_email: ""
-      # ... same structure as Ubuntu
-      
-  Archlinux:
-    firewall:
-      enabled: false
-      prevent_ssh_lockout: true
-      package: "ufw"
-      rules: []
-    fail2ban:
-      enabled: false
-      # ... same structure as Ubuntu
-      
-  Darwin:
-    firewall:
-      enabled: false
-      package: "macos_alf"        # Identifier (not actually installed)
-      stealth_mode: false         # macOS socketfilterfw --setstealthmode
-      block_all: false            # macOS socketfilterfw --setblockall
-      logging: false              # macOS socketfilterfw --setloggingmode
-    # Note: fail2ban not supported on macOS
-
-# Backward compatibility - these will override distribution-specific if set
-security:
-  firewall:
-    all_os:
-      enabled: false
-      prevent_ssh_lockout: true
-    linux:
-      package: "ufw"
-    darwin:
-      package: "macos_alf"
-      stealth_mode: false
-      block_all: false
-      logging: false
-    rules: []
-  fail2ban:
-    enabled: false
-    # ... full structure available
 ```
 
 ## Platform-Specific Implementation
@@ -102,19 +60,20 @@ security:
 On Linux systems, firewall rules are passed directly to `community.general.ufw`:
 
 ```yaml
-security:
-  firewall:
-    rules:  # All parameters from community.general.ufw supported
-      - rule: allow/deny/limit/reject
-        port: 80
-        proto: tcp/udp/any
-        from: "10.0.0.0/8"
-        to: "any"
-        comment: "Description"
-        delete: false
-        direction: in/out/routed
-        interface: eth0
-        log: false
+infrastructure:
+  host:
+    firewall:
+      rules:  # All parameters from community.general.ufw supported
+        - rule: allow/deny/limit/reject
+          port: 80
+          proto: tcp/udp/any
+          from: "10.0.0.0/8"
+          to: "any"
+          comment: "Description"
+          delete: false
+          direction: in/out/routed
+          interface: eth0
+          log: false
 ```
 
 **SSH Anti-Lockout**: When `prevent_ssh_lockout: true`, automatically prepends SSH allow rule if not present in rules list.
@@ -124,13 +83,13 @@ security:
 On macOS, the role uses `/usr/libexec/ApplicationFirewall/socketfilterfw` directly:
 
 ```yaml
-security:
-  firewall:
-    darwin:
+infrastructure:
+  host:
+    firewall:
       stealth_mode: true   # --setstealthmode on/off
-      block_all: false     # --setblockall on/off  
+      block_all: false     # --setblockall on/off
       logging: true        # --setloggingmode on/off
-    # Note: 'rules' are ignored on macOS - ALF is application-based, not port-based
+      # Note: 'rules' are ignored on macOS - ALF is application-based, not port-based
 ```
 
 **Important**: macOS ALF works differently than UFW:
@@ -146,8 +105,8 @@ security:
   roles:
     - role: wolskinet.infrastructure.manage_security_services
       vars:
-        security_config:
-          Ubuntu:
+        infrastructure:
+          host:
             firewall:
               enabled: true
               prevent_ssh_lockout: true
@@ -173,8 +132,8 @@ security:
   roles:
     - role: wolskinet.infrastructure.manage_security_services
       vars:
-        security_config:
-          Darwin:
+        infrastructure:
+          host:
             firewall:
               enabled: true
               stealth_mode: true    # Don't respond to ping
@@ -189,8 +148,8 @@ security:
   roles:
     - role: wolskinet.infrastructure.manage_security_services
       vars:
-        security_config:
-          Ubuntu:
+        infrastructure:
+          host:
             fail2ban:
               enabled: true
               services:
@@ -202,20 +161,30 @@ security:
                   logpath: /var/log/auth.log
 ```
 
-### Backward Compatibility
+### Multi-Host Configuration
 ```yaml
-# Legacy format still supported (overrides distribution-specific)
-- hosts: linux_servers
-  roles:
-    - role: wolskinet.infrastructure.manage_security_services
-      vars:
-        security:
-          firewall:
-            all_os:
-              enabled: true
-            rules:
-              - rule: allow
-                port: 80
+# inventory/group_vars/webservers.yml
+infrastructure:
+  host:
+    firewall:
+      enabled: true
+      rules:
+        - rule: allow
+          port: 80
+          proto: tcp
+        - rule: allow
+          port: 443
+          proto: tcp
+
+# inventory/host_vars/web01.yml
+infrastructure:
+  host:
+    fail2ban:
+      enabled: true
+      services:
+        - name: sshd
+          enabled: true
+          maxretry: 3
 ```
 
 ## What This Role Adds

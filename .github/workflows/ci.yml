@@ -36,8 +36,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install ansible ansible-lint molecule[docker] docker pytest-testinfra
-          ansible-galaxy collection install community.general community.docker
+          pip install ansible ansible-lint molecule[docker] docker
+          ansible-galaxy collection install community.general community.docker ansible.posix
 
       - name: Lint collection
         run: |
@@ -46,7 +46,7 @@ jobs:
 
       - name: Validate YAML syntax
         run: |
-          find . -name "*.yml" -o -name "*.yaml" | xargs -I {} ansible-playbook --syntax-check {}
+          find . -name "*.yml" -o -name "*.yaml" | grep -E "(converge|prepare|verify|cleanup|destroy)\.yml$|playbooks/" | xargs -I {} ansible-playbook --syntax-check {}
 
       - name: Validate galaxy.yml
         run: |
@@ -66,7 +66,15 @@ jobs:
     needs: lint-and-validate
     strategy:
       matrix:
-        scenario: [basic_setup, container_platform, discovery]
+        scenario:
+          [
+            os_configuration,
+            manage_users,
+            manage_packages,
+            manage_security_services,
+            snap_packages,
+            flatpak_packages,
+          ]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -79,8 +87,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install ansible molecule[docker] docker pytest-testinfra
-          ansible-galaxy collection install community.general community.docker
+          pip install ansible molecule[docker] docker
+          ansible-galaxy collection install community.general community.docker ansible.posix
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -106,8 +114,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install ansible molecule[docker] docker pytest-testinfra
-          ansible-galaxy collection install community.general community.docker
+          pip install ansible molecule[docker] docker
+          ansible-galaxy collection install community.general community.docker ansible.posix
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -208,8 +216,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install ansible molecule[docker] docker pytest-testinfra
-          ansible-galaxy collection install community.general community.docker
+          pip install ansible molecule[docker] docker
+          ansible-galaxy collection install community.general community.docker ansible.posix
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

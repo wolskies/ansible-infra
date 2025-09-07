@@ -11,7 +11,7 @@ Creates and manages user accounts at the system level (requires sudo). Reads use
 - **System account management**: Creates/removes user accounts and home directories
 - **SSH key deployment**: Automated authorized_key management with validation
 - **Password handling**: Automatic SHA-512 hashing for plaintext passwords
-- **Domain-level users**: Consistent user accounts across all hosts in domain
+- **User account configuration**: `infrastructure.domain.users[]` for account configuration
 - **Integration ready**: Works with `configure_user` role for preference management
 
 ## Role Variables
@@ -34,21 +34,23 @@ infrastructure:
         shell: "/bin/bash"             # Optional: default shell
         create_home: true              # Optional: create home directory
         state: present                 # Optional: present (default) or absent
-        
+
         # User preferences (ignored by this role, used by configure_user)
         git:
           user_name: "Alice Smith"
           user_email: "alice@company.com"
         nodejs:
           packages: [typescript, eslint]
-        Ubuntu:
-          shell: /usr/bin/zsh
-          dotfiles: { repository: "...", method: stow }
-        Darwin:
-          shell: /opt/homebrew/bin/zsh
-          dock: { tile_size: 48, autohide: true }
+        dotfiles:
+          repository: "https://github.com/alice/dotfiles"
+          method: stow
+        # Only macOS-specific GUI preferences need their own section
+        macosx:
+          dock:
+            tile_size: 48
+            autohide: true
 
-          
+
     users_absent: []                   # Legacy: usernames to remove
 ```
 
@@ -91,14 +93,14 @@ infrastructure:
             home: /var/lib/service
             system: true
             create_home: true
-            
+
           # Admin with pre-hashed password
           - name: admin
             comment: "System Admin"
             groups: [sudo, adm]
             password: "$6$rounds=656000$salt$hash..."  # Already hashed
             ssh_pubkey: "ssh-ed25519 AAAAC3..."
-            
+
           # User account to remove
           - name: olduser
             state: absent
@@ -128,7 +130,7 @@ After creating accounts, configure user preferences:
 
 This role provides:
 
-1. **Domain-level consistency**: Same users across all hosts in domain
+1. **User account configuration**: Configurable user accounts via `infrastructure.domain.users[]`
 2. **Password handling**: Auto-hashing of plaintext passwords (SHA-512)
 3. **SSH key deployment**: Automated authorized_key management with validation
 4. **Account lifecycle**: Creation, modification, and removal
