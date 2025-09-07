@@ -22,6 +22,11 @@ platforms:
     command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
+  config_options:
+    defaults:
+      roles_path: ../../roles
+      host_key_checking: false
+      stdout_callback: yaml
   inventory:
     group_vars:
       all:
@@ -86,9 +91,5 @@ provisioner:
             shell: /bin/dash
             comment: "User with long name and uncommon shell"
             create_home: true
-  config_options:
-    defaults:
-      host_key_checking: false
-      stdout_callback: yaml
 verifier:
   name: ansible
