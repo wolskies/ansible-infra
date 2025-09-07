@@ -1,69 +1,145 @@
 ---
-config_common_hostname: ""
-config_common_domain: ""
-config_common_update_hosts: true
-config_common_timezone: "UTC"
-config_common_locale:
-  locale: "en_US.UTF-8"
-  language: "en_US.UTF-8"
-config_common_ntp:
-  enabled: true
-  servers:
-    - 0.pool.ntp.org
-    - 1.pool.ntp.org
-    - 2.pool.ntp.org
-    - 3.pool.ntp.org
+# =============================================================================
+# OS CONFIGURATION
+# =============================================================================
 
-config_linux:
-  journal:
-    enabled: true
-    max_size: "500M"
-    max_retention: "30d"
-    forward_to_syslog: false
-    compress: true
-  rsyslog:
-    enabled: false
-    remote_host: ""
-    remote_port: 514
-    protocol: "udp"
+infrastructure:
+  domain:
+    name: ""                      
+    timezone: "UTC"                 
+    locale: "en_US.UTF-8"      
+    language: "en_US.UTF-8"    
+    ntp:
+      enabled: true                
+      servers:
+        - 0.pool.ntp.org
+        - 1.pool.ntp.org
+        - 2.pool.ntp.org
+        - 3.pool.ntp.org
+    users: [] 
+  host:
+    hostname: ""                
+    update_hosts: true   
 
-config_debian_family:
-  snap:
-    remove_completely: false
-  unattended_upgrades:
-    enabled: true
-    email: ""
-    auto_reboot: false
-    reboot_with_users: false
-    reboot_time: "02:00"
-  apt:
-    no_recommends: false
-    proxy: ""
-  services:
-    disable_unnecessary: false
-    unnecessary_services:
-      - bluetooth.service
-      - cups.service
-  optimizations:
-    tune_swappiness: false
-    swappiness: 10
-
-config_archlinux:
-  unattended_upgrades:
-    enabled: false
-  pacman:
-    no_confirms: false
-    proxy: ""
-  services:
-    disable_unnecessary: false
-    unnecessary_services:
-      - bluetooth.service
-      - cups.service
-  optimizations:
-    tune_swappiness: false
-    swappiness: 10
-
-config_macos:
-  computer_name: ""
-  updates:
-    auto_check: true
+  Ubuntu:
+    journal:
+      configure: true
+      max_size: "500M"
+      max_retention: "30d"
+      forward_to_syslog: false
+      compress: true
+    rsyslog:
+      enabled: false
+      remote_host: ""
+      remote_port: 514
+      protocol: "udp"
+    services:
+      enable: [] 
+      disable: [] 
+    optimizations:
+      tune_swappiness: false
+      swappiness: 10
+    sysctl:
+      parameters: {}
+      # Example:
+      #   net.core.default_qdisc: "fq"
+      #   net.ipv4.tcp_congestion_control: "bbr"
+    limits:
+      limits: []
+      # Example:
+      #   - domain: '*'
+      #     limit_type: soft
+      #     limit_item: nofile
+      #     value: 65536
+    modules:
+      load: []
+      blacklist: []
+      # Example:
+      # load: [uvcvideo, btusb]
+      # blacklist: [nouveau]
+    snap:
+      remove_completely: false
+    unattended_upgrades:
+      enabled: true
+      email: ""
+      auto_reboot: false
+      reboot_with_users: false
+      reboot_time: "02:00"
+    apt:
+      no_recommends: false
+      proxy: ""
+      
+  Debian:
+    journal:
+      configure: true
+      max_size: "500M"
+      max_retention: "30d"
+      forward_to_syslog: false
+      compress: true
+    rsyslog:
+      enabled: false
+      remote_host: ""
+      remote_port: 514
+      protocol: "udp"
+    services:
+      enable: []
+      disable: []
+    optimizations:
+      tune_swappiness: false
+      swappiness: 10
+    sysctl:
+      parameters: {}
+    limits:
+      limits: []
+    modules:
+      load: []
+      blacklist: []
+    snap:
+      remove_completely: false
+    unattended_upgrades:
+      enabled: true
+      email: ""
+      auto_reboot: false
+      reboot_with_users: false
+      reboot_time: "02:00"
+    apt:
+      no_recommends: false
+      proxy: ""
+      
+  Archlinux:
+    journal:
+      configure: true
+      max_size: "500M"
+      max_retention: "30d"
+      forward_to_syslog: false
+      compress: true
+    rsyslog:
+      enabled: false
+      remote_host: ""
+      remote_port: 514
+      protocol: "udp"
+    services:
+      enable: []
+      disable: []
+    optimizations:
+      tune_swappiness: false
+      swappiness: 10
+    sysctl:
+      parameters: {}
+    limits:
+      limits: []
+    modules:
+      load: []
+      blacklist: []
+    pacman:
+      no_confirms: false
+      proxy: ""
+      multilib: false
+      
+  Darwin:
+    computer_name: ""       
+    updates:
+      auto_check: true
+      auto_download: true
+    gatekeeper:
+      enabled: true          

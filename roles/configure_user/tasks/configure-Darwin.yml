@@ -1,0 +1,85 @@
+---
+# macOS OS-specific user configuration
+
+- name: Set user shell
+  ansible.builtin.user:
+    name: "{{ target_user }}"
+    shell: "{{ current_user_config.Darwin.shell }}"
+  become: true
+  when: 
+    - current_user_config.Darwin.shell is defined
+    - current_user_config.Darwin.shell | length > 0
+  tags:
+    - shell
+
+- name: Configure dotfiles via Stow
+  block:
+    - name: Ensure stow is installed via Homebrew
+      community.general.homebrew:
+        name: stow
+        state: present
+
+    - name: Create dotfiles directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/dotfiles"
+        state: directory
+        mode: '0755'
+
+    - name: Clone dotfiles repository
+      ansible.builtin.git:
+        repo: "{{ current_user_config.Darwin.dotfiles.repository }}"
+        dest: "{{ ansible_env.HOME }}/dotfiles"
+        update: true
+      when: current_user_config.Darwin.dotfiles.repository is defined
+
+    - name: Stow dotfiles packages
+      ansible.builtin.command:
+        cmd: stow {{ item }}
+        chdir: "{{ ansible_env.HOME }}/dotfiles"
+      register: stow_result
+      changed_when: stow_result.rc == 0
+      loop: "{{ current_user_config.Darwin.dotfiles.packages }}"
+      when: current_user_config.Darwin.dotfiles.packages is defined
+
+  when: 
+    - current_user_config.Darwin.dotfiles is defined
+    - current_user_config.Darwin.dotfiles.method | default('') == 'stow'
+  tags:
+    - dotfiles
+    - stow
+
+- name: Configure macOS Dock preferences
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+  notify: restart dock
+  loop:
+    - { key: "tilesize", type: "int", value: "{{ current_user_config.Darwin.dock.tile_size }}" }
+    - { key: "autohide", type: "bool", value: "{{ current_user_config.Darwin.dock.autohide }}" }
+    - { key: "minimize-to-application", type: "bool", value: "{{ current_user_config.Darwin.dock.minimize_to_application | default(false) }}" }
+  when: 
+    - current_user_config.Darwin.dock is defined
+    - item.value is defined
+  tags:
+    - dock
+    - macos
+
+- name: Configure macOS Finder preferences
+  community.general.osx_defaults:
+    domain: com.apple.finder
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+  notify: restart finder
+  loop:
+    - { key: "AppleShowAllExtensions", type: "bool", value: "{{ current_user_config.Darwin.finder.show_extensions }}" }
+    - { key: "AppleShowAllFiles", type: "bool", value: "{{ current_user_config.Darwin.finder.show_hidden }}" }
+    - { key: "ShowPathbar", type: "bool", value: "{{ current_user_config.Darwin.finder.show_pathbar | default(true) }}" }
+  when: 
+    - current_user_config.Darwin.finder is defined
+    - item.value is defined
+  tags:
+    - finder
+    - macos

@@ -29,41 +29,49 @@ provisioner:
   inventory:
     group_vars:
       all:
-        # Test flatpak installation and then removal
-        flatpak_packages:
-          management_action: "install"
-          repositories:
-            enable_flathub: true
-            cleanup: true
-          packages:
-            install:
-              - org.freedesktop.Platform//22.08
-          remove:
-            all_packages: true
-            system_packages: false # Keep flatpak installed for testing
-            cleanup_directories: false
-            cleanup_repositories: true
-          purge:
-            confirm: false
+        # Test flatpak management using new infrastructure structure
+        infrastructure:
+          Ubuntu:
+            flatpak:
+              enabled: true
+              packages:
+                install:
+                  - org.freedesktop.Platform//22.08
+                remove: []
+              flathub: true
+              plugins:
+                gnome: false
+                plasma: false
+          Debian:
+            flatpak:
+              enabled: true
+              packages:
+                install:
+                  - org.freedesktop.Platform//22.08
+                remove: []
+              flathub: true
+              plugins:
+                gnome: false
+                plasma: false
     host_vars:
       ubuntu-flatpak-test:
         # Host-specific flatpak configuration
-        flatpak_packages:
-          management_action: "install"
-          repositories:
-            enable_flathub: true
-          packages:
-            install:
-              - org.freedesktop.Platform//22.08
+        infrastructure:
+          Ubuntu:
+            flatpak:
+              packages:
+                install:
+                  - org.freedesktop.Platform//22.08
+                  - org.freedesktop.Sdk//22.08  # Test additional package
       debian-flatpak-test:
-        # Host-specific flatpak configuration
-        flatpak_packages:
-          management_action: "install"
-          repositories:
-            enable_flathub: true
-          packages:
-            install:
-              - org.freedesktop.Platform//22.08
+        # Host-specific flatpak configuration  
+        infrastructure:
+          Debian:
+            flatpak:
+              packages:
+                install:
+                  - org.freedesktop.Platform//22.08
+                  - org.freedesktop.Sdk//22.08  # Test additional package
   config_options:
     defaults:
       host_key_checking: false

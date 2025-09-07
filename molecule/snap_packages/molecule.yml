@@ -19,30 +19,26 @@ provisioner:
   inventory:
     group_vars:
       all:
-        # Test snap installation first, then removal
-        snap_packages:
-          management_action: "install"
-          packages:
-            install:
-              - hello-world
-            classic: []
-          remove:
-            all_packages: true
-            system_packages: false
-            disable_services: true
-            cleanup_directories: false
-            cleanup_path: false
-          purge:
-            confirm: false
+        # Test snap management using new infrastructure structure
+        infrastructure:
+          Ubuntu:
+            snap:
+              disable_and_remove: false  # Keep snap enabled for testing
+              packages:
+                install:
+                  - hello-world
+                remove: []
     host_vars:
       ubuntu-snap-test:
         # Host-specific snap configuration
-        snap_packages:
-          management_action: "install"
-          packages:
-            install:
-              - hello-world
-            classic: []
+        infrastructure:
+          Ubuntu:
+            snap:
+              packages:
+                install:
+                  - hello-world
+                  - core  # Test additional package
+                remove: []
   config_options:
     defaults:
       host_key_checking: false

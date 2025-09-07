@@ -5,12 +5,8 @@
 # This role orchestrates multiple infrastructure roles to provide complete system setup
 # It executes other roles in the correct order for new machine configuration
 #
-# Execution Control:
-# - Use tags to control which components are executed:
-#   --tags core         : Execute only core components (host, security, users, packages)
-#   --tags optional     : Execute only optional components (snap, flatpak, system-settings)
-#   --tags <specific>   : Execute specific components (e.g., --tags users,packages)
-#   --skip-tags <name>  : Skip specific components (e.g., --skip-tags system-settings)
+# The variables shown here are EXAMPLES of the unified structure that all roles
+# in this collection use. Define these in your inventory/group_vars/host_vars.
 #
 # Available tags:
 #   - host-configuration  : Basic host setup (hostname, NTP, locale)
@@ -19,320 +15,223 @@
 #   - package-management  : Package installation and repository management
 #   - snap-packages       : Snap package management
 #   - flatpak-packages    : Flatpak package management
-#   - system-settings     : System performance tuning
-#   - core                : All core components (host, security, users, packages)
-#   - optional            : All optional components (snap, flatpak, system-settings)
-#   - progress            : Progress messages
-
-# =============================================================================
-# OS CONFIGURATION
+#   - core                : All core components
+#   - optional            : All optional components
 # =============================================================================
 
-config_common_hostname: ""
-config_common_domain: ""
-config_common_update_hosts: true
-config_common_timezone: "UTC"
-config_common_locale:
-  locale: "en_US.UTF-8"
-  language: "en_US.UTF-8"
-config_common_ntp:
-  enabled: true
-  servers:
-    - 0.pool.ntp.org
-    - 1.pool.ntp.org
-    - 2.pool.ntp.org
-    - 3.pool.ntp.org
-
-config_linux:
-  journal:
-    enabled: true
-    max_size: "500M"
-    max_retention: "30d"
-    forward_to_syslog: false
-    compress: true
-  rsyslog:
-    enabled: false
-    remote_host: ""
-    remote_port: 514
-    protocol: "udp"
-
-config_debian_family:
-  snap:
-    remove_completely: false
-  unattended_upgrades:
-    enabled: true
-    email: ""
-    auto_reboot: false
-    reboot_with_users: false
-    reboot_time: "02:00"
-  apt:
-    no_recommends: false
-    proxy: ""
-  services:
-    disable_unnecessary: false
-    unnecessary_services:
-      - bluetooth.service
-      - cups.service
-  optimizations:
-    tune_swappiness: false
-    swappiness: 10
-
-config_archlinux:
-  unattended_upgrades:
-    enabled: false
-  pacman:
-    no_confirms: false
-    proxy: ""
-  services:
-    disable_unnecessary: false
-    unnecessary_services:
-      - bluetooth.service
-      - cups.service
-  optimizations:
-    tune_swappiness: false
-    swappiness: 10
-
-config_macos:
-  computer_name: ""
-  updates:
-    auto_check: true
-
-# =============================================================================
-# SECURITY SERVICES ROLE VARIABLES
-# =============================================================================
-
-security_firewall_common:
-  enabled: false
-  start: true
-  prevent_ssh_lockout: true
-
-security_firewall_linux:
-  package: "ufw"
-  rate_limiting:
-    enabled: false
-    connections: 6
-    period: 30
-    comment: "Rate limiting rule"
-
-security_firewall_macosx:
-  package: "macos_alf"
-  stealth_mode: false
-  block_all: false
-  logging: false
-
-security_fail2ban_common:
-  enabled: false
-  start: true
-  sender: "root@localhost"
-  dest_email: ""
-
-security_fail2ban_defaults:
-  bantime: 3600
-  findtime: 600
-  maxretry: 5
-
-security_fail2ban_services:
-  - name: sshd
-    enabled: true
-    maxretry: 5
-    bantime: 3600
-    findtime: 600
-    logpath: /var/log/auth.log
-
-security_fail2ban_ignoreips:
-  - "127.0.0.1/8"
-  - "::1"
-
-# =============================================================================
-# FIREWALL RULE MANAGEMENT VARIABLES
-# =============================================================================
-
-# Example:
-# firewall_rules:
-#   - rule: allow
-#     port: 80
-#     proto: tcp
-#     comment: "HTTP traffic"
-#   - rule: limit
-#     port: 22
-#     proto: tcp
-#     comment: "SSH rate limiting"
-firewall_rules: []
-
-firewall_backend: "ufw"
-
-# =============================================================================
-# USER MANAGEMENT ROLE VARIABLES
-# =============================================================================
-# Example:
-# users:
-#   - name: username                              # Required: username
-#     comment: "User Full Name"                    # Optional: GECOS field
-#     groups: [sudo, docker]                       # Optional: additional groups
-#     ssh_pubkey: "ssh-rsa AAAAB3..."             # Optional: SSH public key
-#     password: "$6$salt$encrypted"               # Optional: encrypted or plaintext password
-users: []
-
-# Users to remove from the system (removes account and home directory)
-users_absent: []
-
-# =============================================================================
-# PACKAGE MANAGEMENT ROLE VARIABLES
-# =============================================================================
-# Unified package structure organized by distribution
-# Packages are merged in order: all -> group -> host
-# Settings control package manager behavior per distribution
-# =============================================================================
-
-packages:
-  Ubuntu:
-    all: [] # Global packages for all Ubuntu machines
-    group: [] # Group-specific packages for Ubuntu
-    host: [] # Host-specific packages for Ubuntu
-    remove: [] # Packages to remove
-    settings:
-      apt_cache:
-        update_cache: true
-        valid_time: 3600
-      system_upgrade:
-        enable: false
-        type: safe # safe, full, or dist
-      repositories: [] # APT repositories to configure
-
-  Debian:
-    all: [] # Global packages for all Debian machines
-    group: [] # Group-specific packages for Debian
-    host: [] # Host-specific packages for Debian
-    remove: [] # Packages to remove
-    settings:
-      apt_cache:
-        update_cache: true
-        valid_time: 3600
-      system_upgrade:
-        enable: false
-        type: safe # safe, full, or dist
-      repositories: [] # APT repositories to configure
-
-  Archlinux:
-    all: [] # Global packages for all Arch machines (includes AUR if enabled)
-    group: [] # Group-specific packages for Arch (includes AUR if enabled)
-    host: [] # Host-specific packages for Arch (includes AUR if enabled)
-    remove: [] # Packages to remove
-    settings:
-      multilib: true
-      enable_aur: true # When true, attempts to install packages from AUR if not in official repos
-      aur_helper: paru
-      config_reflector: true
-
-  MacOSX:
-    all: [] # Global packages for all macOS machines
-    group: [] # Group-specific packages for macOS
-    host: [] # Host-specific packages for macOS
-    remove: [] # Packages to remove
-    casks:
-      all: [] # Global casks for all macOS machines
-      group: [] # Group-specific casks
-      host: [] # Host-specific casks
-      remove: [] # Casks to remove
-    settings:
-      install: true # Install Homebrew if not present
-      update_homebrew: true # Update Homebrew before installing packages
-      cleanup_cache: false # Clean up Homebrew cache after installation
-      taps: [] # Homebrew taps to add
-
-# =============================================================================
-# SNAP PACKAGES ROLE VARIABLES
-# =============================================================================
-snap:
-  disable_and_remove: true
-  packages:
-    install: []
-    classic: []
-    remove: []
-
-# =============================================================================
-# FLATPAK PACKAGES ROLE VARIABLES
-# =============================================================================
-flatpak:
-  enabled: false
-  packages:
-    install: []
-    remove: []
-  flathub: true
-  plugins:
-    gnome: false
-    plasma: false
-
-# =============================================================================
-# SYSTEM SETTINGS ROLE VARIABLES
-# =============================================================================
-
-system_settings_linux:
-  sysctl:
-    enabled: false
-    file: /etc/sysctl.d/99-ansible-managed.conf
-    parameters: {}
-    # Example parameters:
-    # parameters:
-    #   net.core.default_qdisc: "fq"
-    #   net.ipv4.tcp_congestion_control: "bbr"
-    #   vm.swappiness: 10
-    #   vm.max_map_count: 2097152  # Required for Steam
-    #   fs.file-max: 2097152
-
-  limits:
-    enabled: false
-    limits: []
-    # Example limits:
-    # limits:
-    #   - domain: '*'
-    #     limit_type: soft
-    #     limit_item: nofile
-    #     value: 65536
-
-  modules:
-    load: []
-    blacklist: []
-    options: {}
-    # Example:
-    # load: [uvcvideo, btusb]
-    # blacklist: [nouveau]
-
-  services:
-    enable: []
-    disable: []
-    mask: []
-    # Example:
-    # enable: [bluetooth.service, cups.service]
-    # disable: [ModemManager.service]
-
-  fonts:
-    nerd_fonts:
+infrastructure:
+  domain:
+    name: ""                      
+    timezone: "UTC"                 
+    locale: "en_US.UTF-8"      
+    language: "en_US.UTF-8"    
+    ntp:
+      enabled: true                
+      servers:
+        - 0.pool.ntp.org
+        - 1.pool.ntp.org
+        - 2.pool.ntp.org
+        - 3.pool.ntp.org
+    users: []
+    # Example user with cross-platform and OS-specific preferences:
+    # - name: alice                 
+    #   comment: "Alice Developer"  
+    #   groups: [sudo, docker]      
+    #   ssh_pubkey: "ssh-ed25519 AAAAC3..." 
+    #   password: "plaintext"       
+    #   uid: 1001                   # Optional: specific user ID
+    #   home: "/custom/home"        # Optional: home directory path
+    #   create_home: true           # Optional: create home directory
+    #   state: present              # Optional: present (default) or absent
+    #   shell: /usr/bin/zsh
+  #     dotfiles:
+  #       repository: "https://github.com/alice/dotfiles-linux"
+  #       method: stow
+  #       packages: [zsh, tmux, vim]
+    #   git:
+    #     user_name: "Alice Smith"
+    #     user_email: "alice@company.com"
+    #   nodejs:
+    #     packages: [typescript, eslint, prettier]
+    #   rust:
+    #     packages: [ripgrep, fd-find, bat]
+    #   go:
+    #     packages: [github.com/charmbracelet/glow@latest]
+    #   macosx:
+    #     dock:
+    #       tile_size: 48
+    #       autohide: true
+    
+    users_absent: []              # List of usernames to remove (for migration)
+  host:
+    hostname: ""
+    computer_name: ""             # Darwin only               
+    update_hosts: true   
+    journal:
+      configure: true
+      max_size: "500M"
+      max_retention: "30d"
+      forward_to_syslog: false
+      compress: true
+    rsyslog:
       enabled: false
-      install_dir: /usr/share/fonts/nerd-fonts
-      fonts: []
-      # Example fonts:
-      # fonts:
-      #   - name: CascadiaCode
-      #     url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/CascadiaCode.zip"
-
-system_settings_macos:
-  dock:
-    enabled: false
-    settings: {}
-    # Example: tile-size: 48, autohide: false
-
-  finder:
-    enabled: false
-    settings: {}
-    # Example: ShowExtensions: true, ShowHidden: false
-
-  system:
-    enabled: false
-    settings: {}
-    # Example: KeyRepeat: 2, ApplePressAndHoldEnabled: false
-
-  security:
-    enabled: false
-    settings: {}
-    # Example: require_password_after_sleep: true
+      remote_host: ""
+      remote_port: 514
+      protocol: "udp"
+    services:
+      enable: [] 
+      disable: [] 
+    optimizations:
+      tune_swappiness: false
+      swappiness: 10
+    sysctl:
+      parameters: {}
+      # Example:
+      #   net.core.default_qdisc: "fq"
+      #   net.ipv4.tcp_congestion_control: "bbr"
+    limits:
+      limits: []
+      # Example:
+      #   - domain: '*'
+      #     limit_type: soft
+      #     limit_item: nofile
+      #     value: 65536
+    modules:
+      load: []
+      blacklist: []
+      # Example:
+      # load: [uvcvideo, btusb]
+      # blacklist: [nouveau]
+    firewall:
+      enabled: false
+      prevent_ssh_lockout: true
+      package: "ufw"
+      stealth_mode: false
+      block_all: false
+      logging: false
+      rules: []
+      # Rule examples:
+      # - rule: allow
+      #   port: 80
+      #   proto: tcp
+      #   comment: "HTTP traffic"
+    fail2ban:
+      enabled: false
+      sender: "root@localhost"
+      dest_email: ""
+      defaults:
+        bantime: 3600
+        findtime: 600
+        maxretry: 5
+      services:
+        - name: sshd
+          enabled: true
+          maxretry: 5
+          bantime: 3600
+          findtime: 600
+          logpath: /var/log/auth.log
+      ignoreips:
+        - "127.0.0.1/8"
+        - "::1"
+    packages:  
+      present:
+        all:
+          Ubuntu: []
+          Debian: []
+          Archlinux: []
+          MacOSX: [] 
+        group:
+          Ubuntu: []
+          Debian: []
+          Archlinux: []
+          MacOSX: [] 
+        host:
+          Ubuntu: []
+          Debian: []
+          Archlinux: []
+          MacOSX: []  
+      remove:
+        all: 
+          Ubuntu: []
+          Debian: []
+          Archlinux: []
+          MacOSX: [] 
+        group: 
+          Ubuntu: []
+          Debian: []
+          Archlinux: []
+          MacOSX: [] 
+        host: 
+          Ubuntu: []
+          Debian: []
+          Archlinux: []
+          MacOSX: [] 
+      casks_present:
+        all: []
+        group: []
+        host: [] 
+      casks_remove: [] 
+      apt:
+        apt_cache:
+          update_cache: true
+          valid_time: 3600
+        no_recommends: false
+        unattended_upgrades:
+          enabled: true
+          email: ""
+          auto_reboot: false
+          reboot_with_users: false
+          reboot_time: "02:00"
+        system_upgrade:
+          enable: false
+          type: safe
+        proxy: ""
+        repositories:
+          all: 
+            Ubuntu: []
+            Debian: [] 
+          group: 
+            Ubuntu: []
+            Debian: []
+          host:
+            Ubuntu: []
+            Debian: []
+          # - name:  example: "docker"
+          #   types: optional, defaults to "deb"
+          #   uris: repo url
+          #   suites: example, for docker this would be distro release (e.g. "noble" for Ubuntu 24)
+          #   components: release channel, "stable" for ubuntu/docker
+          #   signed_by: gpg key, accepts url or actual key
+          #   state: present (default)/absent
+      pacman:
+        no_confirms: false
+        proxy: ""
+        multilib: false
+        enable_aur: true # When true, attempts to install packages from AUR if not in official repos
+        aur_helper: paru
+        config_reflector: true
+      homebrew:
+        install: true 
+        update_homebrew: true 
+        cleanup_cache: false 
+        taps: [] 
+      macosx:
+        updates:
+          auto_check: true
+          auto_download: true
+        gatekeeper:
+          enabled: true 
+      snap:
+        disable_and_remove: true
+        packages:
+          install: []
+          remove: []
+      flatpak:
+        enabled: false
+        packages:
+          install: []
+          remove: []
+        flathub: true
+        plugins:
+          gnome: false
+          plasma: false

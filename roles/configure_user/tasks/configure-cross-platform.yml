@@ -1,0 +1,109 @@
+---
+# Cross-platform user configuration (git, language packages)
+
+- name: Configure Git settings
+  block:
+    - name: Set Git user name
+      community.general.git_config:
+        name: user.name
+        value: "{{ current_user_config.git.user_name }}"
+        scope: global
+      when: current_user_config.git.user_name is defined
+
+    - name: Set Git user email
+      community.general.git_config:
+        name: user.email
+        value: "{{ current_user_config.git.user_email }}"
+        scope: global
+      when: current_user_config.git.user_email is defined
+
+    - name: Set Git default editor
+      community.general.git_config:
+        name: core.editor
+        value: "{{ current_user_config.git.editor }}"
+        scope: global
+      when: current_user_config.git.editor is defined
+  when: current_user_config.git is defined
+  tags:
+    - git
+
+- name: Configure Node.js packages
+  block:
+    - name: Check if npm is available
+      ansible.builtin.command: command -v npm
+      register: npm_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install Node.js if npm missing
+      ansible.builtin.package:
+        name: nodejs
+        state: present
+      become: true
+      when: npm_check.rc != 0
+
+    - name: Install Node.js packages globally
+      community.general.npm:
+        name: "{{ item }}"
+        global: true
+      loop: "{{ current_user_config.nodejs.packages }}"
+  when: 
+    - current_user_config.nodejs is defined
+    - current_user_config.nodejs.packages is defined
+  tags:
+    - nodejs
+    - language-packages
+
+- name: Configure Rust packages
+  block:
+    - name: Check if cargo is available
+      ansible.builtin.command: command -v cargo
+      register: cargo_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install Rust toolchain if cargo missing
+      ansible.builtin.package:
+        name: rustup
+        state: present
+      become: true
+      when: cargo_check.rc != 0
+
+    - name: Install Rust packages
+      ansible.builtin.command: cargo install {{ item }}
+      register: cargo_install
+      changed_when: "'Installing' in cargo_install.stderr"
+      loop: "{{ current_user_config.rust.packages }}"
+  when:
+    - current_user_config.rust is defined
+    - current_user_config.rust.packages is defined
+  tags:
+    - rust
+    - language-packages
+
+- name: Configure Go packages
+  block:
+    - name: Check if go is available
+      ansible.builtin.command: command -v go
+      register: go_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install Go if missing
+      ansible.builtin.package:
+        name: golang
+        state: present
+      become: true
+      when: go_check.rc != 0
+
+    - name: Install Go packages
+      ansible.builtin.command: go install {{ item }}
+      register: go_install
+      changed_when: go_install.rc == 0
+      loop: "{{ current_user_config.go.packages }}"
+  when:
+    - current_user_config.go is defined
+    - current_user_config.go.packages is defined
+  tags:
+    - go
+    - language-packages

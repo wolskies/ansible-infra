@@ -1,148 +1,129 @@
 # os_configuration
 
-Post-install OS configuration and setup for Ubuntu 22+, Debian 12+, Arch Linux, and macOS.
+Essential OS-level configuration for Ubuntu 22+, Debian 12+, Arch Linux, and macOS using domain/host/distribution separation.
 
 ## Description
 
-This role handles essential operating system configuration after initial installation. It focuses on OS-level settings like hostname, timezone, locale, NTP, system services, and platform-specific optimizations. The role follows a clean architecture with cross-platform common tasks and OS-specific implementations.
+Configures foundational OS settings using the unified infrastructure hierarchy. Domain-level settings (timezone, locale, NTP) are shared across hosts, while host-specific settings (hostname) and distribution-specific settings (services, journals) are isolated appropriately.
 
 ## Features
 
-- **🖥️ Hostname & Domain**: Cross-platform hostname and FQDN management
-- **⏰ Time & Timezone**: Timezone and NTP synchronization setup
-- **🌐 Locale Configuration**: System locale and language settings (Linux + macOS)
-- **📝 Logging**: systemd-journald and rsyslog configuration (Linux)
-- **🔄 System Updates**: Unattended upgrades configuration (Debian family + Arch)
-- **⚙️ System Services**: Service management and optimizations
-- **🗂️ Package Manager**: APT/Pacman behavior configuration
-- **🍎 macOS Integration**: Core OS configuration (hostname, NTP, locale, updates)
+- **Domain-level**: Shared timezone, locale, NTP configuration across environment
+- **Host-level**: Individual hostname and /etc/hosts management  
+- **Distribution-specific**: systemd services, journald, unattended upgrades, platform optimizations
+- **Cross-platform**: Ubuntu/Debian/Arch Linux/macOS with unified variable structure
 
 ## Architecture
 
 **Task Flow:**
-1. **Common Setup** (`main.yml`): Hostname validation, timezone, facts
-2. **Linux Common** (`configure-linux-common.yml`): Locale, NTP, journal, hostname
-3. **OS-Specific**:
-   - `configure-Debian-family.yml` (Ubuntu + Debian)
-   - `configure-Archlinux.yml` (Arch Linux)
-   - `configure-MacOSX.yml` (macOS)
+1. **Common Setup** (`main.yml`): Distribution config setup, timezone
+2. **OS-Specific**:
+   - `configure-Linux.yml`: Locale, NTP, journal, hostname (all Linux distributions)
+   - `configure-Darwin.yml`: macOS-specific configuration
+3. **Distribution-Specific** (for Linux only):
+   - `configure-Debian.yml`: Ubuntu + Debian specific settings
+   - `configure-Archlinux.yml`: Arch Linux specific settings
 
 ## Role Variables
 
-See `defaults/main.yml` for complete configuration options.
+### Infrastructure Hierarchy
 
-### Cross-Platform Variables
-
-```yaml
-# Hostname and domain
-config_common_hostname: ""              # Hostname (empty = keep current)
-config_common_domain: ""                # Domain (empty = localdomain)
-config_common_update_hosts: true        # Update /etc/hosts with FQDN
-config_common_timezone: 'UTC'           # System timezone
-
-# Locale configuration
-config_common_locale:
-  locale: 'en_US.UTF-8'                # System locale
-  language: 'en_US.UTF-8'              # Language setting
-
-# NTP time synchronization
-config_common_ntp:
-  enabled: true                        # Enable NTP synchronization
-  servers:                             # NTP servers
-    - 0.pool.ntp.org
-    - 1.pool.ntp.org
-    - 2.pool.ntp.org
-    - 3.pool.ntp.org
-```
-
-### Linux Configuration
+Uses the unified infrastructure structure with domain/host/distribution separation:
 
 ```yaml
-# systemd journal
-config_linux_journal:
-  enabled: true                        # Configure systemd journal
-  max_size: "500M"                     # Maximum journal size
-  max_retention: "30d"                 # Maximum retention time
-  forward_to_syslog: false             # Forward to syslog
-  compress: true                       # Compress archived journals
+infrastructure:
+  # Domain-level: shared across all hosts
+  domain:
+    name: "company.com"             # Domain name
+    timezone: "UTC"                 # Shared timezone
+    locale: "en_US.UTF-8"          # Shared locale
+    language: "en_US.UTF-8"        # Shared language
+    ntp:
+      enabled: true                 # Enable NTP synchronization
+      servers:
+        - 0.pool.ntp.org
+        - 1.pool.ntp.org
+    users: []                       # Domain users (used by other roles)
 
-# Remote logging
-config_linux_rsyslog:
-  enabled: false                       # Enable remote syslog
-  remote_host: ""                      # Remote syslog server
-  remote_port: 514                     # Remote syslog port
-  protocol: "udp"                      # Protocol (udp/tcp)
-```
+  # Host-level: per-host settings  
+  host:
+    hostname: ""                    # Individual hostname (empty = keep current)
+    update_hosts: true              # Update /etc/hosts with hostname
 
-### Debian Family (Ubuntu + Debian)
-
-```yaml
-config_debian_family:
-  # Snap management
-  snap:
-    remove_completely: false           # Remove snap entirely
-
-  # Automatic updates
-  unattended_upgrades:
-    enabled: true                      # Enable unattended upgrades
-    email: ""                          # Email for notifications
-    auto_reboot: false                 # Allow automatic reboots
-    reboot_with_users: false          # Reboot with users logged in
-    reboot_time: "02:00"              # Reboot time
-
-  # APT configuration
-  apt:
-    no_recommends: false               # Don't install recommends
-    proxy: ""                          # HTTP proxy for APT
-
-  # System services
-  services:
-    disable_unnecessary: false         # Disable bluetooth, cups, etc.
-    unnecessary_services:              # Services to disable
-      - bluetooth.service
-      - cups.service
-
-  # Performance optimizations
-  optimizations:
-    tune_swappiness: false             # Configure swappiness
-    swappiness: 10                     # Swappiness value
-```
-
-### Arch Linux
-
-```yaml
-config_archlinux:
-  # Automatic updates (systemd timer)
-  unattended_upgrades:
-    enabled: false                     # Enable daily upgrades
-
-  # Pacman configuration
-  pacman:
-    no_confirms: false                 # Skip confirmation prompts
-    proxy: ""                          # Pacman mirror proxy
-
-  # System services
-  services:
-    disable_unnecessary: false         # Disable unnecessary services
-    unnecessary_services:              # Services to disable
-      - bluetooth.service
-      - cups.service
-
-  # Performance optimizations
-  optimizations:
-    tune_swappiness: false             # Configure swappiness
-    swappiness: 10                     # Swappiness value
-```
-
-### macOS
-
-```yaml
-config_macos:
-  computer_name: ""                    # Computer name (empty = use hostname)
-
-  # System updates
-  updates:
-    auto_check: true                   # Check for updates automatically
+  # Distribution-specific: OS-specific settings
+  Ubuntu:
+    # systemd journal configuration
+    journal:
+      configure: true
+      max_size: "500M"
+      max_retention: "30d"
+      forward_to_syslog: false
+      compress: true
+    
+    # Remote logging via rsyslog
+    rsyslog:
+      enabled: false
+      remote_host: ""
+      remote_port: 514
+      protocol: "udp"
+    
+    # System service management
+    services:
+      enable: []                    # Services to enable and start
+      disable: []                   # Services to disable and stop
+    
+    # System optimizations
+    optimizations:
+      tune_swappiness: false
+      swappiness: 10
+    
+    # Kernel parameters (sysctl)
+    sysctl:
+      parameters: {}
+      # Example: { "net.core.default_qdisc": "fq" }
+    
+    # PAM limits configuration
+    limits:
+      limits: []
+      # Example: [{ domain: "*", limit_type: "soft", limit_item: "nofile", value: 65536 }]
+    
+    # Kernel module management
+    modules:
+      load: []                      # Modules to load at boot
+      blacklist: []                 # Modules to blacklist
+    
+    # Ubuntu-specific settings
+    snap:
+      remove_completely: false
+    unattended_upgrades:
+      enabled: true
+      email: ""
+      auto_reboot: false
+      reboot_time: "02:00"
+    apt:
+      no_recommends: false
+      proxy: ""
+      
+  # Debian has same structure as Ubuntu
+  Debian:
+    # ... identical structure to Ubuntu
+    
+  # Arch Linux variations
+  Archlinux:
+    # ... same Linux settings plus:
+    pacman:
+      no_confirms: false
+      proxy: ""
+      multilib: true              # Enable multilib repository
+      
+  # macOS-specific settings
+  Darwin:
+    computer_name: ""             # macOS computer name (user-friendly)
+    updates:
+      auto_check: true
+      auto_download: true
+    gatekeeper:
+      enabled: true               # macOS security feature
 ```
 
 **Note**: GUI-related macOS settings (Dock, Finder, behavior tweaks) have been moved to the `manage_system_settings` role for better separation of concerns. Use that role for desktop customizations.
@@ -156,31 +137,46 @@ config_macos:
   include_role:
     name: wolskinet.infrastructure.os_configuration
   vars:
-    config_common_hostname: "web-server-01"
-    config_common_domain: "example.com"
-    config_common_timezone: "America/New_York"
+    infrastructure:
+      domain:
+        name: "example.com"
+        timezone: "America/New_York"
+      host:
+        hostname: "web-server-01"
 ```
 
-### Advanced Debian Server
+### Advanced Ubuntu Server
 
 ```yaml
-- name: Configure Debian server
+- name: Configure Ubuntu server
   include_role:
     name: wolskinet.infrastructure.os_configuration
   vars:
-    config_common_hostname: "db-primary"
-    config_common_domain: "internal.company.com"
-    config_debian_family:
-      unattended_upgrades:
-        enabled: true
-        email: "admin@company.com"
-        auto_reboot: true
-        reboot_time: "03:00"
-      services:
-        disable_unnecessary: true
-      optimizations:
-        tune_swappiness: true
-        swappiness: 1
+    infrastructure:
+      domain:
+        name: "internal.company.com" 
+        timezone: "America/New_York"
+        ntp:
+          servers: [ntp1.company.com, ntp2.company.com]
+      host:
+        hostname: "db-primary"
+      Ubuntu:
+        journal:
+          configure: true
+          max_size: "1G"
+        services:
+          enable: ["systemd-timesyncd"]
+          disable: ["bluetooth", "cups"]
+        optimizations:
+          tune_swappiness: true
+          swappiness: 1
+        unattended_upgrades:
+          enabled: true
+          email: "admin@company.com"
+          auto_reboot: true
+          reboot_time: "03:00"
+        apt:
+          no_recommends: true
 ```
 
 ### macOS Workstation
@@ -190,24 +186,38 @@ config_macos:
   include_role:
     name: wolskinet.infrastructure.os_configuration
   vars:
-    config_common_hostname: "MacBook-Pro"
-    config_common_domain: "local"
-    config_macos:
-      computer_name: "MacBook Pro"
+    infrastructure:
+      domain:
+        name: "local"
+        timezone: "America/Los_Angeles"
+      host:
+        hostname: "MacBook-Pro"
+      Darwin:
+        computer_name: "MacBook Pro"
+        updates:
+          auto_check: true
+          auto_download: false
+```
 
-# For GUI customizations, use manage_system_settings role:
-- name: Configure macOS GUI settings
-  include_role:
-    name: wolskinet.infrastructure.manage_system_settings
-  vars:
-    config_macos_gui:
-      dock:
-        tile_size: 64
-        autohide: true
-      finder:
-        show_hidden_files: true
-      security:
-        require_password_immediately: true
+### Multi-Host Environment
+
+```yaml
+# inventory/group_vars/all.yml
+infrastructure:
+  domain:
+    name: "company.com"
+    timezone: "UTC"
+    locale: "en_US.UTF-8"
+    ntp:
+      servers: [0.pool.ntp.org, 1.pool.ntp.org]
+
+# inventory/host_vars/web01.yml  
+infrastructure:
+  host:
+    hostname: "web01"
+  Ubuntu:
+    services:
+      disable: [bluetooth]
 ```
 
 ## Requirements

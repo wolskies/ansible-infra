@@ -1,0 +1,55 @@
+---
+- name: Disable and purge snapd
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.manage_snap_packages
+  vars:
+    snap_management_action: "purge"
+    snap_purge_confirm: "{{ infrastructure.host.snap.remove_completely | default(false) }}"
+  when: infrastructure.host.snap.remove_completely | default(false)
+  tags:
+    - snap
+    - cleanup
+
+- name: Configure APT unattended upgrades
+  ansible.builtin.template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: infrastructure.host.packages.apt.unattended_upgrades.enabled | default(true)
+  tags:
+    - updates
+    - security
+
+- name: Configure APT behavior
+  block:
+    - name: Configure APT to not install recommends
+      ansible.builtin.copy:
+        content: |
+          APT::Install-Recommends "false";
+          APT::Install-Suggests "false";
+        dest: /etc/apt/apt.conf.d/99-no-recommends
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      when: infrastructure.host.packages.apt.no_recommends | default(false)
+
+    - name: Configure APT proxy
+      ansible.builtin.copy:
+        content: |
+          Acquire::http::Proxy "{{ infrastructure.host.packages.apt.proxy }}";
+          Acquire::https::Proxy "{{ infrastructure.host.packages.apt.proxy }}";
+        dest: /etc/apt/apt.conf.d/99-proxy
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      when: 
+        - infrastructure.hosts.packages.apt.proxy is defined
+        - infrastructure.hosts.packages.apt.proxy | length > 0
+  tags:
+    - apt
+    - packages

@@ -1,0 +1,51 @@
+---
+# =============================================================================
+# USER CONFIGURATION ROLE - Per-user preference configuration
+# =============================================================================
+# Configures individual user preferences, dotfiles, and language packages
+# Runs as 'become: user' - reads user config from infrastructure.domain.users[]
+# =============================================================================
+
+# This role is called per-user with target_user variable set
+# It reads configuration from infrastructure.domain.users[] array
+# finding the user that matches target_user name
+
+# Required variable when calling this role:
+# target_user: username  # Which user from infrastructure.domain.users[] to configure
+
+# Example user configuration structure (defined in infrastructure.domain.users[]):
+# - name: alice
+#   # System account fields (handled by manage_users)
+#   groups: [sudo]
+#   ssh_pubkey: "..."
+#   
+#   # Cross-platform preferences (handled by this role)
+#   git:
+#     user_name: "Alice Smith"  
+#     user_email: "alice@company.com"
+#   nodejs:
+#     packages: [typescript, eslint]  # Auto-installs nodejs if missing
+#   rust:
+#     packages: [ripgrep, bat]        # Auto-installs rustup if missing  
+#   go:
+#     packages: [github.com/charmbracelet/glow@latest]  # Auto-installs golang if missing
+#   
+#   # OS-specific preferences
+#   Ubuntu:
+#     shell: /usr/bin/zsh             # User's preferred shell
+#     dotfiles:
+#       repository: "https://github.com/alice/dotfiles-linux"
+#       method: stow
+#       packages: [zsh, tmux, vim]
+#   Darwin:
+#     shell: /opt/homebrew/bin/zsh    # Different path on macOS
+#     dotfiles:
+#       repository: "https://github.com/alice/dotfiles-macos" 
+#       method: stow
+#       packages: [zsh, tmux, vim, macos]
+#     dock:
+#       tile_size: 48
+#       autohide: true
+#     finder:
+#       show_extensions: true
+#       show_hidden: true

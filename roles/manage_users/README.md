@@ -1,116 +1,167 @@
 # manage_users
 
-Essential user management focused on authentication and system access.
+System-level user account management using domain-level user configuration.
 
 ## Description
 
-This role provides focused user management for system provisioning. It creates users with authentication (passwords and/or SSH keys) and group membership. For detailed user configuration (shell preferences, dotfiles, etc.), use the `configure_users` role.
+Creates and manages user accounts at the system level (requires sudo). Reads user definitions from `infrastructure.domain.users[]` and handles account creation, SSH key deployment, and password management. User preferences are configured separately by the `configure_user` role.
 
 ## Features
 
-- **User Creation**: Create system users with secure defaults
-- **SSH Key Deployment**: Add SSH public keys to user accounts
-- **Password Management**: Support for encrypted or plaintext passwords
-- **Group Assignment**: Add users to system and custom groups
-- **Cross-Platform**: Works on Ubuntu, Debian, Arch Linux, and macOS
+- **System account management**: Creates/removes user accounts and home directories
+- **SSH key deployment**: Automated authorized_key management with validation
+- **Password handling**: Automatic SHA-512 hashing for plaintext passwords
+- **Domain-level users**: Consistent user accounts across all hosts in domain
+- **Integration ready**: Works with `configure_user` role for preference management
 
 ## Role Variables
 
-### User Configuration
+### Infrastructure Domain Users
+
+Users are defined in the unified infrastructure structure at the domain level:
 
 ```yaml
-# List of users to manage on the system
-# All fields map directly to ansible.builtin.user module parameters
-users: []
+infrastructure:
+  domain:
+    users:
+      - name: "alice"                   # Required: username
+        comment: "Alice Developer"     # Optional: GECOS field
+        groups: [sudo, docker]         # Optional: additional groups
+        ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."  # Optional: SSH public key
+        password: "plaintext"          # Optional: auto-hashed if plaintext
+        uid: 1001                      # Optional: specific user ID
+        home: "/custom/home"           # Optional: custom home directory
+        shell: "/bin/bash"             # Optional: default shell
+        create_home: true              # Optional: create home directory
+        state: present                 # Optional: present (default) or absent
+        
+        # User preferences (ignored by this role, used by configure_user)
+        git:
+          user_name: "Alice Smith"
+          user_email: "alice@company.com"
+        nodejs:
+          packages: [typescript, eslint]
+        Ubuntu:
+          shell: /usr/bin/zsh
+          dotfiles: { repository: "...", method: stow }
+        Darwin:
+          shell: /opt/homebrew/bin/zsh
+          dock: { tile_size: 48, autohide: true }
 
-# List of usernames to remove from the system
-users_absent: []
+          
+    users_absent: []                   # Legacy: usernames to remove
 ```
 
-### User Configuration Format
+**Scope Separation**:
+- **This role**: Handles system account fields (name, groups, ssh_pubkey, password, uid, etc.)
+- **configure_user role**: Handles preference fields (git, nodejs, Ubuntu/Darwin sections)
+## Usage Examples
 
-```yaml
-users:
-  - name: username                              # Required: username
-    comment: "User Full Name"                    # Optional: GECOS field
-    groups: [sudo, docker]                       # Optional: additional groups
-    ssh_pubkey: "ssh-rsa AAAAB3..."             # Optional: SSH public key
-    password: "$6$salt$encrypted"               # Optional: encrypted password (or plaintext)
-
-users_absent:
-  - olduser
-  - tempuser
-```
-
-## Dependencies
-
-- **Dotfiles Integration**: Calls `wolskinet.infrastructure.dotfiles` role for users with dotfiles configuration
-
-## Example Playbook
-
-### Basic User Management
+### Basic Usage
 ```yaml
 - hosts: all
   roles:
     - role: wolskinet.infrastructure.manage_users
-      vars:
+  vars:
+    infrastructure:
+      domain:
         users:
-          - name: developer
-            groups: [sudo, docker]
-            ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2..."
-            password: "MySecurePassword123!"  # Will be hashed automatically
-
-          - name: service
-            comment: "Service Account"
-
-        users_absent:
-          - olduser
+          - name: admin
+            comment: "System Administrator"
+            groups: [sudo]
+            ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+            password: "PlaintextPassword123!"  # Will be auto-hashed
 ```
 
-### Users with Dotfiles
+### Advanced Configuration
 ```yaml
-- hosts: workstations
+- hosts: all
   roles:
     - role: wolskinet.infrastructure.manage_users
-      vars:
+  vars:
+    infrastructure:
+      domain:
         users:
-          - name: alice
-            groups: [sudo]
-            ssh_pubkey: "ssh-rsa AAAAB3..."
+          # Service account
+          - name: service
+            uid: 2001
+            group: services
+            groups: [docker, systemd-journal]
+            shell: /usr/sbin/nologin
+            home: /var/lib/service
+            system: true
+            create_home: true
+            
+          # Admin with pre-hashed password
+          - name: admin
+            comment: "System Admin"
+            groups: [sudo, adm]
+            password: "$6$rounds=656000$salt$hash..."  # Already hashed
+            ssh_pubkey: "ssh-ed25519 AAAAC3..."
+            
+          # User account to remove
+          - name: olduser
+            state: absent
 ```
 
-### Encrypted Passwords
+### Integration with configure_user
+
+After creating accounts, configure user preferences:
+
 ```yaml
-# Pre-encrypted password (use mkpasswd or similar)
-users:
-  - name: admin
-    password: "$6$rounds=656000$salt$hash..."
+- hosts: all
+  roles:
+    - wolskinet.infrastructure.manage_users     # Create accounts (sudo)
 
-# Plaintext password (will be hashed)
-users:
-  - name: user
-    password: "PlaintextPassword123"
+# Configure user preferences (runs as each user)
+- hosts: all
+  vars:
+    target_user: "{{ item }}"
+  include_role:
+    name: wolskinet.infrastructure.configure_user
+  become: true
+  become_user: "{{ item }}"
+  loop: "{{ infrastructure.domain.users | map(attribute='name') | list }}"
 ```
 
-## How It Works
+## Features
 
-1. **User Creation/Modification**: Uses `ansible.builtin.user` module to manage user accounts
-2. **SSH Key Deployment**: Uses `ansible.posix.authorized_key` module to add SSH public keys
-3. **User Removal**: Removes users and their home directories
-4. **Dotfiles Deployment**: Calls the dotfiles role for users with dotfiles configuration
+This role provides:
+
+1. **Domain-level consistency**: Same users across all hosts in domain
+2. **Password handling**: Auto-hashing of plaintext passwords (SHA-512)
+3. **SSH key deployment**: Automated authorized_key management with validation
+4. **Account lifecycle**: Creation, modification, and removal
+5. **Integration ready**: Works seamlessly with configure_user role
 
 ## Platform Support
 
-- Ubuntu 22.04+
-- Debian 12+
+Works on all platforms supported by `ansible.builtin.user`:
+- Ubuntu 22+ / Debian 12+
 - Arch Linux
 - macOS
 
-The role uses only standard Ansible modules that work across all supported platforms.
+Platform-specific group names and user management tools are handled by the underlying module.
 
-## Notes
+## Dependencies
 
-- Passwords can be provided as plaintext (automatically hashed) or pre-encrypted
-- SSH keys must be in valid format (ssh-rsa, ecdsa, ssh-ed25519)
-- The role does not manage sudo permissions (use sudoers configuration separately)
-- Group membership is additive (append mode) - existing groups are preserved
+- `ansible.posix` - For authorized_key module
+
+## Testing
+
+```bash
+molecule test -s manage_users
+```
+
+## See Also
+
+- [ansible.builtin.user module documentation](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html)
+- [ansible.posix.authorized_key module documentation](https://docs.ansible.com/ansible/latest/collections/ansible/posix/authorized_key_module.html)
+
+## License
+
+MIT
+
+## Author Information
+
+Ed Wolski - wolskinet

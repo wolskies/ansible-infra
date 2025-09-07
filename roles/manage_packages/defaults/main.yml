@@ -4,61 +4,86 @@
 # =============================================================================
 # Unified package structure organized by distribution
 # Packages are merged in order: all -> group -> host
+# Repositories are merged the same way.  Note, 
 # Settings control package manager behavior per distribution
 # =============================================================================
 
-packages:
+infrastructure:
   Ubuntu:
-    all: [] # Global packages for all Ubuntu machines
-    group: [] # Group-specific packages for Ubuntu
-    host: [] # Host-specific packages for Ubuntu
-    remove: [] # Packages to remove
-    settings:
-      apt_cache:
-        update_cache: true
-        valid_time: 3600
-      system_upgrade:
-        enable: false
-        type: safe # safe, full, or dist
-      repositories: [] # APT repositories to configure
+    packages:
+      all: [] 
+      group: []
+      host: [] 
+      remove: []
+      settings:
+        apt_cache:
+          update_cache: true
+          valid_time: 3600
+        system_upgrade:
+          enable: false
+          type: safe
+      repositories:
+        all: [] 
+        group: []
+        host: [] 
+        # - name:  example: "docker"
+        #   types: optional, defaults to "deb"
+        #   uris: repo url
+        #   suites: example, for docker this would be distro release (e.g. "noble" for Ubuntu 24)
+        #   components: release channel, "stable" for ubuntu/docker
+        #   signed_by: gpg key, accepts url or actual key
+        #   state: present (default)/absent
 
   Debian:
-    all: [] # Global packages for all Debian machines
-    group: [] # Group-specific packages for Debian
-    host: [] # Host-specific packages for Debian
-    remove: [] # Packages to remove
-    settings:
+    packages:
+      all: [] 
+      group: [] 
+      host: [] 
+      remove: [] 
+      settings:
       apt_cache:
         update_cache: true
         valid_time: 3600
       system_upgrade:
         enable: false
         type: safe # safe, full, or dist
-      repositories: [] # APT repositories to configure
-
+      repositories:
+        all: [] 
+        group: []
+        host: [] 
+        # - name:  example: "docker"
+        #   types: optional, defaults to "deb"
+        #   uris: repo url
+        #   suites: example, for docker this would be distro release (e.g. "trixie" for debian stable)
+        #   components: release channel, "stable" for debian/docker
+        #   signed_by: gpg key, accepts url or actual key
+        #   state: present (default)/absent
+        
   Archlinux:
-    all: [] # Global packages for all Arch machines (includes AUR if enabled)
-    group: [] # Group-specific packages for Arch (includes AUR if enabled)
-    host: [] # Host-specific packages for Arch (includes AUR if enabled)
-    remove: [] # Packages to remove
-    settings:
-      multilib: true
-      enable_aur: true # When true, attempts to install packages from AUR if not in official repos
-      aur_helper: paru
-      config_reflector: true
+    packages:
+      all: [] # Global packages for all Arch machines (includes AUR if enabled)
+      group: [] # Group-specific packages for Arch (includes AUR if enabled)
+      host: [] # Host-specific packages for Arch (includes AUR if enabled)
+      remove: [] # Packages to remove
+      settings:
+        multilib: false
+        enable_aur: true # When true, attempts to install packages from AUR if not in official repos
+        aur_helper: paru
+        config_reflector: true
 
-  MacOSX:
-    all: [] # Global packages for all macOS machines
-    group: [] # Group-specific packages for macOS
-    host: [] # Host-specific packages for macOS
-    remove: [] # Packages to remove
-    casks:
-      all: [] # Global casks for all macOS machines
-      group: [] # Group-specific casks
-      host: [] # Host-specific casks
-      remove: [] # Casks to remove
-    settings:
-      install: true # Install Homebrew if not present
-      update_homebrew: true # Update Homebrew before installing packages
-      cleanup_cache: false # Clean up Homebrew cache after installation
-      taps: [] # Homebrew taps to add
+  Darwin:
+    packages:
+      all: [] # Global packages for all macOS machines
+      group: [] # Group-specific packages for macOS
+      host: [] # Host-specific packages for macOS
+      remove: [] # Packages to remove
+      casks:
+        all: [] # Global casks for all macOS machines
+        group: [] # Group-specific casks
+        host: [] # Host-specific casks
+        remove: [] # Casks to remove
+      settings:
+        install: true # Install Homebrew if not present
+        update_homebrew: true # Update Homebrew before installing packages
+        cleanup_cache: false # Clean up Homebrew cache after installation
+        taps: [] # Homebrew taps to add

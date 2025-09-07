@@ -1,128 +1,56 @@
 ---
-- name: Gather package facts
-  ansible.builtin.package_facts:
-    manager: auto
-
-- name: Merge Arch packages from all sources
-  ansible.builtin.set_fact:
-    merged_arch_packages_install: >-
-      {{
-        (packages.Archlinux.all | default([])) +
-        (packages.Archlinux.group | default([])) +
-        (packages.Archlinux.host | default([]))
-        | unique | list
-      }}
-    merged_arch_packages_remove: >-
-      {{
-        packages.Archlinux.remove | default([]) | unique | list
-      }}
-
 - name: Update Pacman cache
   community.general.pacman:
     update_cache: true
   become: true
 
 - name: Remove packages via Pacman
-  ansible.builtin.package:
-    name: "{{ merged_arch_packages_remove }}"
+  community.general.pacman:
+    name: "{{ merged_packages_remove }}"
     state: absent
   become: true
-  when: merged_arch_packages_remove | length > 0
+  when: merged_packages_remove | length > 0
 
 - name: Upgrade all Pacman packages
   community.general.pacman:
     update_cache: false
     upgrade: true
   become: true
-  when: packages.Archlinux.settings.system_upgrade | default(false)
 
-- name: Try to install all packages via Pacman first
+# Branch based on AUR enablement
+- name: Install packages (AUR disabled - pacman only)
   community.general.pacman:
-    name: "{{ merged_arch_packages_install }}"
+    name: "{{ merged_packages_install }}"
     state: present
   become: true
-  register: pacman_install_result
-  failed_when: false
-  when: merged_arch_packages_install | length > 0
+  when: 
+    - merged_packages_install | length > 0
+    - not (infrastructure.host.packages.pacman.enable_aur | default(true))
 
-- name: Identify packages that failed to install via Pacman
-  ansible.builtin.set_fact:
-    aur_candidates: >-
-      {%- set failed_packages = [] -%}
-      {%- if pacman_install_result.failed | default(false) and 'target not found' in (pacman_install_result.msg | default('')) -%}
-        {%- set installed_packages = ansible_facts.packages | default({}) | list -%}
-        {%- for package in merged_arch_packages_install -%}
-          {%- if package not in installed_packages -%}
-            {%- set _ = failed_packages.append(package) -%}
-          {%- endif -%}
-        {%- endfor -%}
-      {%- endif -%}
-      {{ failed_packages }}
-  when:
-    - merged_arch_packages_install | length > 0
-    - packages.Archlinux.settings.enable_aur | default(true)
-
-- name: Handle AUR packages if enabled and there are candidates
+- name: Install packages (AUR enabled - use paru)
   block:
-    - name: Ensure AUR helper is available
-      block:
-        - name: Check if paru is installed
-          ansible.builtin.command: which paru
-          register: paru_installed
-          changed_when: false
-          failed_when: false
+    - name: Check if paru is available
+      ansible.builtin.command: which paru
+      register: paru_check
+      changed_when: false
+      failed_when: false
 
-        - name: Install paru from AUR
-          block:
-            - name: Install build dependencies for AUR packages
-              ansible.builtin.package:
-                name:
-                  - base-devel
-                  - git
-                state: present
-              become: true
+    - name: Install paru if missing
+      ansible.builtin.include_tasks: install-paru.yml
+      when: paru_check.rc != 0
 
-            - name: Clone and install paru
-              become: false
-              block:
-                - name: Create temporary directory for paru installation
-                  ansible.builtin.tempfile:
-                    state: directory
-                    suffix: paru
-                  register: paru_temp_dir
-
-                - name: Clone paru repository
-                  ansible.builtin.git:
-                    repo: https://aur.archlinux.org/paru.git
-                    dest: "{{ paru_temp_dir.path }}/paru"
-                    version: master
-
-                - name: Build and install paru
-                  ansible.builtin.command:
-                    cmd: makepkg -si --noconfirm
-                    chdir: "{{ paru_temp_dir.path }}/paru"
-                  register: paru_build
-                  changed_when: paru_build.rc == 0
-
-                - name: Clean up paru installation directory
-                  ansible.builtin.file:
-                    path: "{{ paru_temp_dir.path }}"
-                    state: absent
-          when: paru_installed.rc != 0
-
-        - name: Install AUR packages with paru
-          ansible.builtin.command:
-            cmd: "paru -S --noconfirm --needed {{ item }}"
-          become: false
-          loop: "{{ aur_candidates }}"
-          register: aur_install_results
-          changed_when: "'installing' in aur_install_results.stdout"
+    - name: Install all packages via paru (handles both official and AUR)
+      ansible.builtin.command:
+        cmd: "paru -S --noconfirm --needed {{ merged_packages_install | join(' ') }}"
+      become: false
+      register: paru_result
+      changed_when: "'installing' in paru_result.stdout or 'upgrading' in paru_result.stdout"
+      failed_when: paru_result.rc != 0
   when:
-    - packages.Archlinux.settings.enable_aur | default(true)
-    - aur_candidates is defined
-    - aur_candidates | length > 0
+    - merged_packages_install | length > 0
+    - infrastructure.host.packages.pacman.enable_aur | default(true)
 
 - name: Gather package facts (Arch Linux)
   ansible.builtin.package_facts:
     manager: pacman
-  when: merged_arch_packages_install | length > 0 or merged_arch_packages_remove | length > 0
+  when: merged_packages_install | length > 0 or merged_packages_remove | length > 0

@@ -1,148 +1,175 @@
 # manage_packages
 
-Advanced hierarchical package management with multi-platform support and discovery integration.
+Hierarchical package management wrapper for platform-specific package managers with intelligent merging.
 
 ## Description
 
-This role provides sophisticated package management across Ubuntu, Debian, Arch Linux, and macOS. It implements hierarchical package variable merging that combines packages from global (all), group, and host levels with intelligent duplicate removal. The role supports multiple package managers including APT, Pacman, AUR (via paru), and Homebrew.
+This role provides a unified interface for package management across Ubuntu 22+, Debian 12+, Arch Linux, and macOS. It acts as a wrapper around platform-specific package managers (`ansible.builtin.apt`, `community.general.pacman`, `geerlingguy.mac.homebrew`) while adding hierarchical variable merging that combines packages from all/group/host levels. The role emphasizes simplicity through direct pass-through to native modules where possible.
 
 ## Features
 
-- **📦 Multi-Platform Support**: APT, Pacman, AUR, and Homebrew package managers
-- **🔄 Hierarchical Merging**: Combines all/group/host package lists automatically
-- **🎯 Smart Deduplication**: Removes duplicate packages across all levels
-- **🔍 Discovery Integration**: Works with discovered package configurations
-- **⚙️ Repository Management**: APT repositories, Homebrew taps, AUR packages
-- **📱 Application Support**: Homebrew casks for macOS applications
-- **🔒 Cache Management**: Intelligent package cache handling
-- **⬆️ System Updates**: Optional system upgrade capabilities
+- **Hierarchical merging** - Combines all/group/host package lists with automatic deduplication
+- **Platform wrappers** - Direct pass-through to native Ansible modules for each OS
+- **Repository management** - APT repositories (Debian/Ubuntu), Homebrew taps (macOS)
+- **Hybrid Arch approach** - `community.general.pacman` for official, `paru` command for AUR
+- **Intelligent defaults** - Sensible settings with full override capability
 
 ## Role Variables
 
-See `defaults/main.yml` for complete variable documentation. Key variables include:
+### Core Configuration
 
-### Package Management Settings
 ```yaml
-packages_update_cache: true            # Update package cache before operations
-packages_cache_valid_time: 3600        # APT cache validity in seconds
-packages_perform_system_upgrade: false # Perform full system upgrade
-packages_upgrade_type: safe            # safe, full, or dist (APT only)
+packages:
+  Ubuntu:     # or Debian, Archlinux, Darwin
+    all: []   # Global packages for all machines
+    group: [] # Group-specific packages  
+    host: []  # Host-specific packages
+    remove: [] # Packages to remove
+    
+    settings:  # Platform-specific settings
+      # See platform sections below
+    
+    repositories:  # Debian/Ubuntu only
+      all: []
+      group: []
+      host: []
 ```
 
-### Arch Linux Configuration
+### What This Role Adds
+
+Beyond standard package manager modules:
+
+1. **Hierarchical Merging**: Automatically combines all/group/host levels with deduplication
+2. **Cross-Platform Abstraction**: Single variable structure works across all OS families
+3. **Repository Lifecycle**: Manages repository addition/removal with proper cleanup
+4. **AUR Integration**: Seamless official+AUR package management for Arch Linux
+
+## Platform-Specific Implementation
+
+### Linux (Debian/Ubuntu via ansible.builtin.apt)
+
+Wrapper around `ansible.builtin.apt` and `ansible.builtin.deb822_repository`:
+
 ```yaml
-packages_pacman_multilib: true         # Enable multilib repository
-packages_enable_aur: true              # Enable AUR support (security consideration)
-packages_aur_helper: paru              # AUR helper to use (paru, yay, etc.)
-config_archlinux_reflector: true       # Configure reflector for mirror optimization
+packages:
+  Ubuntu:  # or Debian
+    settings:
+      apt_cache:
+        update_cache: true    # Pass-through to apt module
+        valid_time: 3600      # Cache validity in seconds
+      system_upgrade:
+        enable: false
+        type: safe            # safe, full, or dist
+    repositories:
+      all:
+        - name: "docker"
+          types: "deb"
+          uris: "https://download.docker.com/linux/ubuntu"
+          suites: "{{ ansible_distribution_release }}"
+          components: "stable"
+          signed_by: "https://download.docker.com/linux/ubuntu/gpg"
 ```
 
-### macOS (Homebrew) Settings
+### Arch Linux (Hybrid pacman/paru approach)
+
+**When `enable_aur: false`** - Uses `community.general.pacman` directly:
 ```yaml
-homebrew_installed: true               # Install Homebrew if not present (macOS only)
-packages_homebrew_taps: []             # List of Homebrew taps to add
-packages_homebrew_casks: []            # List of Homebrew casks to install
-packages_homebrew_casks_remove: []     # List of Homebrew casks to remove
-packages_macos_update_homebrew: true   # Update Homebrew before installing
-packages_macos_cleanup_cache: false    # Clean Homebrew cache after operations
+packages:
+  Archlinux:
+    settings:
+      enable_aur: false      # Use pacman module only
+      system_upgrade: false  # Pass-through to pacman upgrade
 ```
 
-### Snap Package Management (Ubuntu)
+**When `enable_aur: true`** - Uses `paru` command for everything:
 ```yaml
-packages_snap_packages: []             # List of snap packages to install
-packages_snap_packages_remove: []      # List of snap packages to remove
-packages_snap_classic: []              # List of snap packages to install with --classic
+packages:
+  Archlinux:
+    all:
+      - firefox        # Official package
+      - visual-studio-code-bin  # AUR package - handled transparently
+    settings:
+      enable_aur: true       # Use paru for all packages
+      aur_helper: paru       # Currently only paru supported
 ```
 
-### Flatpak Package Management (Linux)
+**Note**: With AUR enabled, loses Ansible idempotency but gains unified package management.
+
+### macOS (via geerlingguy.mac.homebrew)
+
+Direct pass-through to `geerlingguy.mac.homebrew` role:
+
 ```yaml
-packages_flatpak_packages: []          # List of Flatpak packages to install
-packages_flatpak_packages_remove: []   # List of Flatpak packages to remove
-packages_flatpak_remotes: []           # List of Flatpak remotes to add
+packages:
+  Darwin:
+    all: [git, wget, htop]  # Homebrew formulae
+    casks:
+      all: [visual-studio-code, docker]  # GUI applications
+    settings:
+      install: true          # Install Homebrew if missing
+      update_homebrew: true  # Update before installing
+      cleanup_cache: false   # Clean cache after
+      taps: [homebrew/cask-fonts]  # Additional taps
 ```
 
-## Hierarchical Package Variables
+## Usage Examples
 
-The role's key feature is hierarchical package management using inventory-level variables:
-
-### Variable Structure
-```yaml
-# Format: {level}_packages_{action}_{Distribution}
-# Levels: all, group, host
-# Actions: install, remove
-# Distributions: Ubuntu, Debian, Archlinux, MacOSX
-```
-
-### Inventory Configuration
-```yaml
-# group_vars/all/packages.yml - Global packages for ALL systems
-all_packages_install_Ubuntu:
-  - curl
-  - wget
-  - git
-  - htop
-
-all_packages_remove_Ubuntu:
-  - snapd  # Remove from all Ubuntu systems
-
-# group_vars/servers/packages.yml - Server-specific packages
-group_packages_install_Ubuntu:
-  - nginx
-  - certbot
-  - fail2ban
-
-# host_vars/web-01.yml - Host-specific packages (often from discovery)
-host_packages_install_Ubuntu:
-  - redis-server
-  - postgresql-client
-```
-
-### Supported Distributions
-- **Ubuntu**: `packages_install_Ubuntu`, `packages_remove_Ubuntu`
-- **Debian**: `packages_install_Debian`, `packages_remove_Debian`
-- **Arch Linux**: `packages_install_Archlinux`, `packages_remove_Archlinux`
-- **macOS**: `packages_install_MacOSX`, `packages_remove_MacOSX`
-
-## Dependencies
-
-None. This role is designed to be fully standalone.
-
-## Example Playbook
-
-### Basic Package Management
+### Basic Cross-Platform
 ```yaml
 - hosts: all
   roles:
     - role: wolskinet.infrastructure.manage_packages
       vars:
-        packages_update_cache: true
-        packages_perform_system_upgrade: false
+        packages:
+          Ubuntu:
+            all: [git, curl, vim, htop]
+          Debian:
+            all: [git, curl, vim, htop]
+          Archlinux:
+            all: [git, curl, vim, htop]
+          Darwin:
+            all: [git, curl, vim, htop]
 ```
 
-### Repository Management
+### Hierarchical Package Management
+```yaml
+# group_vars/all/packages.yml
+packages:
+  Ubuntu:
+    all: [git, curl, htop]  # All Ubuntu machines
+
+# group_vars/webservers/packages.yml  
+packages:
+  Ubuntu:
+    group: [nginx, certbot]  # Web servers only
+
+# host_vars/web01/packages.yml
+packages:
+  Ubuntu:
+    host: [redis-server]  # This host only
+    
+# Result for web01: [git, curl, htop, nginx, certbot, redis-server]
+```
+
+### Repository Management (Debian/Ubuntu)
 ```yaml
 - hosts: ubuntu_servers
   roles:
     - role: wolskinet.infrastructure.manage_packages
       vars:
-        packages_apt_repositories:
-          - "ppa:nginx/stable"
-        packages_apt_keys:
-          - "https://nginx.org/keys/nginx_signing.key"
-```
-
-### macOS with Homebrew
-```yaml
-- hosts: macos_workstations
-  roles:
-    - role: wolskinet.infrastructure.manage_packages
-      vars:
-        packages_homebrew_taps:
-          - homebrew/cask-fonts
-        packages_homebrew_casks:
-          - visual-studio-code
-          - docker
-          - font-jetbrains-mono
+        packages:
+          Ubuntu:
+            repositories:
+              all:
+                - name: docker
+                  types: deb
+                  uris: "https://download.docker.com/linux/ubuntu"
+                  suites: "{{ ansible_distribution_release }}"
+                  components: stable
+                  signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+            all:
+              - docker-ce
+              - docker-ce-cli
 ```
 
 ### Arch Linux with AUR
@@ -151,146 +178,39 @@ None. This role is designed to be fully standalone.
   roles:
     - role: wolskinet.infrastructure.manage_packages
       vars:
-        packages_aur_packages:
-          - paru
-          - yay
-          - visual-studio-code-bin
+        packages:
+          Archlinux:
+            all:
+              - base-devel           # Official
+              - paru                 # AUR
+              - visual-studio-code-bin  # AUR
+            settings:
+              enable_aur: true       # Handle both official and AUR
 ```
 
-### System Upgrade
-```yaml
-- hosts: all
-  roles:
-    - role: wolskinet.infrastructure.manage_packages
-      vars:
-        packages_perform_system_upgrade: true
-        packages_upgrade_type: "safe"  # safe, full, or dist
+## Dependencies
+
+- `community.general` - For pacman module (Arch Linux)
+- `ansible.posix` - For various system tasks
+- `geerlingguy.mac.homebrew` - For macOS package management (auto-installed via galaxy)
+
+## See Also
+
+- [ansible.builtin.apt module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html) (Debian/Ubuntu)
+- [community.general.pacman module](https://docs.ansible.com/ansible/latest/collections/community/general/pacman_module.html) (Arch Linux)
+- [geerlingguy.mac.homebrew role](https://galaxy.ansible.com/geerlingguy/mac) (macOS)
+- [paru AUR helper](https://github.com/Morganamilo/paru) (Arch Linux AUR)
+
+## Testing
+
+```bash
+# Test this role
+molecule test -s manage_packages
+
+# Quick validation
+molecule converge -s manage_packages
+molecule verify -s manage_packages
 ```
-
-## Hierarchical Package Example
-
-### Complete Inventory Structure
-```yaml
-# group_vars/all/packages.yml
-all_packages_install_Ubuntu: [git, curl, htop, vim]
-all_packages_install_Debian: [git, curl, htop, vim]
-
-# group_vars/servers/packages.yml
-group_packages_install_Ubuntu: [nginx, fail2ban, certbot]
-group_packages_install_Debian: [nginx, fail2ban, certbot]
-
-# group_vars/docker_hosts/packages.yml
-group_packages_install_Ubuntu: [docker.io, docker-compose]
-group_packages_install_Debian: [docker.io, docker-compose]
-
-# host_vars/web-01.yml (from discovery)
-host_packages_install_Ubuntu: [redis-server, postgresql-client]
-```
-
-### Resulting Package Lists
-- **web-01** (servers + docker_hosts): `[git, curl, htop, vim, nginx, fail2ban, certbot, docker.io, docker-compose, redis-server, postgresql-client]`
-- **app-01** (servers only): `[git, curl, htop, vim, nginx, fail2ban, certbot]`
-- **dev-01** (workstations): `[git, curl, htop, vim]`
-
-## Platform Support
-
-### Ubuntu 22+ / Debian 12+
-- **Package Manager**: APT with automatic cache management
-- **Repositories**: PPA and third-party repository support
-- **GPG Keys**: Automatic key import for repositories
-- **Upgrades**: Safe, full, and distribution upgrade options
-
-### Arch Linux
-- **Package Manager**: Pacman for official packages
-- **AUR Support**: paru for Arch User Repository packages
-- **System Updates**: Full system upgrade via pacman -Syu
-
-### macOS
-- **Package Manager**: Homebrew for CLI tools and libraries
-- **Applications**: Homebrew Casks for GUI applications
-- **Taps**: Custom Homebrew repository support
-- **Updates**: Homebrew update and upgrade management
-
-## Discovery Integration
-
-The role seamlessly integrates with the discovery role:
-
-```yaml
-# Discovery generates host-specific package lists
-- hosts: discovered_systems
-  roles:
-    - wolskinet.infrastructure.discovery  # Populates host_packages_install_*
-    - wolskinet.infrastructure.manage_packages  # Installs discovered + group + all packages
-```
-
-### Discovery Variables Generated
-```yaml
-# Example host_vars/server.yml from discovery
-host_packages_install_Ubuntu:
-  - nginx
-  - redis-server
-  - postgresql-client
-  - node-js
-  - git
-```
-
-## Advanced Configuration
-
-### Conditional Package Installation
-```yaml
-# Install packages based on system characteristics
-- hosts: workstations
-  roles:
-    - role: wolskinet.infrastructure.manage_packages
-  vars:
-    group_packages_install_Ubuntu: >-
-      {{ ['firefox', 'libreoffice'] +
-         (['nvidia-driver-470'] if ansible_kernel is search('nvidia') else []) }}
-```
-
-### Multi-Distribution Support
-```yaml
-# Single playbook for multiple OS families
-- hosts: mixed_environment
-  roles:
-    - role: wolskinet.infrastructure.manage_packages
-  vars:
-    # Ubuntu/Debian
-    all_packages_install_Ubuntu: [git, curl, htop]
-    all_packages_install_Debian: [git, curl, htop]
-    # Arch Linux
-    all_packages_install_Archlinux: [git, curl, htop]
-    # macOS
-    all_packages_install_MacOSX: [git, curl, htop]
-```
-
-## Integration with Other Roles
-
-### Full Infrastructure Stack
-```yaml
-- hosts: servers
-  roles:
-    - wolskinet.infrastructure.configure_host  # System configuration
-    - wolskinet.infrastructure.manage_packages # Package management
-    - wolskinet.infrastructure.manage_users    # User creation
-    - wolskinet.infrastructure.manage_firewall # Security setup
-```
-
-### Development Environment Setup
-```yaml
-- hosts: workstations
-  roles:
-    - wolskinet.infrastructure.manage_packages # Install base packages
-    - wolskinet.infrastructure.manage_language_packages # Language tools
-    - wolskinet.infrastructure.manage_users    # Create dev users with dotfiles
-```
-
-## Performance Considerations
-
-- **Cache Management**: Updates package cache only when needed
-- **Deduplication**: Removes duplicate packages before installation
-- **Batch Operations**: Installs all packages in single operations per manager
-- **Conditional Updates**: Only updates when packages change
 
 ## License
 

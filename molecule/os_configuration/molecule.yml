@@ -1,0 +1,121 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-os-config-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: debian-os-config-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # Test OS configuration using new infrastructure structure
+        infrastructure:
+          # Domain-level configuration (shared across all hosts)
+          domain:
+            name: "test.local"
+            timezone: "America/New_York"
+            locale: "en_US.UTF-8"
+            language: "en_US.UTF-8"
+            ntp:
+              enabled: true
+              servers:
+                - 0.pool.ntp.org
+                - 1.pool.ntp.org
+            users: []
+            
+          # Host-level configuration  
+          host:
+            hostname: "molecule-test"
+            update_hosts: true
+            
+          # Distribution-specific configuration
+          Ubuntu:
+            journal:
+              configure: true
+              max_size: "100M"
+              max_retention: "7d"
+              forward_to_syslog: false
+              compress: true
+            rsyslog:
+              enabled: false
+            services:
+              enable:
+                - rsyslog  # Test service enablement
+              disable: []
+            optimizations:
+              tune_swappiness: true
+              swappiness: 5
+            snap:
+              remove_completely: false
+            unattended_upgrades:
+              enabled: true
+              email: ""
+              auto_reboot: false
+            apt:
+              no_recommends: true
+              proxy: ""
+              
+          Debian:
+            journal:
+              configure: true
+              max_size: "100M"
+              max_retention: "7d"
+              forward_to_syslog: false
+              compress: true
+            rsyslog:
+              enabled: false
+            services:
+              enable:
+                - rsyslog  # Test service enablement
+              disable: []
+            optimizations:
+              tune_swappiness: true
+              swappiness: 5
+            snap:
+              remove_completely: false
+            unattended_upgrades:
+              enabled: true
+              email: ""
+              auto_reboot: false
+            apt:
+              no_recommends: true
+              proxy: ""
+    host_vars:
+      ubuntu-os-config-test:
+        # Ubuntu-specific test configuration
+        infrastructure:
+          Ubuntu:
+            apt:
+              proxy: "http://proxy.example.com:8080"
+      debian-os-config-test:
+        # Debian-specific test configuration
+        infrastructure:
+          Debian:
+            services:
+              disable:
+                - bluetooth  # Test service disabling on Debian
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: yaml
+verifier:
+  name: ansible

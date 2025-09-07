@@ -7,7 +7,6 @@
   become: true
   failed_when: false
   changed_when: false
-  when: snap.disable_and_remove | default(true)
   tags:
     - snap-packages
 
@@ -16,7 +15,6 @@
   become: true
   loop: "{{ snap_list.stdout_lines[1:] | default([]) }}"
   when:
-    - snap.disable_and_remove | default(true)
     - snap_list.rc == 0
     - snap_list.stdout_lines | length > 1
     - item.split()[0] != "core"
@@ -44,7 +42,6 @@
     - snapd.socket
     - snapd.seeded.service
     - snapd.apparmor.service
-  when: snap.disable_and_remove | default(true)
   failed_when: false
   tags:
     - snap-packages
@@ -57,7 +54,6 @@
     state: absent
     purge: true
   become: true
-  when: snap.disable_and_remove | default(true)
   failed_when: false
   tags:
     - snap-packages
@@ -74,7 +70,6 @@
     - /usr/lib/snapd
     - "{{ ansible_env.HOME | default('/home/' + ansible_user_id) }}/snap"
   become: true
-  when: snap.disable_and_remove | default(true)
   failed_when: false
   tags:
     - snap-packages
@@ -85,7 +80,6 @@
     regexp: ".*:/snap/bin.*"
     state: absent
   become: true
-  when: snap.disable_and_remove | default(true)
   failed_when: false
   tags:
     - snap-packages
@@ -103,6 +97,5 @@
     group: root
     mode: "0644"
   become: true
-  when: snap.disable_and_remove | default(true)
   tags:
     - snap-packages

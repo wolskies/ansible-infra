@@ -1,0 +1,145 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Get user information for verification
+      ansible.builtin.getent:
+        database: passwd
+        split: ":"
+
+    - name: Verify test users exist
+      ansible.builtin.assert:
+        that:
+          - item in ansible_facts.getent_passwd
+        fail_msg: "User {{ item }} was not created"
+        success_msg: "User {{ item }} was created successfully"
+      loop:
+        - testuser1
+        - testuser2
+        - testuser3
+
+    - name: Verify user shells are set correctly
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.getent_passwd[item.name][5] == item.shell
+        fail_msg: "User {{ item.name }} does not have correct shell: {{ item.shell }}"
+        success_msg: "User {{ item.name }} has correct shell: {{ item.shell }}"
+      loop:
+        - name: testuser1
+          shell: /bin/bash
+        - name: testuser2
+          shell: /bin/bash
+        - name: testuser3
+          shell: /bin/sh
+
+    - name: Verify user comments (GECOS) are set correctly
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.getent_passwd[item.name][3] == item.comment
+        fail_msg: "User {{ item.name }} does not have correct comment: {{ item.comment }}"
+        success_msg: "User {{ item.name }} has correct comment: {{ item.comment }}"
+      loop:
+        - name: testuser1
+          comment: "Test User One"
+        - name: testuser2
+          comment: "Test User Two"
+        - name: testuser3
+          comment: "Test User Three - Minimal Config"
+
+    - name: Check home directories exist
+      ansible.builtin.stat:
+        path: "/home/{{ item }}"
+      register: home_dirs
+      loop:
+        - testuser1
+        - testuser2
+        - testuser3
+
+    - name: Verify home directories were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isdir
+        fail_msg: "Home directory for {{ item.item }} does not exist"
+        success_msg: "Home directory for {{ item.item }} exists"
+      loop: "{{ home_dirs.results }}"
+
+    - name: Get group memberships
+      ansible.builtin.getent:
+        database: group
+        split: ":"
+
+    - name: Verify testuser1 is in sudo group
+      ansible.builtin.assert:
+        that:
+          - "'testuser1' in ansible_facts.getent_group.sudo[2].split(',')"
+        fail_msg: "testuser1 is not in sudo group"
+        success_msg: "testuser1 is in sudo group"
+
+    - name: Check SSH authorized_keys files exist
+      ansible.builtin.stat:
+        path: "/home/{{ item }}/.ssh/authorized_keys"
+      register: ssh_key_files
+      loop:
+        - testuser1
+        - testuser2
+
+    - name: Verify SSH key files were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+        fail_msg: "SSH authorized_keys file for {{ item.item }} does not exist"
+        success_msg: "SSH authorized_keys file for {{ item.item }} exists"
+      loop: "{{ ssh_key_files.results }}"
+
+    - name: Read SSH authorized_keys content
+      ansible.builtin.slurp:
+        src: "/home/{{ item }}/.ssh/authorized_keys"
+      register: ssh_key_content
+      loop:
+        - testuser1
+        - testuser2
+
+    - name: Verify SSH keys are properly configured
+      ansible.builtin.assert:
+        that:
+          - "'ssh-ed25519' in (item.content | b64decode)" when item.item == "testuser1"
+          - "'ssh-rsa' in (item.content | b64decode)" when item.item == "testuser2"
+        fail_msg: "SSH key not properly configured for {{ item.item }}"
+        success_msg: "SSH key properly configured for {{ item.item }}"
+      loop: "{{ ssh_key_content.results }}"
+
+    - name: Verify absent users don't exist (should fail gracefully)
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ item }}"
+        fail_key: false
+      register: absent_users_check
+      loop:
+        - olduser1
+        - olduser2
+
+    - name: Confirm absent users are not present
+      ansible.builtin.assert:
+        that:
+          - not item.found
+        fail_msg: "User {{ item.item }} should have been removed but still exists"
+        success_msg: "User {{ item.item }} was properly removed/absent"
+      loop: "{{ absent_users_check.results }}"
+
+    - name: Test host-specific users (Ubuntu)
+      ansible.builtin.assert:
+        that:
+          - "'ubuntu_specific' in ansible_facts.getent_passwd"
+        fail_msg: "Ubuntu-specific user was not created"
+        success_msg: "Ubuntu-specific user was created"
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Test host-specific users (Debian)
+      ansible.builtin.assert:
+        that:
+          - "'debian_specific' in ansible_facts.getent_passwd"
+        fail_msg: "Debian-specific user was not created"
+        success_msg: "Debian-specific user was created"
+      when: ansible_distribution == "Debian"

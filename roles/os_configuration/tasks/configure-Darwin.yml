@@ -1,0 +1,143 @@
+---
+- name: Configure hostname (Darwin)
+  block:
+    - name: Get current Darwin ComputerName
+      ansible.builtin.command: scutil --get ComputerName
+      register: current_computer_name
+      changed_when: false
+      failed_when: false
+
+    - name: Set Darwin ComputerName
+      ansible.builtin.command: scutil --set ComputerName "{{ infrastructure[ansible_distribution].computer_name }}"
+      become: true
+      when:
+        - infrastructure[ansible_distribution].computer_name is defined
+        - infrastructure[ansible_distribution].computer_name | length > 0
+        - current_computer_name.stdout | default('') != infrastructure[ansible_distribution].computer_name
+      changed_when: true
+
+    - name: Get current HostName
+      ansible.builtin.command: scutil --get HostName
+      register: current_hostname
+      changed_when: false
+      failed_when: false
+
+    - name: Set Darwin HostName (FQDN)
+      ansible.builtin.command: scutil --set HostName "{{ infrastructure.host.hostname }}.{{ infrastructure.domain.name }}"
+      become: true
+      when:
+        - infrastructure.host.hostname is defined
+        - infrastructure.host.hostname | length > 0
+        - infrastructure.domain.name is defined
+        - infrastructure.domain.name | length > 0
+        - current_hostname.rc != 0 or current_hostname.stdout != (infrastructure.host.hostname + '.' + infrastructure.domain.name)
+      changed_when: true
+
+    - name: Get current LocalHostName
+      ansible.builtin.command: scutil --get LocalHostName
+      register: current_local_hostname
+      changed_when: false
+      failed_when: false
+
+    - name: Set Darwin LocalHostName (Bonjour name)
+      ansible.builtin.command: scutil --set LocalHostName "{{ infrastructure.host.hostname | regex_replace('[^a-zA-Z0-9-]', '-') }}"
+      become: true
+      when:
+        - infrastructure.host.hostname is defined
+        - infrastructure.host.hostname | length > 0
+        - current_local_hostname.rc != 0 or current_local_hostname.stdout != (infrastructure.host.hostname | regex_replace('[^a-zA-Z0-9-]', '-'))
+      changed_when: true
+  tags:
+    - hostname
+    - Darwin
+
+- name: Configure Darwin locale
+  block:
+    - name: Set system locale
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleLocale
+        type: string
+        value: "{{ infrastructure.domain.locale.split('.')[0] }}"
+      when: infrastructure.domain.locale is defined
+      notify: restart cfprefsd
+
+    - name: Set preferred languages
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleLanguages
+        type: array
+        value:
+          - "{{ infrastructure.domain.language.split('.')[0] }}"
+      when: infrastructure.domain.language is defined
+      notify: restart cfprefsd
+  tags:
+    - locale
+    - language
+    - Darwin
+
+- name: Configure Darwin NTP time synchronization
+  block:
+    - name: Check current NTP server configuration
+      ansible.builtin.command: systemsetup -getnetworktimeserver
+      register: current_ntp_server
+      changed_when: false
+      become: true
+
+    - name: Enable network time synchronization
+      ansible.builtin.command: systemsetup -setusingnetworktime on
+      become: true
+      register: ntp_enable_result
+      changed_when: "'Network Time' in ntp_enable_result.stderr or ntp_enable_result.rc == 0"
+      when: infrastructure.domain.ntp.enabled | default(true)
+
+    - name: Set NTP server (first server from list)
+      ansible.builtin.command: "systemsetup -setnetworktimeserver {{ infrastructure.domain.ntp.servers[0] }}"
+      become: true
+      register: ntp_server_result
+      changed_when: ntp_server_result.rc == 0
+      when:
+        - infrastructure.domain.ntp.enabled | default(true)
+        - infrastructure.domain.ntp.servers | default([]) | length > 0
+        - infrastructure.domain.ntp.servers[0] not in current_ntp_server.stdout
+
+    - name: Disable network time synchronization
+      ansible.builtin.command: systemsetup -setusingnetworktime off
+      become: true
+      register: ntp_disable_result
+      changed_when: "'Network Time' in ntp_disable_result.stderr or ntp_disable_result.rc == 0"
+      when: not (infrastructure.domain.ntp.enabled | default(true))
+  tags:
+    - ntp
+    - time
+    - Darwin
+
+- name: Configure Darwin automatic updates
+  community.general.osx_defaults:
+    domain: /Library/Preferences/com.apple.SoftwareUpdate
+    key: "{{ item.key }}"
+    type: bool
+    value: "{{ item.value }}"
+  loop:
+    - key: "AutomaticCheckEnabled"
+      value: "{{ infrastructure[ansible_distribution].updates.auto_check | default(true) }}"
+    - key: "AutomaticDownload"
+      value: "{{ infrastructure[ansible_distribution].updates.auto_download | default(true) }}"
+  become: true
+  notify: restart cfprefsd
+  tags:
+    - Darwin
+    - updates
+    - system
+
+- name: Configure macOS Gatekeeper
+  ansible.builtin.command:
+    cmd: "spctl --master-{{ infrastructure[ansible_distribution].gatekeeper.enabled | default(true) | ternary('enable', 'disable') }}"
+  become: true
+  register: gatekeeper_result
+  changed_when: gatekeeper_result.rc == 0
+  when: infrastructure[ansible_distribution].gatekeeper is defined
+  tags:
+    - Darwin
+    - security
+    - gatekeeper

@@ -1,0 +1,50 @@
+---
+# Linux OS-specific user configuration
+
+- name: Set user shell
+  ansible.builtin.user:
+    name: "{{ target_user }}"
+    shell: "{{ current_user_config[ansible_distribution].shell }}"
+  become: true
+  when: 
+    - current_user_config[ansible_distribution].shell is defined
+    - current_user_config[ansible_distribution].shell | length > 0
+  tags:
+    - shell
+
+- name: Configure dotfiles via Stow
+  block:
+    - name: Ensure stow is installed
+      ansible.builtin.package:
+        name: stow
+        state: present
+      become: true
+
+    - name: Create dotfiles directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/dotfiles"
+        state: directory
+        mode: '0755'
+
+    - name: Clone dotfiles repository
+      ansible.builtin.git:
+        repo: "{{ current_user_config[ansible_distribution].dotfiles.repository }}"
+        dest: "{{ ansible_env.HOME }}/dotfiles"
+        update: true
+      when: current_user_config[ansible_distribution].dotfiles.repository is defined
+
+    - name: Stow dotfiles packages
+      ansible.builtin.command:
+        cmd: stow {{ item }}
+        chdir: "{{ ansible_env.HOME }}/dotfiles"
+      register: stow_result
+      changed_when: stow_result.rc == 0
+      loop: "{{ current_user_config[ansible_distribution].dotfiles.packages }}"
+      when: current_user_config[ansible_distribution].dotfiles.packages is defined
+
+  when: 
+    - current_user_config[ansible_distribution].dotfiles is defined
+    - current_user_config[ansible_distribution].dotfiles.method | default('') == 'stow'
+  tags:
+    - dotfiles
+    - stow
