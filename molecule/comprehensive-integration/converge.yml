@@ -13,4 +13,4 @@
 
     - name: Run complete system configuration
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.configure_system
+        name: configure_system

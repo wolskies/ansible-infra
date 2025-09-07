@@ -7,7 +7,7 @@
     # First test: Install security services and firewall
     - name: Apply security services configuration
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_security_services
+        name: manage_security_services
       tags:
         - security-services
         - firewall-services
@@ -15,7 +15,7 @@
     # Second test: Apply additional firewall rules (simulating multiple calls)
     - name: Apply additional firewall rules
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_firewall
+        name: manage_firewall
       vars:
         firewall_rules:
           - rule: allow

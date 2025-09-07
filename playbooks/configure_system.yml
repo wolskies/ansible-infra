@@ -50,8 +50,9 @@
     - name: Configure user preferences
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.configure_user
-      become: false
-      become_user: "{{ item.username }}"
+      vars:
+        target_user: "{{ item.username }}"
+        current_user_config: "{{ item }}"
       loop: "{{ users | selectattr('state', 'equalto', 'present') | list }}"
       when: item[ansible_distribution] is defined
       tags:

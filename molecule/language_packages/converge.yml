@@ -6,6 +6,6 @@
   tasks:
     - name: Apply language package management role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_language_packages
+        name: manage_language_packages
       tags:
         - language-packages

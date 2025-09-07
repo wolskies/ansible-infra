@@ -7,7 +7,7 @@
     # Phase 1: Install snap packages
     - name: Apply snap package management role (install)
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_snap_packages
+        name: manage_snap_packages
       tags:
         - snap-packages
         - install-snap
@@ -32,7 +32,7 @@
 
     - name: Apply snap package management role (remove)
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_snap_packages
+        name: manage_snap_packages
       tags:
         - snap-packages
         - remove-snap

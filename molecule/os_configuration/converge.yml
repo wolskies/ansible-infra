@@ -3,4 +3,4 @@
   hosts: all
   become: true
   roles:
-    - role: wolskinet.infrastructure.os_configuration
+    - role: os_configuration

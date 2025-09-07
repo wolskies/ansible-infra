@@ -10,11 +10,11 @@
   tasks:
     - name: Test configure_system role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.configure_system
+        name: configure_system
 
     - name: Test manage_packages role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_packages
+        name: manage_packages
       vars:
         host_packages_install_Ubuntu:
           - curl

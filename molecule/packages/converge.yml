@@ -6,7 +6,7 @@
   tasks:
     - name: Apply package management role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_packages
+        name: manage_packages
       tags:
         - packages
 

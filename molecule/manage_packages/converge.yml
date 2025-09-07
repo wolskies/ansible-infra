@@ -3,4 +3,4 @@
   hosts: all
   become: true
   roles:
-    - role: wolskinet.infrastructure.manage_packages
+    - role: manage_packages

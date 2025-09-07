@@ -5,4 +5,4 @@
   tasks:
     - name: Run discovery role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.discovery
+        name: discovery
