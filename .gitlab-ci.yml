@@ -146,8 +146,36 @@ test-packages:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    - molecule test -s packages
+    - molecule test -s manage_packages
     - echo "✅ Package management tests passed"
+
+test-os-configuration:
+  stage: test
+  image: python:3.13-slim
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    FF_NETWORK_PER_BUILD: "true"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    # Debug DNS and network connectivity
+    - echo "Checking network connectivity..."
+    - nslookup docker || echo "DNS lookup failed"
+    - ping -c 3 docker || echo "Ping failed"
+    # Wait for Docker with enhanced retry logic
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - docker info
+  script:
+    - molecule test -s os_configuration
+    - echo "✅ OS configuration tests passed"
 
 test-users:
   stage: test
@@ -174,10 +202,10 @@ test-users:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    - molecule test -s users
+    - molecule test -s manage_users
     - echo "✅ User management tests passed"
 
-test-firewall:
+test-security-services:
   stage: test
   image: python:3.13-slim
   services:
@@ -202,8 +230,8 @@ test-firewall:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    - molecule test -s firewall
-    - echo "✅ Firewall tests passed"
+    - molecule test -s manage_security_services
+    - echo "✅ Security services tests passed"
 
 test-system-settings:
   stage: test
@@ -233,76 +261,11 @@ test-system-settings:
     - molecule test -s system_settings
     - echo "✅ System settings tests passed"
 
-test-language-packages:
-  stage: test
-  image: python:3.13-slim
-  services:
-    - docker:24-dind
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    FF_NETWORK_PER_BUILD: "true"
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install -r requirements-dev.txt
-    # Debug DNS and network connectivity
-    - echo "Checking network connectivity..."
-    - nslookup docker || echo "DNS lookup failed"
-    - ping -c 3 docker || echo "Ping failed"
-    # Wait for Docker with enhanced retry logic
-    - echo "Waiting for Docker daemon..."
-    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
-    - docker info
-  script:
-    # Run molecule test with retry on Docker connectivity issues
-    - |
-      for attempt in 1 2 3; do
-        echo "Molecule test attempt $attempt..."
-        if molecule test -s language_packages; then
-          echo "✅ Language packages tests passed on attempt $attempt"
-          break
-        else
-          if [ $attempt -eq 3 ]; then
-            echo "❌ All attempts failed"
-            exit 1
-          fi
-          echo "Attempt $attempt failed, retrying in 30 seconds..."
-          sleep 30
-          docker info || echo "Docker connectivity issue detected"
-        fi
-      done
+# REMOVED: test-language-packages - functionality moved to configure_user role
+# Language package management is now handled per-user in configure_user role
 
-test-security:
-  stage: test
-  image: python:3.13-slim
-  services:
-    - docker:24-dind
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    FF_NETWORK_PER_BUILD: "true"
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install -r requirements-dev.txt
-    # Debug DNS and network connectivity
-    - echo "Checking network connectivity..."
-    - nslookup docker || echo "DNS lookup failed"
-    - ping -c 3 docker || echo "Ping failed"
-    # Wait for Docker with enhanced retry logic
-    - echo "Waiting for Docker daemon..."
-    - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
-    - docker info
-  script:
-    - molecule test -s security
-    - echo "✅ Security services tests passed"
+# REMOVED: test-security - duplicate of test-security-services
+# Use test-security-services which tests manage_security_services role
 
 # Integration tests
 test-integration:
