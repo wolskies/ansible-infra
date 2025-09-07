@@ -2,5 +2,7 @@
 - name: Converge
   hosts: all
   become: true
-  roles:
-    - role: manage_security_services
+  tasks:
+    - name: Include manage_security_services role
+      ansible.builtin.include_role:
+        name: manage_security_services
