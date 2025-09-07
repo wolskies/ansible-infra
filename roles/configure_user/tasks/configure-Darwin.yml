@@ -56,13 +56,15 @@
     value: "{{ item.value }}"
   notify: restart dock
   loop:
-    - { key: "tilesize", type: "int", value: "{{ current_user_config.Darwin.dock.tile_size }}" }
-    - { key: "autohide", type: "bool", value: "{{ current_user_config.Darwin.dock.autohide }}" }
-    - {
-      key: "minimize-to-application",
-      type: "bool",
-      value: "{{ current_user_config.Darwin.dock.minimize_to_application | default(false) }}",
-    }
+    - key: "tilesize"
+      type: "int"
+      value: "{{ current_user_config.Darwin.dock.tile_size }}"
+    - key: "autohide"
+      type: "bool"
+      value: "{{ current_user_config.Darwin.dock.autohide }}"
+    - key: "minimize-to-application"
+      type: "bool"
+      value: "{{ current_user_config.Darwin.dock.minimize_to_application | default(false) }}"
   when:
     - current_user_config.Darwin.dock is defined
     - item.value is defined
@@ -78,21 +80,15 @@
     value: "{{ item.value }}"
   notify: restart finder
   loop:
-    - {
-      key: "AppleShowAllExtensions",
-      type: "bool",
-      value: "{{ current_user_config.Darwin.finder.show_extensions }}",
-    }
-    - {
-      key: "AppleShowAllFiles",
-      type: "bool",
-      value: "{{ current_user_config.Darwin.finder.show_hidden }}",
-    }
-    - {
-      key: "ShowPathbar",
-      type: "bool",
-      value: "{{ current_user_config.Darwin.finder.show_pathbar | default(true) }}",
-    }
+    - key: "AppleShowAllExtensions"
+      type: "bool"
+      value: "{{ current_user_config.Darwin.finder.show_extensions }}"
+    - key: "AppleShowAllFiles"
+      type: "bool"
+      value: "{{ current_user_config.Darwin.finder.show_hidden }}"
+    - key: "ShowPathbar"
+      type: "bool"
+      value: "{{ current_user_config.Darwin.finder.show_pathbar | default(true) }}"
   when:
     - current_user_config.Darwin.finder is defined
     - item.value is defined
