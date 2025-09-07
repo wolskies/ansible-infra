@@ -5,4 +5,4 @@
   tasks:
     - name: Include manage_packages role
       ansible.builtin.include_role:
-        name: manage_packages
+        name: wolskinet.infrastructure.manage_packages

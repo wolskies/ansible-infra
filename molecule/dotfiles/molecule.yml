@@ -57,7 +57,6 @@ provisioner:
             timestamp: false
   config_options:
     defaults:
-      roles_path: ../../roles
       host_key_checking: false
       stdout_callback: yaml
 verifier:
