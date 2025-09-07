@@ -6,6 +6,7 @@
     - infrastructure.host is defined
     - infrastructure.host.hostname is defined
     - infrastructure.host.hostname | length > 0
+    - not (molecule_test | default(false)) # Skip in molecule container tests
 
 - name: Configure system locale
   community.general.locale_gen:

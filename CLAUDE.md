@@ -140,3 +140,53 @@ Completed major architectural refactoring to implement unified variable structur
 - **OS-specific preferences**: Shell paths, dotfiles repos, GUI settings vary by OS
 - **Automatic dependency installation**: System installs language tools when user requests packages
 - **Clean role separation**: System (sudo) vs user (per-user) execution contexts
+
+## Critical Testing and CI Lessons Learned
+
+### Collection Namespace Requirements
+**CRITICAL**: Molecule tests and CI MUST use full collection namespaces in converge.yml files:
+
+```yaml
+# CORRECT (working approach from commit 733f174):
+- name: Include manage_users role
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.manage_users
+
+# BROKEN (relative paths fail in CI environment):
+- name: Include manage_users role
+  ansible.builtin.include_role:
+    name: manage_users
+```
+
+Removing collection namespaces breaks CI role discovery even when roles work locally. Always maintain full collection namespacing in molecule tests.
+
+### Ansible Variable Precedence in Testing
+Variables follow standard Ansible precedence rules - `infrastructure.domain` and `infrastructure.host` are organizational naming conventions, NOT functional scoping mechanisms. In molecule tests:
+- Complete variable structures must be provided in host_vars to avoid precedence overrides
+- Package management provides additive merging (all/group/host categories) but still follows standard precedence
+
+### Container Testing Limitations
+Docker containers have inherent limitations that must be addressed without degrading test quality:
+- UFW/firewall services unavailable - disable with `enabled: false`
+- Snap/systemd services may not function - test variable parsing instead of service execution
+- Platform-specific groups: Linux uses `root` group, macOS uses `wheel`
+- `/etc/hosts` modification fails with "Device or resource busy" - set `infrastructure.host.update_hosts: false` in molecule tests
+- Hostname configuration fails with "Device or resource busy" - use `not (molecule_test | default(false))` condition to skip in tests
+- Locale configuration may fail if `locales` package not installed in container - add conditional checks
+- Temporary directory connection failures are usually transient Docker container initialization issues - try `molecule destroy` then `molecule test` rather than adding remote_tmp configuration
+
+### Molecule Test Structure
+Each test validates:
+1. Variable structure parsing and validation
+2. Conditional logic and platform detection
+3. Core role functionality within container constraints
+4. Integration with unified infrastructure variable hierarchy
+
+Tests adapt to code architecture, not vice versa. Maintain role integrity while working around containerization limitations.
+
+### Troubleshooting Molecule Issues
+When molecule tests fail with connection or initialization errors:
+1. First try `molecule destroy -s SCENARIO` then `molecule test -s SCENARIO`
+2. Container state issues often resolve with fresh container creation
+3. Avoid adding configuration workarounds (like remote_tmp) unless the issue persists across fresh containers
+4. Remember: many molecule failures we've seen before were solved by container cleanup, not code/config changes

@@ -5,4 +5,4 @@
   tasks:
     - name: Include configure_system role
       ansible.builtin.include_role:
-        name: configure_system
+        name: wolskinet.infrastructure.configure_system
