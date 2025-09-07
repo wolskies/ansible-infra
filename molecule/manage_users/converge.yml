@@ -2,5 +2,7 @@
 - name: Converge
   hosts: all
   become: true
-  roles:
-    - role: manage_users
+  tasks:
+    - name: Include manage_users role
+      ansible.builtin.include_role:
+        name: manage_users

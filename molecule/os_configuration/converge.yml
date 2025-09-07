@@ -2,5 +2,7 @@
 - name: Converge
   hosts: all
   become: true
-  roles:
-    - role: os_configuration
+  tasks:
+    - name: Include os_configuration role
+      ansible.builtin.include_role:
+        name: os_configuration
