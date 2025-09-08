@@ -61,6 +61,7 @@ test-quick:
   script:
     - apt-get update -qq && apt-get install -y -qq make ansible yamllint python3-pip
     - pip install --break-system-packages ansible-lint
+    - ansible-galaxy collection install -r requirements.yml --force
     - make lint
     - make syntax-check
     - echo "✅ Quick validation tests passed"
