@@ -13,8 +13,6 @@ variables:
   # Docker connection resilience
   DOCKER_DRIVER: overlay2
   DOCKER_BUILDKIT: 1
-  # Use CI-specific Ansible configuration
-  ANSIBLE_CONFIG: "$CI_PROJECT_DIR/ansible-ci.cfg"
 
 # Cache configuration for faster builds
 cache:
@@ -120,8 +118,6 @@ test-discovery:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    # Clean up any existing containers to avoid transient state issues
-    - molecule destroy -s discovery || true
     - molecule test -s discovery
     - echo "✅ Discovery role tests passed"
 
@@ -150,9 +146,7 @@ test-packages:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    # Clean up any existing containers to avoid transient state issues
-    - molecule destroy -s manage_packages || true
-    - molecule test -s manage_packages
+    - molecule test -s packages
     - echo "✅ Package management tests passed"
 
 test-os-configuration:
@@ -180,8 +174,6 @@ test-os-configuration:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    # Clean up any existing containers to avoid transient state issues
-    - molecule destroy -s os_configuration || true
     - molecule test -s os_configuration
     - echo "✅ OS configuration tests passed"
 
@@ -210,9 +202,7 @@ test-users:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    # Clean up any existing containers to avoid transient state issues
-    - molecule destroy -s manage_users || true
-    - molecule test -s manage_users
+    - molecule test -s users
     - echo "✅ User management tests passed"
 
 test-security-services:
@@ -240,9 +230,7 @@ test-security-services:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    # Clean up any existing containers to avoid transient state issues
-    - molecule destroy -s manage_security_services || true
-    - molecule test -s manage_security_services
+    - molecule test -s security
     - echo "✅ Security services tests passed"
 
 test-system-settings:
@@ -270,8 +258,6 @@ test-system-settings:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
-    # Clean up any existing containers to avoid transient state issues
-    - molecule destroy -s system_settings || true
     - molecule test -s system_settings
     - echo "✅ System settings tests passed"
 

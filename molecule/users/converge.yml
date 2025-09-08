@@ -5,4 +5,4 @@
   tasks:
     - name: Include manage_users role
       ansible.builtin.include_role:
-        name: manage_users
+        name: wolskinet.infrastructure.manage_users
