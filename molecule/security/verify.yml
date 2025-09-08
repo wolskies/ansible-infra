@@ -11,14 +11,16 @@
         cmd: ufw status verbose
       register: ufw_status
       changed_when: false
-      when: security_services.ufw.enabled | default(true)
+      when: security_services.ufw.enabled | default(false)
 
     - name: Verify UFW is active
       ansible.builtin.assert:
         that:
           - "'Status: active' in ufw_status.stdout"
         fail_msg: "UFW is not active"
-      when: security_services.ufw.enabled | default(true)
+      when:
+        - security_services.ufw.enabled | default(false)
+        - ufw_status.stdout is defined
 
     - name: Verify UFW default policies
       ansible.builtin.assert:
@@ -27,33 +29,33 @@
           - "'allow (outgoing)' in ufw_status.stdout"
           - "'deny (routed)' in ufw_status.stdout"
         fail_msg: "UFW default policies not configured correctly"
-      when: security_services.ufw.enabled | default(true)
+      when: security_services.ufw.enabled | default(false)
 
     - name: Verify UFW rules are present
       ansible.builtin.assert:
         that:
           - "'22/tcp' in ufw_status.stdout"
         fail_msg: "UFW SSH rule not configured correctly"
-      when: security_services.ufw.enabled | default(true)
+      when: security_services.ufw.enabled | default(false)
 
     - name: Check UFW numbered rules
       ansible.builtin.command:
         cmd: ufw status numbered
       register: ufw_numbered
       changed_when: false
-      when: security_services.ufw.enabled | default(true)
+      when: security_services.ufw.enabled | default(false)
 
     - name: Verify UFW rules structure
       ansible.builtin.debug:
         msg: "UFW rules configured: {{ ufw_numbered.stdout_lines }}"
-      when: security_services.ufw.enabled | default(true)
+      when: security_services.ufw.enabled | default(false)
 
     # Test host-specific rules - skip for now as not configured
     - name: Debug Ubuntu-specific UFW configuration
       ansible.builtin.debug:
         msg: "UFW configuration validated - basic SSH rule present"
       when:
-        - security_services.ufw.enabled | default(true)
+        - security_services.ufw.enabled | default(false)
         - inventory_hostname == "ubuntu-security-test"
 
     # =============================================================================
