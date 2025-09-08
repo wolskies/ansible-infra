@@ -87,19 +87,19 @@ test-quick:
     - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
     # Login to Docker Hub to avoid rate limiting
     - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin || echo "Docker Hub login failed (continuing anyway)"
-    # Remove any stale .venv from old cache
+    # CRITICAL: Remove ALL stale collections from previous CI runs
+    - rm -rf /root/.ansible/collections
     - rm -rf .venv
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    # Install ansible collections from requirements.yml and verify
+    # Install ansible collections from requirements.yml to .venv location
     - ansible-galaxy collection install -r requirements.yml --force
     - echo "=== Installed collections ==="
     - ansible-galaxy collection list | grep -E "(community\.general|ansible\.posix|community\.docker)"
     - echo "=== Collection paths ==="
-    - find .venv -name "community" -type d 2>/dev/null | head -3
-    - find /root/.ansible -name "community" -type d 2>/dev/null | head -3
+    - ansible --version | grep "collection location"
     # Debug DNS and network connectivity
     - echo "Checking network connectivity..."
     - nslookup docker || echo "DNS lookup failed"
