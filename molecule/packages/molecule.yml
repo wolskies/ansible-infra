@@ -96,7 +96,8 @@ provisioner:
   config_options:
     defaults:
       host_key_checking: false
-      stdout_callback: yaml
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
       # Enable deep hash merging for testing
       hash_behaviour: merge
 verifier:
