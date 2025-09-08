@@ -6,11 +6,11 @@
 Storage=persistent
 
 # Size limits
-SystemMaxUse={{ infrastructure[ansible_distribution].journal.max_size }}
-RuntimeMaxUse={{ infrastructure[ansible_distribution].journal.max_size }}
+SystemMaxUse={{ infrastructure.host.journal.max_size }}
+RuntimeMaxUse={{ infrastructure.host.journal.max_size }}
 
 # Retention settings
-MaxRetentionSec={{ infrastructure[ansible_distribution].journal.max_retention }}
+MaxRetentionSec={{ infrastructure.host.journal.max_retention }}
 
 # Compression
 Compress=yes
