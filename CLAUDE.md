@@ -191,7 +191,11 @@ When molecule tests fail with connection or initialization errors:
 3. Avoid adding configuration workarounds (like remote_tmp) unless the issue persists across fresh containers
 4. Remember: many molecule failures we've seen before were solved by container cleanup, not code/config changes
 
-**CI/CD Specific**: GitLab CI jobs should always run `molecule destroy -s SCENARIO || true` before `molecule test` to ensure fresh containers and avoid "Failed to create temporary directory" errors from stale container state
+**CI/CD Specific**:
+- GitLab CI jobs should always run `molecule destroy -s SCENARIO || true` before `molecule test` to ensure fresh containers
+- Use a CI-specific ansible.cfg with `remote_tmp = /tmp/.ansible/tmp` to handle Docker-in-Docker permission issues
+- Set `ANSIBLE_CONFIG` environment variable to point to the CI configuration file
+- This combination prevents "Failed to create temporary directory" errors in CI environments
 
 ### Ansible Callback Plugin Updates
 **community.general.yaml deprecation**: Replace deprecated callback plugin configuration in molecule tests:
