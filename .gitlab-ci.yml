@@ -48,7 +48,8 @@ pre-commit-checks:
   image: python:3.13-slim
   script:
     - apt-get update -qq && apt-get install -y -qq python3-pip git
-    - pip install --break-system-packages pre-commit
+    - pip install --break-system-packages pre-commit pyyaml
+    - git config --global --add safe.directory $CI_PROJECT_DIR
     - pre-commit run --all-files || echo "Pre-commit issues found (non-blocking)"
     - echo "✅ Pre-commit checks completed"
   allow_failure: true
