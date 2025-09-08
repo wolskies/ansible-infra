@@ -8,10 +8,14 @@
         update_cache: true
       when: ansible_os_family == "Debian"
 
-    # Ensure SSH is installed and running for testing
-    - name: Install OpenSSH server
+    # Ensure security packages are installed for testing
+    - name: Install security packages
       ansible.builtin.package:
-        name: openssh-server
+        name:
+          - openssh-server
+          - ufw
+          - fail2ban
+          - iptables
         state: present
 
     - name: Start SSH service for testing (skip in containers)
