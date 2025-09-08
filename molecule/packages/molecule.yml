@@ -64,7 +64,15 @@ provisioner:
                   type: safe
                 repositories:
                   all:
-                    Ubuntu: []
+                    Ubuntu:
+                      - name: docker
+                        types: deb
+                        uris: https://download.docker.com/linux/ubuntu
+                        suites: jammy
+                        components: [stable]
+                        signed_by: https://download.docker.com/linux/ubuntu/gpg
+                        state: present
+                        enabled: true
                     Debian: []
                   group:
                     Ubuntu: []
