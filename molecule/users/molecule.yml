@@ -37,61 +37,65 @@ provisioner:
     host_vars:
       ubuntu-users-test:
         # Test comprehensive user management
-        users:
-          # Basic user
-          - name: testuser1
-            uid: 1001
-            groups: []
-            shell: /bin/bash
-            comment: "Test User One"
-            create_home: true
-          # User with multiple groups
-          - name: testuser2
-            uid: 1002
-            groups: [sudo, adm, systemd-journal]
-            shell: /bin/zsh
-            comment: "Test User Two - Admin"
-            create_home: true
-          # System user (low UID)
-          - name: testservice
-            uid: 999
-            groups: [www-data]
-            shell: /usr/sbin/nologin
-            comment: "Service Account"
-            create_home: false
-          # User with dotfiles configuration
-          - name: devuser
-            uid: 1003
-            groups: [docker]
-            shell: /bin/bash
-            comment: "Developer User"
-            create_home: true
-            dotfiles:
-              enable: false # Skip in container test
-              repo: "https://github.com/example/dotfiles"
-              branch: "main"
+        infrastructure:
+          domain:
+            users:
+              # Basic user
+              - name: testuser1
+                uid: 1001
+                groups: []
+                shell: /bin/bash
+                comment: "Test User One"
+                create_home: true
+              # User with multiple groups
+              - name: testuser2
+                uid: 1002
+                groups: [sudo, adm, systemd-journal]
+                shell: /bin/zsh
+                comment: "Test User Two - Admin"
+                create_home: true
+              # System user (low UID)
+              - name: testservice
+                uid: 999
+                groups: [www-data]
+                shell: /usr/sbin/nologin
+                comment: "Service Account"
+                create_home: false
+              # User with dotfiles configuration
+              - name: devuser
+                uid: 1003
+                groups: [docker]
+                shell: /bin/bash
+                comment: "Developer User"
+                create_home: true
+                dotfiles:
+                  enable: false # Skip in container test
+                  repo: "https://github.com/example/dotfiles"
+                  branch: "main"
 
       debian-users-test:
         # Test different user configurations on Debian
-        users:
-          # Standard user
-          - name: debianuser
-            uid: 1001
-            groups: [sudo]
-            shell: /bin/bash
-            comment: "Debian Test User"
-            create_home: true
-          # User modification test (existing vs new)
-          - name: nobody
-            # Test modifying existing system user
-            comment: "Modified Nobody User"
-            shell: /bin/bash
-          # Test edge cases
-          - name: longusernametest
-            uid: 1999
-            groups: []
-            shell: /bin/dash
-            comment: "User with long name and uncommon shell"
-            create_home: true
+        infrastructure:
+          domain:
+            users:
+              # Standard user
+              - name: debianuser
+                uid: 1001
+                groups: [sudo]
+                shell: /bin/bash
+                comment: "Debian Test User"
+                create_home: true
+              # User modification test (existing vs new)
+              - name: nobody
+                # Test modifying existing system user
+                comment: "Modified Nobody User"
+                shell: /bin/bash
+              # Test edge cases
+              - name: longusernametest
+                uid: 1999
+                groups: []
+                shell: /bin/dash
+                comment: "User with long name and uncommon shell"
+                create_home: true
 verifier:
   name: ansible
