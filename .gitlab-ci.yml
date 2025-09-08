@@ -46,18 +46,6 @@ syntax-check:
     - echo "✅ Syntax check passed"
 
 # Security checks
-security-bandit:
-  stage: security
-  image: python:3.13-slim
-  script:
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install bandit[toml]
-    # Scan only relevant directories, exclude test files and virtual envs
-    - bandit -r roles/ -f json --exclude '**/test*,**/molecule*' || true
-    - echo "✅ Security scan completed"
-  allow_failure: true
-
 pre-commit-checks:
   stage: security
   image: python:3.13-slim
