@@ -1,0 +1,121 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-configure-user-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: debian-configure-user-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
+  inventory:
+    group_vars:
+      all:
+        # Enable consistent behavior for molecule tests
+        molecule_test: true
+        # Comprehensive user configuration for testing
+        infrastructure:
+          domain:
+            users:
+              # Basic user with git config
+              - name: testuser1
+                comment: "Test User One"
+                git:
+                  user_name: "Test User One"
+                  user_email: "testuser1@example.com"
+                  editor: "vim"
+              # User with language packages
+              - name: devuser
+                comment: "Developer User"
+                git:
+                  user_name: "Developer User"
+                  user_email: "dev@example.com"
+                nodejs:
+                  packages: [eslint, prettier]
+                rust:
+                  packages: [ripgrep]
+                go:
+                  packages: [github.com/charmbracelet/glow@latest]
+              # User with dotfiles (disabled for container test)
+              - name: dotfilesuser
+                comment: "Dotfiles Test User"
+                git:
+                  user_name: "Dotfiles User"
+                  user_email: "dotfiles@example.com"
+                dotfiles:
+                  enable: false # Skip in container test
+                  repository: "https://github.com/example/dotfiles"
+                  method: "stow"
+                  packages: [zsh, vim]
+                  branch: "main"
+              # System user (should be skipped)
+              - name: root
+                comment: "Root user - should be skipped"
+                git:
+                  user_name: "Root User"
+                  user_email: "root@example.com"
+    host_vars:
+      ubuntu-configure-user-test:
+        # Test Ubuntu-specific user configuration
+        infrastructure:
+          domain:
+            users:
+              # Add Ubuntu-specific shell config to existing users
+              - name: testuser1
+                comment: "Test User One"
+                git:
+                  user_name: "Test User One"
+                  user_email: "testuser1@example.com"
+                Ubuntu:
+                  shell: /bin/bash
+              - name: shelluser
+                comment: "Shell Test User"
+                git:
+                  user_name: "Shell User"
+                  user_email: "shell@example.com"
+                Ubuntu:
+                  shell: /bin/zsh
+
+      debian-configure-user-test:
+        # Test Debian-specific user configuration
+        infrastructure:
+          domain:
+            users:
+              # Add Debian-specific shell config
+              - name: testuser1
+                comment: "Test User One"
+                git:
+                  user_name: "Test User One"
+                  user_email: "testuser1@example.com"
+                Debian:
+                  shell: /bin/bash
+              - name: shelluser
+                comment: "Shell Test User"
+                git:
+                  user_name: "Shell User"
+                  user_email: "shell@example.com"
+                Debian:
+                  shell: /bin/dash
+verifier:
+  name: ansible

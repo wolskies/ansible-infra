@@ -1,0 +1,89 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    # =============================================================================
+    # TEST SINGLE USER DOTFILES DEPLOYMENT
+    # =============================================================================
+    - name: Test single user dotfiles deployment
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.dotfiles
+      vars:
+        dotfiles: "{{ dotfiles_single_user | combine({'repository_url': '/tmp/test-dotfiles'}) }}"
+      tags:
+        - single-user
+
+    # =============================================================================
+    # TEST MULTI-USER DOTFILES DEPLOYMENT
+    # =============================================================================
+    - name: Test multi-user dotfiles deployment
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.dotfiles
+      vars:
+        dotfiles:
+          users: >-
+            {{
+              dotfiles_multi_users.users | map('combine', {'repository_url': '/tmp/test-dotfiles'}) | list
+            }}
+      tags:
+        - multi-user
+
+    # =============================================================================
+    # TEST PLATFORM-SPECIFIC DOTFILES (Ubuntu)
+    # =============================================================================
+    - name: Test Ubuntu-specific dotfiles deployment
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.dotfiles
+      vars:
+        dotfiles: "{{ dotfiles_ubuntu_specific | combine({'repository_url': '/tmp/test-dotfiles'}) }}"
+      when: inventory_hostname == "ubuntu-dotfiles-test"
+      tags:
+        - ubuntu-specific
+
+    # =============================================================================
+    # TEST PLATFORM-SPECIFIC DOTFILES (Debian)
+    # =============================================================================
+    - name: Test Debian-specific dotfiles deployment
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.dotfiles
+      vars:
+        dotfiles: "{{ dotfiles_debian_specific | combine({'repository_url': '/tmp/test-dotfiles'}) }}"
+      when: inventory_hostname == "debian-dotfiles-test"
+      tags:
+        - debian-specific
+
+    # =============================================================================
+    # TEST IDEMPOTENCY
+    # =============================================================================
+    - name: Test dotfiles role idempotency (single user)
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.dotfiles
+      vars:
+        dotfiles: "{{ dotfiles_single_user | combine({'repository_url': '/tmp/test-dotfiles'}) }}"
+      tags:
+        - idempotency
+
+    # =============================================================================
+    # TEST ERROR HANDLING
+    # =============================================================================
+    - name: Test dotfiles with invalid repository (should fail gracefully)
+      block:
+        - name: Include dotfiles role with invalid repo
+          ansible.builtin.include_role:
+            name: wolskinet.infrastructure.dotfiles
+          vars:
+            dotfiles:
+              user: "testuser1"
+              repository_url: "https://invalid.repository.url/nonexistent.git"
+              repository_branch: "main"
+              method: "stow"
+              stow_packages: ["git"]
+              validate:
+                check_git: false # Skip git validation for this test
+      rescue:
+        - name: Handle expected failure gracefully
+          ansible.builtin.debug:
+            msg: "Invalid repository test failed as expected - this is correct behavior"
+      tags:
+        - error-handling
