@@ -34,7 +34,7 @@ provisioner:
         # Test security services configuration
         security_services:
           ufw:
-            enabled: true
+            enabled: false # Disabled in containers - UFW requires kernel modules
             default_policy:
               incoming: deny
               outgoing: allow
