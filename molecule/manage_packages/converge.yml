@@ -1,8 +1,0 @@
----
-- name: Converge
-  hosts: all
-  become: true
-  tasks:
-    - name: Include manage_packages role
-      ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_packages

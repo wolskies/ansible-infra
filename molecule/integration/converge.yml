@@ -1,8 +1,0 @@
----
-- name: Full Infrastructure Integration Test
-  hosts: all
-  become: true
-  tasks:
-    - name: Run complete system configuration
-      ansible.builtin.include_role:
-        name: configure_system
