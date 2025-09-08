@@ -28,8 +28,9 @@ ansible-lint:
   stage: validate
   image: python:3.13-slim
   script:
-    - apt-get update -qq && apt-get install -y -qq python3-pip
+    - apt-get update -qq && apt-get install -y -qq ansible python3-pip
     - pip install --break-system-packages ansible-lint
+    - ansible-galaxy collection install -r requirements.yml --force
     - ansible-lint
     - echo "✅ Ansible lint passed"
 
