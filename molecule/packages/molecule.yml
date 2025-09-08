@@ -25,73 +25,90 @@ provisioner:
   inventory:
     group_vars:
       all:
-        # Base package structure - define for all distributions
-        packages:
-          Ubuntu:
-            all:
-              - curl
-              - git
-              - htop
-            group: [] # Empty, will add via combine
-            host: [] # Empty, will add via combine
-            remove: [] # Empty, will add via combine
-            settings:
-              apt_cache:
-                update_cache: true
-                valid_time: 3600
-              system_upgrade:
-                enable: false
-                type: safe
-              repositories:
-                - name: docker
-                  types: deb
-                  uris: https://download.docker.com/linux/ubuntu
-                  suites: jammy
-                  components: [stable]
-                  signed_by: https://download.docker.com/linux/ubuntu/gpg
-                  state: present
-                  enabled: true
-          Debian:
-            all:
-              - curl
-              - git
-              - htop
-            group: [] # Empty, will add via combine
-            host: [] # Empty, will add via combine
-            remove: [] # Empty, will add via combine
-            settings:
-              apt_cache:
-                update_cache: true
-                valid_time: 3600
-              system_upgrade:
-                enable: false
-                type: safe
-              repositories: []
+        # Base package structure - using infrastructure hierarchy
+        infrastructure:
+          host:
+            packages:
+              present:
+                all:
+                  Ubuntu:
+                    - curl
+                    - git
+                    - htop
+                  Debian:
+                    - curl
+                    - git
+                    - htop
+                group:
+                  Ubuntu: []
+                  Debian: []
+                host:
+                  Ubuntu: []
+                  Debian: []
+              remove:
+                all:
+                  Ubuntu: []
+                  Debian: []
+                group:
+                  Ubuntu: []
+                  Debian: []
+                host:
+                  Ubuntu: []
+                  Debian: []
+              apt:
+                apt_cache:
+                  update_cache: true
+                  valid_time: 3600
+                system_upgrade:
+                  enable: false
+                  type: safe
+                repositories:
+                  all:
+                    Ubuntu: []
+                    Debian: []
+                  group:
+                    Ubuntu: []
+                    Debian: []
+                  host:
+                    Ubuntu: []
+                    Debian: []
 
     host_vars:
       ubuntu-packages-test:
         # Test hierarchical merging for Ubuntu
-        packages:
-          Ubuntu:
-            group:
-              - nginx
-              - vim
-            host:
-              - jq
-            remove:
-              - nano
+        infrastructure:
+          host:
+            packages:
+              present:
+                group:
+                  Ubuntu:
+                    - nginx
+                    - vim
+                host:
+                  Ubuntu:
+                    - jq
+              remove:
+                host:
+                  Ubuntu:
+                    - nano
 
       debian-packages-test:
         # Test hierarchical merging for Debian
-        packages:
-          Debian:
-            group:
-              - vim
-              - tree
-            host:
-              - wget
-            remove:
-              - nano
+        infrastructure:
+          host:
+            packages:
+              present:
+                group:
+                  Debian:
+                    - vim
+                    - tree
+                host:
+                  Debian:
+                    - wget
+              remove:
+                host:
+                  Debian:
+                    - nano
 
   config_options:
     defaults:
