@@ -34,6 +34,10 @@ provisioner:
       all:
         # Enable consistent behavior for molecule tests
         molecule_test: true
+        # Default empty users_absent list for all hosts
+        infrastructure:
+          domain:
+            users_absent: []
     host_vars:
       ubuntu-users-test:
         # Test comprehensive user management
