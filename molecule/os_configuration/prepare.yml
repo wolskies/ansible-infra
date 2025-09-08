@@ -20,24 +20,22 @@
         state: present
       when: ansible_os_family == "Debian"
 
+    - name: Ensure en_US.UTF-8 locale is in locale.gen (Debian)
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        line: "en_US.UTF-8 UTF-8"
+        regexp: "^# ?en_US.UTF-8 UTF-8"
+      when: ansible_distribution == "Debian"
+
     - name: Generate locale for Debian
       ansible.builtin.command:
-        cmd: locale-gen en_US.UTF-8
+        cmd: locale-gen
       when: ansible_distribution == "Debian"
       changed_when: true
 
-    - name: Set default locale
-      ansible.builtin.lineinfile:
-        path: /etc/default/locale
-        line: "{{ item }}"
-        create: true
-      loop:
-        - "LANG=en_US.UTF-8"
-        - "LC_ALL=en_US.UTF-8"
-      when: ansible_os_family == "Debian"
-
-    - name: Update locale for current session
+    - name: Set default locale (non-blocking)
       ansible.builtin.command:
-        cmd: update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+        cmd: update-locale LANG=en_US.UTF-8
       when: ansible_os_family == "Debian"
       changed_when: true
+      failed_when: false # Non-blocking in containers
