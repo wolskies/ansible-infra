@@ -26,10 +26,8 @@ ansible-lint:
   stage: validate
   image: python:3.13-slim
   script:
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install -r requirements-dev.txt
+    - apt-get update -qq && apt-get install -y -qq python3-pip
+    - pip install --break-system-packages ansible-lint
     - ansible-lint
     - echo "✅ Ansible lint passed"
 
@@ -37,11 +35,7 @@ syntax-check:
   stage: validate
   image: python:3.13-slim
   script:
-    - apt-get update -qq && apt-get install -y -qq make
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install ansible
+    - apt-get update -qq && apt-get install -y -qq make ansible
     - make syntax-check
     - echo "✅ Syntax check passed"
 
@@ -50,10 +44,8 @@ pre-commit-checks:
   stage: security
   image: python:3.13-slim
   script:
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install -r requirements-dev.txt
+    - apt-get update -qq && apt-get install -y -qq python3-pip git
+    - pip install --break-system-packages pre-commit
     - pre-commit run --all-files || echo "Pre-commit issues found (non-blocking)"
     - echo "✅ Pre-commit checks completed"
   allow_failure: true
@@ -63,12 +55,8 @@ test-quick:
   stage: test
   image: python:3.13-slim
   script:
-    - apt-get update -qq && apt-get install -y -qq make
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install ansible yamllint
-    - pip install -r requirements-dev.txt
+    - apt-get update -qq && apt-get install -y -qq make ansible yamllint python3-pip
+    - pip install --break-system-packages ansible-lint
     - make lint
     - make syntax-check
     - echo "✅ Quick validation tests passed"
@@ -84,17 +72,16 @@ test-quick:
     DOCKER_DRIVER: overlay2
     FF_NETWORK_PER_BUILD: "true"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
+    # Install system packages like we do locally
+    - apt-get update -qq
+    - apt-get install -y -qq ansible docker.io make dnsutils python3-pip
     # Login to Docker Hub to avoid rate limiting
     - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin || echo "Docker Hub login failed (continuing anyway)"
     # CRITICAL: Remove ALL stale collections from previous CI runs
     - rm -rf /root/.ansible/collections
-    - rm -rf .venv
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install -r requirements-dev.txt
-    # Install ansible collections from requirements.yml to .venv location
+    # Install molecule and testing tools via pip (user install, no venv)
+    - pip install --break-system-packages molecule[docker] molecule-plugins[docker] pytest-testinfra
+    # Install ansible collections from requirements.yml
     - ansible-galaxy collection install -r requirements.yml --force
     - echo "=== Installed collections ==="
     - ansible-galaxy collection list | grep -E "(community\.general|ansible\.posix|community\.docker)"
@@ -174,11 +161,7 @@ collection-build:
   stage: build
   image: python:3.13-slim
   script:
-    - apt-get update -qq && apt-get install -y -qq make
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install ansible
+    - apt-get update -qq && apt-get install -y -qq make ansible
     - make collection-build
     - ls -la *.tar.gz
     - echo "✅ Collection built successfully"
@@ -192,9 +175,7 @@ version-check:
   stage: build
   image: python:3.13-slim
   script:
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install pyyaml
+    - apt-get update -qq && apt-get install -y -qq python3-yaml
     - python3 -c "import yaml; print('Version:', yaml.safe_load(open('galaxy.yml'))['version'])"
     - echo "✅ Version validated"
   only:
@@ -207,9 +188,7 @@ publish-galaxy:
   dependencies:
     - collection-build
   script:
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install ansible
+    - apt-get update -qq && apt-get install -y -qq ansible
     - |
       if [ -z "$GALAXY_API_KEY" ]; then
         echo "❌ GALAXY_API_KEY not set - skipping publish"
