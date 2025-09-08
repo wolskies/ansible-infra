@@ -113,8 +113,13 @@ test-quick:
     - source .venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements-dev.txt
-    # Install ansible collections from requirements.yml
+    # Install ansible collections from requirements.yml and verify
     - ansible-galaxy collection install -r requirements.yml --force
+    - echo "=== Installed collections ==="
+    - ansible-galaxy collection list | grep -E "(community\.general|ansible\.posix|community\.docker)"
+    - echo "=== Collection paths ==="
+    - find .venv -name "community" -type d 2>/dev/null | head -3
+    - find /root/.ansible -name "community" -type d 2>/dev/null | head -3
     # Debug DNS and network connectivity
     - echo "Checking network connectivity..."
     - nslookup docker || echo "DNS lookup failed"

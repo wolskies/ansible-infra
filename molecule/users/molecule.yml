@@ -25,7 +25,7 @@ provisioner:
   config_options:
     defaults:
       host_key_checking: false
-      remote_tmp: /tmp/.ansible/tmp
+      remote_tmp: /var/tmp
       stdout_callback: ansible.builtin.default
       stdout_callback_format: yaml
   inventory:
