@@ -97,6 +97,8 @@ test-quick:
     FF_NETWORK_PER_BUILD: "true"
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
+    # Login to Docker Hub to avoid rate limiting
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin || echo "Docker Hub login failed (continuing anyway)"
     # Remove any stale .venv from old cache
     - rm -rf .venv
     - python3 -m venv .venv
