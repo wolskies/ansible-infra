@@ -190,3 +190,17 @@ When molecule tests fail with connection or initialization errors:
 2. Container state issues often resolve with fresh container creation
 3. Avoid adding configuration workarounds (like remote_tmp) unless the issue persists across fresh containers
 4. Remember: many molecule failures we've seen before were solved by container cleanup, not code/config changes
+
+### Ansible Callback Plugin Updates
+**community.general.yaml deprecation**: Replace deprecated callback plugin configuration in molecule tests:
+
+```yaml
+# DEPRECATED (will be removed in community.general v12.0.0):
+stdout_callback: yaml
+
+# MODERN (ansible-core 2.13+ compatible):
+stdout_callback: ansible.builtin.default
+stdout_callback_format: yaml
+```
+
+This eliminates the deprecation warning while maintaining identical YAML-formatted output for molecule tests.
