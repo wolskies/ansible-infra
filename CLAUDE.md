@@ -231,3 +231,24 @@ This eliminates the deprecation warning while maintaining identical YAML-formatt
 4. **Test individual steps**: `molecule create && molecule converge` will fail properly
 
 **Lesson**: Local molecule testing provides false confidence - CI catches real failures.
+
+### The Danger of "Improving" Working Systems
+
+**Critical lesson from Docker-in-Docker temp directory failures**:
+
+- **Working state (commit 733f174)**: No custom `ansible.cfg` - Ansible used default `/tmp` temp directories
+- **"Improvement" attempt**: Added `ansible-ci.cfg` with custom temp paths set to `/var/tmp`
+- **Result**: Complete CI pipeline failure with "Failed to create temporary directory" errors
+
+**What went wrong**:
+- `/var/tmp` is NOT "rooted in /tmp" as Docker containers require
+- Custom configuration overrode working Ansible defaults
+- "Optimization" broke a stable, functional system
+
+**Key principles**:
+1. **Don't fix what isn't broken** - working defaults often work for good reasons
+2. **Test configuration changes** - custom configs can have unexpected interactions
+3. **Document working states** - know what was working before making changes
+4. **Revert quickly** - when improvements break things, go back to working state immediately
+
+**Final fix**: Changed `ansible-ci.cfg` temp paths from `/var/tmp` to `/tmp/.ansible/tmp` to comply with Docker's "rooted in /tmp" requirement, but the real lesson is that the original working system needed no custom configuration at all.
