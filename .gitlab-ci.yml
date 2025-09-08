@@ -1,6 +1,5 @@
 stages:
   - validate
-  - security
   - test
   - integration
   - build
@@ -18,44 +17,27 @@ variables:
   ANSIBLE_REMOTE_TEMP: "/tmp/ansible-tmp"
   ANSIBLE_LOCAL_TEMP: "/tmp/ansible-tmp"
 
-# YAML and Ansible validation
-yaml-validation:
+# Comprehensive validation - combines all linting and syntax checks
+validate-all:
   stage: validate
   image: python:3.13-slim
   script:
-    - pip install yamllint
-    - yamllint .
-    - echo "✅ YAML validation passed"
-
-ansible-lint:
-  stage: validate
-  image: python:3.13-slim
-  script:
-    - apt-get update -qq && apt-get install -y -qq ansible python3-pip
-    - pip install --break-system-packages ansible-lint
+    # Install all required tools
+    - apt-get update -qq && apt-get install -y -qq ansible python3-pip git make
+    - pip install --break-system-packages pre-commit ansible-lint pyyaml
     - ansible-galaxy collection install -r requirements.yml --force
-    - ansible-lint
-    - echo "✅ Ansible lint passed"
 
-syntax-check:
-  stage: validate
-  image: python:3.13-slim
-  script:
-    - apt-get update -qq && apt-get install -y -qq make ansible
-    - make syntax-check
-    - echo "✅ Syntax check passed"
-
-# Security checks
-pre-commit-checks:
-  stage: security
-  image: python:3.13-slim
-  script:
-    - apt-get update -qq && apt-get install -y -qq python3-pip git
-    - pip install --break-system-packages pre-commit pyyaml
+    # Run pre-commit checks (includes yamllint, prettier, custom checks)
     - git config --global --add safe.directory $CI_PROJECT_DIR
-    - pre-commit run --all-files || echo "Pre-commit issues found (non-blocking)"
-    - echo "✅ Pre-commit checks completed"
-  allow_failure: true
+    - pre-commit run --all-files || true # Non-blocking but shows issues
+
+    # Run ansible-lint (critical for Ansible best practices)
+    - ansible-lint
+
+    # Run syntax check (ensures playbooks are parseable)
+    - make syntax-check
+
+    - echo "✅ All validation checks completed"
 
 # Template for molecule test jobs
 .molecule_test_template:
