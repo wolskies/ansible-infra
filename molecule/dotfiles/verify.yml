@@ -26,6 +26,7 @@
       loop:
         - /home/testuser1/.vimrc
         - /home/testuser1/.gitconfig
+      become: true
       become_user: testuser1
 
     - name: Verify dotfiles were stowed correctly for testuser1
@@ -57,12 +58,14 @@
       ansible.builtin.stat:
         path: /home/devuser1/.zshrc
       register: devuser1_zshrc
+      become: true
       become_user: devuser1
 
     - name: Check specific package deployment for devuser2 (should have tmux config)
       ansible.builtin.stat:
         path: /home/devuser2/.tmux.conf
       register: devuser2_tmuxconf
+      become: true
       become_user: devuser2
 
     - name: Verify package-specific configuration
@@ -111,6 +114,7 @@
       ansible.builtin.stat:
         path: /home/testuser1/.vimrc
       register: vimrc_symlink
+      become: true
       become_user: testuser1
 
     - name: Verify stowed files are proper symlinks
@@ -124,6 +128,7 @@
       ansible.builtin.command:
         cmd: readlink /home/testuser1/.vimrc
       register: symlink_target
+      become: true
       become_user: testuser1
       changed_when: false
 
@@ -142,6 +147,7 @@
         cmd: git status --porcelain
         chdir: /home/testuser1/dotfiles
       register: git_status
+      become: true
       become_user: testuser1
       changed_when: false
 
@@ -170,6 +176,7 @@
       ansible.builtin.stat:
         path: /home/testuser1/dotfiles
       register: dotfiles_dir_perms
+      become: true
       become_user: testuser1
 
     - name: Verify dotfiles directory permissions
@@ -190,6 +197,7 @@
         hidden: true
         file_type: link
       register: stowed_links
+      become: true
       become_user: testuser1
 
     - name: Verify package filtering worked correctly

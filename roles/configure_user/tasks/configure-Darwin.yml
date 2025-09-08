@@ -20,6 +20,7 @@
     type: "{{ item.type }}"
     value: "{{ item.value }}"
   notify: restart dock
+  become: true
   become_user: "{{ current_user_config.name }}"
   loop:
     - key: "tilesize"
@@ -46,6 +47,7 @@
     type: "{{ item.type }}"
     value: "{{ item.value }}"
   notify: restart finder
+  become: true
   become_user: "{{ current_user_config.name }}"
   loop:
     - key: "AppleShowAllExtensions"

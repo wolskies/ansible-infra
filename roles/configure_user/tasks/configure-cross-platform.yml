@@ -23,6 +23,7 @@
         value: "{{ current_user_config.git.editor }}"
         scope: global
       when: current_user_config.git.editor is defined
+  become: true
   become_user: "{{ current_user_config.name }}"
   when: current_user_config.git is defined
   tags:
@@ -48,6 +49,7 @@
         name: "{{ item }}"
         global: true
       loop: "{{ current_user_config.nodejs.packages }}"
+  become: true
   become_user: "{{ current_user_config.name }}"
   when:
     - current_user_config.nodejs is defined
@@ -76,6 +78,7 @@
       register: cargo_install
       changed_when: "'Installing' in cargo_install.stderr"
       loop: "{{ current_user_config.rust.packages }}"
+  become: true
   become_user: "{{ current_user_config.name }}"
   when:
     - current_user_config.rust is defined
@@ -104,6 +107,7 @@
       register: go_install
       changed_when: go_install.rc == 0
       loop: "{{ current_user_config.go.packages }}"
+  become: true
   become_user: "{{ current_user_config.name }}"
   when:
     - current_user_config.go is defined
