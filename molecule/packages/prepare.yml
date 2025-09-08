@@ -13,11 +13,12 @@
         name: nano
         state: present
 
-    - name: Ensure systemd is running
+    - name: Ensure systemd is running (skip in containers)
       ansible.builtin.service:
         name: systemd-resolved
         state: started
       ignore_errors: true
+      when: not (molecule_test | default(false))
 
     - name: Install GPG for key management
       ansible.builtin.package:
