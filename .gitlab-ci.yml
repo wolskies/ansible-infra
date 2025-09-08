@@ -18,6 +18,7 @@ variables:
 
 # Cache configuration for faster builds
 cache:
+  key: "v2-${CI_COMMIT_REF_SLUG}"
   paths:
     - .cache/pip
     # Note: .venv is NOT cached to avoid stale collection versions
@@ -106,6 +107,8 @@ test-quick:
     FF_NETWORK_PER_BUILD: "true"
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io make dnsutils
+    # Remove any stale .venv from old cache
+    - rm -rf .venv
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip install --upgrade pip
