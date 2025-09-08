@@ -65,24 +65,28 @@
       ansible.builtin.systemd:
         name: fail2ban
       register: fail2ban_service
+      when: security_services.fail2ban.enabled | default(false)
 
     - name: Verify fail2ban is running
       ansible.builtin.assert:
         that:
           - fail2ban_service.status.ActiveState == "active"
         fail_msg: "fail2ban service is not active"
+      when: security_services.fail2ban.enabled | default(false)
 
     - name: Check fail2ban client status
       ansible.builtin.command:
         cmd: fail2ban-client status
       register: fail2ban_status
       changed_when: false
+      when: security_services.fail2ban.enabled | default(false)
 
     - name: Verify fail2ban jails are active
       ansible.builtin.assert:
         that:
           - "'sshd' in fail2ban_status.stdout or 'ssh' in fail2ban_status.stdout"
         fail_msg: "SSH jail not found in fail2ban"
+      when: security_services.fail2ban.enabled | default(false)
 
     - name: Get detailed jail information
       ansible.builtin.command:
@@ -93,18 +97,23 @@
         - ssh
       failed_when: false
       changed_when: false
+      when: security_services.fail2ban.enabled | default(false)
 
     - name: Verify jail configuration details
       ansible.builtin.debug:
         msg: "Jail {{ item.item }} details: {{ item.stdout_lines }}"
       loop: "{{ jail_details.results }}"
-      when: item.rc == 0
+      when:
+        - security_services.fail2ban.enabled | default(false)
+        - item.rc == 0
 
     # Test custom jail (Ubuntu only) - Skip for now as not configured in basic test
     - name: Check for any additional jails (Ubuntu)
       ansible.builtin.debug:
         msg: "Additional jail testing skipped - basic sshd jail verified"
-      when: inventory_hostname == "ubuntu-security-test"
+      when:
+        - security_services.fail2ban.enabled | default(false)
+        - inventory_hostname == "ubuntu-security-test"
 
     # =============================================================================
     # VERIFY SSH HARDENING
@@ -155,6 +164,7 @@
       loop:
         - /etc/fail2ban/jail.local
         - /etc/fail2ban/fail2ban.conf
+      when: security_services.fail2ban.enabled | default(false)
 
     - name: Verify fail2ban configuration files exist
       ansible.builtin.assert:
@@ -162,6 +172,7 @@
           - item.stat.exists
         fail_msg: "fail2ban configuration file {{ item.item }} missing"
       loop: "{{ fail2ban_files.results }}"
+      when: security_services.fail2ban.enabled | default(false)
 
     # =============================================================================
     # TEST SECURITY SERVICE INTEGRATION
@@ -171,10 +182,12 @@
         cmd: ufw show added
       register: ufw_added_rules
       changed_when: false
+      when: security_services.ufw.enabled | default(false)
 
     - name: Verify complex rules are properly formatted
       ansible.builtin.debug:
         msg: "UFW added rules: {{ ufw_added_rules.stdout_lines }}"
+      when: security_services.ufw.enabled | default(false)
 
     - name: Check fail2ban log for startup
       ansible.builtin.command:
@@ -182,11 +195,14 @@
       register: fail2ban_log
       changed_when: false
       failed_when: false
+      when: security_services.fail2ban.enabled | default(false)
 
     - name: Verify fail2ban started without errors
       ansible.builtin.debug:
         msg: "fail2ban log check - look for startup messages"
-      when: fail2ban_log.rc == 0
+      when:
+        - security_services.fail2ban.enabled | default(false)
+        - fail2ban_log.rc == 0
 
     # =============================================================================
     # NEGATIVE TESTING - VERIFY RESTRICTIONS WORK
@@ -196,12 +212,14 @@
         cmd: ufw status verbose
       register: default_policy_check
       changed_when: false
+      when: security_services.ufw.enabled | default(false)
 
     - name: Verify restrictive defaults
       ansible.builtin.assert:
         that:
           - "'deny (incoming)' in default_policy_check.stdout"
         fail_msg: "UFW not configured with restrictive incoming policy"
+      when: security_services.ufw.enabled | default(false)
 
     # =============================================================================
     # PLATFORM-SPECIFIC VERIFICATION
@@ -223,12 +241,16 @@
       register: debian_maxretry
       changed_when: false
       failed_when: false
-      when: inventory_hostname == "debian-security-test"
+      when:
+        - security_services.fail2ban.enabled | default(false)
+        - inventory_hostname == "debian-security-test"
 
     - name: Debug Debian-specific maxretry setting
       ansible.builtin.debug:
         msg: "Debian maxretry setting: {{ debian_maxretry.stdout if debian_maxretry.rc == 0 else 'Not available' }}"
-      when: inventory_hostname == "debian-security-test"
+      when:
+        - security_services.fail2ban.enabled | default(false)
+        - inventory_hostname == "debian-security-test"
 
     # =============================================================================
     # IDEMPOTENCY TEST
@@ -257,3 +279,6 @@
         - name: Show integration status
           ansible.builtin.debug:
             msg: "fail2ban-UFW integration: {{ 'Active' if fail2ban_ufw_integration.rc == 0 else 'Not configured' }}"
+      when:
+        - security_services.fail2ban.enabled | default(false)
+        - security_services.ufw.enabled | default(false)

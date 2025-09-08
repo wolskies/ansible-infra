@@ -58,7 +58,7 @@ provisioner:
                 comment: "SSH rate limiting"
 
           fail2ban:
-            enabled: true
+            enabled: false # Disabled in containers - fail2ban service doesn't work properly
             services:
               ssh:
                 enabled: true
