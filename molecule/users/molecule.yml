@@ -43,6 +43,7 @@ provisioner:
         # Test comprehensive user management
         infrastructure:
           domain:
+            users_absent: []
             users:
               # Basic user
               - name: testuser1
@@ -81,6 +82,7 @@ provisioner:
         # Test different user configurations on Debian
         infrastructure:
           domain:
+            users_absent: []
             users:
               # Standard user
               - name: debianuser
