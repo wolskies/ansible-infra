@@ -14,6 +14,13 @@ platforms:
     command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
   inventory:
     group_vars:
       all:
@@ -22,11 +29,6 @@ provisioner:
         inventory_file: /tmp/test_inventory
         # Enable static filenames for idempotence testing
         molecule_test: true
-  config_options:
-    defaults:
-      host_key_checking: false
-      stdout_callback: ansible.builtin.default
-      stdout_callback_format: yaml
 scenario:
   test_sequence:
     - dependency

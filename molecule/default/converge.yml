@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Default scenario placeholder
+      ansible.builtin.debug:
+        msg: "This is a minimal default scenario for molecule shared state"

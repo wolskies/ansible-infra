@@ -127,6 +127,8 @@ provisioner:
 
   config_options:
     defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
       host_key_checking: false
       stdout_callback: ansible.builtin.default
       stdout_callback_format: yaml
