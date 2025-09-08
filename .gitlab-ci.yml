@@ -13,6 +13,8 @@ variables:
   # Docker connection resilience
   DOCKER_DRIVER: overlay2
   DOCKER_BUILDKIT: 1
+  # Use CI-specific Ansible configuration
+  ANSIBLE_CONFIG: "$CI_PROJECT_DIR/ansible-ci.cfg"
 
 # Cache configuration for faster builds
 cache:
