@@ -118,6 +118,8 @@ test-discovery:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
+    # Clean up any existing containers to avoid transient state issues
+    - molecule destroy -s discovery || true
     - molecule test -s discovery
     - echo "✅ Discovery role tests passed"
 
@@ -146,6 +148,8 @@ test-packages:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
+    # Clean up any existing containers to avoid transient state issues
+    - molecule destroy -s manage_packages || true
     - molecule test -s manage_packages
     - echo "✅ Package management tests passed"
 
@@ -174,6 +178,8 @@ test-os-configuration:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
+    # Clean up any existing containers to avoid transient state issues
+    - molecule destroy -s os_configuration || true
     - molecule test -s os_configuration
     - echo "✅ OS configuration tests passed"
 
@@ -202,6 +208,8 @@ test-users:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
+    # Clean up any existing containers to avoid transient state issues
+    - molecule destroy -s manage_users || true
     - molecule test -s manage_users
     - echo "✅ User management tests passed"
 
@@ -230,6 +238,8 @@ test-security-services:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
+    # Clean up any existing containers to avoid transient state issues
+    - molecule destroy -s manage_security_services || true
     - molecule test -s manage_security_services
     - echo "✅ Security services tests passed"
 
@@ -258,6 +268,8 @@ test-system-settings:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
   script:
+    # Clean up any existing containers to avoid transient state issues
+    - molecule destroy -s system_settings || true
     - molecule test -s system_settings
     - echo "✅ System settings tests passed"
 
