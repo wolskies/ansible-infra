@@ -48,13 +48,7 @@
 - name: Configure User Preferences
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.configure_user"
-  vars:
-    target_user: "{{ item.username }}"
-    current_user_config: "{{ item }}"
-  loop: "{{ users | default([]) | selectattr('state', 'equalto', 'present') | list }}"
-  when:
-    - users is defined
-    - item[ansible_distribution] is defined
+  when: infrastructure.domain.users is defined and infrastructure.domain.users | length > 0
   tags:
     - user-preferences
     - optional

@@ -1,7 +1,7 @@
 ---
 # Cross-platform user configuration (git, language packages)
 
-- name: Configure Git settings
+- name: Configure Git settings for {{ current_user_config.name }}
   block:
     - name: Set Git user name
       community.general.git_config:
@@ -23,11 +23,12 @@
         value: "{{ current_user_config.git.editor }}"
         scope: global
       when: current_user_config.git.editor is defined
+  become_user: "{{ current_user_config.name }}"
   when: current_user_config.git is defined
   tags:
     - git
 
-- name: Configure Node.js packages
+- name: Configure Node.js packages for {{ current_user_config.name }}
   block:
     - name: Check if npm is available
       ansible.builtin.command: command -v npm
@@ -47,6 +48,7 @@
         name: "{{ item }}"
         global: true
       loop: "{{ current_user_config.nodejs.packages }}"
+  become_user: "{{ current_user_config.name }}"
   when:
     - current_user_config.nodejs is defined
     - current_user_config.nodejs.packages is defined
@@ -54,7 +56,7 @@
     - nodejs
     - language-packages
 
-- name: Configure Rust packages
+- name: Configure Rust packages for {{ current_user_config.name }}
   block:
     - name: Check if cargo is available
       ansible.builtin.command: command -v cargo
@@ -74,6 +76,7 @@
       register: cargo_install
       changed_when: "'Installing' in cargo_install.stderr"
       loop: "{{ current_user_config.rust.packages }}"
+  become_user: "{{ current_user_config.name }}"
   when:
     - current_user_config.rust is defined
     - current_user_config.rust.packages is defined
@@ -81,7 +84,7 @@
     - rust
     - language-packages
 
-- name: Configure Go packages
+- name: Configure Go packages for {{ current_user_config.name }}
   block:
     - name: Check if go is available
       ansible.builtin.command: command -v go
@@ -101,6 +104,7 @@
       register: go_install
       changed_when: go_install.rc == 0
       loop: "{{ current_user_config.go.packages }}"
+  become_user: "{{ current_user_config.name }}"
   when:
     - current_user_config.go is defined
     - current_user_config.go.packages is defined

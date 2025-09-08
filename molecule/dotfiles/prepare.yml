@@ -1,0 +1,156 @@
+---
+- name: Prepare dotfiles test environment
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages for dotfiles testing
+      ansible.builtin.apt:
+        name:
+          - git
+          - stow
+          - curl
+          - wget
+          - vim
+          - zsh
+          - tmux
+          - bash
+        state: present
+      when: ansible_os_family == "Debian"
+
+    # Create test users for dotfiles testing
+    - name: Create test users for dotfiles configuration
+      ansible.builtin.user:
+        name: "{{ item }}"
+        create_home: true
+        shell: /bin/bash
+        state: present
+      loop:
+        - testuser1
+        - devuser1
+        - devuser2
+        - ubuntuuser
+        - debianuser
+
+    # Ensure Git is configured globally (required for clone operations)
+    - name: Configure global Git settings for testing
+      community.general.git_config:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        scope: system
+      loop:
+        - key: user.name
+          value: "Test User"
+        - key: user.email
+          value: "test@example.com"
+        - key: init.defaultBranch
+          value: "main"
+        - key: safe.directory
+          value: "/tmp/test-dotfiles"
+
+    # Create a local test dotfiles repository for faster/reliable testing
+    - name: Create local test dotfiles repository
+      ansible.builtin.file:
+        path: /tmp/test-dotfiles
+        state: directory
+        mode: "0755"
+
+    - name: Initialize test dotfiles repository
+      ansible.builtin.command:
+        cmd: git init --initial-branch=main
+        chdir: /tmp/test-dotfiles
+      changed_when: true
+
+    - name: Create dotfiles package directories
+      ansible.builtin.file:
+        path: "/tmp/test-dotfiles/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - vim
+        - git
+        - zsh
+        - tmux
+        - bash
+
+    - name: Create sample dotfiles structure
+      ansible.builtin.copy:
+        content: |
+          # Sample vimrc
+          set number
+          set autoindent
+          syntax on
+        dest: /tmp/test-dotfiles/vim/.vimrc
+        mode: "0644"
+      notify: add to git
+
+    - name: Create sample gitconfig
+      ansible.builtin.copy:
+        content: |
+          [core]
+              editor = vim
+          [color]
+              ui = auto
+        dest: /tmp/test-dotfiles/git/.gitconfig
+        mode: "0644"
+      notify: add to git
+
+    - name: Create sample zshrc
+      ansible.builtin.copy:
+        content: |
+          # Sample zshrc
+          autoload -U compinit
+          compinit
+
+          # Set prompt
+          PS1='%n@%m:%~$ '
+        dest: /tmp/test-dotfiles/zsh/.zshrc
+        mode: "0644"
+      notify: add to git
+
+    - name: Create sample tmux config
+      ansible.builtin.copy:
+        content: |
+          # Sample tmux.conf
+          set -g prefix C-a
+          unbind C-b
+          bind C-a send-prefix
+
+          # Enable mouse mode
+          set -g mouse on
+        dest: /tmp/test-dotfiles/tmux/.tmux.conf
+        mode: "0644"
+      notify: add to git
+
+    - name: Create sample bash config
+      ansible.builtin.copy:
+        content: |
+          # Sample bashrc additions
+          export EDITOR=vim
+          export HISTSIZE=10000
+
+          # Useful aliases
+          alias ll='ls -la'
+          alias grep='grep --color=auto'
+        dest: /tmp/test-dotfiles/bash/.bash_aliases
+        mode: "0644"
+      notify: add to git
+
+    # Flush handlers to commit files to git
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+  handlers:
+    - name: add to git
+      ansible.builtin.shell:
+        cmd: |
+          git add .
+          git commit -m "Add sample dotfiles for testing" || true
+        chdir: /tmp/test-dotfiles
+      changed_when: true

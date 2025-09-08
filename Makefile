@@ -41,7 +41,7 @@ test-failures: ## Run failure scenario tests (negative testing)
 .PHONY: test-comprehensive
 test-comprehensive: ## Run comprehensive integration tests (all scenarios)
 	@echo "🧪 Running comprehensive integration tests..."
-	@for scenario in discovery packages os_configuration users security system_settings; do \
+	@for scenario in discovery packages os_configuration users security system_settings configure_user; do \
 		echo "Testing scenario: $$scenario"; \
 		molecule test -s $$scenario; \
 	done
