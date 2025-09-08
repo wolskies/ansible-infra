@@ -211,3 +211,23 @@ stdout_callback_format: yaml
 ```
 
 This eliminates the deprecation warning while maintaining identical YAML-formatted output for molecule tests.
+
+### Critical Molecule Testing Limitations
+
+**Local vs CI Discrepancy**: Molecule's local behavior masks test failures that CI properly catches:
+
+- **Local**: `molecule test` shows `CRITICAL Ansible return code was 2` but returns exit code 0 (success)
+- **CI**: Same failures properly cause CI to fail with non-zero exit code
+
+**Why this happens**:
+- Molecule runs full test matrix (create, converge, verify, destroy)
+- Framework considers "test" successful if the matrix completes, even when converge fails
+- CI environments are more strict about non-zero exit codes from individual steps
+
+**Solutions**:
+1. **Always check molecule output manually** - look for `CRITICAL Ansible return code` messages
+2. **Use `molecule converge` during development** - fails immediately on converge errors
+3. **Don't rely on `molecule test` exit codes** for determining success locally
+4. **Test individual steps**: `molecule create && molecule converge` will fail properly
+
+**Lesson**: Local molecule testing provides false confidence - CI catches real failures.
