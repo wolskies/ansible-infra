@@ -8,20 +8,12 @@ stages:
 
 variables:
   ANSIBLE_FORCE_COLOR: "true"
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   FF_WAIT_FOR_POD_TO_BE_REACHABLE: 1
   # Docker connection resilience
   DOCKER_DRIVER: overlay2
   DOCKER_BUILDKIT: 1
   # Use CI-specific ansible.cfg to fix Docker-in-Docker temp directory issues
   ANSIBLE_CONFIG: "$CI_PROJECT_DIR/ansible-ci.cfg"
-
-# Cache configuration for faster builds
-cache:
-  key: "v2-${CI_COMMIT_REF_SLUG}"
-  paths:
-    - .cache/pip
-    # Note: .venv is NOT cached to avoid stale collection versions
 
 # YAML and Ansible validation
 yaml-validation:
