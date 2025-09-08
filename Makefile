@@ -39,9 +39,12 @@ test-failures: ## Run failure scenario tests (negative testing)
 	@echo "Skipping failure scenario tests..."
 
 .PHONY: test-comprehensive
-test-comprehensive: ## Run comprehensive integration tests
+test-comprehensive: ## Run comprehensive integration tests (all scenarios)
 	@echo "🧪 Running comprehensive integration tests..."
-	molecule test -s comprehensive-integration
+	@for scenario in discovery packages os_configuration users security system_settings; do \
+		echo "Testing scenario: $$scenario"; \
+		molecule test -s $$scenario; \
+	done
 
 .PHONY: test-quick
 test-quick: lint syntax-check ## Quick validation tests (fast feedback)
@@ -51,7 +54,8 @@ test-quick: lint syntax-check ## Quick validation tests (fast feedback)
 .PHONY: test-system
 test-system: ## Test core system provisioning functionality
 	@echo "🖥️  Running system provisioning tests..."
-	molecule test -s configure_system
+	molecule test -s os_configuration
+	molecule test -s system_settings
 
 .PHONY: test-template-edge-cases
 test-template-edge-cases: ## Test template edge cases
@@ -95,7 +99,9 @@ test-discovery: ## Run molecule tests for discovery role
 
 .PHONY: test-integration
 test-integration: ## Run integration tests with all roles
-	molecule test -s integration
+	molecule test -s users
+	molecule test -s packages
+	molecule test -s security
 
 .PHONY: ci-test
 ci-test: deps test-pre-commit test-failures test-system test-integration ## CI-style complete testing
