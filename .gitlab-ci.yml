@@ -54,18 +54,6 @@ pre-commit-checks:
     - echo "✅ Pre-commit checks completed"
   allow_failure: true
 
-# Quick validation tests (lint + syntax only)
-test-quick:
-  stage: test
-  image: python:3.13-slim
-  script:
-    - apt-get update -qq && apt-get install -y -qq make ansible yamllint python3-pip
-    - pip install --break-system-packages ansible-lint
-    - ansible-galaxy collection install -r requirements.yml --force
-    - make lint
-    - make syntax-check
-    - echo "✅ Quick validation tests passed"
-
 # Template for molecule test jobs
 .molecule_test_template:
   image: python:3.13-slim
