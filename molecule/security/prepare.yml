@@ -14,12 +14,13 @@
         name: openssh-server
         state: present
 
-    - name: Start SSH service for testing
+    - name: Start SSH service for testing (skip in containers)
       ansible.builtin.systemd:
         name: ssh
         state: started
         enabled: true
       failed_when: false # May not work in container
+      when: not (molecule_test | default(false))
 
     # Create log files that fail2ban expects
     - name: Create auth.log if it doesn't exist
