@@ -44,10 +44,11 @@
       become: true
       when: npm_check.rc != 0
 
-    - name: Install Node.js packages globally
+    - name: Install Node.js packages for user
       community.general.npm:
         name: "{{ item }}"
-        global: true
+        global: false
+        path: "/home/{{ current_user_config.name }}"
       loop: "{{ current_user_config.nodejs.packages }}"
   become: true
   become_user: "{{ current_user_config.name }}"
@@ -58,26 +59,51 @@
     - nodejs
     - language-packages
 
-- name: Configure Rust packages for {{ current_user_config.name }}
-  block:
-    - name: Check if cargo is available
-      ansible.builtin.command: command -v cargo
-      register: cargo_check
-      failed_when: false
-      changed_when: false
+- name: Check if cargo is available for {{ current_user_config.name }}
+  ansible.builtin.command: command -v cargo
+  register: cargo_check
+  become: true
+  become_user: "{{ current_user_config.name }}"
+  failed_when: false
+  changed_when: false
+  when:
+    - current_user_config.rust is defined
+    - current_user_config.rust.packages is defined
+  tags:
+    - rust
+    - language-packages
 
-    - name: Install Rust toolchain if cargo missing
-      ansible.builtin.package:
-        name: rustup
-        state: present
-      become: true
-      when: cargo_check.rc != 0
+- name: Install Rust toolchain if cargo missing
+  ansible.builtin.package:
+    name: "{{ ['rustup'] if ansible_distribution == 'Ubuntu' else ['rustc', 'cargo'] }}"
+    state: present
+  become: true
+  when:
+    - current_user_config.rust is defined
+    - current_user_config.rust.packages is defined
+    - cargo_check.rc != 0
+  tags:
+    - rust
+    - language-packages
 
-    - name: Install Rust packages
-      ansible.builtin.command: cargo install {{ item }}
-      register: cargo_install
-      changed_when: "'Installing' in cargo_install.stderr"
-      loop: "{{ current_user_config.rust.packages }}"
+- name: Initialize rustup toolchain for {{ current_user_config.name }}
+  ansible.builtin.command: rustup default stable
+  become: true
+  become_user: "{{ current_user_config.name }}"
+  when:
+    - current_user_config.rust is defined
+    - current_user_config.rust.packages is defined
+    - cargo_check.rc != 0
+    - ansible_distribution == 'Ubuntu'
+  tags:
+    - rust
+    - language-packages
+
+- name: Install Rust packages for {{ current_user_config.name }}
+  ansible.builtin.command: cargo install {{ item }}
+  register: cargo_install
+  changed_when: "'Installing' in cargo_install.stderr"
+  loop: "{{ current_user_config.rust.packages }}"
   become: true
   become_user: "{{ current_user_config.name }}"
   when:
@@ -87,26 +113,38 @@
     - rust
     - language-packages
 
-- name: Configure Go packages for {{ current_user_config.name }}
-  block:
-    - name: Check if go is available
-      ansible.builtin.command: command -v go
-      register: go_check
-      failed_when: false
-      changed_when: false
+- name: Check if go is available for {{ current_user_config.name }}
+  ansible.builtin.command: command -v go
+  register: go_check
+  become: true
+  become_user: "{{ current_user_config.name }}"
+  failed_when: false
+  changed_when: false
+  when:
+    - current_user_config.go is defined
+    - current_user_config.go.packages is defined
+  tags:
+    - go
+    - language-packages
 
-    - name: Install Go if missing
-      ansible.builtin.package:
-        name: golang
-        state: present
-      become: true
-      when: go_check.rc != 0
+- name: Install Go if missing
+  ansible.builtin.package:
+    name: golang
+    state: present
+  become: true
+  when:
+    - current_user_config.go is defined
+    - current_user_config.go.packages is defined
+    - go_check.rc != 0
+  tags:
+    - go
+    - language-packages
 
-    - name: Install Go packages
-      ansible.builtin.command: go install {{ item }}
-      register: go_install
-      changed_when: go_install.rc == 0
-      loop: "{{ current_user_config.go.packages }}"
+- name: Install Go packages for {{ current_user_config.name }}
+  ansible.builtin.command: go install {{ item }}
+  register: go_install
+  changed_when: go_install.rc == 0
+  loop: "{{ current_user_config.go.packages }}"
   become: true
   become_user: "{{ current_user_config.name }}"
   when:

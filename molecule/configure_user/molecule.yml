@@ -87,6 +87,7 @@ provisioner:
                 git:
                   user_name: "Test User One"
                   user_email: "testuser1@example.com"
+                  editor: "vim"
                 Ubuntu:
                   shell: /bin/bash
               - name: shelluser
@@ -96,6 +97,36 @@ provisioner:
                   user_email: "shell@example.com"
                 Ubuntu:
                   shell: /bin/zsh
+              # Include devuser from group_vars for language package testing
+              - name: devuser
+                comment: "Developer User"
+                git:
+                  user_name: "Developer User"
+                  user_email: "dev@example.com"
+                nodejs:
+                  packages: [eslint, prettier]
+                rust:
+                  packages: [ripgrep]
+                go:
+                  packages: [github.com/charmbracelet/glow@latest]
+              # Include dotfilesuser for dotfiles structure testing
+              - name: dotfilesuser
+                comment: "Dotfiles Test User"
+                git:
+                  user_name: "Dotfiles User"
+                  user_email: "dotfiles@example.com"
+                dotfiles:
+                  enable: false # Skip in container test
+                  repository: "https://github.com/example/dotfiles"
+                  method: "stow"
+                  packages: [zsh, vim]
+                  branch: "main"
+              # Root user for skip testing
+              - name: root
+                comment: "Root user - should be skipped"
+                git:
+                  user_name: "Root User"
+                  user_email: "root@example.com"
 
       debian-configure-user-test:
         # Test Debian-specific user configuration
@@ -108,6 +139,7 @@ provisioner:
                 git:
                   user_name: "Test User One"
                   user_email: "testuser1@example.com"
+                  editor: "vim"
                 Debian:
                   shell: /bin/bash
               - name: shelluser
@@ -117,5 +149,35 @@ provisioner:
                   user_email: "shell@example.com"
                 Debian:
                   shell: /bin/dash
+              # Include devuser from group_vars for language package testing
+              - name: devuser
+                comment: "Developer User"
+                git:
+                  user_name: "Developer User"
+                  user_email: "dev@example.com"
+                nodejs:
+                  packages: [eslint, prettier]
+                rust:
+                  packages: [ripgrep]
+                go:
+                  packages: [github.com/charmbracelet/glow@latest]
+              # Include dotfilesuser for dotfiles structure testing
+              - name: dotfilesuser
+                comment: "Dotfiles Test User"
+                git:
+                  user_name: "Dotfiles User"
+                  user_email: "dotfiles@example.com"
+                dotfiles:
+                  enable: false # Skip in container test
+                  repository: "https://github.com/example/dotfiles"
+                  method: "stow"
+                  packages: [zsh, vim]
+                  branch: "main"
+              # Root user for skip testing
+              - name: root
+                comment: "Root user - should be skipped"
+                git:
+                  user_name: "Root User"
+                  user_email: "root@example.com"
 verifier:
   name: ansible
