@@ -40,7 +40,7 @@
       register: ntp_enable_result
       changed_when: "'Network Time' in ntp_enable_result.stderr or ntp_enable_result.rc == 0"
       when:
-        - infrastructure.domain.ntp.enabled
+        - infrastructure.domain.ntp.enabled | default(false)
 
     - name: Set NTP server (first server from list)
       ansible.builtin.command: "systemsetup -setnetworktimeserver {{ infrastructure.domain.ntp.servers[0] }}"
@@ -48,8 +48,8 @@
       register: ntp_server_result
       changed_when: ntp_server_result.rc == 0
       when:
-        - infrastructure.domain.ntp.enabled
-        - infrastructure.domain.ntp.servers | length > 0
+        - infrastructure.domain.ntp.enabled | default(false)
+        - infrastructure.domain.ntp.servers | default([]) | length > 0
         - infrastructure.domain.ntp.servers[0] not in current_ntp_server.stdout
 
     - name: Disable network time synchronization
@@ -58,7 +58,9 @@
       register: ntp_disable_result
       changed_when: "'Network Time' in ntp_disable_result.stderr or ntp_disable_result.rc == 0"
       when:
-        - not infrastructure.domain.ntp.enabled
+        - not (infrastructure.domain.ntp.enabled | default(false))
+  when:
+    - infrastructure.domain.ntp is defined
   tags:
     - ntp
     - time

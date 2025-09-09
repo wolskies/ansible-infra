@@ -134,7 +134,6 @@ infrastructure:
     hostname: ""
     domain: "local"
     timezone: "America/New_York"
-    computer_name: "MacBook Pro"
 
     # macOS updates
     updates:

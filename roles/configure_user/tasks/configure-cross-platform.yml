@@ -92,6 +92,8 @@
     RUSTUP_HOME: /usr/local/rustup
     CARGO_HOME: /usr/local/cargo
   become: true
+  register: rust_install
+  changed_when: rust_install.rc == 0
   when:
     - current_user_config.rust.packages | default([]) | length > 0
     - cargo_check is defined
@@ -120,6 +122,8 @@
     RUSTUP_HOME: /usr/local/rustup
     CARGO_HOME: /usr/local/cargo
   become: true
+  register: rustup_default
+  changed_when: "'info: using existing install' not in rustup_default.stderr"
   when:
     - current_user_config.rust.packages | default([]) | length > 0
     - cargo_check is defined
