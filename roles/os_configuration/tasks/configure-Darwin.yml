@@ -30,7 +30,6 @@
         - infrastructure.host is defined
         - infrastructure.host.hostname is defined
         - infrastructure.host.hostname | length > 0
-        - infrastructure.domain is defined
         - infrastructure.domain.name is defined
         - infrastructure.domain.name | length > 0
         - current_hostname.rc != 0 or current_hostname.stdout != (infrastructure.host.hostname + '.' + infrastructure.domain.name)
@@ -64,7 +63,6 @@
         type: string
         value: "{{ infrastructure.domain.locale.split('.')[0] }}"
       when:
-        - infrastructure.domain is defined
         - infrastructure.domain.locale is defined
       notify: restart cfprefsd
 
@@ -76,7 +74,6 @@
         value:
           - "{{ infrastructure.domain.language.split('.')[0] }}"
       when:
-        - infrastructure.domain is defined
         - infrastructure.domain.language is defined
       notify: restart cfprefsd
   tags:
@@ -98,7 +95,6 @@
       register: ntp_enable_result
       changed_when: "'Network Time' in ntp_enable_result.stderr or ntp_enable_result.rc == 0"
       when:
-        - infrastructure.domain is defined
         - infrastructure.domain.ntp is defined
         - infrastructure.domain.ntp.enabled is defined
         - infrastructure.domain.ntp.enabled
@@ -109,7 +105,6 @@
       register: ntp_server_result
       changed_when: ntp_server_result.rc == 0
       when:
-        - infrastructure.domain is defined
         - infrastructure.domain.ntp is defined
         - infrastructure.domain.ntp.enabled is defined
         - infrastructure.domain.ntp.enabled
@@ -123,7 +118,6 @@
       register: ntp_disable_result
       changed_when: "'Network Time' in ntp_disable_result.stderr or ntp_disable_result.rc == 0"
       when:
-        - infrastructure.domain is defined
         - infrastructure.domain.ntp is defined
         - infrastructure.domain.ntp.enabled is defined
         - not infrastructure.domain.ntp.enabled
