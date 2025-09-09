@@ -5,7 +5,7 @@
     state: present
   become: true
   when:
-    - infrastructure.domain.locale is defined
+    - infrastructure.domain.locale | length > 0
 
 - name: Configure system language
   ansible.builtin.lineinfile:
@@ -15,7 +15,7 @@
     create: true
   become: true
   when:
-    - infrastructure.domain.language is defined
+    - infrastructure.domain.language | length > 0
 
 - name: Configure NTP time synchronization
   block:
@@ -37,8 +37,7 @@
       become: true
       notify: restart timesyncd
   when:
-    - infrastructure.domain.ntp is defined
-    - infrastructure.domain.ntp.enabled
+    - infrastructure.domain.ntp.enabled | default(false)
   tags:
     - ntp
     - time
@@ -64,7 +63,7 @@
       become: true
       notify: restart journald
   when:
-    - infrastructure.host.journal.configure
+    - infrastructure.host.journal.configure | default(false)
     - ansible_service_mgr == "systemd"
   tags:
     - journal
@@ -87,8 +86,8 @@
       when: rsyslog_installed.stat.exists
       notify: restart rsyslog
   when:
-    - infrastructure.host.rsyslog.enabled
-    - infrastructure.host.rsyslog.remote_host | length > 0
+    - infrastructure.host.rsyslog.enabled | default(false)
+    - infrastructure.host.rsyslog.remote_host | default('') | length > 0
   tags:
     - rsyslog
     - logging
@@ -100,22 +99,22 @@
         name: "{{ item }}"
         enabled: true
         state: started
-      loop: "{{ infrastructure.host.services.enable }}"
+      loop: "{{ infrastructure.host.services.enable | default([]) }}"
       become: true
       failed_when: false
       when:
-        - infrastructure.host.services.enable | length > 0
+        - infrastructure.host.services.enable | default([]) | length > 0
 
     - name: Disable unnecessary services
       ansible.builtin.systemd:
         name: "{{ item }}"
         enabled: false
         state: stopped
-      loop: "{{ infrastructure.host.services.disable }}"
+      loop: "{{ infrastructure.host.services.disable | default([]) }}"
       become: true
       failed_when: false
       when:
-        - infrastructure.host.services.disable | length > 0
+        - infrastructure.host.services.disable | default([]) | length > 0
 
     - name: Configure vm.swappiness
       ansible.posix.sysctl:
@@ -125,7 +124,7 @@
         reload: true
       become: true
       when:
-        - infrastructure.host.optimizations.tune_swappiness
+        - infrastructure.host.optimizations.tune_swappiness | default(false)
   tags:
     - optimization
     - services
@@ -137,10 +136,10 @@
     state: present
     sysctl_file: "/etc/sysctl.d/99-ansible-managed.conf"
     reload: true
-  loop: "{{ infrastructure.host.sysctl.parameters | dict2items }}"
+  loop: "{{ infrastructure.host.sysctl.parameters | default({}) | dict2items }}"
   become: true
   when:
-    - infrastructure.host.sysctl.parameters | length > 0
+    - infrastructure.host.sysctl.parameters | default({}) | length > 0
   tags:
     - sysctl
     - kernel
@@ -151,10 +150,10 @@
     limit_type: "{{ item.limit_type }}"
     limit_item: "{{ item.limit_item }}"
     value: "{{ item.value }}"
-  loop: "{{ infrastructure.host.limits.limits }}"
+  loop: "{{ infrastructure.host.limits.limits | default([]) }}"
   become: true
   when:
-    - infrastructure.host.limits.limits | length > 0
+    - infrastructure.host.limits.limits | default([]) | length > 0
   tags:
     - limits
     - pam
@@ -165,10 +164,10 @@
     line: "{{ item }}"
     create: true
     mode: "0644"
-  loop: "{{ infrastructure.host.modules.load }}"
+  loop: "{{ infrastructure.host.modules.load | default([]) }}"
   become: true
   when:
-    - infrastructure.host.modules.load | length > 0
+    - infrastructure.host.modules.load | default([]) | length > 0
   tags:
     - modules
     - kernel
@@ -179,10 +178,10 @@
     line: "blacklist {{ item }}"
     create: true
     mode: "0644"
-  loop: "{{ infrastructure.host.modules.blacklist }}"
+  loop: "{{ infrastructure.host.modules.blacklist | default([]) }}"
   become: true
   when:
-    - infrastructure.host.modules.blacklist | length > 0
+    - infrastructure.host.modules.blacklist | default([]) | length > 0
   tags:
     - modules
     - kernel

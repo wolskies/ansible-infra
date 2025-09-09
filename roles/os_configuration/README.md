@@ -44,7 +44,6 @@ infrastructure:
 
   host:
     hostname: ""                    # Individual hostname (empty = keep current)
-    computer_name: ""               # macOS computer name (Darwin only)
     update_hosts: true              # Update /etc/hosts with hostname
 
     # systemd journal configuration (Linux)
@@ -179,7 +178,6 @@ infrastructure:
         timezone: "America/Los_Angeles"
       host:
         hostname: "MacBook-Pro"
-        computer_name: "MacBook Pro"
         packages:
           macosx:
             updates:
