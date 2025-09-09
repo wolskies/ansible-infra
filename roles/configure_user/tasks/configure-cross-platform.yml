@@ -117,6 +117,21 @@
     - rust
     - language-packages
 
+- name: Initialize rustup default toolchain if cargo missing
+  ansible.builtin.command: /usr/local/cargo/bin/rustup default stable
+  environment:
+    RUSTUP_HOME: /usr/local/rustup
+    CARGO_HOME: /usr/local/cargo
+  become: true
+  when:
+    - current_user_config.rust is defined
+    - current_user_config.rust.packages is defined
+    - cargo_check.rc != 0
+  changed_when: true
+  tags:
+    - rust
+    - language-packages
+
 - name: Install Rust packages for {{ current_user_config.name }}
   ansible.builtin.command: /usr/local/cargo/bin/cargo install {{ item }}
   register: cargo_install
@@ -125,6 +140,7 @@
   become: true
   become_user: "{{ current_user_config.name }}"
   environment:
+    RUSTUP_HOME: /usr/local/rustup
     CARGO_HOME: "/home/{{ current_user_config.name }}/.cargo"
     PATH: "/usr/local/cargo/bin:{{ ansible_env.PATH }}"
   when:
