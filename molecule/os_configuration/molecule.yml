@@ -27,6 +27,8 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
+        # Future-proof ansible_managed deprecation
+        ansible_managed: "Managed by Ansible - do not edit manually"
         # Test OS configuration using infrastructure structure
         infrastructure:
           domain:

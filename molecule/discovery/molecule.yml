@@ -29,6 +29,8 @@ provisioner:
         inventory_file: /tmp/test_inventory
         # Enable static filenames for idempotence testing
         molecule_test: true
+        # Future-proof ansible_managed deprecation
+        ansible_managed: "Managed by Ansible - do not edit manually"
 scenario:
   test_sequence:
     - dependency
