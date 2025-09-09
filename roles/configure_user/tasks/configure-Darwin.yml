@@ -7,9 +7,7 @@
     shell: "{{ current_user_config.Darwin.shell }}"
   become: true
   when:
-    - current_user_config.Darwin is defined
-    - current_user_config.Darwin.shell is defined
-    - current_user_config.Darwin.shell | length > 0
+    - current_user_config.Darwin.shell | default('') | length > 0
   tags:
     - shell
 
@@ -33,7 +31,6 @@
       type: "bool"
       value: "{{ current_user_config.Darwin.dock.minimize_to_application | default(false) }}"
   when:
-    - current_user_config.Darwin is defined
     - current_user_config.Darwin.dock is defined
     - item.value is defined
   tags:
@@ -60,7 +57,6 @@
       type: "bool"
       value: "{{ current_user_config.Darwin.finder.show_pathbar | default(true) }}"
   when:
-    - current_user_config.Darwin is defined
     - current_user_config.Darwin.finder is defined
     - item.value is defined
   tags:

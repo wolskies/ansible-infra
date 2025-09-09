@@ -1,10 +1,20 @@
 ---
+- name: Configure system hostname
+  ansible.builtin.hostname:
+    name: "{{ infrastructure.host.hostname }}"
+  become: true
+  when:
+    - infrastructure.host.hostname | length > 0
+    - not (molecule_test | default(false)) # Skip in molecule container tests
+  tags:
+    - hostname
+    - os-configuration
+
 - name: Set system timezone
   community.general.timezone:
     name: "{{ infrastructure.domain.timezone }}"
   become: true
   when:
-    - infrastructure.domain.timezone is defined
     - infrastructure.domain.timezone | length > 0
   tags:
     - timezone
@@ -30,11 +40,9 @@
         create: false
       become: true
   when:
-    - infrastructure.host.update_hosts is defined
-    - infrastructure.host.update_hosts
-    - infrastructure.host.hostname is defined
+    - infrastructure.host.update_hosts | default(false)
     - infrastructure.host.hostname | length > 0
-    - infrastructure.domain.name is defined
+    - infrastructure.domain.name | length > 0
 
 - name: Include OS-specific configuration
   ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml

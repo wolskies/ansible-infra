@@ -48,7 +48,7 @@
 - name: Configure User Preferences
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.configure_user"
-  when: infrastructure.domain.users is defined and infrastructure.domain.users | length > 0
+  when: infrastructure.domain.users | length > 0
   tags:
     - user-preferences
     - optional

@@ -1,13 +1,4 @@
 ---
-- name: Configure hostname
-  ansible.builtin.hostname:
-    name: "{{ infrastructure.host.hostname }}"
-  when:
-    - infrastructure.host is defined
-    - infrastructure.host.hostname is defined
-    - infrastructure.host.hostname | length > 0
-    - not (molecule_test | default(false)) # Skip in molecule container tests
-
 - name: Configure system locale
   community.general.locale_gen:
     name: "{{ infrastructure.domain.locale }}"
@@ -47,7 +38,6 @@
       notify: restart timesyncd
   when:
     - infrastructure.domain.ntp is defined
-    - infrastructure.domain.ntp.enabled is defined
     - infrastructure.domain.ntp.enabled
   tags:
     - ntp
@@ -74,9 +64,6 @@
       become: true
       notify: restart journald
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.journal is defined
-    - infrastructure.host.journal.configure is defined
     - infrastructure.host.journal.configure
     - ansible_service_mgr == "systemd"
   tags:
@@ -100,11 +87,7 @@
       when: rsyslog_installed.stat.exists
       notify: restart rsyslog
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.rsyslog is defined
-    - infrastructure.host.rsyslog.enabled is defined
     - infrastructure.host.rsyslog.enabled
-    - infrastructure.host.rsyslog.remote_host is defined
     - infrastructure.host.rsyslog.remote_host | length > 0
   tags:
     - rsyslog
@@ -121,9 +104,6 @@
       become: true
       failed_when: false
       when:
-        - infrastructure.host is defined
-        - infrastructure.host.services is defined
-        - infrastructure.host.services.enable is defined
         - infrastructure.host.services.enable | length > 0
 
     - name: Disable unnecessary services
@@ -135,9 +115,6 @@
       become: true
       failed_when: false
       when:
-        - infrastructure.host is defined
-        - infrastructure.host.services is defined
-        - infrastructure.host.services.disable is defined
         - infrastructure.host.services.disable | length > 0
 
     - name: Configure vm.swappiness
@@ -148,9 +125,6 @@
         reload: true
       become: true
       when:
-        - infrastructure.host is defined
-        - infrastructure.host.optimizations is defined
-        - infrastructure.host.optimizations.tune_swappiness is defined
         - infrastructure.host.optimizations.tune_swappiness
   tags:
     - optimization
@@ -166,9 +140,6 @@
   loop: "{{ infrastructure.host.sysctl.parameters | dict2items }}"
   become: true
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.sysctl is defined
-    - infrastructure.host.sysctl.parameters is defined
     - infrastructure.host.sysctl.parameters | length > 0
   tags:
     - sysctl
@@ -183,9 +154,6 @@
   loop: "{{ infrastructure.host.limits.limits }}"
   become: true
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.limits is defined
-    - infrastructure.host.limits.limits is defined
     - infrastructure.host.limits.limits | length > 0
   tags:
     - limits
@@ -200,9 +168,6 @@
   loop: "{{ infrastructure.host.modules.load }}"
   become: true
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.modules is defined
-    - infrastructure.host.modules.load is defined
     - infrastructure.host.modules.load | length > 0
   tags:
     - modules
@@ -217,9 +182,6 @@
   loop: "{{ infrastructure.host.modules.blacklist }}"
   become: true
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.modules is defined
-    - infrastructure.host.modules.blacklist is defined
     - infrastructure.host.modules.blacklist | length > 0
   tags:
     - modules

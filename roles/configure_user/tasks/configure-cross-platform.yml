@@ -53,8 +53,7 @@
   become: true
   become_user: "{{ current_user_config.name }}"
   when:
-    - current_user_config.nodejs is defined
-    - current_user_config.nodejs.packages is defined
+    - current_user_config.nodejs.packages | default([]) | length > 0
   tags:
     - nodejs
     - language-packages
@@ -67,8 +66,7 @@
   failed_when: false
   changed_when: false
   when:
-    - current_user_config.rust is defined
-    - current_user_config.rust.packages is defined
+    - current_user_config.rust.packages | default([]) | length > 0
   tags:
     - rust
     - language-packages
@@ -80,8 +78,7 @@
     mode: "0755"
   become: true
   when:
-    - current_user_config.rust is defined
-    - current_user_config.rust.packages is defined
+    - current_user_config.rust.packages | default([]) | length > 0
     - cargo_check is defined
     - cargo_check.rc != 0
   tags:
@@ -96,8 +93,7 @@
     CARGO_HOME: /usr/local/cargo
   become: true
   when:
-    - current_user_config.rust is defined
-    - current_user_config.rust.packages is defined
+    - current_user_config.rust.packages | default([]) | length > 0
     - cargo_check is defined
     - cargo_check.rc != 0
   tags:
@@ -111,8 +107,7 @@
     create: true
   become: true
   when:
-    - current_user_config.rust is defined
-    - current_user_config.rust.packages is defined
+    - current_user_config.rust.packages | default([]) | length > 0
     - cargo_check is defined
     - cargo_check.rc != 0
   tags:
@@ -126,8 +121,7 @@
     CARGO_HOME: /usr/local/cargo
   become: true
   when:
-    - current_user_config.rust is defined
-    - current_user_config.rust.packages is defined
+    - current_user_config.rust.packages | default([]) | length > 0
     - cargo_check is defined
     - cargo_check.rc != 0
   tags:
@@ -146,8 +140,7 @@
     CARGO_HOME: "/home/{{ current_user_config.name }}/.cargo"
     PATH: "/usr/local/cargo/bin:{{ ansible_env.PATH }}"
   when:
-    - current_user_config.rust is defined
-    - current_user_config.rust.packages is defined
+    - current_user_config.rust.packages | default([]) | length > 0
   tags:
     - rust
     - language-packages
@@ -160,8 +153,7 @@
   failed_when: false
   changed_when: false
   when:
-    - current_user_config.go is defined
-    - current_user_config.go.packages is defined
+    - current_user_config.go.packages | default([]) | length > 0
   tags:
     - go
     - language-packages
@@ -172,8 +164,7 @@
     state: present
   become: true
   when:
-    - current_user_config.go is defined
-    - current_user_config.go.packages is defined
+    - current_user_config.go.packages | default([]) | length > 0
     - go_check is defined
     - go_check.rc != 0
   tags:
@@ -188,8 +179,7 @@
   become: true
   become_user: "{{ current_user_config.name }}"
   when:
-    - current_user_config.go is defined
-    - current_user_config.go.packages is defined
+    - current_user_config.go.packages | default([]) | length > 0
   tags:
     - go
     - language-packages
