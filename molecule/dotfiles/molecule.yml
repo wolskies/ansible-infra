@@ -34,6 +34,8 @@ provisioner:
       all:
         # Enable consistent behavior for molecule tests
         molecule_test: true
+        # Future-proof ansible_managed deprecation
+        ansible_managed: "Managed by Ansible - do not edit manually"
 
         # Test single user dotfiles configuration
         dotfiles_single_user:

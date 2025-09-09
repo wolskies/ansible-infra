@@ -34,6 +34,8 @@ provisioner:
       all:
         # Enable consistent behavior for molecule tests
         molecule_test: true
+        # Future-proof ansible_managed deprecation
+        ansible_managed: "Managed by Ansible - do not edit manually"
         # Comprehensive user configuration for testing
         infrastructure:
           domain:
