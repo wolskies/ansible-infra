@@ -187,15 +187,12 @@ test-configure-user:
     - molecule test -s configure_user
     - echo "✅ Configure user tests passed"
 
-# TEMPORARILY DISABLED: test-dotfiles
-# Git security issues in Docker containers require additional work
-# Re-enable after fixing container Git ownership issues
-# test-dotfiles:
-#   extends: .molecule_test_template
-#   stage: test
-#   script:
-#     - molecule test -s dotfiles
-#     - echo "✅ Dotfiles role tests passed"
+test-dotfiles:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - molecule test -s dotfiles
+    - echo "✅ Dotfiles role tests passed"
 
 # REMOVED: test-language-packages - functionality moved to configure_user role
 # Language package management is now handled per-user in configure_user role

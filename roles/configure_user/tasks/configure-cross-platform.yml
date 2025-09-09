@@ -73,15 +73,30 @@
     - rust
     - language-packages
 
-- name: Install Rust toolchain if cargo missing
+- name: Install Rust toolchain if cargo missing (Ubuntu)
   ansible.builtin.package:
-    name: "{{ ['rustup'] if ansible_distribution == 'Ubuntu' else ['rustc', 'cargo'] }}"
+    name: rustup
     state: present
   become: true
   when:
     - current_user_config.rust is defined
     - current_user_config.rust.packages is defined
     - cargo_check.rc != 0
+    - ansible_distribution == 'Ubuntu'
+  tags:
+    - rust
+    - language-packages
+
+- name: Install Rust toolchain if cargo missing (Debian - use rustup script)
+  ansible.builtin.shell: |
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source /root/.cargo/env
+  become: true
+  when:
+    - current_user_config.rust is defined
+    - current_user_config.rust.packages is defined
+    - cargo_check.rc != 0
+    - ansible_distribution == 'Debian'
   tags:
     - rust
     - language-packages
@@ -94,13 +109,14 @@
     - current_user_config.rust is defined
     - current_user_config.rust.packages is defined
     - cargo_check.rc != 0
-    - ansible_distribution == 'Ubuntu'
   tags:
     - rust
     - language-packages
 
 - name: Install Rust packages for {{ current_user_config.name }}
-  ansible.builtin.command: cargo install {{ item }}
+  ansible.builtin.shell: |
+    source ~/.cargo/env 2>/dev/null || source /root/.cargo/env 2>/dev/null || true
+    cargo install {{ item }}
   register: cargo_install
   changed_when: "'Installing' in cargo_install.stderr"
   loop: "{{ current_user_config.rust.packages }}"
