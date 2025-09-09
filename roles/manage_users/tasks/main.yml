@@ -1,4 +1,11 @@
 ---
+- name: Debug - Skip ansible_user for safety
+  ansible.builtin.debug:
+    msg: "Skipping user management for ansible_user '{{ ansible_user | default('undefined') }}' to prevent connection loss"
+  when:
+    - ansible_user is defined
+    - infrastructure.domain.users | selectattr('name', 'equalto', ansible_user) | list | length > 0
+
 - name: Add users to system
   become: true
   ansible.builtin.user:
@@ -18,7 +25,10 @@
     groups: "{{ item.groups | default(omit) }}"
     append: true
   loop: "{{ infrastructure.domain.users }}"
-  when: infrastructure.domain.users | length > 0
+  when:
+    - infrastructure.domain.users | length > 0
+    - item.name != (ansible_user | default(''))
+    - item.name != 'root'
 
 - name: Add SSH public keys for users
   become: true
@@ -29,6 +39,8 @@
   loop: "{{ infrastructure.domain.users }}"
   when:
     - infrastructure.domain.users | length > 0
+    - item.name != (ansible_user | default(''))
+    - item.name != 'root'
     - item.state | default('present') == 'present'
     - item.ssh_pubkey is defined
     - item.ssh_pubkey is not none

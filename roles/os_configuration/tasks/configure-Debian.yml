@@ -6,7 +6,7 @@
     snap_management_action: "purge"
     snap_purge_confirm: "{{ infrastructure.host.snap.remove_completely | default(false) }}"
   when:
-    - infrastructure.host.snap.remove_completely
+    - infrastructure.host.snap.remove_completely | default(false)
   tags:
     - snap
     - cleanup
@@ -20,7 +20,7 @@
     mode: "0644"
   become: true
   when:
-    - infrastructure.host.packages.apt.unattended_upgrades.enabled
+    - infrastructure.host.packages.apt.unattended_upgrades.enabled | default(false)
   tags:
     - updates
     - security
@@ -38,7 +38,7 @@
         mode: "0644"
       become: true
       when:
-        - infrastructure.host.packages.apt.no_recommends
+        - infrastructure.host.packages.apt.no_recommends | default(false)
 
     - name: Configure APT proxy
       ansible.builtin.copy:
@@ -51,7 +51,7 @@
         mode: "0644"
       become: true
       when:
-        - infrastructure.host.packages.apt.proxy | length > 0
+        - infrastructure.host.packages.apt.proxy | default('') | length > 0
   tags:
     - apt
     - packages
