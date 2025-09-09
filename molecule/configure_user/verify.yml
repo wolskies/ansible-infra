@@ -34,9 +34,10 @@
     # =============================================================================
     # VERIFY NODE.JS PACKAGES
     # =============================================================================
-    - name: Check npm global packages for devuser
+    - name: Check npm local packages for devuser
       ansible.builtin.command:
-        cmd: npm list -g --depth=0
+        cmd: npm list --depth=0
+        chdir: "/home/devuser"
       register: npm_packages
       become: true
       become_user: devuser
