@@ -15,7 +15,7 @@
     - security-services
     - core
 
-- name: Manage Users and Groups
+- name: Manage Users
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.manage_users"
   tags:
