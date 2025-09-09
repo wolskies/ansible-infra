@@ -1,20 +1,18 @@
 # configure_system
 
-Orchestration role that applies infrastructure roles based on inventory membership and configuration.
+A convenience role for configuring a system - calls multiple roles in this collection.
 
 ## Description
-
-Entry point role that executes appropriate infrastructure roles in sequence without forcing specific group structures. Roles are applied based on the unified `infrastructure` variable structure and inventory membership.
 
 ## Role Execution Order
 
 1. **os_configuration** - Essential OS-level configuration (timezone, hostname, services)
-2. **manage_users** - System-level user account management (requires sudo)
+2. **manage_users** - System-level user account management
 3. **manage_packages** - Distribution-specific package installation
 4. **manage_security_services** - Firewall and fail2ban configuration
 5. **manage_snap_packages** - Snap management (Ubuntu/Debian, optional)
 6. **manage_flatpak** - Flatpak management (Linux, optional)
-7. **configure_user** - Per-user preferences and dotfiles (per-user execution)
+7. **configure_user** - Per-user preferences and dotfiles
 
 ## Configuration
 
@@ -134,6 +132,7 @@ After system setup, configure user preferences:
 ## Tags
 
 ### Component Tags
+
 - `os-configuration` - OS setup only
 - `security-services` - Firewall/fail2ban only
 - `users` - User management only
@@ -143,6 +142,7 @@ After system setup, configure user preferences:
 - `user-preferences` - User configuration only
 
 ### Usage
+
 ```bash
 # Run only core system components
 ansible-playbook -t os-configuration,users,packages playbook.yml
@@ -181,6 +181,7 @@ Roles use `{{ ansible_distribution }}` and `{{ ansible_os_family }}` facts for O
 ## Dependencies
 
 Required roles (all included in collection):
+
 - `wolskinet.infrastructure.os_configuration`
 - `wolskinet.infrastructure.manage_users`
 - `wolskinet.infrastructure.manage_packages`

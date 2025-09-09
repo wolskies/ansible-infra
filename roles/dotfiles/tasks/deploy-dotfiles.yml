@@ -167,9 +167,34 @@
 # =============================================================================
 # DEPLOY DOTFILES
 # =============================================================================
+- name: Check for stow conflicts (dry run)
+  ansible.builtin.command:
+    cmd: "stow --no -v {{ item }}"
+    chdir: "{{ user_repo_dest }}"
+  loop: "{{ stow_packages_list | default([]) }}"
+  become: true
+  become_user: "{{ user_name }}"
+  when: deployment_method == 'stow'
+  register: stow_dryrun
+  failed_when: false
+  changed_when: false
+
+- name: Backup conflicting files
+  ansible.builtin.command:
+    cmd: "mv {{ user_home }}/{{ item.split(':')[-1].strip() }} {{ user_home }}/{{ item.split(':')[-1].strip() }}.bak"
+  loop: "{{ stow_dryrun.results | map(attribute='stderr_lines', default=[]) | flatten }}"
+  become: true
+  become_user: "{{ user_name }}"
+  when:
+    - deployment_method == 'stow'
+    - "'existing target is neither a link nor a directory' in item"
+    - dotfiles_user.backup_conflicts | default(dotfiles.backup_conflicts) | default(true)
+  register: backup_result
+  failed_when: false
+
 - name: Deploy using stow
   ansible.builtin.command:
-    cmd: "stow {{ '--adopt' if dotfiles_user.stow_adopt | default(dotfiles.stow_adopt) | default(false) else '' }} -v {{ item }}"
+    cmd: "stow -v {{ item }}"
     chdir: "{{ user_repo_dest }}"
   loop: "{{ stow_packages_list | default([]) }}"
   become: true
@@ -177,6 +202,9 @@
   when: deployment_method == 'stow'
   register: stow_result
   changed_when: "'LINK' in stow_result.stderr"
+  failed_when:
+    - stow_result.rc != 0
+    - not (dotfiles_user.ignore_conflicts | default(dotfiles.ignore_conflicts) | default(false))
 
 - name: Deploy using symlinks
   ansible.builtin.file:

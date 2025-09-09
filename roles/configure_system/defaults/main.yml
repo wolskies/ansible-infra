@@ -2,8 +2,8 @@
 # =============================================================================
 # SYSTEM CONFIGURATION ORCHESTRATION
 # =============================================================================
-# This role orchestrates multiple infrastructure roles to provide complete system setup
-# It executes other roles in the correct order for new machine configuration
+# This role orchestrates multiple infrastructure roles to provide complete system
+# setup.  It is provided as a convenience for users.
 #
 # The variables shown here are EXAMPLES of the unified structure that all roles
 # in this collection use. Define these in your inventory/group_vars/host_vars.
@@ -21,13 +21,13 @@
 
 infrastructure:
   domain:
-    name: ""
+    name: "local"
     timezone: "UTC"
     locale: "en_US.UTF-8"
     language: "en_US.UTF-8"
     ntp:
       enabled: true
-      servers:
+      servers: # Leave blank to use OS defaults
         - 0.pool.ntp.org
         - 1.pool.ntp.org
         - 2.pool.ntp.org
@@ -62,10 +62,10 @@ infrastructure:
     #       tile_size: 48
     #       autohide: true
 
-    users_absent: [] # List of usernames to remove (for migration)
+    users_absent: []
   host:
     hostname: ""
-    computer_name: "" # Darwin only
+    computer_name: "" # MacOSX specific setting
     update_hosts: true
     journal:
       configure: true
@@ -207,7 +207,7 @@ infrastructure:
         no_confirms: false
         proxy: ""
         multilib: false
-        enable_aur: true # When true, attempts to install packages from AUR if not in official repos
+        enable_aur: true
         aur_helper: paru
         config_reflector: true
       homebrew:

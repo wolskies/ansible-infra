@@ -24,7 +24,8 @@ dotfiles:
   # Deployment method
   method: "auto" # auto, stow, symlink, copy
   stow_packages: [] # Stow packages to deploy (empty = all)
-  stow_adopt: false # Use stow --adopt to take ownership of existing files
+  backup_conflicts: true # Backup existing files that conflict with stow deployment
+  ignore_conflicts: false # Continue deployment even if stow reports conflicts
 
   # Backup configuration
   backup:
