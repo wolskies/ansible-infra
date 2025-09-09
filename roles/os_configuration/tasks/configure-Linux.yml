@@ -14,7 +14,6 @@
     state: present
   become: true
   when:
-    - infrastructure.domain is defined
     - infrastructure.domain.locale is defined
 
 - name: Configure system language
@@ -25,7 +24,6 @@
     create: true
   become: true
   when:
-    - infrastructure.domain is defined
     - infrastructure.domain.language is defined
 
 - name: Configure NTP time synchronization
@@ -48,7 +46,6 @@
       become: true
       notify: restart timesyncd
   when:
-    - infrastructure.domain is defined
     - infrastructure.domain.ntp is defined
     - infrastructure.domain.ntp.enabled is defined
     - infrastructure.domain.ntp.enabled
