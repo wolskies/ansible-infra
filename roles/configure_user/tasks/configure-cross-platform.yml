@@ -59,7 +59,7 @@
     - language-packages
 
 - name: Check if cargo is available for {{ current_user_config.name }}
-  ansible.builtin.command: command -v cargo
+  ansible.builtin.shell: command -v cargo || test -f /usr/local/cargo/bin/cargo
   register: cargo_check
   become: true
   become_user: "{{ current_user_config.name }}"
