@@ -38,6 +38,29 @@
         - ubuntuuser
         - debianuser
 
+    # Set Git safe.directory for root (ansible runs as root)
+    - name: Configure Git safe.directory for root user
+      community.general.git_config:
+        name: safe.directory
+        value: "*"
+        scope: global
+      become: true
+
+    # Set Git safe.directory for each test user to avoid ownership issues
+    - name: Configure Git safe.directory for test users
+      community.general.git_config:
+        name: safe.directory
+        value: "*"
+        scope: global
+      become: true
+      become_user: "{{ item }}"
+      loop:
+        - testuser1
+        - devuser1
+        - devuser2
+        - ubuntuuser
+        - debianuser
+
     # Ensure Git is configured globally (required for clone operations)
     - name: Configure global Git settings for testing
       community.general.git_config:
