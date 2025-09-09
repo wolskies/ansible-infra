@@ -7,8 +7,6 @@
     shell: "{{ current_user_config[ansible_distribution].shell }}"
   become: true
   when:
-    - current_user_config[ansible_distribution] is defined
-    - current_user_config[ansible_distribution].shell is defined
-    - current_user_config[ansible_distribution].shell | length > 0
+    - current_user_config[ansible_distribution].shell | default('') | length > 0
   tags:
     - shell

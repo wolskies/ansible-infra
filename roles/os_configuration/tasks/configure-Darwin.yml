@@ -1,59 +1,4 @@
 ---
-- name: Configure hostname (Darwin)
-  block:
-    - name: Get current Darwin ComputerName
-      ansible.builtin.command: scutil --get ComputerName
-      register: current_computer_name
-      changed_when: false
-      failed_when: false
-
-    - name: Set Darwin ComputerName
-      ansible.builtin.command: scutil --set ComputerName "{{ infrastructure.host.computer_name }}"
-      become: true
-      when:
-        - infrastructure.host is defined
-        - infrastructure.host.computer_name is defined
-        - infrastructure.host.computer_name | length > 0
-        - current_computer_name.stdout | default('') != infrastructure.host.computer_name
-      changed_when: true
-
-    - name: Get current HostName
-      ansible.builtin.command: scutil --get HostName
-      register: current_hostname
-      changed_when: false
-      failed_when: false
-
-    - name: Set Darwin HostName (FQDN)
-      ansible.builtin.command: scutil --set HostName "{{ infrastructure.host.hostname }}.{{ infrastructure.domain.name }}"
-      become: true
-      when:
-        - infrastructure.host is defined
-        - infrastructure.host.hostname is defined
-        - infrastructure.host.hostname | length > 0
-        - infrastructure.domain.name is defined
-        - infrastructure.domain.name | length > 0
-        - current_hostname.rc != 0 or current_hostname.stdout != (infrastructure.host.hostname + '.' + infrastructure.domain.name)
-      changed_when: true
-
-    - name: Get current LocalHostName
-      ansible.builtin.command: scutil --get LocalHostName
-      register: current_local_hostname
-      changed_when: false
-      failed_when: false
-
-    - name: Set Darwin LocalHostName (Bonjour name)
-      ansible.builtin.command: scutil --set LocalHostName "{{ infrastructure.host.hostname | regex_replace('[^a-zA-Z0-9-]', '-') }}"
-      become: true
-      when:
-        - infrastructure.host is defined
-        - infrastructure.host.hostname is defined
-        - infrastructure.host.hostname | length > 0
-        - current_local_hostname.rc != 0 or current_local_hostname.stdout != (infrastructure.host.hostname | regex_replace('[^a-zA-Z0-9-]', '-'))
-      changed_when: true
-  tags:
-    - hostname
-    - Darwin
-
 - name: Configure Darwin locale
   block:
     - name: Set system locale
@@ -95,8 +40,6 @@
       register: ntp_enable_result
       changed_when: "'Network Time' in ntp_enable_result.stderr or ntp_enable_result.rc == 0"
       when:
-        - infrastructure.domain.ntp is defined
-        - infrastructure.domain.ntp.enabled is defined
         - infrastructure.domain.ntp.enabled
 
     - name: Set NTP server (first server from list)
@@ -105,10 +48,7 @@
       register: ntp_server_result
       changed_when: ntp_server_result.rc == 0
       when:
-        - infrastructure.domain.ntp is defined
-        - infrastructure.domain.ntp.enabled is defined
         - infrastructure.domain.ntp.enabled
-        - infrastructure.domain.ntp.servers is defined
         - infrastructure.domain.ntp.servers | length > 0
         - infrastructure.domain.ntp.servers[0] not in current_ntp_server.stdout
 
@@ -118,8 +58,6 @@
       register: ntp_disable_result
       changed_when: "'Network Time' in ntp_disable_result.stderr or ntp_disable_result.rc == 0"
       when:
-        - infrastructure.domain.ntp is defined
-        - infrastructure.domain.ntp.enabled is defined
         - not infrastructure.domain.ntp.enabled
   tags:
     - ntp
@@ -134,17 +72,13 @@
     value: "{{ item.value }}"
   loop:
     - key: "AutomaticCheckEnabled"
-      value: "{{ infrastructure.host.macosx.updates.auto_check }}"
+      value: "{{ infrastructure.host.macosx.updates.auto_check | default(true) }}"
     - key: "AutomaticDownload"
-      value: "{{ infrastructure.host.macosx.updates.auto_download }}"
+      value: "{{ infrastructure.host.macosx.updates.auto_download | default(true) }}"
   become: true
   notify: restart cfprefsd
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.macosx is defined
     - infrastructure.host.macosx.updates is defined
-    - infrastructure.host.macosx.updates.auto_check is defined
-    - infrastructure.host.macosx.updates.auto_download is defined
   tags:
     - Darwin
     - updates
@@ -152,15 +86,12 @@
 
 - name: Configure macOS Gatekeeper
   ansible.builtin.command:
-    cmd: "spctl --master-{{ infrastructure.host.macosx.gatekeeper.enabled | ternary('enable', 'disable') }}"
+    cmd: "spctl --master-{{ infrastructure.host.macosx.gatekeeper.enabled | default(true) | ternary('enable', 'disable') }}"
   become: true
   register: gatekeeper_result
   changed_when: gatekeeper_result.rc == 0
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.macosx is defined
     - infrastructure.host.macosx.gatekeeper is defined
-    - infrastructure.host.macosx.gatekeeper.enabled is defined
   tags:
     - Darwin
     - security

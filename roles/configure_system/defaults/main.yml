@@ -65,7 +65,6 @@ infrastructure:
     users_absent: []
   host:
     hostname: ""
-    computer_name: "" # MacOSX specific setting
     update_hosts: true
     journal:
       configure: true

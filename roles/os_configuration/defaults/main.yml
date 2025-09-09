@@ -22,7 +22,6 @@ infrastructure:
         - 3.pool.ntp.org
   host:
     hostname: ""
-    computer_name: "" # Darwin only
     update_hosts: true
     journal:
       configure: true

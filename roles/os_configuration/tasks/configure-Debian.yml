@@ -6,9 +6,6 @@
     snap_management_action: "purge"
     snap_purge_confirm: "{{ infrastructure.host.snap.remove_completely | default(false) }}"
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.snap is defined
-    - infrastructure.host.snap.remove_completely is defined
     - infrastructure.host.snap.remove_completely
   tags:
     - snap
@@ -23,11 +20,6 @@
     mode: "0644"
   become: true
   when:
-    - infrastructure.host is defined
-    - infrastructure.host.packages is defined
-    - infrastructure.host.packages.apt is defined
-    - infrastructure.host.packages.apt.unattended_upgrades is defined
-    - infrastructure.host.packages.apt.unattended_upgrades.enabled is defined
     - infrastructure.host.packages.apt.unattended_upgrades.enabled
   tags:
     - updates
@@ -46,10 +38,6 @@
         mode: "0644"
       become: true
       when:
-        - infrastructure.host is defined
-        - infrastructure.host.packages is defined
-        - infrastructure.host.packages.apt is defined
-        - infrastructure.host.packages.apt.no_recommends is defined
         - infrastructure.host.packages.apt.no_recommends
 
     - name: Configure APT proxy
@@ -63,10 +51,6 @@
         mode: "0644"
       become: true
       when:
-        - infrastructure.host is defined
-        - infrastructure.host.packages is defined
-        - infrastructure.host.packages.apt is defined
-        - infrastructure.host.packages.apt.proxy is defined
         - infrastructure.host.packages.apt.proxy | length > 0
   tags:
     - apt
