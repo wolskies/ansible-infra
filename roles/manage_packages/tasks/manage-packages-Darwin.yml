@@ -33,7 +33,7 @@
     homebrew_install_path: /opt/homebrew
     homebrew_brew_bin_path: /opt/homebrew/bin
     homebrew_user: "{{ _homebrew_user }}"
-    homebrew_group: "{{ _homebrew_user }}"
+    homebrew_group: "admin" # macOS uses 'admin' group for Homebrew, not 'root'
 
     # Package management
     homebrew_installed_packages: "{{ merged_homebrew_packages_install | default([]) }}"
