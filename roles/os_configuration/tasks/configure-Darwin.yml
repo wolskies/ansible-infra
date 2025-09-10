@@ -8,6 +8,7 @@
         type: string
         value: "{{ domain_locale.split('.')[0] }}"
       when:
+        - domain_locale is defined
         - domain_locale | length > 0
       notify: restart cfprefsd
 
@@ -19,6 +20,7 @@
         value:
           - "{{ domain_language.split('.')[0] }}"
       when:
+        - domain_language is defined
         - domain_language | length > 0
       notify: restart cfprefsd
   tags:
@@ -40,6 +42,7 @@
       register: ntp_enable_result
       changed_when: "'Network Time' in ntp_enable_result.stderr or ntp_enable_result.rc == 0"
       when:
+        - domain_ntp is defined
         - domain_ntp.enabled | default(false)
 
     - name: Set NTP server (first server from list)
@@ -48,6 +51,7 @@
       register: ntp_server_result
       changed_when: ntp_server_result.rc == 0
       when:
+        - domain_ntp is defined
         - domain_ntp.enabled | default(false)
         - domain_ntp.servers | default([]) | length > 0
         - domain_ntp.servers[0] not in current_ntp_server.stdout
@@ -58,6 +62,7 @@
       register: ntp_disable_result
       changed_when: "'Network Time' in ntp_disable_result.stderr or ntp_disable_result.rc == 0"
       when:
+        - domain_ntp is defined
         - not (domain_ntp.enabled | default(false))
   tags:
     - ntp

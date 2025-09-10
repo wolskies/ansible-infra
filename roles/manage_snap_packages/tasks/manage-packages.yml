@@ -39,7 +39,10 @@
     state: absent
   loop: "{{ snap.packages.remove }}"
   become: true
-  when: snap.packages.remove | length > 0
+  when:
+    - snap is defined
+    - snap.packages is defined
+    - snap.packages.remove | length > 0
   tags:
     - snap-packages
 
@@ -49,6 +52,9 @@
     state: present
   loop: "{{ snap.packages.install }}"
   become: true
-  when: snap.packages.install | length > 0
+  when:
+    - snap is defined
+    - snap.packages is defined
+    - snap.packages.install | length > 0
   tags:
     - snap-packages
