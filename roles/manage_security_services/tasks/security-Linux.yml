@@ -4,7 +4,9 @@
     name: "{{ infrastructure.host.firewall.package }}"
     state: present
   become: true
-  when: infrastructure.host.firewall.enabled
+  when:
+    - infrastructure.host.firewall is defined
+    - infrastructure.host.firewall.enabled | default(false)
   tags:
     - firewall
 
@@ -32,7 +34,9 @@
       ansible.builtin.set_fact:
         firewall_rules: "{{ infrastructure.host.firewall.rules }}"
       when: _ssh_rule_exists | bool
-  when: infrastructure.host.firewall.prevent_ssh_lockout
+  when:
+    - infrastructure.host.firewall is defined
+    - infrastructure.host.firewall.prevent_ssh_lockout | default(false)
   tags:
     - firewall
     - ssh-lock-out
@@ -56,7 +60,9 @@
   loop: "{{ infrastructure.host.firewall.rules }}"
   become: true
   when:
-    - infrastructure.host.firewall.enabled
+    - infrastructure.host.firewall is defined
+    - infrastructure.host.firewall.enabled | default(false)
+    - infrastructure.host.firewall.rules is defined
     - infrastructure.host.firewall.rules | length > 0
   notify: reload ufw
   tags:
@@ -67,6 +73,9 @@
   community.general.ufw:
     state: "{{ 'enabled' if infrastructure.host.firewall.enabled else 'disabled' }}"
   become: true
+  when:
+    - infrastructure.host.firewall is defined
+    - infrastructure.host.firewall.enabled is defined
   tags:
     - firewall-services
 
@@ -75,7 +84,9 @@
     name: fail2ban
     state: present
   become: true
-  when: infrastructure.host.fail2ban.enabled
+  when:
+    - infrastructure.host.fail2ban is defined
+    - infrastructure.host.fail2ban.enabled | default(false)
   tags:
     - fail2ban
 
@@ -88,16 +99,20 @@
     mode: "0644"
   become: true
   notify: restart fail2ban
-  when: infrastructure.host.fail2ban.enabled
+  when:
+    - infrastructure.host.fail2ban is defined
+    - infrastructure.host.fail2ban.enabled | default(false)
   tags:
     - fail2ban
 
 - name: Ensure fail2ban service is running and enabled
   ansible.builtin.service:
     name: fail2ban
-    state: "{{ 'started' if infrastructure.host.fail2ban.enabled else 'stopped' }}"
-    enabled: "{{ infrastructure.host.fail2ban.enabled }}"
+    state: "{{ 'started' if infrastructure.host.fail2ban.enabled | default(false) else 'stopped' }}"
+    enabled: "{{ infrastructure.host.fail2ban.enabled | default(false) }}"
   become: true
-  when: infrastructure.host.fail2ban.enabled
+  when:
+    - infrastructure.host.fail2ban is defined
+    - infrastructure.host.fail2ban.enabled | default(false)
   tags:
     - fail2ban

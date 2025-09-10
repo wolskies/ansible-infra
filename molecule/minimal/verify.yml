@@ -1,0 +1,7 @@
+---
+- hosts: all
+  gather_facts: true
+  tasks:
+    - name: Verify roles completed without errors
+      ansible.builtin.debug:
+        msg: "SUCCESS: All roles handled minimal infrastructure config safely"

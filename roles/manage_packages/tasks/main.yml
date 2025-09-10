@@ -3,18 +3,19 @@
   ansible.builtin.set_fact:
     merged_packages_install: >-
       {{
-        (infrastructure.host.packages.present.all[ansible_distribution]) +
-        (infrastructure.host.packages.present.group[ansible_distribution]) +
-        (infrastructure.host.packages.present.host[ansible_distribution])
+        (infrastructure.host.packages.present.all[ansible_distribution] | default([])) +
+        (infrastructure.host.packages.present.group[ansible_distribution] | default([])) +
+        (infrastructure.host.packages.present.host[ansible_distribution] | default([]))
         | unique | list
       }}
     merged_packages_remove: >-
       {{
-        (infrastructure.host.packages.remove.all[ansible_distribution]) +
-        (infrastructure.host.packages.remove.group[ansible_distribution]) +
-        (infrastructure.host.packages.remove.host[ansible_distribution])
+        (infrastructure.host.packages.remove.all[ansible_distribution] | default([])) +
+        (infrastructure.host.packages.remove.group[ansible_distribution] | default([])) +
+        (infrastructure.host.packages.remove.host[ansible_distribution] | default([]))
         | unique | list
       }}
+  when: infrastructure.host.packages is defined
 
 - name: Manage packages by OS family
   ansible.builtin.include_tasks: "manage-packages-{{ ansible_os_family }}.yml"
