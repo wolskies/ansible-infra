@@ -29,11 +29,30 @@
       register: macos_blockall_result
       changed_when: macos_blockall_result.rc == 0
 
-    - name: Ensure firewall logging configuration
+    # Note: Logging configuration may not be available on all macOS versions
+    # The --setloggingmode and --setloggingopt options were added in later versions
+    - name: Check if logging configuration is available
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw -h
+      register: firewall_help
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: Ensure firewall logging configuration (if available)
       ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setloggingmode {{ 'on' if firewall.logging | default(false) else 'off' }}
       become: true
       register: macos_logging_result
       changed_when: macos_logging_result.rc == 0
+      when: "'--setloggingmode' in firewall_help.stdout"
+
+    - name: Set detailed logging level (if logging is enabled and available)
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setloggingopt detail
+      become: true
+      register: macos_logging_detail_result
+      changed_when: macos_logging_detail_result.rc == 0
+      when:
+        - firewall.logging | default(false)
+        - "'--setloggingopt' in firewall_help.stdout"
   tags:
     - firewall
     - security
