@@ -9,7 +9,5 @@
 infrastructure:
   host:
     snap:
-      disable_and_remove: true
-      packages:
-        install: []
-        remove: []
+      disable_and_remove: false
+      packages: {}

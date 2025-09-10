@@ -10,21 +10,17 @@
 infrastructure:
   domain:
     name: ""
-    timezone: "UTC"
+    timezone: ""
     locale: "en_US.UTF-8"
     language: "en_US.UTF-8"
     ntp:
-      enabled: true
-      servers:
-        - 0.pool.ntp.org
-        - 1.pool.ntp.org
-        - 2.pool.ntp.org
-        - 3.pool.ntp.org
+      enabled: false
+      servers: []
   host:
     hostname: ""
     update_hosts: true
     journal:
-      configure: true
+      configure: false
       max_size: "500M"
       max_retention: "30d"
       forward_to_syslog: false
@@ -34,49 +30,14 @@ infrastructure:
       remote_host: ""
       remote_port: 514
       protocol: "udp"
-    services:
-      enable: []
-      disable: []
+    services: {}
     optimizations:
       tune_swappiness: false
       swappiness: 10
-    sysctl:
-      parameters: {}
-      # Example:
-      #   net.core.default_qdisc: "fq"
-      #   net.ipv4.tcp_congestion_control: "bbr"
-    limits:
-      limits: []
-      # Example:
-      #   - domain: '*'
-      #     limit_type: soft
-      #     limit_item: nofile
-      #     value: 65536
-    modules:
-      load: []
-      blacklist: []
-      # Example:
-      # load: [uvcvideo, btusb]
-      # blacklist: [nouveau]
-    udev:
-      rules: []
-      # Example udev rules for hardware devices:
-      # rules:
-      #   - name: pico
-      #     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
-      #     priority: 99
-      #     state: present
-      #   - name: expressif
-      #     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", MODE="0666"'
-      #     priority: 99
-      #     state: present
-      #   - name: ttyacm-dialout
-      #     content: 'KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"'
-      #     priority: 99
-      #     state: present
-      #   - name: old-device
-      #     priority: 50
-      #     state: absent  # Remove this rule
+    sysctl: {}
+    limits: {}
+    modules: {}
+    udev: {}
     snap:
       remove_completely: false
     packages:

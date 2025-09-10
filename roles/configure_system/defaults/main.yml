@@ -21,18 +21,15 @@
 
 infrastructure:
   domain:
-    name: "local"
-    timezone: "UTC"
+    name: ""
+    timezone: ""
     locale: "en_US.UTF-8"
     language: "en_US.UTF-8"
     ntp:
-      enabled: true
-      servers: # Leave blank to use OS defaults
-        - 0.pool.ntp.org
-        - 1.pool.ntp.org
-        - 2.pool.ntp.org
-        - 3.pool.ntp.org
+      enabled: false
+      servers: [] # Leave empty to use OS defaults
     users: []
+    # User configuration structure documented in collection README
     # Example user with cross-platform and OS-specific preferences:
     # - name: alice
     #   comment: "Alice Developer"
@@ -62,12 +59,11 @@ infrastructure:
     #       tile_size: 48
     #       autohide: true
 
-    users_absent: []
   host:
     hostname: ""
     update_hosts: true
     journal:
-      configure: true
+      configure: false
       max_size: "500M"
       max_retention: "30d"
       forward_to_syslog: false
@@ -77,30 +73,13 @@ infrastructure:
       remote_host: ""
       remote_port: 514
       protocol: "udp"
-    services:
-      enable: []
-      disable: []
+    services: {}
     optimizations:
       tune_swappiness: false
       swappiness: 10
-    sysctl:
-      parameters: {}
-      # Example:
-      #   net.core.default_qdisc: "fq"
-      #   net.ipv4.tcp_congestion_control: "bbr"
-    limits:
-      limits: []
-      # Example:
-      #   - domain: '*'
-      #     limit_type: soft
-      #     limit_item: nofile
-      #     value: 65536
-    modules:
-      load: []
-      blacklist: []
-      # Example:
-      # load: [uvcvideo, btusb]
-      # blacklist: [nouveau]
+    sysctl: {}
+    limits: {}
+    modules: {}
     firewall:
       enabled: false
       prevent_ssh_lockout: true
@@ -109,11 +88,6 @@ infrastructure:
       block_all: false
       logging: false
       rules: []
-      # Rule examples:
-      # - rule: allow
-      #   port: 80
-      #   proto: tcp
-      #   comment: "HTTP traffic"
     fail2ban:
       enabled: false
       sender: "root@localhost"
@@ -132,81 +106,32 @@ infrastructure:
       ignoreips:
         - "127.0.0.1/8"
         - "::1"
-    packages:
-      present:
-        all:
-          Ubuntu: []
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-        group:
-          Ubuntu: []
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-        host:
-          Ubuntu: []
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-      remove:
-        all:
-          Ubuntu: []
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-        group:
-          Ubuntu: []
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-        host:
-          Ubuntu: []
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-      casks_present:
-        all: []
-        group: []
-        host: []
-      casks_remove: []
-      apt:
-        apt_cache:
-          update_cache: true
-          valid_time: 3600
-        no_recommends: false
-        unattended_upgrades:
-          enabled: true
-          email: ""
-          auto_reboot: false
-          reboot_with_users: false
-          reboot_time: "02:00"
-        system_upgrade:
-          enable: false
-          type: safe
-        proxy: ""
-        repositories:
-          all:
-            Ubuntu: []
-            Debian: []
-          group:
-            Ubuntu: []
-            Debian: []
-          host:
-            Ubuntu: []
-            Debian: []
-          # - name:  example: "docker"
-          #   types: optional, defaults to "deb"
-          #   uris: repo url
-          #   suites: example, for docker this would be distro release (e.g. "noble" for Ubuntu 24)
-          #   components: release channel, "stable" for ubuntu/docker
-          #   signed_by: gpg key, accepts url or actual key
-          #   state: present (default)/absent
+    packages: {}
+    # Package structure documented in collection README:
+    # present/remove: { all/group/host: { Ubuntu: [], Debian: [], Archlinux: [], MacOSX: [] } }
+    # casks_present: { all: [], group: [], host: [] }
+    # casks_remove: []
+    apt:
+      apt_cache:
+        update_cache: false
+        valid_time: 3600
+      no_recommends: false
+      unattended_upgrades:
+        enabled: false
+        email: ""
+        auto_reboot: false
+        reboot_with_users: false
+        reboot_time: "02:00"
+      system_upgrade:
+        enable: false
+        type: safe
+      proxy: ""
+      repositories: {}
       pacman:
         no_confirms: false
         proxy: ""
         multilib: false
-        enable_aur: true
+        enable_aur: false
         aur_helper: paru
         config_reflector: true
       homebrew:
@@ -221,15 +146,11 @@ infrastructure:
         gatekeeper:
           enabled: true
       snap:
-        disable_and_remove: true
-        packages:
-          install: []
-          remove: []
+        disable_and_remove: false
+        packages: {}
       flatpak:
         enabled: false
-        packages:
-          install: []
-          remove: []
+        packages: {}
         flathub: true
         plugins:
           gnome: false

@@ -10,9 +10,7 @@ infrastructure:
   host:
     flatpak:
       enabled: false
-      packages:
-        install: []
-        remove: []
+      packages: {}
       flathub: true
       plugins:
         gnome: false

@@ -16,11 +16,6 @@ infrastructure:
       block_all: false
       logging: false
       rules: []
-      # Rule examples:
-      # - rule: allow
-      #   port: 80
-      #   proto: tcp
-      #   comment: "HTTP traffic"
     fail2ban:
       enabled: false
       sender: "root@localhost"
