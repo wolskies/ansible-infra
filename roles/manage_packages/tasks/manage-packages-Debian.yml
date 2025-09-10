@@ -69,7 +69,15 @@
     - merged_apt_repositories is defined
     - merged_apt_repositories | length > 0
 
-- name: Update APT cache
+- name: Update APT cache after repository changes
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  when:
+    - repositories_changed is defined
+    - repositories_changed.changed | default(false)
+
+- name: Update APT cache (optional configuration)
   ansible.builtin.apt:
     update_cache: "{{ infrastructure.host.packages.apt.apt_cache.update_cache | default(false) }}"
     cache_valid_time: "{{ infrastructure.host.packages.apt.apt_cache.valid_time | default(3600) }}"
@@ -79,6 +87,7 @@
     - infrastructure.host.packages.apt is defined
     - infrastructure.host.packages.apt.apt_cache is defined
     - infrastructure.host.packages.apt.apt_cache.update_cache | default(false)
+    - repositories_changed is not defined or not repositories_changed.changed | default(false)
 
 - name: Remove packages via APT
   ansible.builtin.apt:
