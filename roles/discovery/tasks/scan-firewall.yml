@@ -152,11 +152,12 @@
          fail2ban_service_status.status.get('ActiveState') == "active")
       }}
     security_firewall_package: >-
+      {%- set detection_results = firewall_detection_cmd.results | default([]) if firewall_detection_cmd is defined else [] -%}
       {{
-        "ufw" if (firewall_detection_cmd.results | default([]) | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "ufw") | list | length > 0) else
-        "firewalld" if (firewall_detection_cmd.results | default([]) | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "firewalld") | list | length > 0) else
-        "iptables" if (firewall_detection_cmd.results | default([]) | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "iptables") | list | length > 0) else
         "macos_alf" if ansible_system == "Darwin" else
+        "ufw" if (detection_results | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "ufw") | list | length > 0) else
+        "firewalld" if (detection_results | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "firewalld") | list | length > 0) else
+        "iptables" if (detection_results | selectattr("rc", "equalto", 0) | selectattr("cmd", "search", "iptables") | list | length > 0) else
         "unknown"
       }}
   when: ansible_system in ["Linux", "Darwin"]
