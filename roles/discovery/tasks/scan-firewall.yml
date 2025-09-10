@@ -4,8 +4,8 @@
 
 - name: Reset firewall variables
   ansible.builtin.set_fact:
-    firewall_enable: false
-    firewall_custom_rules: []
+    discovery_firewall_enabled: false
+    discovery_firewall_rules: []
 
 - name: Check UFW status and availability
   ansible.builtin.command: ufw status
@@ -23,7 +23,7 @@
   block:
     - name: Set firewall enabled status
       ansible.builtin.set_fact:
-        firewall_enable: true
+        discovery_firewall_enabled: true
       when: "'Status: active' in ufw_status.stdout"
 
     - name: Get UFW rules in numbered format
@@ -32,7 +32,7 @@
       become: true
       changed_when: false
       failed_when: false
-      when: firewall_enable
+      when: discovery_firewall_enabled
 
     - name: Parse UFW rules and normalize for community.general.ufw
       ansible.builtin.set_fact:
@@ -90,24 +90,24 @@
 
     - name: Set final firewall configuration
       ansible.builtin.set_fact:
-        firewall_custom_rules: "{{ discovered_firewall_rules | default([]) }}"
+        discovery_firewall_rules: "{{ discovered_firewall_rules | default([]) }}"
 
 - name: Set fallback firewall configuration if UFW not available/active
   ansible.builtin.set_fact:
-    firewall_enable: false
-    firewall_custom_rules: []
+    discovery_firewall_enabled: false
+    discovery_firewall_rules: []
   when:
-    - ufw_status is not defined or ufw_status.rc is not defined or ufw_status.rc != 0 or not firewall_enable
+    - ufw_status is not defined or ufw_status.rc is not defined or ufw_status.rc != 0 or not discovery_firewall_enabled
 
 - name: Debug discovered firewall rules
   ansible.builtin.debug:
     msg:
-      - "Firewall enabled: {{ firewall_enable }}"
-      - "Discovered {{ firewall_custom_rules | length }} custom rules"
-      - "Rules: {{ firewall_custom_rules | to_nice_yaml }}"
+      - "Firewall enabled: {{ discovery_firewall_enabled }}"
+      - "Discovered {{ discovery_firewall_rules | length }} custom rules"
+      - "Rules: {{ discovery_firewall_rules | to_nice_yaml }}"
   when:
     - discovery_debug | default(false)
-    - firewall_custom_rules is defined
+    - discovery_firewall_rules is defined
 
 # =============================================================================
 # SECURITY SERVICES DETECTION
@@ -133,25 +133,25 @@
 
 - name: Set security service detection variables
   ansible.builtin.set_fact:
-    security_fail2ban_detected: >-
+    discovery_fail2ban_detected: >-
       {{
         (fail2ban_service_status is defined and
          fail2ban_service_status.status is defined and
          fail2ban_service_status.status.get('LoadState') == "loaded")
       }}
-    security_fail2ban_enabled: >-
+    discovery_fail2ban_enabled: >-
       {{
         (fail2ban_service_status is defined and
          fail2ban_service_status.status is defined and
          fail2ban_service_status.status.get('UnitFileState') == "enabled")
       }}
-    security_fail2ban_active: >-
+    discovery_fail2ban_active: >-
       {{
         (fail2ban_service_status is defined and
          fail2ban_service_status.status is defined and
          fail2ban_service_status.status.get('ActiveState') == "active")
       }}
-    security_firewall_package: >-
+    discovery_firewall_package: >-
       {%- set detection_results = firewall_detection_cmd.results | default([]) if firewall_detection_cmd is defined else [] -%}
       {{
         "macos_alf" if ansible_system == "Darwin" else

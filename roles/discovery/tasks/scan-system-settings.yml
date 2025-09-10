@@ -60,7 +60,7 @@
 
 - name: Parse system settings discovery results
   ansible.builtin.set_fact:
-    discovered_sysctl_current: >-
+    discovery_sysctl_current: >-
       {%- set sysctl_values = {} -%}
       {%- if current_sysctl_cmd.results is defined -%}
         {%- for result in current_sysctl_cmd.results -%}
@@ -73,7 +73,7 @@
         {%- endfor -%}
       {%- endif -%}
       {{ sysctl_values }}
-    discovered_modules_loaded: >-
+    discovery_modules_loaded: >-
       {%- set modules = [] -%}
       {%- if current_modules_cmd.rc == 0 and current_modules_cmd.stdout_lines is defined -%}
         {%- for line in current_modules_cmd.stdout_lines[1:] -%}
@@ -84,7 +84,7 @@
         {%- endfor -%}
       {%- endif -%}
       {{ modules }}
-    discovered_services_enabled: >-
+    discovery_services_enabled: >-
       {%- set services = [] -%}
       {%- if service_states_cmd.results[0].stdout_lines is defined -%}
         {%- for line in service_states_cmd.results[0].stdout_lines -%}
@@ -95,7 +95,7 @@
         {%- endfor -%}
       {%- endif -%}
       {{ services }}
-    discovered_services_disabled: >-
+    discovery_services_disabled: >-
       {%- set services = [] -%}
       {%- if service_states_cmd.results[1].stdout_lines is defined -%}
         {%- for line in service_states_cmd.results[1].stdout_lines -%}
@@ -106,7 +106,7 @@
         {%- endfor -%}
       {%- endif -%}
       {{ services }}
-    discovered_services_masked: >-
+    discovery_services_masked: >-
       {%- set services = [] -%}
       {%- if service_states_cmd.results[2].stdout_lines is defined -%}
         {%- for line in service_states_cmd.results[2].stdout_lines -%}
@@ -117,9 +117,9 @@
         {%- endfor -%}
       {%- endif -%}
       {{ services }}
-    discovered_limits_configured: >-
+    discovery_limits_configured: >-
       {{ (limits_files_found.files | default([]) | length > 0) }}
-    discovered_udev_rules: >-
+    discovery_udev_rules: >-
       {%- set rules = [] -%}
       {%- if udev_rules_content.results is defined -%}
         {%- for result in udev_rules_content.results -%}
@@ -192,7 +192,7 @@
 
     - name: Parse macOS system preferences discovery results
       ansible.builtin.set_fact:
-        discovered_macos_preferences:
+        discovery_macos_preferences:
           natural_scroll: "{{ natural_scroll_pref.value | default(true) }}"
           measurement_units: "{{ measurement_units_pref.value | default('Inches') }}"
           use_metric: "{{ metric_units_pref.value | default(false) }}"

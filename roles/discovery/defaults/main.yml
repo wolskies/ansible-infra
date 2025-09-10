@@ -9,6 +9,43 @@
 discovery_debug: false
 
 # =============================================================================
+# DISCOVERY VARIABLES - START CLEAN
+# =============================================================================
+
+# Include clean discovery variables (no defaults)
+discovery_domain_name: ""
+discovery_domain_timezone: ""
+discovery_domain_locale: ""
+discovery_domain_language: ""
+discovery_domain_ntp_enabled: null
+
+discovery_users: []
+discovery_hostname: ""
+
+discovery_services_enabled: []
+discovery_services_disabled: []
+
+discovery_sysctl_current: {}
+discovery_udev_rules: []
+
+discovery_packages_host: []
+discovery_homebrew_casks: []
+discovery_homebrew_taps: []
+
+discovery_repositories: []
+discovery_snap_packages: []
+discovery_flatpak_packages: []
+
+discovery_firewall_enabled: false
+discovery_firewall_package: ""
+discovery_firewall_rules: []
+discovery_fail2ban_detected: false
+discovery_fail2ban_enabled: false
+discovery_fail2ban_active: false
+
+discovery_macos_preferences: {}
+
+# =============================================================================
 # APT REPOSITORY DETECTION
 # =============================================================================
 

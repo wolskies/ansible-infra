@@ -118,23 +118,29 @@
   failed_when: false
   when: ansible_system == "Darwin"
 
-- name: Set basic host variables (same variable names as before)
+- name: Set discovered system variables
   ansible.builtin.set_fact:
-    config_hostname: "{{ ansible_hostname }}"
-    config_domain: "{{ ansible_domain | default('') }}"
-    config_system_timezone: >-
+    discovery_hostname: "{{ ansible_hostname }}"
+    discovery_domain_name: "{{ ansible_domain | default('') }}"
+    discovery_domain_timezone: >-
       {{
         current_timezone_cmd.stdout | default(
           current_timezone_macos_cmd.stdout | default('') | regex_replace('.*/zoneinfo/(.*)', '\1')
-        ) | default('UTC')
+        ) | default('')
       }}
-    config_locale_settings: >-
+    discovery_domain_locale: >-
       {{
         (current_locale_cmd.stdout | default(current_locale_macos_cmd.stdout | default('')))
         | regex_findall('LANG=(.+)')
-        | first | default('en_US.UTF-8')
+        | first | default('')
       }}
-    config_ntp_enabled: >-
+    discovery_domain_language: >-
+      {{
+        (current_locale_cmd.stdout | default(current_locale_macos_cmd.stdout | default('')))
+        | regex_findall('LANG=(.+)')
+        | first | default('')
+      }}
+    discovery_domain_ntp_enabled: >-
       {{
         (current_ntp_cmd is defined and
          current_ntp_cmd.rc is defined and
@@ -151,6 +157,7 @@
     dest: "{{ discovery_paths.host_vars_file }}"
     mode: "0644"
     backup: true
+  become: false
   delegate_to: localhost
 
 - name: Show discovery completion
