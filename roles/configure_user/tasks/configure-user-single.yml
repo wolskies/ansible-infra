@@ -9,7 +9,9 @@
 
 - name: Configure OS-specific user preferences for {{ current_user_config.name }}
   ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
-  when: current_user_config[ansible_system] is defined
+  when: >
+    current_user_config.shell is defined or
+    current_user_config[ansible_system] is defined
   tags:
     - user-config
     - os-specific

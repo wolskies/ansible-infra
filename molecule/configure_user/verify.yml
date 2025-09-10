@@ -107,23 +107,13 @@
         - shelluser
       changed_when: false
 
-    - name: Verify shell configuration (Ubuntu)
+    - name: Verify shell configuration
       ansible.builtin.assert:
         that:
-          - "'/bin/bash' in user_shells.results[0].stdout" # testuser1 should have bash
-          - "'/bin/zsh' in user_shells.results[1].stdout" # shelluser should have zsh
-        fail_msg: "Shell configuration not set correctly on Ubuntu"
-        success_msg: "Shell configuration verified on Ubuntu"
-      when: inventory_hostname == "ubuntu-configure-user-test"
-
-    - name: Verify shell configuration (Debian)
-      ansible.builtin.assert:
-        that:
-          - "'/bin/bash' in user_shells.results[0].stdout" # testuser1 should have bash
-          - "'/bin/dash' in user_shells.results[1].stdout" # shelluser should have dash
-        fail_msg: "Shell configuration not set correctly on Debian"
-        success_msg: "Shell configuration verified on Debian"
-      when: inventory_hostname == "debian-configure-user-test"
+          - "'/bin/bash' in user_shells.results[0].stdout" # testuser1 should have bash (default)
+          - "'/bin/zsh' in user_shells.results[1].stdout" # shelluser should have zsh (domain preference)
+        fail_msg: "Shell configuration not set correctly"
+        success_msg: "Shell configuration verified - domain-level preferences applied consistently"
 
     # =============================================================================
     # VERIFY ROOT USER IS SKIPPED
