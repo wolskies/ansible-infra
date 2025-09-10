@@ -126,24 +126,21 @@ inventory/host_vars/target-host/
 
 ### Host Variables (`inventory/host_vars/target-host/vars.yml`)
 
-Generated variables follow the same structure as `configure_system` defaults for seamless consumption:
+Generated variables use flat structure matching `configure_system` defaults for seamless consumption:
 
 ```yaml
 # =============================================================================
-# OS CONFIGURATION
+# DOMAIN-LEVEL CONFIGURATION
 # =============================================================================
-config_common_hostname: "discovered-hostname"
-config_common_timezone: "America/New_York"
-
-# =============================================================================
-# SECURITY SERVICES
-# =============================================================================
-security_firewall_common:
+domain_name: ""
+domain_timezone: "America/New_York"
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_ntp:
   enabled: true
-firewall_rules:
-  - rule: allow
-    port: 22
-    proto: tcp
+  servers:
+    - "0.pool.ntp.org"
+    - "1.pool.ntp.org"
 
 # =============================================================================
 # USER MANAGEMENT
@@ -152,20 +149,74 @@ users:
   - name: username
     comment: "User Full Name"
     groups: [sudo, docker]
+    shell: /bin/bash
+    # Cross-platform preferences (git, language packages)
+    git:
+      user_name: "User Name"
+      user_email: "user@example.com"
+    nodejs:
+      packages: [typescript, "@vue/cli"]
+    rust:
+      packages: [ripgrep, bat]
+
+# =============================================================================
+# HOST-LEVEL CONFIGURATION
+# =============================================================================
+host_hostname: "discovered-hostname"
+host_update_hosts: false
+
+host_services:
+  enable: []
+  disable: []
+
+host_sysctl:
+  parameters: {}
+
+host_modules:
+  load: []
+  blacklist: []
+
+host_udev:
+  rules: []
+
+# =============================================================================
+# SECURITY SERVICES
+# =============================================================================
+firewall:
+  enabled: true
+  prevent_ssh_lockout: true
+  package: "ufw"
+  rules:
+    - rule: allow
+      port: 22
+      proto: tcp
+
+fail2ban:
+  enabled: false
 
 # =============================================================================
 # PACKAGE MANAGEMENT
 # =============================================================================
-host_packages_install_Ubuntu:
-  - git
-  - curl
-  - docker.io
+packages:
+  present:
+    all: {}
+    group: {}
+    host:
+      Ubuntu: [git, curl, docker.io]
+  remove:
+    all: {}
+    group: {}
+    host: {}
 
-host_apt_repositories_Ubuntu:
-  - name: docker
-    repo_line: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
-    gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
-    gpg_key_content: "-----BEGIN PGP PUBLIC KEY BLOCK-----\n..."
+apt:
+  repositories:
+    host:
+      Ubuntu:
+        - name: docker
+          uris: https://download.docker.com/linux/ubuntu
+          suites: jammy
+          components: [stable]
+          signed_by: https://download.docker.com/linux/ubuntu/gpg
 
 # =============================================================================
 # SNAP PACKAGES
@@ -176,6 +227,7 @@ snap:
     install:
       - code
       - discord
+    remove: []
 
 # =============================================================================
 # FLATPAK PACKAGES
@@ -186,21 +238,8 @@ flatpak:
     install:
       - org.mozilla.firefox
       - com.spotify.Client
-
-# =============================================================================
-# LANGUAGE PACKAGES
-# =============================================================================
-language_packages:
-  nodejs:
-    enable: true
-    packages:
-      - typescript
-      - "@vue/cli"
-  rust:
-    enable: true
-    packages:
-      - ripgrep
-      - bat
+    remove: []
+  flathub: true
 ```
 
 ### Deployment Playbook (`playbooks/hostname_discovered.yml`)
