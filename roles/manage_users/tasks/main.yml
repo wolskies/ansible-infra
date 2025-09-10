@@ -4,6 +4,7 @@
     msg: "Skipping user management for ansible_user '{{ ansible_user | default('undefined') }}' to prevent connection loss"
   when:
     - ansible_user is defined
+    - infrastructure.domain.users is defined
     - infrastructure.domain.users | selectattr('name', 'equalto', ansible_user) | list | length > 0
 
 - name: Add users to system
@@ -24,8 +25,9 @@
     create_home: "{{ item.create_home | default(omit) }}"
     groups: "{{ item.groups | default(omit) }}"
     append: true
-  loop: "{{ infrastructure.domain.users }}"
+  loop: "{{ infrastructure.domain.users | default([]) }}"
   when:
+    - infrastructure.domain.users is defined
     - infrastructure.domain.users | length > 0
     - item.name != (ansible_user | default(''))
     - item.name != 'root'
@@ -36,8 +38,9 @@
     user: "{{ item.name }}"
     key: "{{ item.ssh_pubkey }}"
     state: present
-  loop: "{{ infrastructure.domain.users }}"
+  loop: "{{ infrastructure.domain.users | default([]) }}"
   when:
+    - infrastructure.domain.users is defined
     - infrastructure.domain.users | length > 0
     - item.name != (ansible_user | default(''))
     - item.name != 'root'
@@ -54,5 +57,7 @@
     name: "{{ item }}"
     state: absent
     remove: true
-  loop: "{{ infrastructure.domain.users_absent }}"
-  when: infrastructure.domain.users_absent | length > 0
+  loop: "{{ infrastructure.domain.users_absent | default([]) }}"
+  when:
+    - infrastructure.domain.users_absent is defined
+    - infrastructure.domain.users_absent | length > 0

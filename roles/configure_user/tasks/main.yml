@@ -3,6 +3,7 @@
 - name: Validate required variables
   ansible.builtin.assert:
     that:
+      - infrastructure.domain.users is defined
       - infrastructure.domain.users | length > 0
     fail_msg: "configure_user role requires infrastructure.domain.users to be defined and non-empty"
 
@@ -10,7 +11,7 @@
   ansible.builtin.include_tasks: configure-user-single.yml
   vars:
     current_user_config: "{{ user }}"
-  loop: "{{ infrastructure.domain.users }}"
+  loop: "{{ infrastructure.domain.users | default([]) }}"
   loop_control:
     loop_var: user
   when: user.name != 'root' # Skip system accounts

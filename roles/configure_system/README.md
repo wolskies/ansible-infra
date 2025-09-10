@@ -44,7 +44,7 @@ infrastructure:
       rules:
         - { port: 80, proto: tcp }
     snap:
-      disable_and_remove: true
+      disable_and_remove: true  # Opt-in snap removal
 ```
 
 ## Usage Examples
@@ -59,7 +59,7 @@ infrastructure:
     infrastructure:
       domain:
         name: "company.com"
-        timezone: "UTC"
+        timezone: "America/New_York"  # Optional: preserves system default if empty
         users:
           - name: admin
             groups: [sudo]

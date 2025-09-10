@@ -15,6 +15,7 @@
     name: "{{ infrastructure.domain.timezone }}"
   become: true
   when:
+    - infrastructure.domain.timezone is defined
     - infrastructure.domain.timezone | length > 0
   tags:
     - timezone
@@ -42,6 +43,7 @@
   when:
     - infrastructure.host.update_hosts | default(false)
     - infrastructure.host.hostname | length > 0
+    - infrastructure.domain.name is defined
     - infrastructure.domain.name | length > 0
 
 - name: Include OS-specific configuration

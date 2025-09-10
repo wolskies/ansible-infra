@@ -11,18 +11,18 @@ Roles share a common variable structure for interoperability. Most OS difference
 ```yaml
 infrastructure:
   domain:
-    name: "company.com"
-    timezone: "America/New_York"
-    locale: "en_US.UTF-8"
+    name: "company.com"              # Optional: defaults to ""
+    timezone: "America/New_York"     # Optional: defaults to "" (system default)
+    locale: "en_US.UTF-8"            # Optional: defaults to system locale
     ntp:
-      enabled: true
-      servers: [0.pool.ntp.org, 1.pool.ntp.org]
+      enabled: true                  # Optional: defaults to false (system default)
+      servers: [time1.company.com]   # Optional: defaults to [] (system defaults)
     users: []
 
   host:
-    hostname: "web01" # Individual hostname
-    update_hosts: true # /etc/hosts management
-    packages: # Package management
+    hostname: "web01"                # Optional: individual hostname
+    update_hosts: true               # Optional: /etc/hosts management
+    packages: # Optional: package management structure documented below
       present:
         all:
           Ubuntu: [git, curl]
@@ -31,66 +31,162 @@ infrastructure:
           Ubuntu: [nginx]
         host:
           Ubuntu: [redis-server]
-    firewall: # Firewall configuration
-      enabled: false
+    firewall:                        # Optional: firewall configuration
+      enabled: true                  # When enabled, configures UFW/macOS firewall
       rules: []
-    snap: # Snap management
-      disable_and_remove: true
-    flatpak: # Flatpak management
+    snap:                            # Optional: snap management
+      disable_and_remove: false      # Optional: defaults to false (preserve system snap)
+    flatpak:                         # Optional: flatpak management
+      enabled: false                 # Optional: defaults to false
+```
+
+### Complete Variable Schema
+
+```yaml
+infrastructure:
+  domain:
+    name: ""                         # Domain name (optional)
+    timezone: ""                     # Timezone (optional, preserves system default)
+    locale: "en_US.UTF-8"           # System locale
+    language: "en_US.UTF-8"         # System language
+    ntp:
+      enabled: false                 # NTP configuration (optional)
+      servers: []                    # NTP servers (empty = system defaults)
+    users: []                        # User definitions (see User Management section)
+
+  host:
+    hostname: ""                     # Individual hostname
+    update_hosts: true               # /etc/hosts management
+
+    journal:                         # systemd journal configuration (Linux)
+      configure: false               # Optional: defaults to false
+      max_size: "500M"
+      max_retention: "30d"
+
+    services: {}                     # systemd service management
+    # services:
+    #   enable: [nginx, redis]
+    #   disable: [bluetooth]
+
+    sysctl: {}                       # kernel parameter configuration
+    # sysctl:
+    #   parameters:
+    #     vm.swappiness: 10
+
+    modules: {}                      # kernel module management
+    # modules:
+    #   load: [uvcvideo]
+    #   blacklist: [nouveau]
+
+    udev: {}                         # udev rules management
+    # udev:
+    #   rules:
+    #     - name: pico
+    #       content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a"...'
+
+    packages: {}                     # Package management (see schema below)
+    # packages:
+    #   present:
+    #     all:                       # Packages for all hosts
+    #       Ubuntu: [git, curl]
+    #       Debian: [git, curl]
+    #       Archlinux: [git, curl]
+    #       MacOSX: [git, curl]
+    #     group:                     # Packages for group
+    #       Ubuntu: [nginx]
+    #     host:                      # Packages for specific host
+    #       Ubuntu: [redis-server]
+    #   remove:                      # Packages to remove
+    #     all:
+    #       Ubuntu: [snapd]
+    #   casks_present:               # macOS casks
+    #     all: [visual-studio-code]
+    #   casks_remove: []
+    #   apt:                         # APT-specific settings
+    #     apt_cache:
+    #       update_cache: false      # No forced cache updates
+    #       valid_time: 3600
+    #     unattended_upgrades:
+    #       enabled: false           # Opt-in automatic updates
+    #     repositories: {}           # APT repository management
+    #   pacman:                      # Pacman-specific settings
+    #     enable_aur: false          # Opt-in AUR enablement
+    #     aur_helper: paru
+    #   homebrew:                    # Homebrew settings (macOS)
+    #     install: true              # Auto-install Homebrew
+    #     update_homebrew: true
+
+    firewall:                        # Firewall configuration
+      enabled: false                 # Firewall management
+      prevent_ssh_lockout: true      # SSH safety
+      rules: []
+      # rules:
+      #   - port: 80
+      #     proto: tcp
+      #     comment: "HTTP"
+
+    fail2ban:                        # Intrusion detection (Linux)
       enabled: false
+      services:
+        - name: sshd
+          enabled: true
+          maxretry: 5
+          bantime: 3600
+
+    snap:                            # Snap management (Ubuntu/Debian)
+      disable_and_remove: false      # Preserves system snap by default
+      packages: {}
+      # packages:
+      #   install: [hello-world]
+      #   remove: [unwanted-snap]
+
+    flatpak:                         # Flatpak management (Linux)
+      enabled: false
+      packages: {}
+      flathub: true                  # Add Flathub repository
+      plugins:
+        gnome: false
+        plasma: false
 ```
 
 ## Core Roles
 
 ### **discovery**
+Scans systems and generates `host_vars/hostname.yml` files with discovered configuration in collection format.
 
-Provided as a convenience to allow a user to get up and running. Will scan a system and populate a host_vars/host.yml file with data in the right format to be consumed by roles in this collection. It can be used on multiple hosts, however, it will not aggregate variables at the group level - that is left up to the user.
+### **configure_system**
+Orchestrates other collection roles. Calls os_configuration, manage_users, manage_packages, manage_security_services, etc. in proper order.
 
-### **configure_system** - Orchestration
+### **os_configuration**
+- Configures timezone, locale, NTP servers
+- Sets hostname and manages /etc/hosts
+- Manages systemd services, journal settings, sysctl parameters
+- Platform-specific: APT unattended upgrades, macOS gatekeeper
 
-Simple role provided as a convenience that walks through the remaining roles in the collection with the aim at configuring a system/systems.
+### **manage_users**
+Creates system user accounts, groups, SSH keys. Requires sudo. Reads from `infrastructure.domain.users[]`.
 
-### **os_configuration** - System Foundation
+### **configure_user**
+Configures per-user preferences (runs as target user):
+- Git config, shell preferences
+- Language packages: nodejs, rust, go (auto-installs dependencies)
+- Dotfiles deployment via stow
+- macOS GUI settings (dock, finder)
 
-OS-level configuration tasks:
+### **manage_packages**
+- System-wide package installation via APT/pacman/Homebrew
+- Repository management (APT sources, Homebrew taps, AUR helpers)
+- **Package globbing**: Combines `all`/`group`/`host` package lists additively within final variable structure
+- Platform detection handles Ubuntu/Debian/Arch/macOS differences
 
-- **Domain settings**: timezone, locale, NTP (consistent across environment)
-- **Host settings**: hostname, /etc/hosts management, system services, logging
-- **Platform specifics**: unattended upgrades (apt), gatekeeper (macOS), journal configuration
+### **manage_security_services**
+- UFW firewall (Linux) and macOS application firewall
+- fail2ban intrusion detection with service-specific jails
+- Declarative firewall rule management
 
-### **manage_users** - System Account Management
-
-A thin wrapper around ansible.builtin.users that provides all of the functionality of that role, integrated in a way that it can be called by os_configuration.
-
-### **configure_user** - User Preference Configuration
-
-Provides per-user configuration of preferences. In general, these are settings that are local to the user (dotfiles, GUI configuration, locally installed applications)
-
-- **Cross-platform**: Git config, language packages (nodejs, rust, go), shell, dotfiles
-- **OS-specific**: macOS-only GUI preferences (dock, finder settings)
-- **Auto-dependency installation**: installs nodejs/rustup/golang if packages requested
-- **Dotfiles integration**: Stow-based dotfiles deployment from repositories
-
-### **manage_packages** - Package Management
-
-Distribution-specific package installation. For MacOS, "distribution-specific" means those packages and casks that can be installed by homebrew. Packages are installed system-wide for all users.
-
-- **Package categories**: `all`, `group`, `host` are provided as a workaround for ansible's variable precedence for users that may prefer to specify packages at the all, group or host level and have them globbed together rather than overriden.
-- **Repository management**: APT sources, Homebrew taps, AUR helpers
-- **Multi-package-manager**: handles APT, pacman, Homebrew transparently
-
-### **manage_security_services** - Security Configuration
-
-Firewall and intrusion prevention options:
-
-- **UFW** (Ubuntu/Debian/Arch), **macOS application firewall**
-- **fail2ban**: intrusion detection with distribution-specific jails (Linux only)
-- **Rule management**: declarative firewall rule configuration
-
-### **manage_snap_packages** / **manage_flatpak** - Alternative Package Systems
-
-- **Snap**: Ubuntu/Debian snap management (install/remove or complete system removal)
-- **Flatpak**: Linux flatpak management with repository and plugin handling
+### **manage_snap_packages** / **manage_flatpak**
+- **Snap**: Preserves system snap by default, optional package management or complete removal
+- **Flatpak**: Optional flatpak management with repository and desktop plugin support
 
 ## Installation & Usage
 
@@ -147,7 +243,7 @@ infrastructure:
           Ubuntu: [git, curl, htop, vim]
           Darwin: [git, curl, htop, vim]
     snap:
-      disable_and_remove: true
+      disable_and_remove: true      # Explicit opt-in for snap removal
 
 # inventory/group_vars/webservers.yml
 infrastructure:
@@ -260,8 +356,8 @@ infrastructure:
 infrastructure:
   host:
     snap:
-      disable_and_remove: true # Complete snap removal
-      # OR for managed snap usage:
+      disable_and_remove: true # Opt-in complete snap removal
+      # OR for managed snap usage (default preserves system snap):
       # disable_and_remove: false
       # packages:
       #   install: [hello-world]
@@ -328,12 +424,11 @@ Language tools are installed automatically when user requests packages:
 - Built-in application firewall configuration
 - Xcode Command Line Tools requirement
 
-## Variable Hierarchy & Merging
+## Package Organization & Globbing
 
-The `infrastructure` structure supports flexible configuration patterns:
+The collection allows packages to be defined at different inventory levels and automatically globs them together for installation:
 
 ```yaml
-# Roles merge all/group/host categories additively within final variable structure
 # inventory/group_vars/all.yml
 infrastructure:
   host:
@@ -358,10 +453,14 @@ infrastructure:
         host:
           Ubuntu: [redis-server]
 
-# Final result: [git, curl, nginx, redis-server]
+# Final result on web01: [git, curl, nginx, redis-server]
 ```
 
-Variables follow standard Ansible precedence rules (group_vars < host_vars). Package management roles provide `all`, `group`, `host` categories within the package structure for organizational convenience - these are merged additively by the roles, but still subject to Ansible's standard variable precedence.
+**How it works:**
+- Ansible's standard variable precedence applies normally (group_vars < host_vars)
+- The `manage_packages` role reads the final merged variable structure
+- **Within** that structure, `all`/`group`/`host` categories are globbed together additively
+- This allows flexible package organization without precedence override issues
 
 ## Dependencies
 
