@@ -53,31 +53,32 @@ provisioner:
             host:
               Ubuntu: []
               Debian: []
-          apt:
-            apt_cache:
-              update_cache: true
-              valid_time: 3600
-            system_upgrade:
-              enable: false
-              type: safe
-            repositories:
-              all:
-                Ubuntu:
-                  - name: docker
-                    types: deb
-                    uris: https://download.docker.com/linux/ubuntu
-                    suites: jammy
-                    components: [stable]
-                    signed_by: https://download.docker.com/linux/ubuntu/gpg
-                    state: present
-                    enabled: true
-                Debian: []
-              group:
-                Ubuntu: []
-                Debian: []
-              host:
-                Ubuntu: []
-                Debian: []
+
+        # APT configuration (flat structure)
+        apt:
+          apt_cache:
+            update_cache: true
+            valid_time: 3600
+          system_upgrade:
+            enable: false
+            type: safe
+          repositories:
+            all:
+              Ubuntu:
+                - name: docker
+                  types: deb
+                  uris: https://download.docker.com/linux/ubuntu
+                  suites: jammy
+                  components: [stable]
+                  signed_by: https://download.docker.com/linux/ubuntu/gpg
+                  state: present
+              Debian: []
+            group:
+              Ubuntu: []
+              Debian: []
+            host:
+              Ubuntu: []
+              Debian: []
 
     host_vars:
       ubuntu-packages-test:
