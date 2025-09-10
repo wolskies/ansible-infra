@@ -1,37 +1,27 @@
 ---
-# Pre-flight ownership fix for Homebrew directories
-# This ensures proper ownership before geerlingguy's role runs
-- name: Ensure Homebrew directory ownership is correct
+# Check if Homebrew needs installation or just management
+- name: Check Homebrew installation status
   block:
-    - name: Create Homebrew directory structure with correct ownership
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        owner: "{{ ansible_user_id | default(ansible_env.USER) }}"
-        group: "admin"
-        mode: "0755"
-      become: true
-      loop:
-        - /opt/homebrew
-        - /opt/homebrew/bin
-        - /opt/homebrew/etc
-        - /opt/homebrew/include
-        - /opt/homebrew/lib
-        - /opt/homebrew/opt
-        - /opt/homebrew/sbin
-        - /opt/homebrew/share
-        - /opt/homebrew/var
-        - /opt/homebrew/var/homebrew
-        - /opt/homebrew/var/homebrew/locks
-        - /opt/homebrew/Cellar
-        - /opt/homebrew/Caskroom
-        - /opt/homebrew/Frameworks
-
-    - name: Ensure recursive ownership of entire Homebrew directory
+    - name: Check if brew command exists
       ansible.builtin.command:
-        cmd: "chown -R {{ ansible_user_id | default(ansible_env.USER) }}:admin /opt/homebrew"
+        cmd: which brew
+      register: brew_check
+      changed_when: false
+      failed_when: false
+
+    - name: Check if Homebrew directory exists
+      ansible.builtin.stat:
+        path: /opt/homebrew
+      register: homebrew_dir
+
+    - name: Remove incomplete Homebrew installation if brew command is missing
+      ansible.builtin.file:
+        path: /opt/homebrew
+        state: absent
       become: true
-      changed_when: true
+      when:
+        - brew_check.rc != 0 # brew command not found
+        - homebrew_dir.stat.exists # but directory exists
   when: ansible_os_family == "Darwin"
 
 - name: Merge Homebrew packages from all sources
