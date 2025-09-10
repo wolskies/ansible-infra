@@ -5,39 +5,35 @@
 
 - name: Ensure Homebrew directory ownership is correct
   block:
-    - name: Create Homebrew base directory with correct ownership
+    - name: Create Homebrew directory structure with correct ownership
       ansible.builtin.file:
-        path: /opt/homebrew
+        path: "{{ item }}"
         state: directory
         owner: "{{ _homebrew_user }}"
         group: "admin"
         mode: "0755"
       become: true
-
-    - name: Check if Homebrew subdirectories exist
-      ansible.builtin.stat:
-        path: "{{ item }}"
-      register: homebrew_dirs
       loop:
-        - /opt/homebrew/Cellar
-        - /opt/homebrew/var
-        - /opt/homebrew/Frameworks
-        - /opt/homebrew/Caskroom
+        - /opt/homebrew
         - /opt/homebrew/bin
+        - /opt/homebrew/etc
+        - /opt/homebrew/include
         - /opt/homebrew/lib
+        - /opt/homebrew/opt
+        - /opt/homebrew/sbin
         - /opt/homebrew/share
+        - /opt/homebrew/var
+        - /opt/homebrew/var/homebrew
+        - /opt/homebrew/var/homebrew/locks
+        - /opt/homebrew/Cellar
+        - /opt/homebrew/Caskroom
+        - /opt/homebrew/Frameworks
 
-    - name: Fix ownership of existing Homebrew subdirectories
-      ansible.builtin.file:
-        path: "{{ item.item }}"
-        owner: "{{ _homebrew_user }}"
-        group: "admin"
-        recurse: true
+    - name: Ensure recursive ownership of entire Homebrew directory
+      ansible.builtin.command:
+        cmd: "chown -R {{ _homebrew_user }}:admin /opt/homebrew"
       become: true
-      loop: "{{ homebrew_dirs.results }}"
-      when: item.stat.exists
-      loop_control:
-        label: "{{ item.item }}"
+      changed_when: true
   when: ansible_os_family == "Darwin"
 
 - name: Merge Homebrew packages from all sources
