@@ -3,11 +3,15 @@
   ansible.builtin.set_fact:
     merged_apt_repositories: >-
       {{
-        (infrastructure.host.packages.apt.repositories.all[ansible_distribution]) +
-        (infrastructure.host.packages.apt.repositories.group[ansible_distribution]) +
-        (infrastructure.host.packages.apt.repositories.host[ansible_distribution])
+        (infrastructure.host.packages.apt.repositories.all[ansible_distribution] | default([])) +
+        (infrastructure.host.packages.apt.repositories.group[ansible_distribution] | default([])) +
+        (infrastructure.host.packages.apt.repositories.host[ansible_distribution] | default([]))
         | unique | list
       }}
+  when:
+    - infrastructure.host.packages is defined
+    - infrastructure.host.packages.apt is defined
+    - infrastructure.host.packages.apt.repositories is defined
 
 - name: Manage APT repositories
   block:
@@ -58,13 +62,23 @@
       loop: "{{ merged_apt_repositories }}"
       become: true
       register: repositories_changed
+  when:
+    - infrastructure.host.packages is defined
+    - infrastructure.host.packages.apt is defined
+    - infrastructure.host.packages.apt.repositories is defined
+    - merged_apt_repositories is defined
+    - merged_apt_repositories | length > 0
 
 - name: Update APT cache
   ansible.builtin.apt:
-    update_cache: "{{ infrastructure.host.packages.apt.apt_cache.update_cache }}"
-    cache_valid_time: "{{ infrastructure.host.packages.apt.apt_cache.valid_time }}"
+    update_cache: "{{ infrastructure.host.packages.apt.apt_cache.update_cache | default(false) }}"
+    cache_valid_time: "{{ infrastructure.host.packages.apt.apt_cache.valid_time | default(3600) }}"
   become: true
-  when: infrastructure.host.packages.apt.apt_cache.update_cache
+  when:
+    - infrastructure.host.packages is defined
+    - infrastructure.host.packages.apt is defined
+    - infrastructure.host.packages.apt.apt_cache is defined
+    - infrastructure.host.packages.apt.apt_cache.update_cache | default(false)
 
 - name: Remove packages via APT
   ansible.builtin.apt:
@@ -82,9 +96,13 @@
 
 - name: Upgrade all APT packages
   ansible.builtin.apt:
-    upgrade: "{{ infrastructure.host.packages.apt.system_upgrade.type }}"
+    upgrade: "{{ infrastructure.host.packages.apt.system_upgrade.type | default('safe') }}"
   become: true
-  when: infrastructure.host.packages.apt.system_upgrade.enable
+  when:
+    - infrastructure.host.packages is defined
+    - infrastructure.host.packages.apt is defined
+    - infrastructure.host.packages.apt.system_upgrade is defined
+    - infrastructure.host.packages.apt.system_upgrade.enable | default(false)
 
 - name: Gather package facts (Debian family)
   ansible.builtin.package_facts:
