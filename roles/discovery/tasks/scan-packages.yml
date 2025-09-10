@@ -27,7 +27,7 @@
 
 - name: Filter user-installed packages
   ansible.builtin.set_fact:
-    "host_packages_install_{{ ansible_distribution }}": "{{ filtered_user_packages }}"
+    discovery_packages_host: "{{ filtered_user_packages }}"
   vars:
     # Additional patterns to filter out even from user-installed packages
     system_categories:
@@ -117,17 +117,17 @@
 
     - name: Set discovered Homebrew data
       ansible.builtin.set_fact:
-        "host_packages_install_{{ ansible_distribution }}": "{{ homebrew_packages.stdout_lines | default([]) }}"
-        homebrew_discovered_casks: "{{ homebrew_casks.stdout_lines | default([]) }}"
-        homebrew_discovered_taps: "{{ homebrew_taps.stdout_lines | default([]) }}"
+        discovery_packages_host: "{{ homebrew_packages.stdout_lines | default([]) }}"
+        discovery_homebrew_casks: "{{ homebrew_casks.stdout_lines | default([]) }}"
+        discovery_homebrew_taps: "{{ homebrew_taps.stdout_lines | default([]) }}"
         homebrew_installed: true
       when: homebrew_packages is defined or homebrew_casks is defined or homebrew_taps is defined
 
     - name: Set empty data if no Homebrew
       ansible.builtin.set_fact:
-        "host_packages_install_{{ ansible_distribution }}": []
-        homebrew_discovered_casks: []
-        homebrew_discovered_taps: []
+        discovery_packages_host: []
+        discovery_homebrew_casks: []
+        discovery_homebrew_taps: []
         homebrew_installed: false
       when:
         - not homebrew_arm.stat.exists

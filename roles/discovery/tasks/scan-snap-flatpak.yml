@@ -20,7 +20,7 @@
 
     - name: Parse snap packages for community.general.snap
       ansible.builtin.set_fact:
-        discovered_snap_packages: >-
+        discovery_snap_packages: >-
           {%- set snaps = [] -%}
           {%- if snap_packages_cmd.stdout_lines is defined and snap_packages_cmd.stdout_lines | length > 1 -%}
             {%- for line in snap_packages_cmd.stdout_lines[1:] -%}
@@ -52,7 +52,7 @@
 
     - name: Parse flatpak remotes for community.general.flatpak_remote
       ansible.builtin.set_fact:
-        discovered_flatpak_remotes: >-
+        discovery_flatpak_remotes: >-
           {%- set remotes = [] -%}
           {%- if flatpak_remotes_cmd.stdout_lines is defined -%}
             {%- for line in flatpak_remotes_cmd.stdout_lines -%}
@@ -76,7 +76,7 @@
 
     - name: Parse flatpak packages for community.general.flatpak
       ansible.builtin.set_fact:
-        discovered_flatpak_packages: >-
+        discovery_flatpak_packages: >-
           {%- set packages = [] -%}
           {%- if flatpak_packages_cmd.stdout_lines is defined -%}
             {%- for line in flatpak_packages_cmd.stdout_lines -%}

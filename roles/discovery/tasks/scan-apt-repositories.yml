@@ -23,7 +23,7 @@
 
 - name: Parse repository information for deb822_repository module
   ansible.builtin.set_fact:
-    discovered_repositories: >-
+    discovery_repositories: >-
       {%- set repos = [] -%}
       {%- set gpg_key_map = discovery_repository_detection.apt.gpg_key_mapping -%}
       {%- if repository_contents.results is defined -%}

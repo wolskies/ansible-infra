@@ -7,13 +7,21 @@
 # DOMAIN-LEVEL CONFIGURATION
 # =============================================================================
 
-domain_name: {{ config_domain | default('') | to_json }}
-domain_timezone: {{ config_system_timezone | default('UTC') | to_json }}
-domain_locale: {{ config_locale_settings | default('en_US.UTF-8') | to_json }}
-domain_language: {{ config_locale_settings | default('en_US.UTF-8') | to_json }}
-{% if config_ntp_enabled is defined %}
+{% if discovery_domain_name -%}
+domain_name: {{ discovery_domain_name | to_json }}
+{% endif -%}
+{% if discovery_domain_timezone -%}
+domain_timezone: {{ discovery_domain_timezone | to_json }}
+{% endif -%}
+{% if discovery_domain_locale -%}
+domain_locale: {{ discovery_domain_locale | to_json }}
+{% endif -%}
+{% if discovery_domain_language -%}
+domain_language: {{ discovery_domain_language | to_json }}
+{% endif -%}
+{% if discovery_domain_ntp_enabled is not none %}
 domain_ntp:
-  enabled: {{ config_ntp_enabled | lower }}
+  enabled: {{ discovery_domain_ntp_enabled | lower }}
   servers:
     - "0.pool.ntp.org"
     - "1.pool.ntp.org"
@@ -31,289 +39,143 @@ users: []
 # HOST-LEVEL CONFIGURATION
 # =============================================================================
 
-host_hostname: {{ config_hostname | default(ansible_hostname) | to_json }}
-host_update_hosts: false  # Set to true if you want to update /etc/hosts
-
-{% if discovered_services_enabled is defined and discovered_services_enabled | length > 0 %}
-# Currently enabled services (discovered):
-# {{ discovered_services_enabled | join(', ') }}
+{% if discovery_hostname %}host_hostname: {{ discovery_hostname | to_json }}{% endif %}
+{% if discovery_services_enabled | length > 0 or discovery_services_disabled | length > 0 %}
+# Services discovered on system:
+{% if discovery_services_enabled | length > 0 %}
+# Enabled: {{ discovery_services_enabled | join(', ') }}
+{% endif %}
+{% if discovery_services_disabled | length > 0 %}
+# Disabled: {{ discovery_services_disabled | join(', ') }}
 {% endif %}
 host_services:
-  enable: []  # Services to enable
-  disable: []  # Services to disable
+  enable: {{ discovery_services_enabled | to_json }}
+  disable: {{ discovery_services_disabled | to_json }}
+{% endif %}
 
+{% if discovery_sysctl_current | length > 0 %}
+# Current sysctl values (discovered):
 host_sysctl:
-  parameters: {}  # Add kernel parameters as needed
-  # Example:
-  # parameters:
-  #   net.ipv4.ip_forward: "1"
-  #   vm.max_map_count: "262144"
-{% if discovered_sysctl_current is defined and discovered_sysctl_current | length > 0 %}
-  # Current sysctl values detected (for reference):
-{% for key, value in discovered_sysctl_current.items() %}
-  #   {{ key }}: {{ value }}
+  parameters:
+{% for key, value in discovery_sysctl_current.items() %}
+    {{ key }}: {{ value | to_json }}
 {% endfor %}
 {% endif %}
 
-host_limits:
-  limits: []  # Add limits as needed
-  # Example:
-  # limits:
-  #   - domain: "*"
-  #     limit_type: "soft"
-  #     limit_item: "nofile"
-  #     value: "65536"
+# No system limits discovered
 
-host_modules:
-  load: []  # Modules to load at boot
-  blacklist: []  # Modules to blacklist
+# No kernel modules discovered
 
-{% if discovered_udev_rules is defined and discovered_udev_rules | length > 0 %}
+{% if discovery_udev_rules | length > 0 %}
 # Udev rules (discovered)
 host_udev:
   rules:
-{% for rule in discovered_udev_rules %}
+{% for rule in discovery_udev_rules %}
     - name: {{ rule.name | to_json }}
       content: {{ rule.content | to_json }}
       priority: {{ rule.priority }}
       state: present
 {% endfor %}
-{% else %}
-host_udev:
-  rules: []
-  # Example:
-  # rules:
-  #   - name: pico
-  #     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
-  #     priority: 99
-  #     state: present
 {% endif %}
 
 # =============================================================================
 # SYSTEM SERVICES CONFIGURATION
 # =============================================================================
 
-# Journald configuration
-journal:
-  configure: false  # Set to true to configure journald
-  max_size: "500M"
-  max_retention: "30d"
-  forward_to_syslog: false
-  compress: true
-
-# Remote syslog configuration
-rsyslog:
-  enabled: false
-  remote_host: ""
-  remote_port: 514
-  protocol: "udp"
-
-# System optimization
-optimizations:
-  tune_swappiness: false  # Set to true and configure swappiness value below
-  swappiness: 10  # Only used if tune_swappiness is true
+# No system services configuration discovered
 
 # =============================================================================
 # SECURITY CONFIGURATION
 # =============================================================================
 
-{% if firewall_enable is defined %}
+{% if discovery_firewall_enabled or discovery_firewall_package %}
 firewall:
-  enabled: {{ firewall_enable | lower }}
-  prevent_ssh_lockout: true
-{% if security_firewall_package is defined and security_firewall_package != "unknown" %}
-  package: {{ security_firewall_package | to_json }}
+  enabled: {{ discovery_firewall_enabled | lower }}
+{% if discovery_firewall_package %}
+  package: {{ discovery_firewall_package | to_json }}
 {% endif %}
-  stealth_mode: false
-  block_all: false
-  logging: false
-{% if firewall_custom_rules is defined and firewall_custom_rules is sequence and firewall_custom_rules | length > 0 %}
+{% if discovery_firewall_rules | length > 0 %}
   rules:
-{{ firewall_custom_rules | to_nice_yaml(indent=4) }}
-{% else %}
-  rules: []
+{{ discovery_firewall_rules | to_nice_yaml(indent=4) }}
 {% endif %}
-{% else %}
-firewall:
-  enabled: false
-  prevent_ssh_lockout: true
-  package: "ufw"
-  stealth_mode: false
-  block_all: false
-  logging: false
-  rules: []
 {% endif %}
 
-{% if security_fail2ban_detected is defined %}
+{% if discovery_fail2ban_detected %}
 fail2ban:
-  enabled: {{ (security_fail2ban_detected and security_fail2ban_enabled) | lower }}
-  sender: "root@localhost"
-  dest_email: ""
-  defaults:
-    bantime: 3600
-    findtime: 600
-    maxretry: 5
-  services:
-    - name: sshd
-      enabled: true
-      maxretry: 5
-      bantime: 3600
-      findtime: 600
-      logpath: /var/log/auth.log
-  ignoreips:
-    - "127.0.0.1/8"
-    - "::1"
-{% else %}
-fail2ban:
-  enabled: false
+  enabled: {{ discovery_fail2ban_enabled | lower }}
 {% endif %}
 
 # =============================================================================
 # PACKAGE MANAGEMENT
 # =============================================================================
 
+{% if discovery_packages_host | length > 0 %}
 packages:
   present:
-    all: {}
-    group: {}
-    host: {}
-{% if vars['host_packages_install_' + ansible_distribution] is defined and vars['host_packages_install_' + ansible_distribution] is sequence %}
-    # Distribution-specific packages discovered:
-    # host:
-    #   {{ ansible_distribution }}:
-    #{{ vars['host_packages_install_' + ansible_distribution] | to_nice_yaml(indent=6) | regex_replace('^', '#     ', multiline=True) }}
+    host:
+      {{ ansible_distribution }}:
+{{ discovery_packages_host | to_nice_yaml(indent=8) }}
 {% endif %}
-  remove:
-    all: {}
-    group: {}
-    host: {}
-{% if ansible_system == "Darwin" %}
+{% if ansible_system == "Darwin" and discovery_homebrew_casks | length > 0 %}
   casks_present:
-    all: []
-    group: []
-    host: []
-  casks_remove: []
+    host: {{ discovery_homebrew_casks | to_json }}
 {% endif %}
 
-{% if ansible_os_family == "Debian" %}
+{% if ansible_os_family == "Debian" and discovery_repositories | length > 0 %}
 apt:
-  apt_cache:
-    update_cache: false
-    valid_time: 3600
-  no_recommends: false
-  unattended_upgrades:
-    enabled: false
-    email: ""
-    auto_reboot: false
-    reboot_with_users: false
-    reboot_time: "02:00"
-  system_upgrade:
-    enable: false
-    type: safe
-  proxy: ""
-{% if discovered_repositories is defined and discovered_repositories | length > 0 %}
   repositories:
     host:
       {{ ansible_distribution }}:
-{{ discovered_repositories | to_nice_yaml(indent=8) }}
-{% else %}
-  repositories: {}
-{% endif %}
-{% elif ansible_os_family == "Archlinux" %}
-pacman:
-  no_confirms: false
-  proxy: ""
-  multilib: false
-  enable_aur: false
-  aur_helper: paru
-  config_reflector: true
-{% elif ansible_system == "Darwin" %}
+{{ discovery_repositories | to_nice_yaml(indent=8) }}
+{% elif ansible_system == "Darwin" and discovery_homebrew_taps | length > 0 %}
 homebrew:
-  install: true
-  update_homebrew: true
-  cleanup_cache: false
-{% if homebrew_discovered_taps is defined %}
   taps:
-{{ homebrew_discovered_taps | to_nice_yaml(indent=4) }}
-{% else %}
-  taps: []
-{% endif %}
+{{ discovery_homebrew_taps | to_nice_yaml(indent=4) }}
 {% endif %}
 
-{% if discovered_snap_packages is defined %}
+{% if discovery_snap_packages | length > 0 %}
 snap:
-  disable_and_remove: {{ (discovered_snap_packages | length == 0) | lower }}
-{% if discovered_snap_packages | length > 0 %}
   packages:
     install:
-{{ discovered_snap_packages | to_nice_yaml(indent=6) }}
-    remove: []
-{% else %}
-  packages: {}
-{% endif %}
-{% else %}
-snap:
-  disable_and_remove: false
-  packages: {}
+{{ discovery_snap_packages | to_nice_yaml(indent=6) }}
 {% endif %}
 
-{% if discovered_flatpak_packages is defined %}
+{% if discovery_flatpak_packages | length > 0 %}
 flatpak:
-  enabled: {{ (discovered_flatpak_packages | length > 0) | lower }}
-{% if discovered_flatpak_packages | length > 0 %}
+  enabled: true
   packages:
     install:
-{{ discovered_flatpak_packages | to_nice_yaml(indent=6) }}
-    remove: []
-{% else %}
-  packages: {}
-{% endif %}
-  flathub: true
-  plugins:
-    gnome: false
-    plasma: false
-{% else %}
-flatpak:
-  enabled: false
-  packages: {}
-  flathub: true
-  plugins:
-    gnome: false
-    plasma: false
+{{ discovery_flatpak_packages | to_nice_yaml(indent=6) }}
 {% endif %}
 
-{% if ansible_system == "Darwin" %}
+{% if ansible_system == "Darwin" and discovery_macos_preferences | length > 0 -%}
+
 # =============================================================================
-# macOS-SPECIFIC SETTINGS
+# macOS-SPECIFIC SETTINGS (DISCOVERED)
 # =============================================================================
 
 macosx:
-  updates:
-    auto_check: true
-    auto_download: false
+{%- if discovery_macos_preferences.gatekeeper_enabled is defined %}
   gatekeeper:
-{% if discovered_macos_preferences is defined and discovered_macos_preferences.gatekeeper_enabled is defined %}
-    enabled: {{ discovered_macos_preferences.gatekeeper_enabled }}
-{% else %}
-    enabled: true
-{% endif %}
-{% if discovered_macos_preferences is defined %}
+    enabled: {{ discovery_macos_preferences.gatekeeper_enabled }}
+{%- endif %}
+{%- if discovery_macos_preferences.natural_scroll is defined or discovery_macos_preferences.measurement_units is defined or discovery_macos_preferences.use_metric is defined or discovery_macos_preferences.show_all_extensions is defined %}
   system_preferences:
-    natural_scroll: {{ discovered_macos_preferences.natural_scroll | default(true) }}
-    measurement_units: {{ discovered_macos_preferences.measurement_units | default('Inches') | to_json }}
-    use_metric: {{ discovered_macos_preferences.use_metric | default(false) }}
-    show_all_extensions: {{ discovered_macos_preferences.show_all_extensions | default(false) }}
+{%- if discovery_macos_preferences.natural_scroll is defined %}
+    natural_scroll: {{ discovery_macos_preferences.natural_scroll }}
+{%- endif %}
+{%- if discovery_macos_preferences.measurement_units is defined %}
+    measurement_units: {{ discovery_macos_preferences.measurement_units | to_json }}
+{%- endif %}
+{%- if discovery_macos_preferences.use_metric is defined %}
+    use_metric: {{ discovery_macos_preferences.use_metric }}
+{%- endif %}
+{%- if discovery_macos_preferences.show_all_extensions is defined %}
+    show_all_extensions: {{ discovery_macos_preferences.show_all_extensions }}
+{%- endif %}
+{%- endif %}
+{%- if discovery_macos_preferences.airdrop_ethernet is defined %}
   airdrop:
-    ethernet_enabled: {{ discovered_macos_preferences.airdrop_ethernet | default(false) }}
-{% else %}
-  system_preferences:
-    natural_scroll: true
-    measurement_units: "Inches"
-    use_metric: false
-    show_all_extensions: false
-  airdrop:
-    ethernet_enabled: false
+    ethernet_enabled: {{ discovery_macos_preferences.airdrop_ethernet }}
+{%- endif %}
 {% endif %}
-{% endif %}
-
-# vim: set ft=yaml ts=2 sw=2 et:
