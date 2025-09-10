@@ -1,4 +1,47 @@
 ---
+# Check which groups exist on the system before adding users
+- name: Get list of existing groups
+  ansible.builtin.getent:
+    database: group
+  register: system_groups
+  when: ansible_system == "Linux"
+
+# macOS uses different commands for group management
+- name: Get list of existing groups (macOS)
+  ansible.builtin.command: dscl . -list /Groups
+  register: macos_groups_raw
+  changed_when: false
+  when: ansible_system == "Darwin"
+
+- name: Parse macOS groups into a list
+  ansible.builtin.set_fact:
+    macos_groups: "{{ macos_groups_raw.stdout_lines | default([]) }}"
+  when: ansible_system == "Darwin"
+
+# Filter user groups to only those that exist on the system
+- name: Prepare users with filtered groups
+  ansible.builtin.set_fact:
+    filtered_users: >-
+      {%- set user_list = [] -%}
+      {%- for user in users | default([]) -%}
+        {%- set filtered_user = user | dict2items | rejectattr('key', 'eq', 'groups') | list | items2dict -%}
+        {%- if user.groups is defined and user.groups | length > 0 -%}
+          {%- if ansible_system == "Linux" -%}
+            {%- set valid_groups = user.groups | select('in', system_groups.ansible_facts.getent_group.keys() | list) | list -%}
+          {%- elif ansible_system == "Darwin" -%}
+            {%- set valid_groups = user.groups | select('in', macos_groups | default([])) | list -%}
+          {%- else -%}
+            {%- set valid_groups = [] -%}
+          {%- endif -%}
+          {%- if valid_groups | length > 0 -%}
+            {%- set _ = filtered_user.update({'groups': valid_groups}) -%}
+          {%- endif -%}
+        {%- endif -%}
+        {%- set _ = user_list.append(filtered_user) -%}
+      {%- endfor -%}
+      {{ user_list }}
+  when: users is defined and users | length > 0
+
 - name: Add users to system
   become: true
   ansible.builtin.user:
@@ -17,7 +60,7 @@
     create_home: "{{ item.create_home | default(omit) }}"
     groups: "{{ item.groups | default(omit) }}"
     append: true
-  loop: "{{ users }}"
+  loop: "{{ filtered_users | default(users) }}"
   when:
     - users is defined
     - users | length > 0
