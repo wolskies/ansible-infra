@@ -1,15 +1,13 @@
 ---
-- name: Determine target user for Homebrew
-  ansible.builtin.set_fact:
-    _homebrew_user: "{{ ansible_user | default(ansible_user_id, true) | default(ansible_env.USER, true) | default(lookup('env', 'USER'), true) }}"
-
+# Pre-flight ownership fix for Homebrew directories
+# This ensures proper ownership before geerlingguy's role runs
 - name: Ensure Homebrew directory ownership is correct
   block:
     - name: Create Homebrew directory structure with correct ownership
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ _homebrew_user }}"
+        owner: "{{ ansible_user_id | default(ansible_env.USER) }}"
         group: "admin"
         mode: "0755"
       become: true
@@ -31,7 +29,7 @@
 
     - name: Ensure recursive ownership of entire Homebrew directory
       ansible.builtin.command:
-        cmd: "chown -R {{ _homebrew_user }}:admin /opt/homebrew"
+        cmd: "chown -R {{ ansible_user_id | default(ansible_env.USER) }}:admin /opt/homebrew"
       become: true
       changed_when: true
   when: ansible_os_family == "Darwin"
@@ -62,11 +60,8 @@
   ansible.builtin.include_role:
     name: geerlingguy.mac.homebrew
   vars:
-    # Installation configuration
-    homebrew_install_path: /opt/homebrew
-    homebrew_brew_bin_path: /opt/homebrew/bin
-    homebrew_user: "{{ _homebrew_user }}"
-    homebrew_group: "admin" # macOS uses 'admin' group for Homebrew, not 'root'
+    # Let the role use its own defaults for paths and ownership
+    # It will use ansible_user_id which should be properly set from gathered facts
 
     # Package management
     homebrew_installed_packages: "{{ merged_homebrew_packages_install | default([]) }}"
