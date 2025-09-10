@@ -43,7 +43,9 @@
       become: true
   when:
     - host_update_hosts | default(false)
+    - host_hostname is defined
     - host_hostname | length > 0
+    - domain_name is defined
     - domain_name | length > 0
 
 - name: Include OS-specific configuration

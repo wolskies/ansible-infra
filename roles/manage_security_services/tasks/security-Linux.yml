@@ -5,6 +5,7 @@
     state: present
   become: true
   when:
+    - firewall is defined
     - firewall.enabled | default(false)
   tags:
     - firewall
@@ -28,6 +29,7 @@
   loop: "{{ firewall.rules }}"
   become: true
   when:
+    - firewall is defined
     - firewall.enabled | default(false)
     - firewall.rules | length > 0
   notify: reload ufw
@@ -43,6 +45,7 @@
     comment: "SSH access (prevent lockout)"
   become: true
   when:
+    - firewall is defined
     - firewall.enabled | default(false)
     - firewall.prevent_ssh_lockout | default(false)
   tags:
@@ -51,8 +54,9 @@
 
 - name: Ensure UFW firewall service state
   community.general.ufw:
-    state: "{{ 'enabled' if firewall.enabled else 'disabled' }}"
+    state: "{{ 'enabled' if (firewall is defined and firewall.enabled) else 'disabled' }}"
   become: true
+  when: firewall is defined
   tags:
     - firewall-services
 
@@ -62,6 +66,7 @@
     state: present
   become: true
   when:
+    - fail2ban is defined
     - fail2ban.enabled | default(false)
   tags:
     - fail2ban
@@ -76,6 +81,7 @@
   become: true
   notify: restart fail2ban
   when:
+    - fail2ban is defined
     - fail2ban.enabled | default(false)
   tags:
     - fail2ban
@@ -83,10 +89,11 @@
 - name: Ensure fail2ban service is running and enabled
   ansible.builtin.service:
     name: fail2ban
-    state: "{{ 'started' if fail2ban.enabled | default(false) else 'stopped' }}"
-    enabled: "{{ fail2ban.enabled | default(false) }}"
+    state: "{{ 'started' if (fail2ban is defined and fail2ban.enabled | default(false)) else 'stopped' }}"
+    enabled: "{{ fail2ban.enabled | default(false) if fail2ban is defined else false }}"
   become: true
   when:
+    - fail2ban is defined
     - fail2ban.enabled | default(false)
   tags:
     - fail2ban

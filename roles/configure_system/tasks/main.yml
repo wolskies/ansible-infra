@@ -54,6 +54,7 @@
   loop_control:
     loop_var: user
   when:
+    - users is defined
     - users | length > 0
     - user.name != 'root' # Skip system accounts
   tags:

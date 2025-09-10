@@ -5,6 +5,7 @@
     state: present
   become: true
   when:
+    - domain_locale is defined
     - domain_locale | length > 0
 
 - name: Configure system language
@@ -15,6 +16,7 @@
     create: true
   become: true
   when:
+    - domain_language is defined
     - domain_language | length > 0
 
 - name: Configure NTP time synchronization
@@ -37,6 +39,7 @@
       become: true
       notify: restart timesyncd
   when:
+    - domain_ntp is defined
     - domain_ntp.enabled | default(false)
   tags:
     - ntp
@@ -63,6 +66,7 @@
       become: true
       notify: restart journald
   when:
+    - journal is defined
     - journal.configure | default(false)
     - ansible_service_mgr == "systemd"
   tags:
@@ -86,6 +90,7 @@
       when: rsyslog_installed.stat.exists
       notify: restart rsyslog
   when:
+    - rsyslog is defined
     - rsyslog.enabled | default(false)
     - rsyslog.remote_host | default('') | length > 0
   tags:
@@ -103,6 +108,7 @@
       become: true
       failed_when: false
       when:
+        - host_services is defined
         - host_services.enable | default([]) | length > 0
 
     - name: Disable unnecessary services
@@ -114,6 +120,7 @@
       become: true
       failed_when: false
       when:
+        - host_services is defined
         - host_services.disable | default([]) | length > 0
 
     - name: Configure vm.swappiness
@@ -124,6 +131,7 @@
         reload: true
       become: true
       when:
+        - optimizations is defined
         - optimizations.tune_swappiness | default(false)
   tags:
     - optimization
@@ -139,6 +147,7 @@
   loop: "{{ host_sysctl.parameters | default({}) | dict2items }}"
   become: true
   when:
+    - host_sysctl is defined
     - host_sysctl.parameters | default({}) | length > 0
   tags:
     - sysctl
@@ -153,6 +162,7 @@
   loop: "{{ host_limits.limits | default([]) }}"
   become: true
   when:
+    - host_limits is defined
     - host_limits.limits | default([]) | length > 0
   tags:
     - limits
@@ -167,6 +177,7 @@
   loop: "{{ host_modules.load | default([]) }}"
   become: true
   when:
+    - host_modules is defined
     - host_modules.load | default([]) | length > 0
   tags:
     - modules
@@ -181,6 +192,7 @@
   loop: "{{ host_modules.blacklist | default([]) }}"
   become: true
   when:
+    - host_modules is defined
     - host_modules.blacklist | default([]) | length > 0
   tags:
     - modules

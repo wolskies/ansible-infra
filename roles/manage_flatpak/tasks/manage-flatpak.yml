@@ -47,6 +47,8 @@
   become: true
   when:
     - ansible_os_family == "Archlinux"
+    - flatpak is defined
+    - flatpak.plugins is defined
     - flatpak.plugins.gnome
   failed_when: false
   tags: []
@@ -58,6 +60,8 @@
   become: true
   when:
     - ansible_os_family == "Archlinux"
+    - flatpak is defined
+    - flatpak.plugins is defined
     - flatpak.plugins.plasma
   failed_when: false
   tags: []
@@ -69,7 +73,9 @@
     flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
     method: system
   become: true
-  when: flatpak.flathub
+  when:
+    - flatpak is defined
+    - flatpak.flathub
   tags: []
 
 - name: Remove flatpak packages
@@ -79,7 +85,10 @@
     method: system
   loop: "{{ flatpak.packages.remove }}"
   become: true
-  when: flatpak.packages.remove | length > 0
+  when:
+    - flatpak is defined
+    - flatpak.packages is defined
+    - flatpak.packages.remove | length > 0
   tags: []
 
 - name: Install flatpak packages
@@ -89,5 +98,8 @@
     method: system
   loop: "{{ flatpak.packages.install }}"
   become: true
-  when: flatpak.packages.install | length > 0
+  when:
+    - flatpak is defined
+    - flatpak.packages is defined
+    - flatpak.packages.install | length > 0
   tags: []

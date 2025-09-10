@@ -19,6 +19,7 @@
     append: true
   loop: "{{ users }}"
   when:
+    - users is defined
     - users | length > 0
     - item.name != (ansible_user | default(''))
     - item.name != 'root'
@@ -31,6 +32,7 @@
     state: present
   loop: "{{ users }}"
   when:
+    - users is defined
     - users | length > 0
     - item.name != (ansible_user | default(''))
     - item.name != 'root'
