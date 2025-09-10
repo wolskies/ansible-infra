@@ -82,7 +82,7 @@
 
 - name: Create screenshots directory for {{ target_user.name }}
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ target_user.Darwin.screenshots.directory | default('Screenshots') }}"
+    path: "/Users/{{ target_user.name }}/{{ target_user.Darwin.screenshots.directory | default('Screenshots') }}"
     state: directory
     mode: "0755"
   become: true
@@ -104,7 +104,7 @@
   loop:
     - key: "location"
       type: "string"
-      value: "{{ ansible_env.HOME }}/{{ target_user.Darwin.screenshots.directory | default('Screenshots') }}"
+      value: "/Users/{{ target_user.name }}/{{ target_user.Darwin.screenshots.directory | default('Screenshots') }}"
     - key: "type"
       type: "string"
       value: "{{ target_user.Darwin.screenshots.format | default('png') }}"
