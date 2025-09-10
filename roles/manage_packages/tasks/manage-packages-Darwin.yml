@@ -3,14 +3,14 @@
   ansible.builtin.set_fact:
     merged_homebrew_casks_install: >-
       {{
-        (infrastructure.host.packages.casks_present.all | default([])) +
-        (infrastructure.host.packages.casks_present.group | default([])) +
-        (infrastructure.host.packages.casks_present.host | default([]))
+        (infrastructure.host.packages.casks_present.all | default([]) if infrastructure.host.packages.casks_present is defined else []) +
+        (infrastructure.host.packages.casks_present.group | default([]) if infrastructure.host.packages.casks_present is defined else []) +
+        (infrastructure.host.packages.casks_present.host | default([]) if infrastructure.host.packages.casks_present is defined else [])
         | unique | list
       }}
     merged_homebrew_casks_remove: >-
       {{
-        (infrastructure.host.packages.casks_remove | default([]))
+        (infrastructure.host.packages.casks_remove | default([]) if infrastructure.host.packages.casks_remove is defined else [])
         | unique | list
       }}
   when: infrastructure.host.packages is defined
@@ -23,6 +23,6 @@
     homebrew_uninstalled_packages: "{{ merged_packages_remove | default([]) }}"
     homebrew_cask_apps: "{{ merged_homebrew_casks_install | default([]) }}"
     homebrew_cask_uninstalled_apps: "{{ merged_homebrew_casks_remove | default([]) }}"
-    homebrew_taps: "{{ infrastructure.host.packages.homebrew.taps | default([]) }}"
-    homebrew_clear_cache: "{{ infrastructure.host.packages.homebrew.cleanup_cache | default(false) }}"
+    homebrew_taps: "{{ infrastructure.host.packages.homebrew.taps | default([]) if infrastructure.host.packages.homebrew is defined else [] }}"
+    homebrew_clear_cache: "{{ infrastructure.host.packages.homebrew.cleanup_cache | default(false) if infrastructure.host.packages.homebrew is defined else false }}"
   when: infrastructure.host.packages is defined
