@@ -9,6 +9,8 @@
         state: present
       become: true
       when:
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.pacman is defined
         - infrastructure.host.packages.pacman.no_confirms | default(false)
 
     - name: Configure multilib repository
@@ -19,6 +21,8 @@
         state: present
       become: true
       when:
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.pacman is defined
         - infrastructure.host.packages.pacman.multilib | default(false)
 
     - name: Enable multilib repository Include line
@@ -30,6 +34,8 @@
         state: present
       become: true
       when:
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.pacman is defined
         - infrastructure.host.packages.pacman.multilib | default(false)
 
     - name: Configure pacman proxy
@@ -41,6 +47,9 @@
         state: present
       become: true
       when:
+        - infrastructure.host.packages is defined
+        - infrastructure.host.packages.pacman is defined
+        - infrastructure.host.packages.pacman.proxy is defined
         - infrastructure.host.packages.pacman.proxy | length > 0
   tags:
     - pacman
