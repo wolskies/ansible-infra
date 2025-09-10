@@ -41,6 +41,23 @@
   register: limits_files_found
   when: ansible_system == "Linux"
 
+- name: Discover udev rules
+  ansible.builtin.find:
+    paths: /etc/udev/rules.d/
+    patterns: "*.rules"
+  register: udev_rules_found
+  when: ansible_system == "Linux"
+  failed_when: false
+
+- name: Read udev rules content
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  register: udev_rules_content
+  loop: "{{ udev_rules_found.files | default([]) }}"
+  when:
+    - ansible_system == "Linux"
+    - udev_rules_found.files is defined
+
 - name: Parse system settings discovery results
   ansible.builtin.set_fact:
     discovered_sysctl_current: >-
@@ -102,4 +119,84 @@
       {{ services }}
     discovered_limits_configured: >-
       {{ (limits_files_found.files | default([]) | length > 0) }}
+    discovered_udev_rules: >-
+      {%- set rules = [] -%}
+      {%- if udev_rules_content.results is defined -%}
+        {%- for result in udev_rules_content.results -%}
+          {%- if result.content is defined -%}
+            {%- set filename = result.item.path | basename -%}
+            {%- set parts = filename.split('-', 1) -%}
+            {%- set priority = parts[0] if parts[0].isdigit() else '99' -%}
+            {%- set name = parts[1].replace('.rules', '') if parts | length > 1 else filename.replace('.rules', '') -%}
+            {%- set content = result.content | b64decode | trim -%}
+            {%- set _ = rules.append({'name': name, 'priority': priority | int, 'content': content}) -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {{ rules }}
   when: ansible_system == "Linux"
+
+# macOS system preferences discovery
+- name: Discover macOS system preferences
+  block:
+    - name: Get natural scroll setting
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: com.apple.swipescrolldirection
+        state: list
+      register: natural_scroll_pref
+      failed_when: false
+      changed_when: false
+
+    - name: Get measurement units setting
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleMeasurementUnits
+        state: list
+      register: measurement_units_pref
+      failed_when: false
+      changed_when: false
+
+    - name: Get metric units setting
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleMetricUnits
+        state: list
+      register: metric_units_pref
+      failed_when: false
+      changed_when: false
+
+    - name: Get show all extensions setting
+      community.general.osx_defaults:
+        domain: NSGlobalDomain
+        key: AppleShowAllExtensions
+        state: list
+      register: show_extensions_pref
+      failed_when: false
+      changed_when: false
+
+    - name: Get AirDrop ethernet setting
+      community.general.osx_defaults:
+        domain: com.apple.NetworkBrowser
+        key: BrowseAllInterfaces
+        state: list
+      register: airdrop_ethernet_pref
+      failed_when: false
+      changed_when: false
+
+    - name: Get Gatekeeper status
+      ansible.builtin.command: spctl --status
+      register: gatekeeper_status
+      failed_when: false
+      changed_when: false
+
+    - name: Parse macOS system preferences discovery results
+      ansible.builtin.set_fact:
+        discovered_macos_preferences:
+          natural_scroll: "{{ natural_scroll_pref.value | default(true) }}"
+          measurement_units: "{{ measurement_units_pref.value | default('Inches') }}"
+          use_metric: "{{ metric_units_pref.value | default(false) }}"
+          show_all_extensions: "{{ show_extensions_pref.value | default(false) }}"
+          airdrop_ethernet: "{{ airdrop_ethernet_pref.value | default(false) }}"
+          gatekeeper_enabled: "{{ 'enabled' in gatekeeper_status.stdout | default('') }}"
+  when: ansible_distribution == 'MacOSX'

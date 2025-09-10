@@ -103,6 +103,16 @@ provisioner:
             optimizations:
               tune_swappiness: true
               swappiness: 5
+            udev:
+              rules:
+                - name: pico-test
+                  content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
+                  priority: 99
+                  state: present
+                - name: ttyacm-test
+                  content: 'KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"'
+                  priority: 99
+                  state: present
             packages:
               apt:
                 no_recommends: true

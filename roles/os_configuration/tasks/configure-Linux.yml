@@ -186,6 +186,44 @@
     - modules
     - kernel
 
+- name: Configure udev rules
+  block:
+    - name: Ensure udev rules directory exists
+      ansible.builtin.file:
+        path: /etc/udev/rules.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      become: true
+
+    - name: Deploy udev rules
+      ansible.builtin.copy:
+        dest: "/etc/udev/rules.d/{{ item.priority | default(99) }}-{{ item.name }}.rules"
+        content: "{{ item.content }}"
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      loop: "{{ infrastructure.host.udev.rules }}"
+      when: item.state | default('present') == 'present'
+      notify: reload udev
+
+    - name: Remove udev rules
+      ansible.builtin.file:
+        path: "/etc/udev/rules.d/{{ item.priority | default(99) }}-{{ item.name }}.rules"
+        state: absent
+      become: true
+      loop: "{{ infrastructure.host.udev.rules }}"
+      when: item.state | default('present') == 'absent'
+      notify: reload udev
+  when:
+    - infrastructure.host.udev.rules is defined
+    - infrastructure.host.udev.rules | length > 0
+  tags:
+    - udev
+    - hardware
+
 - name: Include os-family-specific configuration
   ansible.builtin.include_tasks: configure-{{ ansible_os_family }}.yml
   tags:
