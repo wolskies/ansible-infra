@@ -69,10 +69,19 @@
     - merged_apt_repositories is defined
     - merged_apt_repositories | length > 0
 
+- name: Force APT cache update after repository changes
+  ansible.builtin.apt:
+    update_cache: true
+    force_apt_get: true
+  become: true
+  when:
+    - repositories_changed is defined
+    - repositories_changed.changed | default(false)
+
 - name: Update APT cache before package operations
   ansible.builtin.apt:
     update_cache: true
-    cache_valid_time: 3600
+    cache_valid_time: 600 # 10 minutes instead of 1 hour
   become: true
 
 - name: Remove packages via APT
