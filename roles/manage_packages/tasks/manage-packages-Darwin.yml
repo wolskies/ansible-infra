@@ -21,20 +21,36 @@
       }}
   when: infrastructure.host.packages is defined
 
-- name: Install and manage packages via Homebrew (geerlingguy.mac.homebrew)
+- name: Ensure Homebrew is installed (first pass - installation only)
   ansible.builtin.include_role:
     name: geerlingguy.mac.homebrew
   vars:
-    # Let the role use its own defaults for paths and ownership
-    # It will use ansible_user_id which should be properly set from gathered facts
+    # First pass - just install Homebrew, no packages
+    homebrew_installed_packages: []
+    homebrew_uninstalled_packages: []
+    homebrew_cask_apps: []
+    homebrew_cask_uninstalled_apps: []
+    homebrew_taps: []
 
-    # Package management
+- name: Fix Homebrew directory ownership after installation
+  ansible.builtin.file:
+    path: /opt/homebrew
+    owner: "{{ ansible_user_id | default(ansible_env.USER) }}"
+    group: "admin"
+    recurse: true
+    state: directory
+  become: true
+  when: ansible_os_family == "Darwin"
+
+- name: Manage packages via Homebrew (second pass - packages only)
+  ansible.builtin.include_role:
+    name: geerlingguy.mac.homebrew
+  vars:
+    # Second pass - Homebrew already installed, now manage packages
     homebrew_installed_packages: "{{ merged_homebrew_packages_install | default([]) }}"
     homebrew_uninstalled_packages: "{{ merged_homebrew_packages_remove | default([]) }}"
     homebrew_cask_apps: "{{ merged_homebrew_casks_install | default([]) }}"
     homebrew_cask_uninstalled_apps: "{{ merged_homebrew_casks_remove | default([]) }}"
-
-    # Taps and configuration
     homebrew_taps: "{{ infrastructure.host.packages.homebrew.taps | default([]) if infrastructure.host.packages.homebrew is defined else [] }}"
     homebrew_clear_cache: "{{ infrastructure.host.packages.homebrew.cleanup_cache | default(false) if infrastructure.host.packages.homebrew is defined else false }}"
   when: infrastructure.host.packages is defined
