@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Test minimal configuration handling
+  hosts: all
   gather_facts: true
   tasks:
     # Test os_configuration with minimal config - should not fail

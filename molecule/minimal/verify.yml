@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Verify minimal configuration test results
+  hosts: all
   gather_facts: true
   tasks:
     - name: Verify roles completed without errors

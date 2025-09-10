@@ -12,10 +12,10 @@ This guide covers local molecule testing for the wolskinet.infrastructure collec
 ### Role-Specific Scenarios
 - **`packages`**: Package management testing
 - **`users`**: User management testing
-- **`dotfiles`**: Dotfiles configuration testing
-- **`firewall`**: Firewall configuration testing
+- **`configure_user`**: Per-user configuration testing (includes dotfiles and language packages)
+- **`security`**: Security services testing (firewall, fail2ban)
+- **`os_configuration`**: OS configuration testing
 - **`system_settings`**: System settings management testing
-- **`language_packages`**: Language package management testing
 
 ## Running Tests Locally
 
