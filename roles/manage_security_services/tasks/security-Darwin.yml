@@ -10,35 +10,30 @@
       become: true
 
     - name: Ensure Darwin Application Layer Firewall state
-      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate {{ 'on' if infrastructure.host.firewall.enabled | default(false) else 'off' }}
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate {{ 'on' if firewall.enabled | default(false) else 'off' }}
       become: true
       register: darwin_firewall_enable_result
       changed_when: >-
-        (infrastructure.host.firewall.enabled | default(false) and 'Firewall is enabled' not in darwin_firewall_state_result.stdout) or
-        (not (infrastructure.host.firewall.enabled | default(false)) and 'Firewall is enabled' in darwin_firewall_state_result.stdout)
+        (firewall.enabled | default(false) and 'Firewall is enabled' not in darwin_firewall_state_result.stdout) or
+        (not (firewall.enabled | default(false)) and 'Firewall is enabled' in darwin_firewall_state_result.stdout)
 
     - name: Ensure stealth mode configuration
-      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode {{ 'on' if infrastructure.host.firewall.stealth_mode | default(false) else 'off' }}
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode {{ 'on' if firewall.stealth_mode | default(false) else 'off' }}
       become: true
       register: darwin_stealth_result
       changed_when: darwin_stealth_result.rc == 0
-      when: infrastructure.host.firewall.stealth_mode is defined
 
     - name: Ensure block all setting
-      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setblockall {{ 'on' if infrastructure.host.firewall.block_all | default(false) else 'off' }}
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setblockall {{ 'on' if firewall.block_all | default(false) else 'off' }}
       become: true
       register: macos_blockall_result
       changed_when: macos_blockall_result.rc == 0
-      when: infrastructure.host.firewall.block_all is defined
 
     - name: Ensure firewall logging configuration
-      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setloggingmode {{ 'on' if infrastructure.host.firewall.logging | default(false) else 'off' }}
+      ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --setloggingmode {{ 'on' if firewall.logging | default(false) else 'off' }}
       become: true
       register: macos_logging_result
       changed_when: macos_logging_result.rc == 0
-      when: infrastructure.host.firewall.logging is defined
-  when:
-    - infrastructure.host.firewall is defined
   tags:
     - firewall
     - security

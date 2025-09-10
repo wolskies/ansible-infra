@@ -1,12 +1,4 @@
 ---
-- name: Debug - Skip ansible_user for safety
-  ansible.builtin.debug:
-    msg: "Skipping user management for ansible_user '{{ ansible_user | default('undefined') }}' to prevent connection loss"
-  when:
-    - ansible_user is defined
-    - infrastructure.domain.users is defined
-    - infrastructure.domain.users | selectattr('name', 'equalto', ansible_user) | list | length > 0
-
 - name: Add users to system
   become: true
   ansible.builtin.user:
@@ -25,10 +17,9 @@
     create_home: "{{ item.create_home | default(omit) }}"
     groups: "{{ item.groups | default(omit) }}"
     append: true
-  loop: "{{ infrastructure.domain.users | default([]) }}"
+  loop: "{{ users }}"
   when:
-    - infrastructure.domain.users is defined
-    - infrastructure.domain.users | length > 0
+    - users | length > 0
     - item.name != (ansible_user | default(''))
     - item.name != 'root'
 
@@ -38,10 +29,9 @@
     user: "{{ item.name }}"
     key: "{{ item.ssh_pubkey }}"
     state: present
-  loop: "{{ infrastructure.domain.users | default([]) }}"
+  loop: "{{ users }}"
   when:
-    - infrastructure.domain.users is defined
-    - infrastructure.domain.users | length > 0
+    - users | length > 0
     - item.name != (ansible_user | default(''))
     - item.name != 'root'
     - item.state | default('present') == 'present'
@@ -50,14 +40,3 @@
     - item.ssh_pubkey != ""
     - not item.ssh_pubkey.startswith('var_')
     - item.ssh_pubkey is match('^ssh-.*') or item.ssh_pubkey is match('^ecdsa-.*') or item.ssh_pubkey is match('^ssh-ed25519.*')
-
-- name: Remove users from system (migration support)
-  become: true
-  ansible.builtin.user:
-    name: "{{ item }}"
-    state: absent
-    remove: true
-  loop: "{{ infrastructure.domain.users_absent | default([]) }}"
-  when:
-    - infrastructure.domain.users_absent is defined
-    - infrastructure.domain.users_absent | length > 0

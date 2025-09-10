@@ -1,35 +1,35 @@
 ---
 # Cross-platform user configuration (git, language packages)
 
-- name: Configure Git settings for {{ current_user_config.name }}
+- name: Configure Git settings for {{ target_user.name }}
   block:
     - name: Set Git user name
       community.general.git_config:
         name: user.name
-        value: "{{ current_user_config.git.user_name }}"
+        value: "{{ target_user.git.user_name }}"
         scope: global
-      when: current_user_config.git.user_name is defined
+      when: target_user.git.user_name is defined
 
     - name: Set Git user email
       community.general.git_config:
         name: user.email
-        value: "{{ current_user_config.git.user_email }}"
+        value: "{{ target_user.git.user_email }}"
         scope: global
-      when: current_user_config.git.user_email is defined
+      when: target_user.git.user_email is defined
 
     - name: Set Git default editor
       community.general.git_config:
         name: core.editor
-        value: "{{ current_user_config.git.editor }}"
+        value: "{{ target_user.git.editor }}"
         scope: global
-      when: current_user_config.git.editor is defined
+      when: target_user.git.editor is defined
   become: true
-  become_user: "{{ current_user_config.name }}"
-  when: current_user_config.git is defined
+  become_user: "{{ target_user.name }}"
+  when: target_user.git is defined
   tags:
     - git
 
-- name: Configure Node.js packages for {{ current_user_config.name }}
+- name: Configure Node.js packages for {{ target_user.name }}
   block:
     - name: Check if npm is available
       ansible.builtin.command: command -v npm
@@ -48,25 +48,25 @@
       community.general.npm:
         name: "{{ item }}"
         global: false
-        path: "/home/{{ current_user_config.name }}"
-      loop: "{{ current_user_config.nodejs.packages }}"
+        path: "/home/{{ target_user.name }}"
+      loop: "{{ target_user.nodejs.packages }}"
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   when:
-    - current_user_config.nodejs.packages | default([]) | length > 0
+    - target_user.nodejs.packages | default([]) | length > 0
   tags:
     - nodejs
     - language-packages
 
-- name: Check if cargo is available for {{ current_user_config.name }}
+- name: Check if cargo is available for {{ target_user.name }}
   ansible.builtin.shell: command -v cargo || test -f /usr/local/cargo/bin/cargo
   register: cargo_check
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   failed_when: false
   changed_when: false
   when:
-    - current_user_config.rust.packages | default([]) | length > 0
+    - target_user.rust.packages | default([]) | length > 0
   tags:
     - rust
     - language-packages
@@ -78,7 +78,7 @@
     mode: "0755"
   become: true
   when:
-    - current_user_config.rust.packages | default([]) | length > 0
+    - target_user.rust.packages | default([]) | length > 0
     - cargo_check is defined
     - cargo_check.rc != 0
   tags:
@@ -95,7 +95,7 @@
   register: rust_install
   changed_when: rust_install.rc == 0
   when:
-    - current_user_config.rust.packages | default([]) | length > 0
+    - target_user.rust.packages | default([]) | length > 0
     - cargo_check is defined
     - cargo_check.rc != 0
   tags:
@@ -109,7 +109,7 @@
     create: true
   become: true
   when:
-    - current_user_config.rust.packages | default([]) | length > 0
+    - target_user.rust.packages | default([]) | length > 0
     - cargo_check is defined
     - cargo_check.rc != 0
   tags:
@@ -125,39 +125,39 @@
   register: rustup_default
   changed_when: "'info: using existing install' not in rustup_default.stderr"
   when:
-    - current_user_config.rust.packages | default([]) | length > 0
+    - target_user.rust.packages | default([]) | length > 0
     - cargo_check is defined
     - cargo_check.rc != 0
   tags:
     - rust
     - language-packages
 
-- name: Install Rust packages for {{ current_user_config.name }}
+- name: Install Rust packages for {{ target_user.name }}
   ansible.builtin.command: /usr/local/cargo/bin/cargo install {{ item }}
   register: cargo_install
   changed_when: "'Installing' in cargo_install.stderr"
-  loop: "{{ current_user_config.rust.packages }}"
+  loop: "{{ target_user.rust.packages }}"
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   environment:
     RUSTUP_HOME: /usr/local/rustup
-    CARGO_HOME: "/home/{{ current_user_config.name }}/.cargo"
+    CARGO_HOME: "/home/{{ target_user.name }}/.cargo"
     PATH: "/usr/local/cargo/bin:{{ ansible_env.PATH }}"
   when:
-    - current_user_config.rust.packages | default([]) | length > 0
+    - target_user.rust.packages | default([]) | length > 0
   tags:
     - rust
     - language-packages
 
-- name: Check if go is available for {{ current_user_config.name }}
+- name: Check if go is available for {{ target_user.name }}
   ansible.builtin.command: command -v go
   register: go_check
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   failed_when: false
   changed_when: false
   when:
-    - current_user_config.go.packages | default([]) | length > 0
+    - target_user.go.packages | default([]) | length > 0
   tags:
     - go
     - language-packages
@@ -168,22 +168,22 @@
     state: present
   become: true
   when:
-    - current_user_config.go.packages | default([]) | length > 0
+    - target_user.go.packages | default([]) | length > 0
     - go_check is defined
     - go_check.rc != 0
   tags:
     - go
     - language-packages
 
-- name: Install Go packages for {{ current_user_config.name }}
+- name: Install Go packages for {{ target_user.name }}
   ansible.builtin.command: go install {{ item }}
   register: go_install
   changed_when: false
-  loop: "{{ current_user_config.go.packages }}"
+  loop: "{{ target_user.go.packages }}"
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   when:
-    - current_user_config.go.packages | default([]) | length > 0
+    - target_user.go.packages | default([]) | length > 0
   tags:
     - go
     - language-packages

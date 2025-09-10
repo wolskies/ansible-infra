@@ -1,10 +1,11 @@
 ---
 - name: Configure system hostname
   ansible.builtin.hostname:
-    name: "{{ infrastructure.host.hostname }}"
+    name: "{{ host_hostname }}"
   become: true
   when:
-    - infrastructure.host.hostname | length > 0
+    - host_hostname is defined
+    - host_hostname | length > 0
     - not (molecule_test | default(false)) # Skip in molecule container tests
   tags:
     - hostname
@@ -12,11 +13,11 @@
 
 - name: Set system timezone
   community.general.timezone:
-    name: "{{ infrastructure.domain.timezone }}"
+    name: "{{ domain_timezone }}"
   become: true
   when:
-    - infrastructure.domain.timezone is defined
-    - infrastructure.domain.timezone | length > 0
+    - domain_timezone is defined
+    - domain_timezone | length > 0
   tags:
     - timezone
     - os-configuration
@@ -36,15 +37,14 @@
     - name: Update /etc/hosts - Add FQDN and hostname
       ansible.builtin.lineinfile:
         path: /etc/hosts
-        regexp: '^127\.0\.0\.1\s+.*{{ infrastructure.host.hostname | regex_escape }}.*'
-        line: "127.0.0.1\tlocalhost {{ infrastructure.host.hostname }}.{{ infrastructure.domain.name }} {{ infrastructure.host.hostname }}"
+        regexp: '^127\.0\.0\.1\s+.*{{ host_hostname | regex_escape }}.*'
+        line: "127.0.0.1\tlocalhost {{ host_hostname }}.{{ domain_name }} {{ host_hostname }}"
         create: false
       become: true
   when:
-    - infrastructure.host.update_hosts | default(false)
-    - infrastructure.host.hostname | length > 0
-    - infrastructure.domain.name is defined
-    - infrastructure.domain.name | length > 0
+    - host_update_hosts | default(false)
+    - host_hostname | length > 0
+    - domain_name | length > 0
 
 - name: Include OS-specific configuration
   ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml

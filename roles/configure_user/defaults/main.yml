@@ -1,62 +1,57 @@
 ---
 # =============================================================================
-# USER CONFIGURATION ROLE - Per-user preference configuration
+# USER PREFERENCES - Per-user preference configuration
 # =============================================================================
 # Configures individual user preferences, dotfiles, and language packages
-# Runs as 'become: user' - reads user config from infrastructure.domain.users[]
-# Variables mirror the structure in configure_system/defaults/main.yml
+# Called with target_user variable containing complete user configuration
 # =============================================================================
 
-# This role is called per-user with target_user variable set
-# It reads configuration from infrastructure.domain.users[] array
-# finding the user that matches target_user name
-
+# This role configures preferences for a single user
 # Required variable when calling this role:
-# target_user: username  # Which user from infrastructure.domain.users[] to configure
+# target_user: { name: "alice", git: { user_name: "Alice" }, ... }
 
-infrastructure:
-  domain:
-    users: []
-    # Example user configuration structure:
-    # - name: alice
-    #   # System account fields (handled by manage_users)
-    #   groups: [sudo]
-    #   ssh_pubkey: "..."
-    #
-    #   # Cross-platform preferences (handled by this role)
-    #   git:
-    #     user_name: "Alice Smith"
-    #     user_email: "alice@company.com"
-    #   nodejs:
-    #     packages: [typescript, eslint]  # Auto-installs nodejs if missing
-    #   rust:
-    #     packages: [ripgrep, bat]        # Auto-installs rustup if missing
-    #   go:
-    #     packages: [github.com/charmbracelet/glow@latest]  # Auto-installs golang if missing
-    #
-    #   shell: /bin/zsh                     # Cross-platform shell preference
-    #   dotfiles:
-    #     repository: "https://github.com/alice/dotfiles"
-    #     method: stow
-    #     packages: [zsh, tmux, vim]
-    #
-    #   # Only macOS-specific GUI features need their own section
-    #   Darwin:
-    #     dock:
-    #       tile_size: 48
-    #       autohide: true
-    #       minimize_to_application: false
-    #       show_recents: true
-    #     finder:
-    #       show_extensions: true
-    #       show_hidden: true
-    #       show_pathbar: true
-    #       show_statusbar: false
-    #       show_external_drives: false
-    #       show_removable_media: false
-    #       show_posix_path: false
-    #     screenshots:
-    #       directory: "Screenshots"
-    #       format: "png"  # png, jpg, pdf, etc.
-    #     iterm2:
-    #       prompt_on_quit: true
+target_user: {}
+# Example user configuration structure:
+# target_user:
+#   name: alice
+#
+#   # Cross-platform preferences
+#   git:
+#     user_name: "Alice Smith"
+#     user_email: "alice@company.com"
+#     editor: "vim"  # Optional git editor
+#   nodejs:
+#     packages: [typescript, eslint]  # Auto-installs nodejs if missing
+#   rust:
+#     packages: [ripgrep, bat]         # Auto-installs rustup if missing
+#   go:
+#     packages: [github.com/charmbracelet/glow@latest]  # Auto-installs golang if missing
+#
+#   shell: /bin/zsh                    # Shell preference (Linux/macOS)
+#   dotfiles:
+#     repository: "https://github.com/alice/dotfiles"
+#     branch: main                     # Optional: default branch
+#     dest: .dotfiles                  # Optional: destination directory
+#     enable: true                     # Optional: enable dotfiles deployment
+#     disable_clone: false             # Optional: skip git operations, only stow
+#
+#   # macOS-specific GUI preferences
+#   Darwin:
+#     dock:
+#       tile_size: 48
+#       autohide: true
+#       minimize_to_application: false
+#       show_recents: true
+#     finder:
+#       show_extensions: true
+#       show_hidden: true
+#       show_pathbar: true
+#       show_statusbar: false
+#       show_external_drives: false
+#       show_removable_media: false
+#       show_posix_path: false
+#     screenshots:
+#       directory: "Screenshots"
+#       format: "png"  # png, jpg, pdf, etc.
+#     iterm2:
+#       prompt_on_quit: true
