@@ -73,6 +73,20 @@
         - ansible_system == "Darwin"
         - homebrew_stat.stat.exists
 
+    - name: Add Homebrew to system PATH (macOS)
+      ansible.builtin.lineinfile:
+        path: /etc/paths.d/homebrew
+        line: /opt/homebrew/bin
+        create: true
+        owner: root
+        group: wheel
+        mode: "0644"
+      become: true
+      when:
+        - ansible_system == "Darwin"
+        - homebrew_stat.stat.exists
+      run_once: true
+
     - name: Install Node.js packages for user
       community.general.npm:
         name: "{{ item }}"
@@ -218,6 +232,7 @@
     - go_check.rc != 0
     - ansible_system == "Darwin"
     - homebrew_stat.stat.exists
+
   tags:
     - go
     - language-packages
