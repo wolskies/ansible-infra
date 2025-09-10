@@ -1,11 +1,11 @@
 ---
 # =============================================================================
-# SYSTEM CONFIGURATION ORCHESTRATION
+# SYSTEM CONFIGURATION
 # =============================================================================
 # This role orchestrates multiple infrastructure roles to provide complete system
 # setup.  It is provided as a convenience for users.
 #
-# The variables shown here are EXAMPLES of the unified structure that all roles
+# The variables shown here are EXAMPLES of the structure that all roles
 # in this collection use. Define these in your inventory/group_vars/host_vars.
 #
 # Available tags:
@@ -19,139 +19,156 @@
 #   - optional            : All optional components
 # =============================================================================
 
-infrastructure:
-  domain:
-    name: ""
-    timezone: ""
-    locale: "en_US.UTF-8"
-    language: "en_US.UTF-8"
-    ntp:
-      enabled: false
-      servers: [] # Leave empty to use OS defaults
-    users: []
-    # User configuration structure documented in collection README
-    # Example user with cross-platform and OS-specific preferences:
-    # - name: alice
-    #   comment: "Alice Developer"
-    #   groups: [sudo, docker]
-    #   ssh_pubkey: "ssh-ed25519 AAAAC3..."
-    #   password: "plaintext"
-    #   uid: 1001                   # Optional: specific user ID
-    #   home: "/custom/home"        # Optional: home directory path
-    #   create_home: true           # Optional: create home directory
-    #   state: present              # Optional: present (default) or absent
-    #   shell: /usr/bin/zsh
-    #     dotfiles:
-    #       repository: "https://github.com/alice/dotfiles-linux"
-    #       method: stow
-    #       packages: [zsh, tmux, vim]
-    #   git:
-    #     user_name: "Alice Smith"
-    #     user_email: "alice@company.com"
-    #   nodejs:
-    #     packages: [typescript, eslint, prettier]
-    #   rust:
-    #     packages: [ripgrep, fd-find, bat]
-    #   go:
-    #     packages: [github.com/charmbracelet/glow@latest]
-    #   macosx:
-    #     dock:
-    #       tile_size: 48
-    #       autohide: true
+domain_name: ""
+domain_timezone: ""
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_ntp:
+  enabled: false
+  servers: [] # Leave empty to use OS defaults
+users: []
+# User configuration structure documented in collection README
+# Example user with cross-platform and OS-specific preferences:
+# - name: alice
+#   comment: "Alice Developer"
+#   groups: [sudo, docker]
+#   ssh_pubkey: "ssh-ed25519 AAAAC3..."
+#   password: "plaintext"
+#   uid: 1001                   # Optional: specific user ID
+#   home: "/custom/home"        # Optional: home directory path
+#   create_home: true           # Optional: create home directory
+#   state: present              # Optional: present (default) or absent
+#   shell: /usr/bin/zsh
+#   dotfiles:
+#     repository: "https://github.com/alice/dotfiles-linux"
+#     branch: main                    # Optional: default branch to use
+#     dest: .dotfiles                 # Optional: destination directory name
+#     enable: true                    # Optional: enable dotfiles deployment
+#     disable_clone: false            # Optional: skip git operations, only stow
+#   git:
+#     user_name: "Alice Smith"
+#     user_email: "alice@company.com"
+#   nodejs:
+#     packages: [typescript, eslint, prettier]
+#   rust:
+#     packages: [ripgrep, fd-find, bat]
+#   go:
+#     packages: [github.com/charmbracelet/glow@latest]
+#   macosx:
+#     dock:
+#       tile_size: 48
+#       autohide: true
 
-  host:
-    hostname: ""
-    update_hosts: true
-    journal:
-      configure: false
-      max_size: "500M"
-      max_retention: "30d"
-      forward_to_syslog: false
-      compress: true
-    rsyslog:
-      enabled: false
-      remote_host: ""
-      remote_port: 514
-      protocol: "udp"
-    services: {}
-    optimizations:
-      tune_swappiness: false
-      swappiness: 10
-    sysctl: {}
-    limits: {}
-    modules: {}
-    firewall:
-      enabled: false
-      prevent_ssh_lockout: true
-      package: "ufw"
-      stealth_mode: false
-      block_all: false
-      logging: false
-      rules: []
-    fail2ban:
-      enabled: false
-      sender: "root@localhost"
-      dest_email: ""
-      defaults:
-        bantime: 3600
-        findtime: 600
-        maxretry: 5
-      services:
-        - name: sshd
-          enabled: true
-          maxretry: 5
-          bantime: 3600
-          findtime: 600
-          logpath: /var/log/auth.log
-      ignoreips:
-        - "127.0.0.1/8"
-        - "::1"
-    packages: {}
-    # Package structure documented in collection README:
-    # present/remove: { all/group/host: { Ubuntu: [], Debian: [], Archlinux: [], MacOSX: [] } }
-    # casks_present: { all: [], group: [], host: [] }
-    # casks_remove: []
-    apt:
-      apt_cache:
-        update_cache: false
-        valid_time: 3600
-      no_recommends: false
-      unattended_upgrades:
-        enabled: false
-        email: ""
-        auto_reboot: false
-        reboot_with_users: false
-        reboot_time: "02:00"
-      system_upgrade:
-        enable: false
-        type: safe
-      proxy: ""
-      repositories: {}
-      pacman:
-        no_confirms: false
-        proxy: ""
-        multilib: false
-        enable_aur: false
-        aur_helper: paru
-        config_reflector: true
-      homebrew:
-        install: true
-        update_homebrew: true
-        cleanup_cache: false
-        taps: []
-      macosx:
-        updates:
-          auto_check: true
-          auto_download: true
-        gatekeeper:
-          enabled: true
-      snap:
-        disable_and_remove: false
-        packages: {}
-      flatpak:
-        enabled: false
-        packages: {}
-        flathub: true
-        plugins:
-          gnome: false
-          plasma: false
+host_hostname: ""
+host_update_hosts: true
+host_services: {}
+host_sysctl: {}
+host_limits: {}
+host_modules: {}
+host_udev: {}
+
+journal:
+  configure: false
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
+
+rsyslog:
+  enabled: false
+  remote_host: ""
+  remote_port: 514
+  protocol: "udp"
+
+optimizations:
+  tune_swappiness: false
+  swappiness: 10
+
+firewall:
+  enabled: false
+  prevent_ssh_lockout: true
+  package: "ufw"
+  stealth_mode: false
+  block_all: false
+  logging: false
+  rules: []
+
+fail2ban:
+  enabled: false
+  sender: "root@localhost"
+  dest_email: ""
+  defaults:
+    bantime: 3600
+    findtime: 600
+    maxretry: 5
+  services:
+    - name: sshd
+      enabled: true
+      maxretry: 5
+      bantime: 3600
+      findtime: 600
+      logpath: /var/log/auth.log
+  ignoreips:
+    - "127.0.0.1/8"
+    - "::1"
+
+packages:
+  present: {}
+  remove: {}
+  # Package structure documented in collection README:
+  # present/remove: { all/group/host: { Ubuntu: [], Debian: [], Archlinux: [], MacOSX: [] } }
+  casks_present:
+    all: []
+    group: []
+    host: []
+  casks_remove: []
+
+apt:
+  apt_cache:
+    update_cache: false
+    valid_time: 3600
+  no_recommends: false
+  unattended_upgrades:
+    enabled: false
+    email: ""
+    auto_reboot: false
+    reboot_with_users: false
+    reboot_time: "02:00"
+  system_upgrade:
+    enable: false
+    type: safe
+  proxy: ""
+  repositories: {}
+
+pacman:
+  no_confirms: false
+  proxy: ""
+  multilib: false
+  enable_aur: false
+  aur_helper: paru
+  config_reflector: true
+
+homebrew:
+  install: true
+  update_homebrew: true
+  cleanup_cache: false
+  taps: []
+
+macosx:
+  updates:
+    auto_check: true
+    auto_download: true
+  gatekeeper:
+    enabled: true
+
+snap:
+  disable_and_remove: false
+  packages: {}
+
+flatpak:
+  enabled: false
+  packages: {}
+  flathub: true
+  plugins:
+    gnome: false
+    plasma: false

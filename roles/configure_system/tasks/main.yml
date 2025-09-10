@@ -48,9 +48,14 @@
 - name: Configure User Preferences
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.configure_user"
+  vars:
+    target_user: "{{ user }}"
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: user
   when:
-    - infrastructure.domain.users is defined
-    - infrastructure.domain.users | length > 0
+    - users | length > 0
+    - user.name != 'root' # Skip system accounts
   tags:
     - user-preferences
     - optional

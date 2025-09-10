@@ -1,23 +1,21 @@
 ---
 - name: Configure system locale
   community.general.locale_gen:
-    name: "{{ infrastructure.domain.locale }}"
+    name: "{{ domain_locale }}"
     state: present
   become: true
   when:
-    - infrastructure.domain.locale is defined
-    - infrastructure.domain.locale | length > 0
+    - domain_locale | length > 0
 
 - name: Configure system language
   ansible.builtin.lineinfile:
     path: /etc/default/locale
     regexp: "^LANGUAGE="
-    line: "LANGUAGE={{ infrastructure.domain.language }}"
+    line: "LANGUAGE={{ domain_language }}"
     create: true
   become: true
   when:
-    - infrastructure.domain.language is defined
-    - infrastructure.domain.language | length > 0
+    - domain_language | length > 0
 
 - name: Configure NTP time synchronization
   block:
@@ -39,8 +37,7 @@
       become: true
       notify: restart timesyncd
   when:
-    - infrastructure.domain.ntp is defined
-    - infrastructure.domain.ntp.enabled | default(false)
+    - domain_ntp.enabled | default(false)
   tags:
     - ntp
     - time
@@ -66,7 +63,7 @@
       become: true
       notify: restart journald
   when:
-    - infrastructure.host.journal.configure | default(false)
+    - journal.configure | default(false)
     - ansible_service_mgr == "systemd"
   tags:
     - journal
@@ -83,14 +80,14 @@
       ansible.builtin.lineinfile:
         path: /etc/rsyslog.conf
         regexp: '^\*\.\* @@'
-        line: "*.* @@{{ infrastructure.host.rsyslog.remote_host }}:{{ infrastructure.host.rsyslog.remote_port }}"
+        line: "*.* @@{{ rsyslog.remote_host }}:{{ rsyslog.remote_port }}"
         create: false
       become: true
       when: rsyslog_installed.stat.exists
       notify: restart rsyslog
   when:
-    - infrastructure.host.rsyslog.enabled | default(false)
-    - infrastructure.host.rsyslog.remote_host | default('') | length > 0
+    - rsyslog.enabled | default(false)
+    - rsyslog.remote_host | default('') | length > 0
   tags:
     - rsyslog
     - logging
@@ -102,32 +99,32 @@
         name: "{{ item }}"
         enabled: true
         state: started
-      loop: "{{ infrastructure.host.services.enable | default([]) }}"
+      loop: "{{ host_services.enable | default([]) }}"
       become: true
       failed_when: false
       when:
-        - infrastructure.host.services.enable | default([]) | length > 0
+        - host_services.enable | default([]) | length > 0
 
     - name: Disable unnecessary services
       ansible.builtin.systemd:
         name: "{{ item }}"
         enabled: false
         state: stopped
-      loop: "{{ infrastructure.host.services.disable | default([]) }}"
+      loop: "{{ host_services.disable | default([]) }}"
       become: true
       failed_when: false
       when:
-        - infrastructure.host.services.disable | default([]) | length > 0
+        - host_services.disable | default([]) | length > 0
 
     - name: Configure vm.swappiness
       ansible.posix.sysctl:
         name: vm.swappiness
-        value: "{{ infrastructure.host.optimizations.swappiness }}"
+        value: "{{ optimizations.swappiness }}"
         state: present
         reload: true
       become: true
       when:
-        - infrastructure.host.optimizations.tune_swappiness | default(false)
+        - optimizations.tune_swappiness | default(false)
   tags:
     - optimization
     - services
@@ -139,10 +136,10 @@
     state: present
     sysctl_file: "/etc/sysctl.d/99-ansible-managed.conf"
     reload: true
-  loop: "{{ infrastructure.host.sysctl.parameters | default({}) | dict2items }}"
+  loop: "{{ host_sysctl.parameters | default({}) | dict2items }}"
   become: true
   when:
-    - infrastructure.host.sysctl.parameters | default({}) | length > 0
+    - host_sysctl.parameters | default({}) | length > 0
   tags:
     - sysctl
     - kernel
@@ -153,10 +150,10 @@
     limit_type: "{{ item.limit_type }}"
     limit_item: "{{ item.limit_item }}"
     value: "{{ item.value }}"
-  loop: "{{ infrastructure.host.limits.limits | default([]) }}"
+  loop: "{{ host_limits.limits | default([]) }}"
   become: true
   when:
-    - infrastructure.host.limits.limits | default([]) | length > 0
+    - host_limits.limits | default([]) | length > 0
   tags:
     - limits
     - pam
@@ -167,10 +164,10 @@
     line: "{{ item }}"
     create: true
     mode: "0644"
-  loop: "{{ infrastructure.host.modules.load | default([]) }}"
+  loop: "{{ host_modules.load | default([]) }}"
   become: true
   when:
-    - infrastructure.host.modules.load | default([]) | length > 0
+    - host_modules.load | default([]) | length > 0
   tags:
     - modules
     - kernel
@@ -181,10 +178,10 @@
     line: "blacklist {{ item }}"
     create: true
     mode: "0644"
-  loop: "{{ infrastructure.host.modules.blacklist | default([]) }}"
+  loop: "{{ host_modules.blacklist | default([]) }}"
   become: true
   when:
-    - infrastructure.host.modules.blacklist | default([]) | length > 0
+    - host_modules.blacklist | default([]) | length > 0
   tags:
     - modules
     - kernel
@@ -208,7 +205,7 @@
         group: root
         mode: "0644"
       become: true
-      loop: "{{ infrastructure.host.udev.rules }}"
+      loop: "{{ host_udev.rules }}"
       when: item.state | default('present') == 'present'
       notify: reload udev
 
@@ -217,12 +214,12 @@
         path: "/etc/udev/rules.d/{{ item.priority | default(99) }}-{{ item.name }}.rules"
         state: absent
       become: true
-      loop: "{{ infrastructure.host.udev.rules }}"
+      loop: "{{ host_udev.rules }}"
       when: item.state | default('present') == 'absent'
       notify: reload udev
   when:
-    - infrastructure.host.udev.rules is defined
-    - infrastructure.host.udev.rules | length > 0
+    - host_udev.rules is defined
+    - host_udev.rules | length > 0
   tags:
     - udev
     - hardware

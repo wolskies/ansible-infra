@@ -1,45 +1,13 @@
 ---
 - name: Ensure firewall package is present
   ansible.builtin.package:
-    name: "{{ infrastructure.host.firewall.package }}"
+    name: "{{ firewall.package }}"
     state: present
   become: true
   when:
-    - infrastructure.host.firewall is defined
-    - infrastructure.host.firewall.enabled | default(false)
+    - firewall.enabled | default(false)
   tags:
     - firewall
-
-## I think we confirmed that UFW won't add multiple rules.  If that's the case then we need to
-## simplify this to just add the SSH allow rule
-- name: SSH Anti-Lock-Out
-  block:
-    - name: Check if SSH rule already exists in firewall_rules
-      ansible.builtin.set_fact:
-        _ssh_rule_exists: >-
-          {{
-            (infrastructure.host.firewall.rules | selectattr('port', 'defined') | selectattr('port', 'equalto', '22') | list | length > 0) or
-            (infrastructure.host.firewall.rules | selectattr('name', 'defined') | selectattr('name', 'match', '(?i)ssh|openssh') | list | length > 0)
-          }}
-    - name: Add SSH rule to firewall_rules if not present
-      ansible.builtin.set_fact:
-        firewall_rules: >-
-          {{
-            [{"rule": "allow", "port": "22", "proto": "tcp", "comment": "SSH access (prevent lockout)"}] +
-            (infrastructure.host.firewall.rules)
-          }}
-      when: not (_ssh_rule_exists | bool)
-
-    - name: Use existing rules if SSH rule already present
-      ansible.builtin.set_fact:
-        firewall_rules: "{{ infrastructure.host.firewall.rules }}"
-      when: _ssh_rule_exists | bool
-  when:
-    - infrastructure.host.firewall is defined
-    - infrastructure.host.firewall.prevent_ssh_lockout | default(false)
-  tags:
-    - firewall
-    - ssh-lock-out
 
 - name: Ensure firewall rules are applied
   community.general.ufw:
@@ -57,25 +25,34 @@
     comment: "{{ item.comment | default(omit) }}"
     route: "{{ item.route | default(omit) }}"
     log: "{{ item.log | default(omit) }}"
-  loop: "{{ infrastructure.host.firewall.rules }}"
+  loop: "{{ firewall.rules }}"
   become: true
   when:
-    - infrastructure.host.firewall is defined
-    - infrastructure.host.firewall.enabled | default(false)
-    - infrastructure.host.firewall.rules is defined
-    - infrastructure.host.firewall.rules | length > 0
+    - firewall.enabled | default(false)
+    - firewall.rules | length > 0
   notify: reload ufw
   tags:
     - firewall
     - firewall-rules
 
-- name: Ensure UFW firewall service state
+- name: Ensure SSH access to prevent lockout
   community.general.ufw:
-    state: "{{ 'enabled' if infrastructure.host.firewall.enabled else 'disabled' }}"
+    rule: allow
+    port: "22"
+    proto: tcp
+    comment: "SSH access (prevent lockout)"
   become: true
   when:
-    - infrastructure.host.firewall is defined
-    - infrastructure.host.firewall.enabled is defined
+    - firewall.enabled | default(false)
+    - firewall.prevent_ssh_lockout | default(false)
+  tags:
+    - firewall
+    - ssh-lockout
+
+- name: Ensure UFW firewall service state
+  community.general.ufw:
+    state: "{{ 'enabled' if firewall.enabled else 'disabled' }}"
+  become: true
   tags:
     - firewall-services
 
@@ -85,8 +62,7 @@
     state: present
   become: true
   when:
-    - infrastructure.host.fail2ban is defined
-    - infrastructure.host.fail2ban.enabled | default(false)
+    - fail2ban.enabled | default(false)
   tags:
     - fail2ban
 
@@ -100,19 +76,17 @@
   become: true
   notify: restart fail2ban
   when:
-    - infrastructure.host.fail2ban is defined
-    - infrastructure.host.fail2ban.enabled | default(false)
+    - fail2ban.enabled | default(false)
   tags:
     - fail2ban
 
 - name: Ensure fail2ban service is running and enabled
   ansible.builtin.service:
     name: fail2ban
-    state: "{{ 'started' if infrastructure.host.fail2ban.enabled | default(false) else 'stopped' }}"
-    enabled: "{{ infrastructure.host.fail2ban.enabled | default(false) }}"
+    state: "{{ 'started' if fail2ban.enabled | default(false) else 'stopped' }}"
+    enabled: "{{ fail2ban.enabled | default(false) }}"
   become: true
   when:
-    - infrastructure.host.fail2ban is defined
-    - infrastructure.host.fail2ban.enabled | default(false)
+    - fail2ban.enabled | default(false)
   tags:
     - fail2ban

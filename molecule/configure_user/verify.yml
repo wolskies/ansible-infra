@@ -187,6 +187,6 @@
     - name: Verify role properly iterates over user list
       ansible.builtin.assert:
         that:
-          - infrastructure.domain.users | length >= 4
+          - users | length >= 4
         fail_msg: "Role did not process expected number of users"
         success_msg: "Role architecture verified - processes user list correctly"

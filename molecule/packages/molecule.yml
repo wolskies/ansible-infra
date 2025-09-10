@@ -26,97 +26,91 @@ provisioner:
     group_vars:
       all:
         # Base package structure - using infrastructure hierarchy
-        infrastructure:
-          host:
-            packages:
-              present:
-                all:
-                  Ubuntu:
-                    - curl
-                    - git
-                    - htop
-                  Debian:
-                    - curl
-                    - git
-                    - htop
-                group:
-                  Ubuntu: []
-                  Debian: []
-                host:
-                  Ubuntu: []
-                  Debian: []
-              remove:
-                all:
-                  Ubuntu: []
-                  Debian: []
-                group:
-                  Ubuntu: []
-                  Debian: []
-                host:
-                  Ubuntu: []
-                  Debian: []
-              apt:
-                apt_cache:
-                  update_cache: true
-                  valid_time: 3600
-                system_upgrade:
-                  enable: false
-                  type: safe
-                repositories:
-                  all:
-                    Ubuntu:
-                      - name: docker
-                        types: deb
-                        uris: https://download.docker.com/linux/ubuntu
-                        suites: jammy
-                        components: [stable]
-                        signed_by: https://download.docker.com/linux/ubuntu/gpg
-                        state: present
-                        enabled: true
-                    Debian: []
-                  group:
-                    Ubuntu: []
-                    Debian: []
-                  host:
-                    Ubuntu: []
-                    Debian: []
+        packages:
+          present:
+            all:
+              Ubuntu:
+                - curl
+                - git
+                - htop
+              Debian:
+                - curl
+                - git
+                - htop
+            group:
+              Ubuntu: []
+              Debian: []
+            host:
+              Ubuntu: []
+              Debian: []
+          remove:
+            all:
+              Ubuntu: []
+              Debian: []
+            group:
+              Ubuntu: []
+              Debian: []
+            host:
+              Ubuntu: []
+              Debian: []
+          apt:
+            apt_cache:
+              update_cache: true
+              valid_time: 3600
+            system_upgrade:
+              enable: false
+              type: safe
+            repositories:
+              all:
+                Ubuntu:
+                  - name: docker
+                    types: deb
+                    uris: https://download.docker.com/linux/ubuntu
+                    suites: jammy
+                    components: [stable]
+                    signed_by: https://download.docker.com/linux/ubuntu/gpg
+                    state: present
+                    enabled: true
+                Debian: []
+              group:
+                Ubuntu: []
+                Debian: []
+              host:
+                Ubuntu: []
+                Debian: []
 
     host_vars:
       ubuntu-packages-test:
         # Test hierarchical merging for Ubuntu
-        infrastructure:
-          host:
-            packages:
-              present:
-                group:
-                  Ubuntu:
-                    - nginx
-                    - vim
-                host:
-                  Ubuntu:
-                    - jq
-              remove:
-                host:
-                  Ubuntu:
-                    - nano
+        packages:
+          present:
+            group:
+              Ubuntu:
+                - nginx
+                - vim
+            host:
+              Ubuntu:
+                - jq
+          remove:
+            host:
+              Ubuntu:
+                - nano
 
       debian-packages-test:
         # Test hierarchical merging for Debian
-        infrastructure:
-          host:
-            packages:
-              present:
-                group:
-                  Debian:
-                    - vim
-                    - tree
-                host:
-                  Debian:
-                    - wget
-              remove:
-                host:
-                  Debian:
-                    - nano
+        packages:
+          present:
+            group:
+              Debian:
+                - vim
+                - tree
+            host:
+              Debian:
+                - wget
+          remove:
+            host:
+              Debian:
+                - nano
 
   config_options:
     defaults:

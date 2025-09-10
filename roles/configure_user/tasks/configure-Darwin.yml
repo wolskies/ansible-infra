@@ -13,7 +13,7 @@
     create: yes
   when: homebrew_check.stat.exists
 
-- name: Configure macOS Dock preferences for {{ current_user_config.name }}
+- name: Configure macOS Dock preferences for {{ target_user.name }}
   community.general.osx_defaults:
     domain: com.apple.dock
     key: "{{ item.key }}"
@@ -21,28 +21,28 @@
     value: "{{ item.value }}"
   notify: restart dock
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   loop:
     - key: "tilesize"
       type: "int"
-      value: "{{ current_user_config.Darwin.dock.tile_size }}"
+      value: "{{ target_user.Darwin.dock.tile_size }}"
     - key: "autohide"
       type: "bool"
-      value: "{{ current_user_config.Darwin.dock.autohide }}"
+      value: "{{ target_user.Darwin.dock.autohide }}"
     - key: "minimize-to-application"
       type: "bool"
-      value: "{{ current_user_config.Darwin.dock.minimize_to_application | default(false) }}"
+      value: "{{ target_user.Darwin.dock.minimize_to_application | default(false) }}"
     - key: "show-recents"
       type: "bool"
-      value: "{{ current_user_config.Darwin.dock.show_recents | default(true) }}"
+      value: "{{ target_user.Darwin.dock.show_recents | default(true) }}"
   when:
-    - current_user_config.Darwin.dock is defined
+    - target_user.Darwin.dock is defined
     - item.value is defined
   tags:
     - dock
     - macos
 
-- name: Configure macOS Finder preferences for {{ current_user_config.name }}
+- name: Configure macOS Finder preferences for {{ target_user.name }}
   community.general.osx_defaults:
     domain: com.apple.finder
     key: "{{ item.key }}"
@@ -50,81 +50,81 @@
     value: "{{ item.value }}"
   notify: restart finder
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   loop:
     - key: "AppleShowAllExtensions"
       type: "bool"
-      value: "{{ current_user_config.Darwin.finder.show_extensions }}"
+      value: "{{ target_user.Darwin.finder.show_extensions }}"
     - key: "AppleShowAllFiles"
       type: "bool"
-      value: "{{ current_user_config.Darwin.finder.show_hidden }}"
+      value: "{{ target_user.Darwin.finder.show_hidden }}"
     - key: "ShowPathbar"
       type: "bool"
-      value: "{{ current_user_config.Darwin.finder.show_pathbar | default(true) }}"
+      value: "{{ target_user.Darwin.finder.show_pathbar | default(true) }}"
     - key: "ShowStatusBar"
       type: "bool"
-      value: "{{ current_user_config.Darwin.finder.show_statusbar | default(false) }}"
+      value: "{{ target_user.Darwin.finder.show_statusbar | default(false) }}"
     - key: "ShowExternalHardDrivesOnDesktop"
       type: "bool"
-      value: "{{ current_user_config.Darwin.finder.show_external_drives | default(false) }}"
+      value: "{{ target_user.Darwin.finder.show_external_drives | default(false) }}"
     - key: "ShowRemovableMediaOnDesktop"
       type: "bool"
-      value: "{{ current_user_config.Darwin.finder.show_removable_media | default(false) }}"
+      value: "{{ target_user.Darwin.finder.show_removable_media | default(false) }}"
     - key: "_FXShowPosixPathInTitle"
       type: "bool"
-      value: "{{ current_user_config.Darwin.finder.show_posix_path | default(false) }}"
+      value: "{{ target_user.Darwin.finder.show_posix_path | default(false) }}"
   when:
-    - current_user_config.Darwin.finder is defined
+    - target_user.Darwin.finder is defined
     - item.value is defined
   tags:
     - finder
     - macos
 
-- name: Create screenshots directory for {{ current_user_config.name }}
+- name: Create screenshots directory for {{ target_user.name }}
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ current_user_config.Darwin.screenshots.directory | default('Screenshots') }}"
+    path: "{{ ansible_env.HOME }}/{{ target_user.Darwin.screenshots.directory | default('Screenshots') }}"
     state: directory
     mode: "0755"
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   when:
-    - current_user_config.Darwin.screenshots is defined
+    - target_user.Darwin.screenshots is defined
   tags:
     - screenshots
     - macos
 
-- name: Configure screenshot preferences for {{ current_user_config.name }}
+- name: Configure screenshot preferences for {{ target_user.name }}
   community.general.osx_defaults:
     domain: com.apple.screencapture
     key: "{{ item.key }}"
     type: "{{ item.type }}"
     value: "{{ item.value }}"
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   loop:
     - key: "location"
       type: "string"
-      value: "{{ ansible_env.HOME }}/{{ current_user_config.Darwin.screenshots.directory | default('Screenshots') }}"
+      value: "{{ ansible_env.HOME }}/{{ target_user.Darwin.screenshots.directory | default('Screenshots') }}"
     - key: "type"
       type: "string"
-      value: "{{ current_user_config.Darwin.screenshots.format | default('png') }}"
+      value: "{{ target_user.Darwin.screenshots.format | default('png') }}"
   when:
-    - current_user_config.Darwin.screenshots is defined
+    - target_user.Darwin.screenshots is defined
     - item.value is defined
   tags:
     - screenshots
     - macos
 
-- name: Configure iTerm2 preferences for {{ current_user_config.name }}
+- name: Configure iTerm2 preferences for {{ target_user.name }}
   community.general.osx_defaults:
     domain: com.googlecode.iterm2
     key: PromptOnQuit
     type: bool
-    value: "{{ current_user_config.Darwin.iterm2.prompt_on_quit | default(true) }}"
+    value: "{{ target_user.Darwin.iterm2.prompt_on_quit | default(true) }}"
   become: true
-  become_user: "{{ current_user_config.name }}"
+  become_user: "{{ target_user.name }}"
   when:
-    - current_user_config.Darwin.iterm2 is defined
+    - target_user.Darwin.iterm2 is defined
   tags:
     - iterm2
     - macos

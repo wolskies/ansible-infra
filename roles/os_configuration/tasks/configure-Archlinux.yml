@@ -9,9 +9,7 @@
         state: present
       become: true
       when:
-        - infrastructure.host.packages is defined
-        - infrastructure.host.packages.pacman is defined
-        - infrastructure.host.packages.pacman.no_confirms | default(false)
+        - pacman.no_confirms | default(false)
 
     - name: Configure multilib repository
       ansible.builtin.lineinfile:
@@ -21,9 +19,7 @@
         state: present
       become: true
       when:
-        - infrastructure.host.packages is defined
-        - infrastructure.host.packages.pacman is defined
-        - infrastructure.host.packages.pacman.multilib | default(false)
+        - pacman.multilib | default(false)
 
     - name: Enable multilib repository Include line
       ansible.builtin.lineinfile:
@@ -34,23 +30,18 @@
         state: present
       become: true
       when:
-        - infrastructure.host.packages is defined
-        - infrastructure.host.packages.pacman is defined
-        - infrastructure.host.packages.pacman.multilib | default(false)
+        - pacman.multilib | default(false)
 
     - name: Configure pacman proxy
       ansible.builtin.lineinfile:
         path: /etc/pacman.conf
-        regexp: "^#?Server.*{{ infrastructure.host.packages.pacman.proxy | regex_escape }}"
+        regexp: "^#?Server.*{{ pacman.proxy | regex_escape }}"
         insertafter: '^\\[.*\\]'
-        line: "Server = {{ infrastructure.host.packages.pacman.proxy }}/$repo/os/$arch"
+        line: "Server = {{ pacman.proxy }}/$repo/os/$arch"
         state: present
       become: true
       when:
-        - infrastructure.host.packages is defined
-        - infrastructure.host.packages.pacman is defined
-        - infrastructure.host.packages.pacman.proxy is defined
-        - infrastructure.host.packages.pacman.proxy | length > 0
+        - pacman.proxy | default('') | length > 0
   tags:
     - pacman
     - packages

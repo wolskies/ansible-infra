@@ -3,9 +3,15 @@
   hosts: all
   gather_facts: true
   tasks:
-    - name: Test configure_user role
+    - name: Test configure_user role per user
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.configure_user
+      vars:
+        target_user: "{{ user }}"
+      loop: "{{ users }}"
+      loop_control:
+        loop_var: user
+      when: user.name != 'root' # Skip system accounts
       tags:
         - user-config
 
@@ -13,6 +19,12 @@
     - name: Test configure_user role idempotency
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.configure_user
+      vars:
+        target_user: "{{ user }}"
+      loop: "{{ users }}"
+      loop_control:
+        loop_var: user
+      when: user.name != 'root' # Skip system accounts
       tags:
         - user-config
         - idempotency

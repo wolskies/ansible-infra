@@ -1,0 +1,44 @@
+---
+# Deploy dotfiles for target_user using stow
+
+- name: Clone dotfiles repository for {{ target_user.name }}
+  ansible.builtin.git:
+    repo: "{{ target_user.dotfiles.repository }}"
+    dest: "~/{{ target_user.dotfiles.dest | default('.dotfiles') }}"
+    version: "{{ target_user.dotfiles.branch | default('main') }}"
+    update: true
+  become: true
+  become_user: "{{ target_user.name }}"
+  when: not (target_user.dotfiles.disable_clone | default(false))
+
+- name: Install stow package
+  ansible.builtin.package:
+    name: stow
+    state: present
+  become: true
+
+- name: Check for stow conflicts (dry run)
+  ansible.builtin.command:
+    cmd: "stow --no -v ."
+    chdir: "~/{{ target_user.dotfiles.dest | default('.dotfiles') }}"
+  become: true
+  become_user: "{{ target_user.name }}"
+  register: stow_conflicts
+  failed_when: false
+  changed_when: false
+
+- name: Backup conflicting files
+  ansible.builtin.command:
+    cmd: "mv '~/{{ item }}' '~/{{ item }}.backup.{{ ansible_date_time.epoch }}'"
+  loop: "{{ stow_conflicts.stderr_lines | select('match', '.*existing target.*') | map('regex_replace', '.*existing target is.*: (.+)', '\\1') | list }}"
+  become: true
+  become_user: "{{ target_user.name }}"
+  when: stow_conflicts.stderr_lines | length > 0
+  failed_when: false
+
+- name: Deploy dotfiles with stow
+  ansible.builtin.command:
+    cmd: "stow ."
+    chdir: "~/{{ target_user.dotfiles.dest | default('.dotfiles') }}"
+  become: true
+  become_user: "{{ target_user.name }}"

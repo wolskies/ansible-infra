@@ -3,16 +3,11 @@
   ansible.builtin.set_fact:
     merged_apt_repositories: >-
       {{
-        (infrastructure.host.packages.apt.repositories.all[ansible_distribution] | default([])) +
-        (infrastructure.host.packages.apt.repositories.group[ansible_distribution] | default([])) +
-        (infrastructure.host.packages.apt.repositories.host[ansible_distribution] | default([]))
+        (apt.repositories.all[ansible_distribution] | default([])) +
+        (apt.repositories.group[ansible_distribution] | default([])) +
+        (apt.repositories.host[ansible_distribution] | default([]))
         | unique | list
       }}
-  when:
-    - infrastructure.host.packages is defined
-    - infrastructure.host.packages.apt is defined
-    - infrastructure.host.packages.apt.repositories is defined
-
 - name: Manage APT repositories
   block:
     - name: Ensure old apt keys are not present in trusted.gpg.d
@@ -63,9 +58,6 @@
       become: true
       register: repositories_changed
   when:
-    - infrastructure.host.packages is defined
-    - infrastructure.host.packages.apt is defined
-    - infrastructure.host.packages.apt.repositories is defined
     - merged_apt_repositories is defined
     - merged_apt_repositories | length > 0
 
@@ -100,13 +92,11 @@
 
 - name: Upgrade all APT packages
   ansible.builtin.apt:
-    upgrade: "{{ infrastructure.host.packages.apt.system_upgrade.type | default('safe') }}"
+    upgrade: "{{ apt.system_upgrade.type | default('safe') }}"
   become: true
   when:
-    - infrastructure.host.packages is defined
-    - infrastructure.host.packages.apt is defined
-    - infrastructure.host.packages.apt.system_upgrade is defined
-    - infrastructure.host.packages.apt.system_upgrade.enable | default(false)
+    - apt.system_upgrade is defined
+    - apt.system_upgrade.enable | default(false)
 
 - name: Gather package facts (Debian family)
   ansible.builtin.package_facts:

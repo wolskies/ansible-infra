@@ -6,9 +6,9 @@
         domain: NSGlobalDomain
         key: AppleLocale
         type: string
-        value: "{{ infrastructure.domain.locale.split('.')[0] }}"
+        value: "{{ domain_locale.split('.')[0] }}"
       when:
-        - infrastructure.domain.locale is defined
+        - domain_locale | length > 0
       notify: restart cfprefsd
 
     - name: Set preferred languages
@@ -17,9 +17,9 @@
         key: AppleLanguages
         type: array
         value:
-          - "{{ infrastructure.domain.language.split('.')[0] }}"
+          - "{{ domain_language.split('.')[0] }}"
       when:
-        - infrastructure.domain.language is defined
+        - domain_language | length > 0
       notify: restart cfprefsd
   tags:
     - locale
@@ -40,17 +40,17 @@
       register: ntp_enable_result
       changed_when: "'Network Time' in ntp_enable_result.stderr or ntp_enable_result.rc == 0"
       when:
-        - infrastructure.domain.ntp.enabled | default(false)
+        - domain_ntp.enabled | default(false)
 
     - name: Set NTP server (first server from list)
-      ansible.builtin.command: "systemsetup -setnetworktimeserver {{ infrastructure.domain.ntp.servers[0] }}"
+      ansible.builtin.command: "systemsetup -setnetworktimeserver {{ domain_ntp.servers[0] }}"
       become: true
       register: ntp_server_result
       changed_when: ntp_server_result.rc == 0
       when:
-        - infrastructure.domain.ntp.enabled | default(false)
-        - infrastructure.domain.ntp.servers | default([]) | length > 0
-        - infrastructure.domain.ntp.servers[0] not in current_ntp_server.stdout
+        - domain_ntp.enabled | default(false)
+        - domain_ntp.servers | default([]) | length > 0
+        - domain_ntp.servers[0] not in current_ntp_server.stdout
 
     - name: Disable network time synchronization
       ansible.builtin.command: systemsetup -setusingnetworktime off
@@ -58,9 +58,7 @@
       register: ntp_disable_result
       changed_when: "'Network Time' in ntp_disable_result.stderr or ntp_disable_result.rc == 0"
       when:
-        - not (infrastructure.domain.ntp.enabled | default(false))
-  when:
-    - infrastructure.domain.ntp is defined
+        - not (domain_ntp.enabled | default(false))
   tags:
     - ntp
     - time
@@ -74,13 +72,11 @@
     value: "{{ item.value }}"
   loop:
     - key: "AutomaticCheckEnabled"
-      value: "{{ infrastructure.host.macosx.updates.auto_check | default(true) }}"
+      value: "{{ macosx.updates.auto_check | default(true) }}"
     - key: "AutomaticDownload"
-      value: "{{ infrastructure.host.macosx.updates.auto_download | default(true) }}"
+      value: "{{ macosx.updates.auto_download | default(true) }}"
   become: true
   notify: restart cfprefsd
-  when:
-    - infrastructure.host.macosx.updates is defined
   tags:
     - Darwin
     - updates
@@ -88,12 +84,10 @@
 
 - name: Configure macOS Gatekeeper
   ansible.builtin.command:
-    cmd: "spctl --master-{{ infrastructure.host.macosx.gatekeeper.enabled | default(true) | ternary('enable', 'disable') }}"
+    cmd: "spctl --master-{{ macosx.gatekeeper.enabled | default(true) | ternary('enable', 'disable') }}"
   become: true
   register: gatekeeper_result
   changed_when: gatekeeper_result.rc == 0
-  when:
-    - infrastructure.host.macosx.gatekeeper is defined
   tags:
     - Darwin
     - security
@@ -108,20 +102,19 @@
   loop:
     - key: "com.apple.swipescrolldirection"
       type: "bool"
-      value: "{{ infrastructure.host.macosx.system_preferences.natural_scroll | default(true) }}"
+      value: "{{ macosx.system_preferences.natural_scroll | default(true) }}"
     - key: "AppleMeasurementUnits"
       type: "string"
-      value: "{{ infrastructure.host.macosx.system_preferences.measurement_units | default('Inches') }}"
+      value: "{{ macosx.system_preferences.measurement_units | default('Inches') }}"
     - key: "AppleMetricUnits"
       type: "bool"
-      value: "{{ infrastructure.host.macosx.system_preferences.use_metric | default(false) }}"
+      value: "{{ macosx.system_preferences.use_metric | default(false) }}"
     - key: "AppleShowAllExtensions"
       type: "bool"
-      value: "{{ infrastructure.host.macosx.system_preferences.show_all_extensions | default(false) }}"
+      value: "{{ macosx.system_preferences.show_all_extensions | default(false) }}"
   become: true
   notify: restart cfprefsd
   when:
-    - infrastructure.host.macosx.system_preferences is defined
     - item.value is defined
   tags:
     - Darwin
@@ -133,11 +126,9 @@
     domain: com.apple.NetworkBrowser
     key: BrowseAllInterfaces
     type: bool
-    value: "{{ infrastructure.host.macosx.airdrop.ethernet_enabled | default(false) }}"
+    value: "{{ macosx.airdrop.ethernet_enabled | default(false) }}"
   become: true
   notify: restart cfprefsd
-  when:
-    - infrastructure.host.macosx.airdrop is defined
   tags:
     - Darwin
     - network

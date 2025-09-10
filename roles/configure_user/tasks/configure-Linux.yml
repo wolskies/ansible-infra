@@ -1,13 +1,13 @@
 ---
 # Linux OS-specific user configuration
 
-- name: Set user shell preference for {{ current_user_config.name }}
+- name: Set user shell preference for {{ target_user.name }}
   ansible.builtin.user:
-    name: "{{ current_user_config.name }}"
-    shell: "{{ current_user_config.shell }}"
+    name: "{{ target_user.name }}"
+    shell: "{{ target_user.shell }}"
   become: true
   when:
-    - current_user_config.shell is defined
-    - current_user_config.shell != ''
+    - target_user.shell is defined
+    - target_user.shell != ''
   tags:
     - shell

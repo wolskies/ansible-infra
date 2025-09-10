@@ -30,137 +30,80 @@ provisioner:
         # Future-proof ansible_managed deprecation
         ansible_managed: "Managed by Ansible - do not edit manually"
         # Test OS configuration using infrastructure structure
-        infrastructure:
-          domain:
-            name: "test.local"
-            timezone: "America/New_York"
-            locale: "en_US.UTF-8"
-            language: "en_US.UTF-8"
-            ntp:
-              enabled: true
-              servers:
-                - 0.pool.ntp.org
-                - 1.pool.ntp.org
-            users: []
+        domain_name: "test.local"
+        domain_timezone: "America/New_York"
+        domain_locale: "en_US.UTF-8"
+        domain_language: "en_US.UTF-8"
+        domain_ntp:
+          enabled: true
+          servers:
+            - 0.pool.ntp.org
+            - 1.pool.ntp.org
+        users: []
 
-          host:
-            hostname: "molecule-test"
-            update_hosts: false # Disabled for Docker container testing
-            journal:
-              configure: true
-              max_size: "100M"
-              max_retention: "7d"
-              forward_to_syslog: false
-              compress: true
-            rsyslog:
-              enabled: false
-            services:
-              enable:
-                - rsyslog
-              disable: []
-            optimizations:
-              tune_swappiness: true
-              swappiness: 5
-            packages:
-              apt:
-                no_recommends: true
-                proxy: ""
-                unattended_upgrades:
-                  enabled: true
-                  email: ""
-                  auto_reboot: false
+        host_hostname: "molecule-test"
+        host_update_hosts: false # Disabled for Docker container testing
+        journal:
+          configure: true
+          max_size: "100M"
+          max_retention: "7d"
+          forward_to_syslog: false
+          compress: true
+        rsyslog:
+          enabled: false
+        host_services:
+          enable:
+            - rsyslog
+          disable: []
+        optimizations:
+          tune_swappiness: true
+          swappiness: 5
+        packages:
+          apt:
+            no_recommends: true
+            proxy: ""
+            unattended_upgrades:
+              enabled: true
+              email: ""
+              auto_reboot: false
     host_vars:
       ubuntu-os-config-test:
-        # Host-specific APT proxy configuration
-        apt_proxy: "http://proxy.example.com:8080"
-        infrastructure:
-          domain:
-            name: "test.local"
-            timezone: "America/New_York"
-            locale: "en_US.UTF-8"
-            language: "en_US.UTF-8"
-            ntp:
-              enabled: true
-              servers:
-                - 0.pool.ntp.org
-                - 1.pool.ntp.org
-            users: []
-          host:
-            hostname: "molecule-test"
-            update_hosts: false # Disabled for Docker container testing
-            journal:
-              configure: true
-              max_size: "100M"
-              max_retention: "7d"
-              forward_to_syslog: false
-              compress: true
-            rsyslog:
-              enabled: false
-            services:
-              enable:
-                - rsyslog
-              disable: []
-            optimizations:
-              tune_swappiness: true
-              swappiness: 5
-            udev:
-              rules:
-                - name: pico-test
-                  content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
-                  priority: 99
-                  state: present
-                - name: ttyacm-test
-                  content: 'KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"'
-                  priority: 99
-                  state: present
-            packages:
-              apt:
-                no_recommends: true
-                proxy: "http://proxy.example.com:8080"
-                unattended_upgrades:
-                  enabled: true
-                  email: ""
-                  auto_reboot: false
+        # Host-specific configuration
+        host_hostname: "ubuntu-molecule-test"
+        host_update_hosts: false # Disabled for Docker container testing
+        host_udev:
+          rules:
+            - name: pico-test
+              content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
+              priority: 99
+              state: present
+            - name: ttyacm-test
+              content: 'KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"'
+              priority: 99
+              state: present
+        apt:
+          proxy: "http://proxy.example.com:8080"
+          no_recommends: true
+          unattended_upgrades:
+            enabled: true
+            email: ""
+            auto_reboot: false
       debian-os-config-test:
-        infrastructure:
-          domain:
-            name: "test.local"
-            timezone: "America/New_York"
-            locale: "en_US.UTF-8"
-            language: "en_US.UTF-8"
-            ntp:
-              enabled: true
-              servers:
-                - 0.pool.ntp.org
-                - 1.pool.ntp.org
-            users: []
-          host:
-            hostname: "molecule-test"
-            update_hosts: false # Disabled for Docker container testing
-            journal:
-              configure: true
-              max_size: "100M"
-              max_retention: "7d"
-              forward_to_syslog: false
-              compress: true
-            rsyslog:
-              enabled: false
-            services:
-              enable:
-                - rsyslog
-              disable:
-                - bluetooth
-            optimizations:
-              tune_swappiness: true
-              swappiness: 5
-            packages:
-              apt:
-                no_recommends: true
-                proxy: ""
-                unattended_upgrades:
-                  enabled: true
-                  email: ""
-                  auto_reboot: false
+        # Host-specific configuration
+        host_hostname: "debian-molecule-test"
+        host_update_hosts: false # Disabled for Docker container testing
+        host_services:
+          enable:
+            - rsyslog
+          disable:
+            - bluetooth
+        apt:
+          no_recommends: true
+          proxy: ""
+          unattended_upgrades:
+            enabled: true
+            email: ""
+            auto_reboot: false
   config_options:
     defaults:
       remote_tmp: /tmp/ansible-remote-tmp
