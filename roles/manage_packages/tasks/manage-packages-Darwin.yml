@@ -3,20 +3,31 @@
   ansible.builtin.set_fact:
     _homebrew_user: "{{ ansible_user | default(ansible_user_id, true) | default(ansible_env.USER, true) | default(lookup('env', 'USER'), true) }}"
 
-- name: Fix Homebrew directory ownership if it exists
+- name: Ensure Homebrew directory ownership is correct
   block:
-    - name: Check if Homebrew directories exist
+    - name: Create Homebrew base directory with correct ownership
+      ansible.builtin.file:
+        path: /opt/homebrew
+        state: directory
+        owner: "{{ _homebrew_user }}"
+        group: "admin"
+        mode: "0755"
+      become: true
+
+    - name: Check if Homebrew subdirectories exist
       ansible.builtin.stat:
         path: "{{ item }}"
       register: homebrew_dirs
       loop:
-        - /opt/homebrew
         - /opt/homebrew/Cellar
         - /opt/homebrew/var
         - /opt/homebrew/Frameworks
         - /opt/homebrew/Caskroom
+        - /opt/homebrew/bin
+        - /opt/homebrew/lib
+        - /opt/homebrew/share
 
-    - name: Fix ownership of existing Homebrew directories
+    - name: Fix ownership of existing Homebrew subdirectories
       ansible.builtin.file:
         path: "{{ item.item }}"
         owner: "{{ _homebrew_user }}"
