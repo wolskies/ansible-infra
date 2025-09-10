@@ -1,12 +1,13 @@
 ---
 # Linux OS-specific user configuration
 
-- name: Set user shell for {{ current_user_config.name }}
+- name: Set user shell preference for {{ current_user_config.name }}
   ansible.builtin.user:
     name: "{{ current_user_config.name }}"
-    shell: "{{ current_user_config[ansible_distribution].shell }}"
+    shell: "{{ current_user_config.shell }}"
   become: true
   when:
-    - current_user_config[ansible_distribution].shell | default('') | length > 0
+    - current_user_config.shell is defined
+    - current_user_config.shell != ''
   tags:
     - shell
