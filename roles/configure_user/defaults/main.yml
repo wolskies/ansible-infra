@@ -41,10 +41,22 @@ infrastructure:
     #     packages: [zsh, tmux, vim]
     #
     #   # Only macOS-specific GUI features need their own section
-    #   macosx:
+    #   Darwin:
     #     dock:
     #       tile_size: 48
     #       autohide: true
+    #       minimize_to_application: false
+    #       show_recents: true
     #     finder:
     #       show_extensions: true
     #       show_hidden: true
+    #       show_pathbar: true
+    #       show_statusbar: false
+    #       show_external_drives: false
+    #       show_removable_media: false
+    #       show_posix_path: false
+    #     screenshots:
+    #       directory: "Screenshots"
+    #       format: "png"  # png, jpg, pdf, etc.
+    #     iterm2:
+    #       prompt_on_quit: true

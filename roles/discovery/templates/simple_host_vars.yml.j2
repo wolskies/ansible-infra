@@ -62,6 +62,28 @@ infrastructure:
       load: []  # Modules to load at boot
       blacklist: []  # Modules to blacklist
 
+{% if discovered_udev_rules is defined and discovered_udev_rules | length > 0 %}
+    # Udev rules (discovered)
+    udev:
+      rules:
+{% for rule in discovered_udev_rules %}
+        - name: {{ rule.name | to_json }}
+          content: {{ rule.content | to_json }}
+          priority: {{ rule.priority }}
+          state: present
+{% endfor %}
+{% else %}
+    # Udev rules
+    udev:
+      rules: []
+      # Example:
+      # rules:
+      #   - name: pico
+      #     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
+      #     priority: 99
+      #     state: present
+{% endif %}
+
     # System services management
     services:
 {% if discovered_services_enabled is defined and discovered_services_enabled | length > 0 %}
@@ -199,7 +221,28 @@ infrastructure:
         auto_check: true
         auto_download: false
       gatekeeper:
+{% if discovered_macos_preferences is defined and discovered_macos_preferences.gatekeeper_enabled is defined %}
+        enabled: {{ discovered_macos_preferences.gatekeeper_enabled }}
+{% else %}
         enabled: true
+{% endif %}
+{% if discovered_macos_preferences is defined %}
+      system_preferences:
+        natural_scroll: {{ discovered_macos_preferences.natural_scroll | default(true) }}
+        measurement_units: {{ discovered_macos_preferences.measurement_units | default('Inches') | to_json }}
+        use_metric: {{ discovered_macos_preferences.use_metric | default(false) }}
+        show_all_extensions: {{ discovered_macos_preferences.show_all_extensions | default(false) }}
+      airdrop:
+        ethernet_enabled: {{ discovered_macos_preferences.airdrop_ethernet | default(false) }}
+{% else %}
+      system_preferences:
+        natural_scroll: true
+        measurement_units: "Inches"
+        use_metric: false
+        show_all_extensions: false
+      airdrop:
+        ethernet_enabled: false
+{% endif %}
 {% endif %}
 
 # vim: set ft=yaml ts=2 sw=2 et:

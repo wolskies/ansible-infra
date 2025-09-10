@@ -54,6 +54,26 @@
         fail_msg: "Journal configuration not found"
         success_msg: "Journal configuration exists"
 
+    - name: Check udev rules files
+      ansible.builtin.stat:
+        path: "/etc/udev/rules.d/{{ item }}"
+      register: udev_files
+      loop:
+        - "99-pico-test.rules"
+        - "99-ttyacm-test.rules"
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Verify udev rules were created
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+        fail_msg: "Udev rule {{ item.item }} not found"
+        success_msg: "Udev rule {{ item.item }} exists"
+      loop: "{{ udev_files.results }}"
+      when:
+        - ansible_distribution == 'Ubuntu'
+        - udev_files.results is defined
+
     - name: Check vm.swappiness configuration
       ansible.builtin.command: sysctl vm.swappiness
       register: swappiness_check

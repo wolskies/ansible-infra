@@ -98,3 +98,47 @@
     - Darwin
     - security
     - gatekeeper
+
+- name: Configure macOS system preferences
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+  loop:
+    - key: "com.apple.swipescrolldirection"
+      type: "bool"
+      value: "{{ infrastructure.host.macosx.system_preferences.natural_scroll | default(true) }}"
+    - key: "AppleMeasurementUnits"
+      type: "string"
+      value: "{{ infrastructure.host.macosx.system_preferences.measurement_units | default('Inches') }}"
+    - key: "AppleMetricUnits"
+      type: "bool"
+      value: "{{ infrastructure.host.macosx.system_preferences.use_metric | default(false) }}"
+    - key: "AppleShowAllExtensions"
+      type: "bool"
+      value: "{{ infrastructure.host.macosx.system_preferences.show_all_extensions | default(false) }}"
+  become: true
+  notify: restart cfprefsd
+  when:
+    - infrastructure.host.macosx.system_preferences is defined
+    - item.value is defined
+  tags:
+    - Darwin
+    - system
+    - preferences
+
+- name: Configure AirDrop over Ethernet
+  community.general.osx_defaults:
+    domain: com.apple.NetworkBrowser
+    key: BrowseAllInterfaces
+    type: bool
+    value: "{{ infrastructure.host.macosx.airdrop.ethernet_enabled | default(false) }}"
+  become: true
+  notify: restart cfprefsd
+  when:
+    - infrastructure.host.macosx.airdrop is defined
+  tags:
+    - Darwin
+    - network
+    - airdrop

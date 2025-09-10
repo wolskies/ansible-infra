@@ -6,3 +6,13 @@
     - name: Run discovery role
       ansible.builtin.include_role:
         name: wolskinet.infrastructure.discovery
+
+    - name: Debug discovered udev rules
+      ansible.builtin.debug:
+        var: discovered_udev_rules
+      when: discovered_udev_rules is defined
+
+    - name: Debug discovered macOS preferences
+      ansible.builtin.debug:
+        var: discovered_macos_preferences
+      when: discovered_macos_preferences is defined

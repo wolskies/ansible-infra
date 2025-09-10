@@ -29,3 +29,9 @@
   become: true
   when: ansible_distribution == 'MacOSX'
   failed_when: false
+
+- name: reload udev
+  ansible.builtin.command: udevadm control --reload-rules && udevadm trigger
+  become: true
+  when: ansible_system == 'Linux'
+  failed_when: false

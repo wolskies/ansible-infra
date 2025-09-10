@@ -58,6 +58,25 @@ infrastructure:
       # Example:
       # load: [uvcvideo, btusb]
       # blacklist: [nouveau]
+    udev:
+      rules: []
+      # Example udev rules for hardware devices:
+      # rules:
+      #   - name: pico
+      #     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
+      #     priority: 99
+      #     state: present
+      #   - name: expressif
+      #     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", MODE="0666"'
+      #     priority: 99
+      #     state: present
+      #   - name: ttyacm-dialout
+      #     content: 'KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"'
+      #     priority: 99
+      #     state: present
+      #   - name: old-device
+      #     priority: 50
+      #     state: absent  # Remove this rule
     snap:
       remove_completely: false
     packages:
@@ -80,3 +99,10 @@ infrastructure:
           auto_download: true
         gatekeeper:
           enabled: true
+        system_preferences:
+          natural_scroll: true
+          measurement_units: "Inches" # Inches, Centimeters
+          use_metric: false
+          show_all_extensions: false
+        airdrop:
+          ethernet_enabled: false
