@@ -37,18 +37,30 @@
       failed_when: false
       changed_when: false
 
-    - name: Install Node.js if npm missing
+    - name: Install Node.js if npm missing (Linux)
       ansible.builtin.package:
         name: nodejs
         state: present
       become: true
-      when: npm_check.rc != 0
+      when:
+        - npm_check.rc != 0
+        - ansible_system == "Linux"
+
+    - name: Install Node.js if npm missing (macOS via Homebrew)
+      community.general.homebrew:
+        name: node
+        state: present
+      become: true
+      become_user: "{{ target_user.name }}"
+      when:
+        - npm_check.rc != 0
+        - ansible_system == "Darwin"
 
     - name: Install Node.js packages for user
       community.general.npm:
         name: "{{ item }}"
         global: false
-        path: "/home/{{ target_user.name }}"
+        path: "{{ '~' if ansible_system == 'Darwin' else '/home/' + target_user.name }}"
       loop: "{{ target_user.nodejs.packages }}"
   become: true
   become_user: "{{ target_user.name }}"
@@ -141,7 +153,7 @@
   become_user: "{{ target_user.name }}"
   environment:
     RUSTUP_HOME: /usr/local/rustup
-    CARGO_HOME: "/home/{{ target_user.name }}/.cargo"
+    CARGO_HOME: "{{ '/Users/' + target_user.name + '/.cargo' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo' }}"
     PATH: "/usr/local/cargo/bin:{{ ansible_env.PATH }}"
   when:
     - target_user.rust.packages | default([]) | length > 0
@@ -162,7 +174,7 @@
     - go
     - language-packages
 
-- name: Install Go if missing
+- name: Install Go if missing (Linux)
   ansible.builtin.package:
     name: golang
     state: present
@@ -171,6 +183,19 @@
     - target_user.go.packages | default([]) | length > 0
     - go_check is defined
     - go_check.rc != 0
+    - ansible_system == "Linux"
+
+- name: Install Go if missing (macOS via Homebrew)
+  community.general.homebrew:
+    name: go
+    state: present
+  become: true
+  become_user: "{{ target_user.name }}"
+  when:
+    - target_user.go.packages | default([]) | length > 0
+    - go_check is defined
+    - go_check.rc != 0
+    - ansible_system == "Darwin"
   tags:
     - go
     - language-packages
