@@ -19,7 +19,7 @@
     key: "{{ item.key }}"
     type: "{{ item.type }}"
     value: "{{ item.value }}"
-  notify: restart dock
+  notify: Restart Dock
   become: true
   become_user: "{{ target_user.name }}"
   loop:
@@ -48,7 +48,7 @@
     key: "{{ item.key }}"
     type: "{{ item.type }}"
     value: "{{ item.value }}"
-  notify: restart finder
+  notify: Restart Finder
   become: true
   become_user: "{{ target_user.name }}"
   loop:
