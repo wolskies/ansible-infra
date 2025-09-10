@@ -3,6 +3,32 @@
   ansible.builtin.set_fact:
     _homebrew_user: "{{ ansible_user | default(ansible_user_id, true) | default(ansible_env.USER, true) | default(lookup('env', 'USER'), true) }}"
 
+- name: Fix Homebrew directory ownership if it exists
+  block:
+    - name: Check if Homebrew directories exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: homebrew_dirs
+      loop:
+        - /opt/homebrew
+        - /opt/homebrew/Cellar
+        - /opt/homebrew/var
+        - /opt/homebrew/Frameworks
+        - /opt/homebrew/Caskroom
+
+    - name: Fix ownership of existing Homebrew directories
+      ansible.builtin.file:
+        path: "{{ item.item }}"
+        owner: "{{ _homebrew_user }}"
+        group: "admin"
+        recurse: true
+      become: true
+      loop: "{{ homebrew_dirs.results }}"
+      when: item.stat.exists
+      loop_control:
+        label: "{{ item.item }}"
+  when: ansible_os_family == "Darwin"
+
 - name: Merge Homebrew packages from all sources
   ansible.builtin.set_fact:
     merged_homebrew_packages_install: "{{ merged_packages_install | default([]) }}"
