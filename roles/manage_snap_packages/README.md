@@ -1,17 +1,12 @@
 # manage_snap_packages
 
-**Primary Purpose**: Completely disable and remove snap from Ubuntu/Debian systems
-**Secondary Purpose**: Thin wrapper around `community.general.snap` for occasional snap package installation
+Snap package management for Ubuntu/Debian systems. Preserves existing snap installation by default.
 
 ## Description
 
-This role addresses the common need to **completely remove snap** from Ubuntu systems, while also providing a simple wrapper for the rare occasions when you need to install a specific snap package.
-
-### Design Philosophy
-
-1. **Default behavior**: Disable and remove snap entirely from the system
-2. **Override when needed**: Simple configuration to install specific snap packages (like `minio`)
-3. **Safety first**: Even if you accidentally configure snap packages to install, the removal takes precedence
+- **Default behavior**: Takes no action - preserves system snap installation
+- **Package management**: Install/remove specific snap packages via `community.general.snap`
+- **Complete removal**: Optionally disable and remove snap entirely from system
 
 ## Role Variables
 
@@ -21,25 +16,40 @@ This role addresses the common need to **completely remove snap** from Ubuntu sy
 infrastructure:
   host:
     snap:
-      disable_and_remove: true  # Remove snap entirely (default)
-      packages:
-        install: []            # Only used when disable_and_remove: false
-        remove: []             # Packages to remove
+      disable_and_remove: false  # Preserve system snap (default)
+      packages: {}               # Package management (optional)
+        # install: [hello-world]  # Packages to install
+        # remove: [unwanted]      # Packages to remove
 ```
 
 ## Usage Examples
 
-### Default Usage (Remove Snap Entirely)
+### Default Usage (Preserve System Snap)
 
 ```yaml
-# Default behavior - no configuration needed
-- name: Remove snap from system
+# Default behavior - no configuration needed, preserves existing snap
+- name: Manage snap packages
   include_role:
     name: wolskinet.infrastructure.manage_snap_packages
   tags: snap-packages
 ```
 
-### Install Specific Snap (Rare Case)
+### Remove Snap Entirely (Opt-in)
+
+```yaml
+# Explicitly opt-in to snap removal
+- name: Remove snap from system
+  include_role:
+    name: wolskinet.infrastructure.manage_snap_packages
+  vars:
+    infrastructure:
+      host:
+        snap:
+          disable_and_remove: true
+  tags: snap-packages
+```
+
+### Install Specific Snap
 
 ```yaml
 # When you need minio or another specific snap
@@ -50,7 +60,6 @@ infrastructure:
     infrastructure:
       host:
         snap:
-          disable_and_remove: false
           packages:
             install:
               - minio
@@ -68,7 +77,6 @@ infrastructure:
     infrastructure:
       host:
         snap:
-          disable_and_remove: false
           packages:
             install:
               - minio
@@ -80,7 +88,11 @@ infrastructure:
 
 ## What the Role Does
 
-### When `infrastructure.host.snap.disable_and_remove: true` (Default)
+### When `infrastructure.host.snap.disable_and_remove: false` (Default)
+
+Takes no action - preserves existing snap installation and packages.
+
+### When `infrastructure.host.snap.disable_and_remove: true` (Opt-in)
 
 1. **Removes all installed snap packages** (including core snaps)
 2. **Stops and disables all snapd services**
@@ -90,10 +102,10 @@ infrastructure:
 6. **Prevents snapd reinstallation** via APT preferences
 7. **Ignores any package configuration** (safety feature)
 
-### When `infrastructure.host.snap.disable_and_remove: false`
+### When `infrastructure.host.snap.packages` is configured
 
-1. **Installs snapd** if not present
-2. **Starts snapd services**
+1. **Installs snapd** if not present and packages are requested
+2. **Starts snapd services** if needed
 3. **Removes specified packages** (if any)
 4. **Installs specified packages**
 5. **Simple wrapper** around `community.general.snap`
@@ -105,7 +117,7 @@ infrastructure:
 The role is called with tags, allowing selective execution:
 
 ```yaml
-# Will disable snap by default
+# Will preserve snap by default
 - name: Manage Snap Packages
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.manage_snap_packages"
@@ -117,21 +129,23 @@ The role is called with tags, allowing selective execution:
 ### Inventory Configuration
 
 ```yaml
-# group_vars/all.yml
-infrastructure:
-  host:
-    snap:
-      disable_and_remove: true
+# group_vars/all.yml (default - no configuration needed)
+# Snap is preserved by default
 
-# host_vars/media-server.yml
+# host_vars/media-server.yml (install specific packages)
 infrastructure:
   host:
     snap:
-      disable_and_remove: false
       packages:
         install:
           - minio
           - jellyfin
+
+# host_vars/desktop.yml (remove snap entirely)
+infrastructure:
+  host:
+    snap:
+      disable_and_remove: true
 ```
 
 ## Platform Support
@@ -161,4 +175,4 @@ infrastructure:
 ansible-playbook -t snap-packages site.yml
 ```
 
-This role reflects the reality that most users want snap **gone**, with occasional exceptions for specific use cases.
+Provides snap management with system-preserving defaults and optional complete removal.

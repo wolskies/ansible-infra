@@ -33,14 +33,14 @@ Uses the unified infrastructure structure with domain/host separation:
 infrastructure:
   domain:
     name: "company.com"             # Domain name
-    timezone: "UTC"                 # Shared timezone
+    timezone: "America/New_York"     # Optional: shared timezone (empty = system default)
     locale: "en_US.UTF-8"          # Shared locale
     language: "en_US.UTF-8"        # Shared language
     ntp:
       enabled: true                 # Enable NTP synchronization
-      servers:
-        - 0.pool.ntp.org
-        - 1.pool.ntp.org
+      servers:                      # Optional: custom NTP servers (empty = system defaults)
+        - time1.company.com
+        - time2.company.com
 
   host:
     hostname: ""                    # Individual hostname (empty = keep current)
@@ -192,10 +192,10 @@ infrastructure:
 infrastructure:
   domain:
     name: "company.com"
-    timezone: "UTC"
+    timezone: "America/New_York"  # Optional timezone
     locale: "en_US.UTF-8"
     ntp:
-      servers: [0.pool.ntp.org, 1.pool.ntp.org]
+      servers: [time1.company.com, time2.company.com]  # Optional: custom NTP servers
 
 # inventory/host_vars/web01.yml
 infrastructure:
