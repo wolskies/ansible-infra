@@ -37,6 +37,20 @@
       failed_when: false
       changed_when: false
 
+    - name: Detect Homebrew owner (macOS)
+      ansible.builtin.stat:
+        path: /opt/homebrew
+      register: homebrew_stat
+      when: ansible_system == "Darwin"
+
+    - name: Get Homebrew owner username (macOS)
+      ansible.builtin.command: stat -f "%Su" /opt/homebrew
+      register: homebrew_owner
+      changed_when: false
+      when:
+        - ansible_system == "Darwin"
+        - homebrew_stat.stat.exists
+
     - name: Install Node.js if npm missing (Linux)
       ansible.builtin.package:
         name: nodejs
@@ -51,10 +65,11 @@
         name: node
         state: present
       become: true
-      become_user: "{{ target_user.name }}"
+      become_user: "{{ homebrew_owner.stdout | default('root') }}"
       when:
         - npm_check.rc != 0
         - ansible_system == "Darwin"
+        - homebrew_stat.stat.exists
 
     - name: Install Node.js packages for user
       community.general.npm:
@@ -190,12 +205,13 @@
     name: go
     state: present
   become: true
-  become_user: "{{ target_user.name }}"
+  become_user: "{{ homebrew_owner.stdout | default('root') }}"
   when:
     - target_user.go.packages | default([]) | length > 0
     - go_check is defined
     - go_check.rc != 0
     - ansible_system == "Darwin"
+    - homebrew_stat.stat.exists
   tags:
     - go
     - language-packages
