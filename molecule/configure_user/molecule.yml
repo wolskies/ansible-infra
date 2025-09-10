@@ -66,8 +66,6 @@ provisioner:
             dotfiles:
               enable: false # Skip in container test
               repository: "https://github.com/example/dotfiles"
-              method: "stow"
-              packages: [zsh, vim]
               branch: "main"
           # System user (should be skipped)
           - name: root
@@ -113,8 +111,6 @@ provisioner:
             dotfiles:
               enable: false # Skip in container test
               repository: "https://github.com/example/dotfiles"
-              method: "stow"
-              packages: [zsh, vim]
               branch: "main"
           # Root user for skip testing
           - name: root
@@ -160,8 +156,6 @@ provisioner:
             dotfiles:
               enable: false # Skip in container test
               repository: "https://github.com/example/dotfiles"
-              method: "stow"
-              packages: [zsh, vim]
               branch: "main"
           # Root user for skip testing
           - name: root
