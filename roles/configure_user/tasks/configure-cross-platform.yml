@@ -36,6 +36,8 @@
       register: npm_check
       failed_when: false
       changed_when: false
+      environment:
+        PATH: "{{ '/opt/homebrew/bin:' + ansible_env.PATH if ansible_system == 'Darwin' else ansible_env.PATH }}"
 
     - name: Detect Homebrew owner (macOS)
       ansible.builtin.stat:
@@ -77,6 +79,8 @@
         global: false
         path: "{{ '~' if ansible_system == 'Darwin' else '/home/' + target_user.name }}"
       loop: "{{ target_user.nodejs.packages }}"
+      environment:
+        PATH: "{{ '/opt/homebrew/bin:' + ansible_env.PATH if ansible_system == 'Darwin' else ansible_env.PATH }}"
   become: true
   become_user: "{{ target_user.name }}"
   when:
@@ -183,6 +187,8 @@
   become_user: "{{ target_user.name }}"
   failed_when: false
   changed_when: false
+  environment:
+    PATH: "{{ '/opt/homebrew/bin:' + ansible_env.PATH if ansible_system == 'Darwin' else ansible_env.PATH }}"
   when:
     - target_user.go.packages | default([]) | length > 0
   tags:
@@ -223,6 +229,9 @@
   loop: "{{ target_user.go.packages }}"
   become: true
   become_user: "{{ target_user.name }}"
+  environment:
+    PATH: "{{ '/opt/homebrew/bin:' + ansible_env.PATH if ansible_system == 'Darwin' else ansible_env.PATH }}"
+    GOPATH: "{{ '/Users/' + target_user.name + '/go' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/go' }}"
   when:
     - target_user.go.packages | default([]) | length > 0
   tags:
