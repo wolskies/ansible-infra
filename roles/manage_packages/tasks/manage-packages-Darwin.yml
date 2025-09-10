@@ -1,5 +1,15 @@
 ---
-- name: Merge Homebrew configuration from all sources
+- name: Determine target user for Homebrew
+  ansible.builtin.set_fact:
+    _homebrew_user: "{{ ansible_user | default(ansible_user_id, true) | default(ansible_env.USER, true) | default(lookup('env', 'USER'), true) }}"
+
+- name: Merge Homebrew packages from all sources
+  ansible.builtin.set_fact:
+    merged_homebrew_packages_install: "{{ merged_packages_install | default([]) }}"
+    merged_homebrew_packages_remove: "{{ merged_packages_remove | default([]) }}"
+  when: infrastructure.host.packages is defined
+
+- name: Merge Homebrew casks from all sources
   ansible.builtin.set_fact:
     merged_homebrew_casks_install: >-
       {{
@@ -15,14 +25,23 @@
       }}
   when: infrastructure.host.packages is defined
 
-- name: Manage packages via Homebrew
+- name: Install and manage packages via Homebrew (geerlingguy.mac.homebrew)
   ansible.builtin.include_role:
     name: geerlingguy.mac.homebrew
   vars:
-    homebrew_installed_packages: "{{ merged_packages_install | default([]) }}"
-    homebrew_uninstalled_packages: "{{ merged_packages_remove | default([]) }}"
+    # Installation configuration
+    homebrew_install_path: /opt/homebrew
+    homebrew_brew_bin_path: /opt/homebrew/bin
+    homebrew_user: "{{ _homebrew_user }}"
+    homebrew_group: "{{ _homebrew_user }}"
+
+    # Package management
+    homebrew_installed_packages: "{{ merged_homebrew_packages_install | default([]) }}"
+    homebrew_uninstalled_packages: "{{ merged_homebrew_packages_remove | default([]) }}"
     homebrew_cask_apps: "{{ merged_homebrew_casks_install | default([]) }}"
     homebrew_cask_uninstalled_apps: "{{ merged_homebrew_casks_remove | default([]) }}"
+
+    # Taps and configuration
     homebrew_taps: "{{ infrastructure.host.packages.homebrew.taps | default([]) if infrastructure.host.packages.homebrew is defined else [] }}"
     homebrew_clear_cache: "{{ infrastructure.host.packages.homebrew.cleanup_cache | default(false) if infrastructure.host.packages.homebrew is defined else false }}"
   when: infrastructure.host.packages is defined
