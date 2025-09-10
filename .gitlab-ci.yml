@@ -270,8 +270,18 @@ sync-to-github:
     - chmod 700 ~/.ssh
     - ssh-keyscan github.com >> ~/.ssh/known_hosts
   script:
-    - git remote add github git@github.com:wolskies/ansible-infra.git || true
+    - echo "Setting up git configuration..."
+    - git config --global user.name "GitLab CI"
+    - git config --global user.email "gitlab-ci@wolskinet.com"
+    - echo "Current git remotes:"
+    - git remote -v
+    - echo "Adding GitHub remote..."
+    - git remote add github git@github.com:wolskies/ansible-infra.git || echo "Remote already exists"
+    - echo "Updated git remotes:"
+    - git remote -v
+    - echo "Pushing to GitHub..."
     - git push github HEAD:main --force
+    - echo "Sync completed successfully!"
   only:
     - main
   when: on_success
