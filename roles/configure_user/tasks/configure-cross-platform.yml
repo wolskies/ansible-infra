@@ -25,6 +25,8 @@
       when: target_user.git.editor is defined
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   when: target_user.git is defined
   tags:
     - git
@@ -56,6 +58,8 @@
       loop: "{{ target_user.nodejs.packages }}"
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   when:
     - target_user.nodejs.packages | default([]) | length > 0
   tags:
@@ -128,6 +132,8 @@
   loop: "{{ target_user.rust.packages }}"
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   environment:
     RUSTUP_HOME: /usr/local/rustup
     CARGO_HOME: "{{ '/Users/' + target_user.name + '/.cargo' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo' }}"
