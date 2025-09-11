@@ -40,9 +40,12 @@
     - nodejs
     - system-deps
 
+- name: Force handler execution before package installation
+  ansible.builtin.meta: flush_handlers
+
 - name: Install Node.js and npm (Debian/Ubuntu)
   ansible.builtin.apt:
-    name: "nodejs={{ nodejs_version }}.*"
+    name: nodejs
     state: present
   become: true
   tags:
