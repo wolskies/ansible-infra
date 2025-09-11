@@ -20,6 +20,7 @@
           - wget
           - zsh
           - dash
+          - python3-debian
         state: present
       when: ansible_os_family == "Debian"
 
