@@ -1,6 +1,6 @@
 ---
-# Configure user preferences
-# Accepts users (list of user configuration objects)
+# Configure user preferences for a single user
+# Expects target_user variable to be passed in
 
 - name: Ensure ACL package is installed for privilege escalation
   ansible.builtin.package:
@@ -9,16 +9,34 @@
   become: true
   when:
     - ansible_os_family != 'Darwin'
-    - users is defined
-    - users | length > 0
+    - target_user is defined
 
-- name: Configure preferences for each user
-  ansible.builtin.include_tasks: configure-single-user.yml
-  loop: "{{ users }}"
-  loop_control:
-    loop_var: target_user
+- name: Configure user preferences for {{ target_user.name }}
+  block:
+    - name: Configure cross-platform user preferences for {{ target_user.name }}
+      ansible.builtin.include_tasks: configure-cross-platform.yml
+      tags:
+        - user-config
+        - cross-platform
+
+    - name: Configure OS-specific user preferences for {{ target_user.name }}
+      ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
+      when: >
+        target_user.shell is defined or
+        target_user[ansible_system] is defined
+      tags:
+        - user-config
+        - os-specific
+
+    - name: Configure dotfiles for {{ target_user.name }}
+      ansible.builtin.include_tasks: configure-dotfiles.yml
+      when: target_user.dotfiles is defined and target_user.dotfiles.enable | default(true)
+      tags:
+        - user-config
+        - dotfiles
+  become: true
+  become_user: "{{ target_user.name }}"
   when:
-    - users is defined
-    - users | length > 0
+    - target_user is defined
     - target_user.name is defined
     - target_user.name != 'root' # Skip system accounts
