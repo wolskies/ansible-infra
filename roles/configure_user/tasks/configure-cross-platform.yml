@@ -31,37 +31,75 @@
   tags:
     - git
 
-- name: Configure Node.js packages for {{ target_user.name }}
+- name: Ensure Node.js is available for package installation
   block:
-    - name: Check if npm is available
-      ansible.builtin.shell: command -v npm || test -f ~/.nvm/versions/node/*/bin/npm
-      register: npm_check
-      failed_when: false
-      changed_when: false
+    - name: Ensure dependencies for NodeSource repo (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - gnupg2
+        state: present
+      become: true
+      when: ansible_os_family == 'Debian'
 
-    - name: Download and install nvm if npm missing
-      ansible.builtin.shell: |
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
-        source ~/.nvm/nvm.sh
-        nvm install --lts
-        nvm use --lts
-      args:
-        creates: ~/.nvm/nvm.sh
+    - name: Download NodeSource signing key (Debian/Ubuntu)
+      ansible.builtin.get_url:
+        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+        dest: /etc/apt/signing-key-nodesource-repo.asc
+        owner: root
+        group: root
+        mode: "0444"
+      become: true
+      register: node_signing_key
+      when: ansible_os_family == 'Debian'
+
+    - name: Add NodeSource repository (Debian/Ubuntu)
+      ansible.builtin.deb822_repository:
+        name: nodesource_20x
+        uris: "https://deb.nodesource.com/node_20.x"
+        types: deb
+        suites: nodistro
+        components: main
+        signed_by: "{{ node_signing_key.dest }}"
+        state: present
+      become: true
+      register: node_repo
+      when: ansible_os_family == 'Debian'
+
+    - name: Update apt cache if repo was added (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: yes
+      become: true
       when:
-        - target_user.nodejs.packages | default([]) | length > 0
-        - npm_check.rc != 0
+        - ansible_os_family == 'Debian'
+        - node_repo is changed
 
-    - name: Install Node.js packages for user
-      ansible.builtin.shell: |
-        source ~/.nvm/nvm.sh
-        npm install -g "{{ item }}"
-      loop: "{{ target_user.nodejs.packages }}"
+    - name: Install Node.js and npm (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: "nodejs=20.*"
+        state: present
+      become: true
+      when: ansible_os_family == 'Debian'
+
+    - name: Ensure Node.js and npm are installed (Arch)
+      ansible.builtin.package:
+        name: npm
+        state: present
+      become: true
+      when: ansible_os_family == 'Archlinux'
+  when: target_user.nodejs.packages | default([]) | length > 0
+  tags:
+    - nodejs
+    - language-packages
+
+- name: Install Node.js packages for {{ target_user.name }}
+  ansible.builtin.shell: npm install -g "{{ item }}"
+  loop: "{{ target_user.nodejs.packages }}"
   become: true
-  become_user: "{{ target_user.name }}"
-  vars:
-    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
-  when:
-    - target_user.nodejs.packages | default([]) | length > 0
+  register: npm_install
+  failed_when: npm_install.rc != 0
+  changed_when: "'added' in npm_install.stdout or 'npm WARN' not in npm_install.stderr"
+  when: target_user.nodejs.packages | default([]) | length > 0
   tags:
     - nodejs
     - language-packages

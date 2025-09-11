@@ -9,6 +9,8 @@
     update: true
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   when: not (target_user.dotfiles.disable_clone | default(false))
 
 - name: Install stow package
@@ -23,6 +25,8 @@
     chdir: "~/{{ target_user.dotfiles.dest | default('.dotfiles') }}"
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   register: stow_conflicts
   failed_when: false
   changed_when: false
@@ -33,6 +37,8 @@
   loop: "{{ stow_conflicts.stderr_lines | select('match', '.*existing target.*') | map('regex_replace', '.*existing target is.*: (.+)', '\\1') | list }}"
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   when: stow_conflicts.stderr_lines | length > 0
   failed_when: false
 
@@ -42,3 +48,5 @@
     chdir: "~/{{ target_user.dotfiles.dest | default('.dotfiles') }}"
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"

@@ -22,6 +22,8 @@
   notify: Restart Dock
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   loop:
     - key: "tilesize"
       type: "int"
@@ -51,6 +53,8 @@
   notify: Restart Finder
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   loop:
     - key: "AppleShowAllExtensions"
       type: "bool"
@@ -87,6 +91,8 @@
     mode: "0755"
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   when:
     - target_user.Darwin.screenshots is defined
   tags:
@@ -101,6 +107,8 @@
     value: "{{ item.value }}"
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   loop:
     - key: "location"
       type: "string"
@@ -123,6 +131,8 @@
     value: "{{ target_user.Darwin.iterm2.prompt_on_quit | default(true) }}"
   become: true
   become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   when:
     - target_user.Darwin.iterm2 is defined
   tags:
