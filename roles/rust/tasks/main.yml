@@ -33,11 +33,9 @@
     - rust
     - system-deps
 
-- name: Install Rust and Cargo (Arch Linux)
+- name: Install rustup (Arch Linux)
   ansible.builtin.package:
-    name:
-      - rustup
-      - rust
+    name: rustup
     state: present
   become: true
   when:
