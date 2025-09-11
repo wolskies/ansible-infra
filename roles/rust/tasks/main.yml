@@ -1,0 +1,87 @@
+---
+# Install Rust toolchain and user packages
+# Expects: rust_user (target user) and rust_packages (list of cargo packages)
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - rust_user is defined
+      - rust_user | length > 0
+      - rust_packages is defined
+    fail_msg: "rust role requires rust_user and rust_packages variables"
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  when:
+    - rust_packages | length > 0
+    - ansible_os_family == 'Debian'
+  tags:
+    - rust
+    - system-deps
+
+- name: Install rustup (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: rustup
+    state: present
+  become: true
+  when:
+    - rust_packages | length > 0
+    - ansible_os_family == 'Debian'
+  tags:
+    - rust
+    - system-deps
+
+- name: Install Rust and Cargo (Arch Linux)
+  ansible.builtin.package:
+    name:
+      - rustup
+      - rust
+    state: present
+  become: true
+  when:
+    - rust_packages | length > 0
+    - ansible_os_family == 'Archlinux'
+  tags:
+    - rust
+    - system-deps
+
+- name: Install Rust and Cargo (macOS)
+  community.general.homebrew:
+    name: rust
+    state: present
+  become: true
+  become_user: "{{ rust_user }}"
+  when:
+    - rust_packages | length > 0
+    - ansible_system == 'Darwin'
+  tags:
+    - rust
+    - system-deps
+
+- name: Initialize rustup default toolchain
+  ansible.builtin.command: rustup default stable
+  become: true
+  become_user: "{{ rust_user }}"
+  register: rustup_default
+  changed_when: "'info: using existing install' not in rustup_default.stderr"
+  when:
+    - rust_packages | length > 0
+  tags:
+    - rust
+    - language-packages
+
+- name: Install Rust packages for {{ rust_user }}
+  ansible.builtin.command: cargo install {{ item }}
+  register: cargo_install
+  changed_when: "'Installing' in cargo_install.stderr"
+  failed_when: cargo_install.rc != 0
+  loop: "{{ rust_packages }}"
+  become: true
+  become_user: "{{ rust_user }}"
+  when:
+    - rust_packages | length > 0
+  tags:
+    - rust
+    - user-packages
