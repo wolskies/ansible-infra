@@ -2,6 +2,16 @@
 # Configure user preferences
 # Accepts users (list of user configuration objects)
 
+- name: Ensure ACL package is installed for privilege escalation
+  ansible.builtin.package:
+    name: "{{ 'acl' if ansible_os_family != 'Darwin' else omit }}"
+    state: present
+  become: true
+  when:
+    - ansible_os_family != 'Darwin'
+    - users is defined
+    - users | length > 0
+
 - name: Configure preferences for each user
   ansible.builtin.include_tasks: configure-single-user.yml
   loop: "{{ users }}"

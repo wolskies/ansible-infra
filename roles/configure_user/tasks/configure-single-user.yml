@@ -1,13 +1,5 @@
 ---
 # Configure preferences for a single user with proper privilege escalation
-- name: Ensure temp directory exists for user {{ target_user.name }}
-  ansible.builtin.file:
-    path: "/tmp/.ansible-{{ target_user.name }}"
-    state: directory
-    mode: "0700"
-    owner: "{{ target_user.name }}"
-  become: true
-
 - name: Configure user preferences for {{ target_user.name }}
   block:
     - name: Configure cross-platform user preferences for {{ target_user.name }}
@@ -33,5 +25,3 @@
         - dotfiles
   become: true
   become_user: "{{ target_user.name }}"
-  vars:
-    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
