@@ -11,15 +11,20 @@
     - ansible_os_family != 'Darwin'
     - target_user is defined
 
-- name: Configure user preferences for {{ target_user.name }}
+- name: Debug target_user variable
+  ansible.builtin.debug:
+    var: target_user
+    verbosity: 1
+
+- name: Configure user preferences for {{ target_user.name | default('UNKNOWN') }}
   block:
-    - name: Configure cross-platform user preferences for {{ target_user.name }}
+    - name: Configure cross-platform user preferences for {{ target_user.name | default('UNKNOWN') }}
       ansible.builtin.include_tasks: configure-cross-platform.yml
       tags:
         - user-config
         - cross-platform
 
-    - name: Configure OS-specific user preferences for {{ target_user.name }}
+    - name: Configure OS-specific user preferences for {{ target_user.name | default('UNKNOWN') }}
       ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
       when: >
         target_user.shell is defined or
@@ -28,7 +33,7 @@
         - user-config
         - os-specific
 
-    - name: Configure dotfiles for {{ target_user.name }}
+    - name: Configure dotfiles for {{ target_user.name | default('UNKNOWN') }}
       ansible.builtin.include_tasks: configure-dotfiles.yml
       when: target_user.dotfiles is defined and target_user.dotfiles.enable | default(true)
       tags:
