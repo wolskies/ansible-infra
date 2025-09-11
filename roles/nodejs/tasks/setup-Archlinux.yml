@@ -1,0 +1,11 @@
+---
+# Arch Linux-specific Node.js setup
+
+- name: Install Node.js and npm (Arch Linux)
+  ansible.builtin.package:
+    name: npm
+    state: present
+  become: true
+  tags:
+    - nodejs
+    - system-deps

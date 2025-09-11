@@ -1,5 +1,5 @@
 ---
-# Cross-platform user configuration (git, language packages)
+# Cross-platform user configuration
 
 - name: Configure Git settings for {{ target_user.name }}
   block:
@@ -26,8 +26,4 @@
   become: true
   become_user: "{{ target_user.name }}"
   when: target_user.git is defined
-  tags:
-    - git
-# Node.js packages are now handled by the dedicated nodejs role
-# Rust packages are now handled by the dedicated rust role
-# Go packages are now handled by the dedicated go role
+  tags: git

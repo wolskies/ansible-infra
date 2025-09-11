@@ -2,8 +2,10 @@
 # =============================================================================
 # USER PREFERENCES - Per-user preference configuration
 # =============================================================================
-# Configures individual user preferences, dotfiles, and language packages
+# Configures individual user preferences, dotfiles, and language toolchains
 # Called with target_user variable containing complete user configuration
+#
+# Language toolchains (nodejs, rust, go) are handled by dedicated roles
 # =============================================================================
 
 # This role configures preferences for a single user
@@ -21,11 +23,11 @@ target_user: {}
 #     user_email: "alice@company.com"
 #     editor: "vim"  # Optional git editor
 #   nodejs:
-#     packages: [typescript, eslint]  # Auto-installs nodejs if missing
+#     packages: [typescript, eslint]  # Uses dedicated nodejs role
 #   rust:
-#     packages: [ripgrep, bat]         # Auto-installs rustup if missing
+#     packages: [ripgrep, bat]         # Uses dedicated rust role
 #   go:
-#     packages: [github.com/charmbracelet/glow@latest]  # Auto-installs golang if missing
+#     packages: [github.com/charmbracelet/glow@latest]  # Uses dedicated go role
 #
 #   shell: /bin/zsh                    # Shell preference (Linux/macOS)
 #   dotfiles:
