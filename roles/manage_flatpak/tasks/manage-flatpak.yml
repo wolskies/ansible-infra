@@ -78,9 +78,10 @@
   community.general.flatpak:
     name: "{{ item }}"
     state: absent
-    method: system
+    method: "{{ flatpak.method | default('system') }}"
   loop: "{{ flatpak.packages.remove }}"
-  become: true
+  become: "{{ true if flatpak.method | default('system') == 'system' else false }}"
+  become_user: "{{ flatpak.user if flatpak.method | default('system') == 'user' and flatpak.user | default('') != '' else omit }}"
   when:
     - flatpak is defined
     - flatpak.packages is defined
@@ -91,9 +92,10 @@
   community.general.flatpak:
     name: "{{ item }}"
     state: present
-    method: system
+    method: "{{ flatpak.method | default('system') }}"
   loop: "{{ flatpak.packages.install }}"
-  become: true
+  become: "{{ true if flatpak.method | default('system') == 'system' else false }}"
+  become_user: "{{ flatpak.user if flatpak.method | default('system') == 'user' and flatpak.user | default('') != '' else omit }}"
   when:
     - flatpak is defined
     - flatpak.packages is defined
