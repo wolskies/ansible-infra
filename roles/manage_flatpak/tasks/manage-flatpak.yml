@@ -25,7 +25,7 @@
   become: true
   when:
     - ansible_os_family == "Debian"
-    - flatpak.plugins.gnome
+    - flatpak.plugins.gnome | default(false)
   failed_when: false
   tags: []
 
@@ -36,7 +36,7 @@
   become: true
   when:
     - ansible_os_family == "Debian"
-    - flatpak.plugins.plasma
+    - flatpak.plugins.plasma | default(false)
   failed_when: false
   tags: []
 
@@ -47,9 +47,7 @@
   become: true
   when:
     - ansible_os_family == "Archlinux"
-    - flatpak is defined
-    - flatpak.plugins is defined
-    - flatpak.plugins.gnome
+    - flatpak.plugins.gnome | default(false)
   failed_when: false
   tags: []
 
@@ -60,9 +58,7 @@
   become: true
   when:
     - ansible_os_family == "Archlinux"
-    - flatpak is defined
-    - flatpak.plugins is defined
-    - flatpak.plugins.plasma
+    - flatpak.plugins.plasma | default(false)
   failed_when: false
   tags: []
 

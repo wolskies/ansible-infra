@@ -6,12 +6,10 @@
 # Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
-infrastructure:
-  host:
-    flatpak:
-      enabled: false
-      packages: {}
-      flathub: true
-      plugins:
-        gnome: false
-        plasma: false
+flatpak:
+  enabled: false
+  packages: {}
+  flathub: true
+  plugins:
+    gnome: false
+    plasma: false
