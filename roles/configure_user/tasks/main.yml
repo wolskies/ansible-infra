@@ -4,13 +4,11 @@
 
 - name: Configure preferences for each user
   ansible.builtin.include_tasks: configure-single-user.yml
-  vars:
-    target_user: "{{ current_user }}"
   loop: "{{ users }}"
   loop_control:
-    loop_var: current_user
+    loop_var: target_user
   when:
     - users is defined
     - users | length > 0
-    - current_user.name is defined
-    - current_user.name != 'root' # Skip system accounts
+    - target_user.name is defined
+    - target_user.name != 'root' # Skip system accounts
