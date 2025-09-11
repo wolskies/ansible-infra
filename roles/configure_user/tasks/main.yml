@@ -48,9 +48,7 @@
     name: acl
     state: present
   become: true
-  when:
-    - ansible_os_family != 'Darwin'
-    - target_user.name != 'root'
+  when: ansible_os_family != 'Darwin'
 
 - name: Configure user preferences for {{ target_user.name }}
   block:
