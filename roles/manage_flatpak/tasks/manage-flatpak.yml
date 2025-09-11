@@ -76,11 +76,11 @@
 
 - name: Remove flatpak packages
   community.general.flatpak:
-    name: "{{ item }}"
+    name: "{{ item.name if item is mapping else item }}"
     state: absent
-    method: system
+    method: "{{ item.method | default('system') if item is mapping else 'system' }}"
   loop: "{{ flatpak.packages.remove }}"
-  become: true
+  become: "{{ false if (item is mapping and item.method | default('system') == 'user') else true }}"
   when:
     - flatpak is defined
     - flatpak.packages is defined
@@ -89,11 +89,11 @@
 
 - name: Install flatpak packages
   community.general.flatpak:
-    name: "{{ item }}"
+    name: "{{ item.name if item is mapping else item }}"
     state: present
-    method: system
+    method: "{{ item.method | default('system') if item is mapping else 'system' }}"
   loop: "{{ flatpak.packages.install }}"
-  become: true
+  become: "{{ false if (item is mapping and item.method | default('system') == 'user') else true }}"
   when:
     - flatpak is defined
     - flatpak.packages is defined
