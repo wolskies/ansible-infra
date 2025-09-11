@@ -1,3 +1,0 @@
----
-# Install system-level dependencies for language packages
-# Note: Node.js logic moved to dedicated nodejs role

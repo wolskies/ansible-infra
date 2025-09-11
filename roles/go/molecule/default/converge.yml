@@ -1,0 +1,27 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Create test user
+      ansible.builtin.user:
+        name: gotest
+        state: present
+        create_home: true
+      become: true
+
+    - name: Test go role with packages
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.go
+      vars:
+        go_user: gotest
+        go_packages:
+          - github.com/golang/example/hello@latest
+
+    - name: Test go role idempotency
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.go
+      vars:
+        go_user: gotest
+        go_packages:
+          - github.com/golang/example/hello@latest

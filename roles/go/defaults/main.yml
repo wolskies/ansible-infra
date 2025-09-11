@@ -1,0 +1,4 @@
+---
+# Default configuration for go role
+go_user: "{{ ansible_user }}"
+go_packages: []

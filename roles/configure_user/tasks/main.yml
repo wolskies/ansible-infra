@@ -32,6 +32,38 @@
     - language-packages
     - nodejs
 
+- name: Install Rust and packages for {{ target_user.name | default('UNKNOWN') }}
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.rust
+  vars:
+    rust_user: "{{ target_user.name }}"
+    rust_packages: "{{ target_user.rust.packages }}"
+  when:
+    - target_user is defined
+    - target_user.name is defined
+    - target_user.name != 'root'
+    - target_user.rust.packages | default([]) | length > 0
+  tags:
+    - user-config
+    - language-packages
+    - rust
+
+- name: Install Go and packages for {{ target_user.name | default('UNKNOWN') }}
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.go
+  vars:
+    go_user: "{{ target_user.name }}"
+    go_packages: "{{ target_user.go.packages }}"
+  when:
+    - target_user is defined
+    - target_user.name is defined
+    - target_user.name != 'root'
+    - target_user.go.packages | default([]) | length > 0
+  tags:
+    - user-config
+    - language-packages
+    - go
+
 - name: Configure user preferences for {{ target_user.name | default('UNKNOWN') }}
   block:
     - name: Configure cross-platform user preferences for {{ target_user.name | default('UNKNOWN') }}

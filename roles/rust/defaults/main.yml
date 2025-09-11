@@ -1,0 +1,4 @@
+---
+# Default configuration for rust role
+rust_user: "{{ ansible_user }}"
+rust_packages: []
