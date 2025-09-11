@@ -69,8 +69,9 @@
     name: flathub
     state: present
     flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
-    method: system
+    method: "{{ flatpak.method | default('system') }}"
   become: true
+  become_user: "{{ flatpak.user | default(omit) }}"
   when:
     - flatpak.enabled | default(false)
     - flatpak.flathub | default(false)
@@ -79,9 +80,10 @@
   community.general.flatpak:
     name: "{{ item }}"
     state: absent
-    method: system
+    method: "{{ flatpak.method | default('system') }}"
   loop: "{{ flatpak.packages.remove | default([]) }}"
   become: true
+  become_user: "{{ flatpak.user | default(omit) }}"
   when:
     - flatpak.enabled | default(false)
     - flatpak.packages.remove | default([]) | length > 0
@@ -90,9 +92,10 @@
   community.general.flatpak:
     name: "{{ item }}"
     state: present
-    method: system
+    method: "{{ flatpak.method | default('system') }}"
   loop: "{{ flatpak.packages.install | default([]) }}"
   become: true
+  become_user: "{{ flatpak.user | default(omit) }}"
   when:
     - flatpak.enabled | default(false)
     - flatpak.packages.install | default([]) | length > 0
