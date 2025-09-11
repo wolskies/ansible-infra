@@ -40,23 +40,6 @@
     - nodejs
     - user-packages
 
-- name: Set npm global directory for {{ node_user }}
-  community.general.npm:
-    name: npm
-    global: true
-    state: present
-    production: false
-    executable: npm
-  environment:
-    NPM_CONFIG_PREFIX: "~/.npm-global"
-    NODE_PATH: "~/.npm-global/lib/node_modules"
-  become: true
-  become_user: "{{ node_user }}"
-  when: node_packages | length > 0
-  tags:
-    - nodejs
-    - user-packages
-
 - name: Install npm packages globally for {{ node_user }}
   community.general.npm:
     name: "{{ item }}"
