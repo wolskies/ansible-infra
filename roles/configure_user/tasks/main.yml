@@ -1,29 +1,14 @@
 ---
-# Configure user preferences for a single user
-# Requires: target_user variable with user configuration
+# Configure user preferences
+# Accepts either: target_user (single user) or users (list of users)
 
-- name: Skip root user configuration
-  ansible.builtin.meta: end_play
-  when: target_user.name == 'root'
-
-- name: Configure cross-platform user preferences for {{ target_user.name }}
-  ansible.builtin.include_tasks: configure-cross-platform.yml
-  tags:
-    - user-config
-    - cross-platform
-
-- name: Configure OS-specific user preferences for {{ target_user.name }}
-  ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
-  when: >
-    target_user.shell is defined or
-    target_user[ansible_system] is defined
-  tags:
-    - user-config
-    - os-specific
-
-- name: Configure dotfiles for {{ target_user.name }}
-  ansible.builtin.include_tasks: configure-dotfiles.yml
-  when: target_user.dotfiles is defined and target_user.dotfiles.enable | default(true)
-  tags:
-    - user-config
-    - dotfiles
+- name: Configure preferences for each user
+  ansible.builtin.include_tasks: configure-single-user.yml
+  vars:
+    target_user: "{{ current_user }}"
+  loop: "{{ user_list if user_list is defined else [target_user] }}"
+  loop_control:
+    loop_var: current_user
+  when:
+    - current_user.name is defined
+    - current_user.name != 'root' # Skip system accounts

@@ -34,6 +34,7 @@
 - name: Manage Snap Packages
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.manage_snap_packages"
+  when: ansible_system == "Linux"
   tags:
     - snap-packages
     - optional
@@ -41,6 +42,7 @@
 - name: Manage Flatpak Packages
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.manage_flatpak"
+  when: ansible_system == "Linux"
   tags:
     - flatpak-packages
     - optional
@@ -49,14 +51,10 @@
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.configure_user"
   vars:
-    target_user: "{{ user }}"
-  loop: "{{ users }}"
-  loop_control:
-    loop_var: user
+    user_list: "{{ users }}"
   when:
     - users is defined
     - users | length > 0
-    - user.name != 'root' # Skip system accounts
   tags:
     - user-preferences
     - optional
