@@ -1,0 +1,55 @@
+---
+# Debian/Ubuntu-specific Node.js setup
+
+- name: Install Node.js system dependencies (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - gnupg2
+    state: present
+  become: true
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Download NodeSource signing key (Debian/Ubuntu)
+  ansible.builtin.get_url:
+    url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+    dest: /etc/apt/signing-key-nodesource-repo.asc
+    owner: root
+    group: root
+    mode: "0444"
+  become: true
+  register: node_signing_key
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Add NodeSource repository (Debian/Ubuntu)
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by={{ node_signing_key.dest }}] https://deb.nodesource.com/node_{{ nodejs_version }}.x nodistro main"
+    state: present
+    filename: nodesource_{{ nodejs_version }}x
+  become: true
+  register: node_repo
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Update apt cache if repo was added (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: "{{ nodejs_update_cache }}"
+  become: true
+  when: node_repo is changed
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Install Node.js and npm (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "nodejs={{ nodejs_version }}.*"
+    state: present
+  become: true
+  tags:
+    - nodejs
+    - system-deps

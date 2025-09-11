@@ -1,0 +1,12 @@
+---
+# macOS-specific Node.js setup
+
+- name: Install Node.js and npm (macOS)
+  community.general.homebrew:
+    name: node
+    state: present
+  become: true
+  become_user: "{{ node_user }}"
+  tags:
+    - nodejs
+    - system-deps

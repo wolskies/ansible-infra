@@ -6,6 +6,7 @@
     name: "{{ target_user.name }}"
     shell: "{{ target_user.shell }}"
   become: true
+  become_user: root
   when:
     - target_user.shell is defined
     - target_user.shell != ''

@@ -11,110 +11,71 @@
     fail_msg: "nodejs role requires node_user and node_packages variables"
 
 - name: Install Node.js system dependencies (Debian/Ubuntu)
-  ansible.builtin.apt:
-    name:
-      - apt-transport-https
-      - gnupg2
-    state: present
-  become: true
+  ansible.builtin.include_tasks: setup-Debian.yml
   when:
     - node_packages | length > 0
     - ansible_os_family == 'Debian'
-  tags:
-    - nodejs
-    - system-deps
 
-- name: Download NodeSource signing key (Debian/Ubuntu)
-  ansible.builtin.get_url:
-    url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
-    dest: /etc/apt/signing-key-nodesource-repo.asc
-    owner: root
-    group: root
-    mode: "0444"
-  become: true
-  register: node_signing_key
-  when:
-    - node_packages | length > 0
-    - ansible_os_family == 'Debian'
-  tags:
-    - nodejs
-    - system-deps
-
-- name: Add NodeSource repository (Debian/Ubuntu)
-  ansible.builtin.deb822_repository:
-    name: nodesource_{{ nodejs_version }}x
-    uris: "https://deb.nodesource.com/node_{{ nodejs_version }}.x"
-    types: deb
-    suites: nodistro
-    components: main
-    signed_by: "{{ node_signing_key.dest }}"
-    state: present
-  become: true
-  register: node_repo
-  when:
-    - node_packages | length > 0
-    - ansible_os_family == 'Debian'
-  tags:
-    - nodejs
-    - system-deps
-
-- name: Update apt cache if repo was added (Debian/Ubuntu)
-  ansible.builtin.apt:
-    update_cache: "{{ nodejs_update_cache }}"
-  become: true
-  when:
-    - node_packages | length > 0
-    - ansible_os_family == 'Debian'
-    - node_repo is changed
-  tags:
-    - nodejs
-    - system-deps
-
-- name: Install Node.js and npm (Debian/Ubuntu)
-  ansible.builtin.apt:
-    name: "nodejs={{ nodejs_version }}.*"
-    state: present
-  become: true
-  when:
-    - node_packages | length > 0
-    - ansible_os_family == 'Debian'
-  tags:
-    - nodejs
-    - system-deps
-
-- name: Install Node.js and npm (Arch Linux)
-  ansible.builtin.package:
-    name: npm
-    state: present
-  become: true
+- name: Install Node.js system dependencies (Arch Linux)
+  ansible.builtin.include_tasks: setup-Archlinux.yml
   when:
     - node_packages | length > 0
     - ansible_os_family == 'Archlinux'
-  tags:
-    - nodejs
-    - system-deps
 
-- name: Install Node.js and npm (macOS)
-  community.general.homebrew:
-    name: node
-    state: present
-  become: true
-  become_user: "{{ node_user }}"
+- name: Install Node.js system dependencies (macOS)
+  ansible.builtin.include_tasks: setup-Darwin.yml
   when:
     - node_packages | length > 0
     - ansible_system == 'Darwin'
+
+- name: Get home directory for {{ node_user }}
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ node_user }}"
+  when: node_packages | length > 0
+
+- name: Create npm global directory for {{ node_user }}
+  ansible.builtin.file:
+    path: "{{ getent_passwd[node_user][4] }}/.npm-global"
+    state: directory
+    mode: "0755"
+  become: true
+  become_user: "{{ node_user }}"
+  when: node_packages | length > 0
   tags:
     - nodejs
-    - system-deps
+    - user-packages
+
+- name: Set npm global directory for {{ node_user }}
+  community.general.npm:
+    name: npm
+    global: true
+    state: present
+    production: false
+    executable: npm
+  environment:
+    NPM_CONFIG_PREFIX: "{{ getent_passwd[node_user][4] }}/.npm-global"
+    NODE_PATH: "{{ getent_passwd[node_user][4] }}/.npm-global/lib/node_modules"
+  become: true
+  become_user: "{{ node_user }}"
+  when: node_packages | length > 0
+  tags:
+    - nodejs
+    - user-packages
 
 - name: Install npm packages globally for {{ node_user }}
-  ansible.builtin.shell: npm install -g "{{ item }}"
+  community.general.npm:
+    name: "{{ item }}"
+    global: true
+    state: present
+    production: false
+  environment:
+    NPM_CONFIG_PREFIX: "{{ getent_passwd[node_user][4] }}/.npm-global"
+    NODE_PATH: "{{ getent_passwd[node_user][4] }}/.npm-global/lib/node_modules"
+    NPM_CONFIG_UNSAFE_PERM: "true"
   loop: "{{ node_packages }}"
   become: true
   become_user: "{{ node_user }}"
-  register: npm_install
-  failed_when: npm_install.rc != 0
-  changed_when: "'added' in npm_install.stdout or 'npm WARN' not in npm_install.stderr"
   when: node_packages | length > 0
   tags:
     - nodejs
