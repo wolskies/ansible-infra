@@ -71,30 +71,51 @@ infrastructure:
 ### Per-User Configuration
 
 ```yaml
-# Configure a specific user (run as that user)
+# Configure a specific user by passing the user object as target_user
 - name: Configure alice's preferences
   include_role:
     name: wolskinet.infrastructure.configure_user
   vars:
-    target_user: alice
-  become: true
-  become_user: alice
+    target_user: "{{ infrastructure.domain.users | selectattr('name', 'equalto', 'alice') | first }}"
 ```
 
-### Configure All Domain Users
+### Configure All Domain Users (Recommended Pattern)
 
 ```yaml
-# Configure all users defined in infrastructure.domain.users
+# Loop at playbook level and pass each user object as target_user
 - hosts: all
   tasks:
     - name: Configure user preferences
       include_role:
         name: wolskinet.infrastructure.configure_user
       vars:
-        target_user: "{{ item }}"
-      become: true
-      become_user: "{{ item }}"
-      loop: "{{ infrastructure.domain.users | map(attribute='name') | list }}"
+        target_user: "{{ user_item }}"
+      loop: "{{ infrastructure.domain.users }}"
+      loop_control:
+        loop_var: user_item
+      when: user_item.name != 'root'  # Skip system accounts
+```
+
+### Common Mistake: Incorrect Variable Passing
+
+```yaml
+# ❌ WRONG: This creates 'user' variable, but role expects 'target_user'
+- name: Configure users (incorrect)
+  include_role:
+    name: wolskinet.infrastructure.configure_user
+  loop: "{{ infrastructure.domain.users }}"
+  loop_control:
+    loop_var: user  # Role can't access this as target_user
+
+# ✅ CORRECT: Pass loop variable as target_user
+- name: Configure users (correct)
+  include_role:
+    name: wolskinet.infrastructure.configure_user
+  vars:
+    target_user: "{{ user_item }}"  # Explicitly pass as target_user
+  loop: "{{ infrastructure.domain.users }}"
+  loop_control:
+    loop_var: user_item
 ```
 
 ### Language Package Auto-Installation

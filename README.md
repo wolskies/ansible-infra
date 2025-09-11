@@ -286,13 +286,16 @@ infrastructure:
 
 # Configure user preferences (runs as each user)
 - hosts: all
-  vars:
-    target_user: "{{ item }}"
-  include_role:
-    name: wolskinet.infrastructure.configure_user
-  become: true
-  become_user: "{{ item }}"
-  loop: "{{ infrastructure.domain.users | map(attribute='name') | list }}"
+  tasks:
+    - name: Configure user preferences
+      include_role:
+        name: wolskinet.infrastructure.configure_user
+      vars:
+        target_user: "{{ user_item }}"
+      loop: "{{ infrastructure.domain.users }}"
+      loop_control:
+        loop_var: user_item
+      when: user_item.name != 'root'  # Skip system accounts
 ```
 
 ## Advanced Configuration
