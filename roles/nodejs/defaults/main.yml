@@ -1,0 +1,14 @@
+---
+# nodejs role default variables
+
+# User to install npm packages for (required)
+node_user: ""
+
+# List of npm packages to install globally for the user
+node_packages: []
+
+# Node.js version to install (used in repository setup)
+nodejs_version: "20"
+
+# Whether to update apt cache when adding repository
+nodejs_update_cache: true
