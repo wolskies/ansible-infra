@@ -95,8 +95,8 @@
   ansible.builtin.command:
     cmd: /tmp/rustup-init.sh -y --default-toolchain stable
   environment:
-    RUSTUP_HOME: "~/.rustup"
-    CARGO_HOME: "~/.cargo"
+    RUSTUP_HOME: "{{ '/Users/' + target_user.name + '/.rustup' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.rustup' }}"
+    CARGO_HOME: "{{ '/Users/' + target_user.name + '/.cargo' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo' }}"
   register: rust_install
   changed_when: rust_install.rc == 0
   when:
@@ -110,11 +110,16 @@
 # Note: Rust installs to user's ~/.cargo/bin which is automatically added to PATH by rustup
 
 - name: Initialize rustup default toolchain if cargo missing
-  ansible.builtin.command: ~/.cargo/bin/rustup default stable
+  ansible.builtin.command: >-
+    {{ '/Users/' + target_user.name + '/.cargo/bin/rustup' if ansible_system == 'Darwin'
+       else '/home/' + target_user.name + '/.cargo/bin/rustup' }} default stable
   environment:
-    RUSTUP_HOME: /usr/local/rustup
-    CARGO_HOME: ~/.cargo
+    RUSTUP_HOME: "{{ '/Users/' + target_user.name + '/.rustup' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.rustup' }}"
+    CARGO_HOME: "{{ '/Users/' + target_user.name + '/.cargo' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo' }}"
   become: true
+  become_user: "{{ target_user.name }}"
+  vars:
+    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   register: rustup_default
   changed_when: "'info: using existing install' not in rustup_default.stderr"
   when:
@@ -126,7 +131,9 @@
     - language-packages
 
 - name: Install Rust packages for {{ target_user.name }}
-  ansible.builtin.command: ~/.cargo/bin/cargo install {{ item }}
+  ansible.builtin.command: >-
+    {{ '/Users/' + target_user.name + '/.cargo/bin/cargo' if ansible_system == 'Darwin'
+       else '/home/' + target_user.name + '/.cargo/bin/cargo' }} install {{ item }}
   register: cargo_install
   changed_when: "'Installing' in cargo_install.stderr"
   loop: "{{ target_user.rust.packages }}"
@@ -135,9 +142,9 @@
   vars:
     ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   environment:
-    RUSTUP_HOME: /usr/local/rustup
+    RUSTUP_HOME: "{{ '/Users/' + target_user.name + '/.rustup' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.rustup' }}"
     CARGO_HOME: "{{ '/Users/' + target_user.name + '/.cargo' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo' }}"
-    PATH: "~/.cargo/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ '/Users/' + target_user.name + '/.cargo/bin' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo/bin' }}:{{ ansible_env.PATH }}"
   when:
     - target_user.rust.packages | default([]) | length > 0
   tags:
@@ -183,13 +190,15 @@
     - language-packages
 
 - name: Install Go packages for {{ target_user.name }}
-  ansible.builtin.command: ~/go/bin/go install {{ item }}
+  ansible.builtin.command: >-
+    {{ '/Users/' + target_user.name + '/go/bin/go' if ansible_system == 'Darwin'
+       else '/home/' + target_user.name + '/go/bin/go' }} install {{ item }}
   register: go_install
   changed_when: false
   loop: "{{ target_user.go.packages }}"
   environment:
-    GOPATH: ~/go
-    GOROOT: ~/go
+    GOPATH: "{{ '/Users/' + target_user.name + '/go' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/go' }}"
+    GOROOT: "{{ '/Users/' + target_user.name + '/go' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/go' }}"
   when:
     - target_user.go.packages | default([]) | length > 0
   tags:
