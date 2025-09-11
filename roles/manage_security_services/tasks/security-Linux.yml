@@ -6,7 +6,20 @@
   become: true
   when:
     - firewall is defined
+    - firewall.package is defined
+    - firewall.package != "unknown"
+  tags:
+    - firewall
+
+- name: Check if UFW is available for rules
+  ansible.builtin.command: which ufw
+  register: ufw_rules_check
+  failed_when: false
+  changed_when: false
+  when:
+    - firewall is defined
     - firewall.enabled | default(false)
+    - firewall.rules | length > 0
   tags:
     - firewall
 
@@ -32,6 +45,7 @@
     - firewall is defined
     - firewall.enabled | default(false)
     - firewall.rules | length > 0
+    - ufw_rules_check.rc | default(1) == 0
   notify: reload ufw
   tags:
     - firewall
@@ -52,11 +66,21 @@
     - firewall
     - ssh-lockout
 
+- name: Check if UFW is installed
+  ansible.builtin.command: which ufw
+  register: ufw_check
+  failed_when: false
+  changed_when: false
+  tags:
+    - firewall-services
+
 - name: Ensure UFW firewall service state
   community.general.ufw:
     state: "{{ 'enabled' if (firewall is defined and firewall.enabled) else 'disabled' }}"
   become: true
-  when: firewall is defined
+  when:
+    - firewall is defined
+    - ufw_check.rc == 0
   tags:
     - firewall-services
 
