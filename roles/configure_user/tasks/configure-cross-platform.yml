@@ -32,69 +32,28 @@
 - name: Configure Node.js packages for {{ target_user.name }}
   block:
     - name: Check if npm is available
-      ansible.builtin.command: command -v npm
+      ansible.builtin.shell: command -v npm || test -f ~/.nvm/versions/node/*/bin/npm
       register: npm_check
       failed_when: false
       changed_when: false
-      environment:
-        PATH: "{{ '/opt/homebrew/bin:' + ansible_env.PATH if ansible_system == 'Darwin' else ansible_env.PATH }}"
 
-    - name: Detect Homebrew owner (macOS)
-      ansible.builtin.stat:
-        path: /opt/homebrew
-      register: homebrew_stat
-      when: ansible_system == "Darwin"
-
-    - name: Get Homebrew owner username (macOS)
-      ansible.builtin.command: stat -f "%Su" /opt/homebrew
-      register: homebrew_owner
-      changed_when: false
+    - name: Download and install nvm if npm missing
+      ansible.builtin.shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
+        source ~/.nvm/nvm.sh
+        nvm install --lts
+        nvm use --lts
+      args:
+        creates: ~/.nvm/nvm.sh
       when:
-        - ansible_system == "Darwin"
-        - homebrew_stat.stat.exists
-
-    - name: Install Node.js if npm missing (Linux)
-      ansible.builtin.package:
-        name: nodejs
-        state: present
-      become: true
-      when:
+        - target_user.nodejs.packages | default([]) | length > 0
         - npm_check.rc != 0
-        - ansible_system == "Linux"
-
-    - name: Install Node.js if npm missing (macOS via Homebrew)
-      community.general.homebrew:
-        name: node
-        state: present
-      become: true
-      become_user: "{{ homebrew_owner.stdout | default('root') }}"
-      when:
-        - npm_check.rc != 0
-        - ansible_system == "Darwin"
-        - homebrew_stat.stat.exists
-
-    - name: Add Homebrew to system PATH (macOS)
-      ansible.builtin.lineinfile:
-        path: /etc/paths.d/homebrew
-        line: /opt/homebrew/bin
-        create: true
-        owner: root
-        group: wheel
-        mode: "0644"
-      become: true
-      when:
-        - ansible_system == "Darwin"
-        - homebrew_stat.stat.exists
-      run_once: true
 
     - name: Install Node.js packages for user
-      community.general.npm:
-        name: "{{ item }}"
-        global: false
-        path: "{{ '~' if ansible_system == 'Darwin' else '/home/' + target_user.name }}"
+      ansible.builtin.shell: |
+        source ~/.nvm/nvm.sh
+        npm install -g "{{ item }}"
       loop: "{{ target_user.nodejs.packages }}"
-      environment:
-        PATH: "{{ '/opt/homebrew/bin:' + ansible_env.PATH if ansible_system == 'Darwin' else ansible_env.PATH }}"
   become: true
   become_user: "{{ target_user.name }}"
   when:
@@ -180,58 +139,51 @@
     - language-packages
 
 - name: Check if go is available for {{ target_user.name }}
-  ansible.builtin.command: command -v go
+  ansible.builtin.shell: command -v go || test -f ~/go/bin/go
   register: go_check
-  become: true
-  become_user: "{{ target_user.name }}"
   failed_when: false
   changed_when: false
-  environment:
-    PATH: "{{ '/opt/homebrew/bin:' + ansible_env.PATH if ansible_system == 'Darwin' else ansible_env.PATH }}"
   when:
     - target_user.go.packages | default([]) | length > 0
   tags:
     - go
     - language-packages
 
-- name: Install Go if missing (Linux)
-  ansible.builtin.package:
-    name: golang
-    state: present
-  become: true
+- name: Download and install Go if missing
+  ansible.builtin.shell: |
+    GO_VERSION="1.22.0"
+    case "{{ ansible_architecture }}" in
+      "x86_64") ARCH="amd64" ;;
+      "aarch64") ARCH="arm64" ;;
+      *) ARCH="amd64" ;;
+    esac
+
+    case "{{ ansible_system }}" in
+      "Linux") OS="linux" ;;
+      "Darwin") OS="darwin" ;;
+      *) OS="linux" ;;
+    esac
+
+    curl -L "https://golang.org/dl/go${GO_VERSION}.${OS}-${ARCH}.tar.gz" | tar -xzf - -C ~/
+    mkdir -p ~/go/bin
+  args:
+    creates: ~/go/version
   when:
     - target_user.go.packages | default([]) | length > 0
     - go_check is defined
     - go_check.rc != 0
-    - ansible_system == "Linux"
-
-- name: Install Go if missing (macOS via Homebrew)
-  community.general.homebrew:
-    name: go
-    state: present
-  become: true
-  become_user: "{{ homebrew_owner.stdout | default('root') }}"
-  when:
-    - target_user.go.packages | default([]) | length > 0
-    - go_check is defined
-    - go_check.rc != 0
-    - ansible_system == "Darwin"
-    - homebrew_stat.stat.exists
-
   tags:
     - go
     - language-packages
 
 - name: Install Go packages for {{ target_user.name }}
-  ansible.builtin.command: go install {{ item }}
+  ansible.builtin.command: ~/go/bin/go install {{ item }}
   register: go_install
   changed_when: false
   loop: "{{ target_user.go.packages }}"
-  become: true
-  become_user: "{{ target_user.name }}"
   environment:
-    PATH: "{{ '/opt/homebrew/bin:' + ansible_env.PATH if ansible_system == 'Darwin' else ansible_env.PATH }}"
-    GOPATH: "{{ '/Users/' + target_user.name + '/go' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/go' }}"
+    GOPATH: ~/go
+    GOROOT: ~/go
   when:
     - target_user.go.packages | default([]) | length > 0
   tags:
