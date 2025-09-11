@@ -297,7 +297,7 @@ sync-to-github:
     - echo "Updated git remotes:"
     - git remote -v
     - echo "Pushing to GitHub..."
-    - git push github HEAD:main --force
+    - git push github HEAD:${CI_COMMIT_REF_NAME} --force
     - echo "Sync completed successfully!"
   only:
     - main

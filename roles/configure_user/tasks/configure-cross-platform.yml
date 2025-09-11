@@ -150,7 +150,7 @@
 - name: Add cargo to system PATH if cargo missing
   ansible.builtin.lineinfile:
     path: /etc/environment
-    line: 'PATH="/usr/local/cargo/bin:$PATH"'
+    line: 'PATH="/usr/local/cargo/bin:{{ ansible_env.PATH }}"'
     create: true
   become: true
   when:
