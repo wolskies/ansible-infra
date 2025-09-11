@@ -104,10 +104,8 @@
     - language-packages
 
 - name: Check if cargo is available for {{ target_user.name }}
-  ansible.builtin.shell: command -v cargo || test -f /usr/local/cargo/bin/cargo
+  ansible.builtin.shell: command -v cargo || test -f ~/.cargo/bin/cargo
   register: cargo_check
-  become: true
-  become_user: "{{ target_user.name }}"
   failed_when: false
   changed_when: false
   when:
@@ -134,9 +132,8 @@
   ansible.builtin.command:
     cmd: /tmp/rustup-init.sh -y --default-toolchain stable
   environment:
-    RUSTUP_HOME: /usr/local/rustup
-    CARGO_HOME: /usr/local/cargo
-  become: true
+    RUSTUP_HOME: "~/.rustup"
+    CARGO_HOME: "~/.cargo"
   register: rust_install
   changed_when: rust_install.rc == 0
   when:
@@ -147,25 +144,13 @@
     - rust
     - language-packages
 
-- name: Add cargo to system PATH if cargo missing
-  ansible.builtin.lineinfile:
-    path: /etc/environment
-    line: 'PATH="/usr/local/cargo/bin:{{ ansible_env.PATH }}"'
-    create: true
-  become: true
-  when:
-    - target_user.rust.packages | default([]) | length > 0
-    - cargo_check is defined
-    - cargo_check.rc != 0
-  tags:
-    - rust
-    - language-packages
+# Note: Rust installs to user's ~/.cargo/bin which is automatically added to PATH by rustup
 
 - name: Initialize rustup default toolchain if cargo missing
-  ansible.builtin.command: /usr/local/cargo/bin/rustup default stable
+  ansible.builtin.command: ~/.cargo/bin/rustup default stable
   environment:
     RUSTUP_HOME: /usr/local/rustup
-    CARGO_HOME: /usr/local/cargo
+    CARGO_HOME: ~/.cargo
   become: true
   register: rustup_default
   changed_when: "'info: using existing install' not in rustup_default.stderr"
@@ -178,7 +163,7 @@
     - language-packages
 
 - name: Install Rust packages for {{ target_user.name }}
-  ansible.builtin.command: /usr/local/cargo/bin/cargo install {{ item }}
+  ansible.builtin.command: ~/.cargo/bin/cargo install {{ item }}
   register: cargo_install
   changed_when: "'Installing' in cargo_install.stderr"
   loop: "{{ target_user.rust.packages }}"
@@ -187,7 +172,7 @@
   environment:
     RUSTUP_HOME: /usr/local/rustup
     CARGO_HOME: "{{ '/Users/' + target_user.name + '/.cargo' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo' }}"
-    PATH: "/usr/local/cargo/bin:{{ ansible_env.PATH }}"
+    PATH: "~/.cargo/bin:{{ ansible_env.PATH }}"
   when:
     - target_user.rust.packages | default([]) | length > 0
   tags:
