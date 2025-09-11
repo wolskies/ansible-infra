@@ -25,8 +25,6 @@
       when: target_user.git.editor is defined
   become: true
   become_user: "{{ target_user.name }}"
-  vars:
-    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   when: target_user.git is defined
   tags:
     - git
@@ -156,8 +154,6 @@
     CARGO_HOME: "{{ '/Users/' + target_user.name + '/.cargo' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo' }}"
   become: true
   become_user: "{{ target_user.name }}"
-  vars:
-    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   register: rustup_default
   changed_when: "'info: using existing install' not in rustup_default.stderr"
   when:
@@ -177,8 +173,6 @@
   loop: "{{ target_user.rust.packages }}"
   become: true
   become_user: "{{ target_user.name }}"
-  vars:
-    ansible_remote_tmp: "/tmp/.ansible-{{ target_user.name }}"
   environment:
     RUSTUP_HOME: "{{ '/Users/' + target_user.name + '/.rustup' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.rustup' }}"
     CARGO_HOME: "{{ '/Users/' + target_user.name + '/.cargo' if ansible_system == 'Darwin' else '/home/' + target_user.name + '/.cargo' }}"
