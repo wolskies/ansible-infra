@@ -109,16 +109,18 @@ fail2ban:
 # PACKAGE MANAGEMENT
 # =============================================================================
 
-{% if discovery_packages_host | length > 0 %}
+{% if discovery_packages_host | length > 0 or (ansible_system == "Darwin" and discovery_homebrew_casks | length > 0) %}
 packages:
+{%- if discovery_packages_host | length > 0 %}
   present:
     host:
       {{ ansible_distribution }}:
 {{ discovery_packages_host | to_nice_yaml(indent=8) }}
-{% endif %}
-{% if ansible_system == "Darwin" and discovery_homebrew_casks | length > 0 %}
+{%- endif %}
+{%- if ansible_system == "Darwin" and discovery_homebrew_casks | length > 0 %}
   casks_present:
     host: {{ discovery_homebrew_casks | to_json }}
+{%- endif %}
 {% endif %}
 
 {% if ansible_os_family == "Debian" and discovery_repositories | length > 0 %}
@@ -155,27 +157,27 @@ flatpak:
 # =============================================================================
 
 macosx:
-{%- if discovery_macos_preferences.gatekeeper_enabled is defined %}
+{% if discovery_macos_preferences.gatekeeper_enabled is defined -%}
   gatekeeper:
     enabled: {{ discovery_macos_preferences.gatekeeper_enabled }}
-{%- endif %}
-{%- if discovery_macos_preferences.natural_scroll is defined or discovery_macos_preferences.measurement_units is defined or discovery_macos_preferences.use_metric is defined or discovery_macos_preferences.show_all_extensions is defined %}
+{% endif -%}
+{% if discovery_macos_preferences.natural_scroll is defined or discovery_macos_preferences.measurement_units is defined or discovery_macos_preferences.use_metric is defined or discovery_macos_preferences.show_all_extensions is defined -%}
   system_preferences:
-{%- if discovery_macos_preferences.natural_scroll is defined %}
+{% if discovery_macos_preferences.natural_scroll is defined -%}
     natural_scroll: {{ discovery_macos_preferences.natural_scroll }}
-{%- endif %}
-{%- if discovery_macos_preferences.measurement_units is defined %}
+{% endif -%}
+{% if discovery_macos_preferences.measurement_units is defined -%}
     measurement_units: {{ discovery_macos_preferences.measurement_units | to_json }}
-{%- endif %}
-{%- if discovery_macos_preferences.use_metric is defined %}
+{% endif -%}
+{% if discovery_macos_preferences.use_metric is defined -%}
     use_metric: {{ discovery_macos_preferences.use_metric }}
-{%- endif %}
-{%- if discovery_macos_preferences.show_all_extensions is defined %}
+{% endif -%}
+{% if discovery_macos_preferences.show_all_extensions is defined -%}
     show_all_extensions: {{ discovery_macos_preferences.show_all_extensions }}
-{%- endif %}
-{%- endif %}
-{%- if discovery_macos_preferences.airdrop_ethernet is defined %}
+{% endif -%}
+{% endif -%}
+{% if discovery_macos_preferences.airdrop_ethernet is defined -%}
   airdrop:
     ethernet_enabled: {{ discovery_macos_preferences.airdrop_ethernet }}
-{%- endif %}
+{% endif -%}
 {% endif %}
