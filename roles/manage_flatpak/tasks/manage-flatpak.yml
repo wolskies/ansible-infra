@@ -18,6 +18,13 @@
   when: ansible_os_family == "Archlinux"
   tags: []
 
+- name: Check if flatpak command is available
+  ansible.builtin.command: which flatpak
+  register: flatpak_available
+  failed_when: false
+  changed_when: false
+  tags: []
+
 - name: Install GNOME Software flatpak plugin (Debian/Ubuntu)
   ansible.builtin.apt:
     name: gnome-software-plugin-flatpak
@@ -67,11 +74,13 @@
     name: flathub
     state: present
     flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
-    method: system
+    method: "{{ flatpak.method | default('system') }}"
   become: true
+  become_user: "{{ flatpak.user if flatpak.method | default('system') == 'user' and flatpak.user | default('') != '' else 'root' }}"
   when:
     - flatpak is defined
     - flatpak.flathub
+    - flatpak_available.rc == 0
   tags: []
 
 - name: Remove flatpak packages
@@ -86,6 +95,7 @@
     - flatpak is defined
     - flatpak.packages is defined
     - flatpak.packages.remove | length > 0
+    - flatpak_available.rc == 0
   tags: []
 
 - name: Install flatpak packages
@@ -100,4 +110,5 @@
     - flatpak is defined
     - flatpak.packages is defined
     - flatpak.packages.install | length > 0
+    - flatpak_available.rc == 0
   tags: []
