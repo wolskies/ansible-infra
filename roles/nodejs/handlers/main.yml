@@ -1,0 +1,7 @@
+---
+# nodejs role handlers
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: "{{ nodejs_update_cache }}"
+  become: true

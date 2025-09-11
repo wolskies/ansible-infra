@@ -35,16 +35,7 @@
     signed_by: "{{ node_signing_key.dest }}"
     state: present
   become: true
-  register: node_repo
-  tags:
-    - nodejs
-    - system-deps
-
-- name: Update apt cache if repo was added (Debian/Ubuntu)
-  ansible.builtin.apt:
-    update_cache: "{{ nodejs_update_cache }}"
-  become: true
-  when: node_repo is changed
+  notify: Update apt cache
   tags:
     - nodejs
     - system-deps
