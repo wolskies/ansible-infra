@@ -16,17 +16,21 @@
     var: target_user
     verbosity: 1
 
-- name: Install system dependencies for language packages
-  ansible.builtin.include_tasks: install-language-system-deps.yml
+- name: Install Node.js and packages for {{ target_user.name | default('UNKNOWN') }}
+  ansible.builtin.include_role:
+    name: wolskinet.infrastructure.nodejs
+  vars:
+    node_user: "{{ target_user.name }}"
+    node_packages: "{{ target_user.nodejs.packages }}"
   when:
     - target_user is defined
     - target_user.name is defined
     - target_user.name != 'root'
-    - (target_user.nodejs.packages | default([]) | length > 0)
+    - target_user.nodejs.packages | default([]) | length > 0
   tags:
     - user-config
     - language-packages
-    - system-deps
+    - nodejs
 
 - name: Configure user preferences for {{ target_user.name | default('UNKNOWN') }}
   block:

@@ -1,0 +1,39 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Check if Node.js is installed
+      ansible.builtin.command: node --version
+      register: node_version
+      changed_when: false
+
+    - name: Verify Node.js version format
+      ansible.builtin.assert:
+        that:
+          - node_version.stdout is match("^v[0-9]+\.[0-9]+\.[0-9]+$")
+        fail_msg: "Node.js version format is incorrect: {{ node_version.stdout }}"
+
+    - name: Check if npm is installed
+      ansible.builtin.command: npm --version
+      register: npm_version
+      changed_when: false
+
+    - name: Verify npm packages are installed for nodetest user
+      ansible.builtin.shell: npm list -g --depth=0 | grep -E "(prettier|eslint)"
+      become: true
+      become_user: nodetest
+      register: npm_packages
+      changed_when: false
+
+    - name: Verify prettier is installed
+      ansible.builtin.assert:
+        that:
+          - "'prettier' in npm_packages.stdout"
+        fail_msg: "prettier package not found in global npm packages"
+
+    - name: Verify eslint is installed
+      ansible.builtin.assert:
+        that:
+          - "'eslint' in npm_packages.stdout"
+        fail_msg: "eslint package not found in global npm packages"

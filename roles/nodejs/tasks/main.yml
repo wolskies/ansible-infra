@@ -1,0 +1,121 @@
+---
+# Install Node.js system dependencies and user packages
+# Expects: node_user (target user) and node_packages (list of npm packages)
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - node_user is defined
+      - node_user | length > 0
+      - node_packages is defined
+    fail_msg: "nodejs role requires node_user and node_packages variables"
+
+- name: Install Node.js system dependencies (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - gnupg2
+    state: present
+  become: true
+  when:
+    - node_packages | length > 0
+    - ansible_os_family == 'Debian'
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Download NodeSource signing key (Debian/Ubuntu)
+  ansible.builtin.get_url:
+    url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+    dest: /etc/apt/signing-key-nodesource-repo.asc
+    owner: root
+    group: root
+    mode: "0444"
+  become: true
+  register: node_signing_key
+  when:
+    - node_packages | length > 0
+    - ansible_os_family == 'Debian'
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Add NodeSource repository (Debian/Ubuntu)
+  ansible.builtin.deb822_repository:
+    name: nodesource_{{ nodejs_version }}x
+    uris: "https://deb.nodesource.com/node_{{ nodejs_version }}.x"
+    types: deb
+    suites: nodistro
+    components: main
+    signed_by: "{{ node_signing_key.dest }}"
+    state: present
+  become: true
+  register: node_repo
+  when:
+    - node_packages | length > 0
+    - ansible_os_family == 'Debian'
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Update apt cache if repo was added (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: "{{ nodejs_update_cache }}"
+  become: true
+  when:
+    - node_packages | length > 0
+    - ansible_os_family == 'Debian'
+    - node_repo is changed
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Install Node.js and npm (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "nodejs={{ nodejs_version }}.*"
+    state: present
+  become: true
+  when:
+    - node_packages | length > 0
+    - ansible_os_family == 'Debian'
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Install Node.js and npm (Arch Linux)
+  ansible.builtin.package:
+    name: npm
+    state: present
+  become: true
+  when:
+    - node_packages | length > 0
+    - ansible_os_family == 'Archlinux'
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Install Node.js and npm (macOS)
+  community.general.homebrew:
+    name: node
+    state: present
+  become: true
+  become_user: "{{ node_user }}"
+  when:
+    - node_packages | length > 0
+    - ansible_system == 'Darwin'
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Install npm packages globally for {{ node_user }}
+  ansible.builtin.shell: npm install -g "{{ item }}"
+  loop: "{{ node_packages }}"
+  become: true
+  become_user: "{{ node_user }}"
+  register: npm_install
+  failed_when: npm_install.rc != 0
+  changed_when: "'added' in npm_install.stdout or 'npm WARN' not in npm_install.stderr"
+  when: node_packages | length > 0
+  tags:
+    - nodejs
+    - user-packages

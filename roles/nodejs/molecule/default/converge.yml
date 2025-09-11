@@ -1,0 +1,29 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Create test user
+      ansible.builtin.user:
+        name: nodetest
+        state: present
+        create_home: true
+      become: true
+
+    - name: Test nodejs role with packages
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.nodejs
+      vars:
+        node_user: nodetest
+        node_packages:
+          - prettier
+          - eslint
+
+    - name: Test nodejs role idempotency
+      ansible.builtin.include_role:
+        name: wolskinet.infrastructure.nodejs
+      vars:
+        node_user: nodetest
+        node_packages:
+          - prettier
+          - eslint
