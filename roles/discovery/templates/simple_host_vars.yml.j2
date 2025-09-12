@@ -28,7 +28,6 @@ domain_ntp:
 {% endif %}
 
 {% if users is defined and users is sequence and users | length > 0 %}
-# Users discovered on system
 users:
 {{ users | to_nice_yaml(indent=2) }}
 {% else %}
@@ -42,21 +41,14 @@ users: []
 {% if discovery_hostname %}host_hostname: {{ discovery_hostname | to_json }}
 
 {% endif %}
+
 {% if discovery_services_enabled | length > 0 or discovery_services_disabled | length > 0 %}
-# Services discovered on system:
-{% if discovery_services_enabled | length > 0 %}
-# Enabled: {{ discovery_services_enabled | join(', ') }}
-{% endif %}
-{% if discovery_services_disabled | length > 0 %}
-# Disabled: {{ discovery_services_disabled | join(', ') }}
-{% endif %}
 host_services:
   enable: {{ discovery_services_enabled | to_json }}
   disable: {{ discovery_services_disabled | to_json }}
 {% endif %}
 
 {% if discovery_sysctl_current | length > 0 %}
-# Current sysctl values (discovered):
 host_sysctl:
   parameters:
 {% for key, value in discovery_sysctl_current.items() %}
@@ -64,12 +56,8 @@ host_sysctl:
 {% endfor %}
 {% endif %}
 
-# No system limits discovered
-
-# No kernel modules discovered
 
 {% if discovery_udev_rules | length > 0 %}
-# Udev rules (discovered)
 host_udev:
   rules:
 {% for rule in discovery_udev_rules %}
@@ -115,7 +103,7 @@ packages:
   present:
     host:
       {{ ansible_distribution }}:
-{{ discovery_packages_host | to_nice_yaml(indent=8) }}
+        {{ discovery_packages_host | to_nice_yaml(indent=8) | indent(8, first=false) }}
 {%- endif %}
 {%- if ansible_system == "Darwin" and discovery_homebrew_casks | length > 0 %}
   casks_present:
@@ -139,7 +127,7 @@ homebrew:
 snap:
   packages:
     install:
-{{ discovery_snap_packages | to_nice_yaml(indent=6) }}
+      {{ discovery_snap_packages | to_nice_yaml(indent=6) | indent(6, first=false) }}
 {% endif %}
 
 {% if discovery_flatpak_packages | length > 0 %}
@@ -147,7 +135,7 @@ flatpak:
   enabled: true
   packages:
     install:
-{{ discovery_flatpak_packages | to_nice_yaml(indent=6) }}
+      {{ discovery_flatpak_packages | to_nice_yaml(indent=6) | indent(6, first=false) }}
 {% endif %}
 
 {% if ansible_system == "Darwin" and discovery_macos_preferences | length > 0 -%}
