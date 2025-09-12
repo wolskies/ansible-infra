@@ -99,7 +99,7 @@ fail2ban:
 
 {% if discovery_packages_host | length > 0 or (ansible_system == "Darwin" and discovery_homebrew_casks | length > 0) %}
 packages:
-{%- if discovery_packages_host | length > 0 %}
+{% if discovery_packages_host | length > 0 %}
   present:
     host:
       {{ ansible_distribution }}:
