@@ -8,6 +8,17 @@
     - domain_locale is defined
     - domain_locale | length > 0
 
+- name: Configure system LANG variable
+  ansible.builtin.lineinfile:
+    path: /etc/default/locale
+    regexp: "^LANG="
+    line: "LANG={{ domain_locale }}"
+    create: true
+  become: true
+  when:
+    - domain_locale is defined
+    - domain_locale | length > 0
+
 - name: Configure system language
   ansible.builtin.lineinfile:
     path: /etc/default/locale

@@ -30,8 +30,8 @@
       block:
         - name: Download Go binary
           ansible.builtin.get_url:
-            url: https://go.dev/dl/go1.23.3.linux-amd64.tar.gz
-            dest: /tmp/go1.23.3.linux-amd64.tar.gz
+            url: https://go.dev/dl/go1.24.0.linux-amd64.tar.gz
+            dest: /tmp/go1.24.0.linux-amd64.tar.gz
             mode: "0644"
 
         - name: Remove old Go installation
@@ -41,7 +41,7 @@
 
         - name: Extract Go binary
           ansible.builtin.unarchive:
-            src: /tmp/go1.23.3.linux-amd64.tar.gz
+            src: /tmp/go1.24.0.linux-amd64.tar.gz
             dest: /usr/local
             remote_src: true
             creates: /usr/local/go/bin/go

@@ -10,7 +10,9 @@
 - name: Find repository files in sources.list.d
   ansible.builtin.find:
     paths: /etc/apt/sources.list.d
-    patterns: "*.list"
+    patterns:
+      - "*.list"
+      - "*.sources"
   register: repository_files
   when: sources_list_d_exists.stat.exists
 
@@ -29,44 +31,75 @@
       {%- if repository_contents.results is defined -%}
         {%- for file_result in repository_contents.results -%}
           {%- set file_content = file_result.content | b64decode -%}
-          {%- set filename = file_result.source | basename | regex_replace('\.list$', '') -%}
-          {%- for line in file_content.split('\n') -%}
-            {%- set line = line.strip() -%}
-            {%- if line and not line.startswith('#') and line.startswith('deb') -%}
-              {%- set parts = line.split() -%}
-              {%- if parts | length >= 4 -%}
-                {%- set repo_type = parts[0] -%}
-                {%- set repo_uri = '' -%}
-                {%- set repo_suite = '' -%}
-                {%- set repo_components = [] -%}
-                {%- set signed_by_key = none -%}
-                {%- if '[' in parts[1] -%}
-                  {%- set repo_uri = parts[2] -%}
-                  {%- set repo_suite = parts[3] -%}
-                  {%- set repo_components = parts[4:] -%}
-                {%- else -%}
-                  {%- set repo_uri = parts[1] -%}
-                  {%- set repo_suite = parts[2] -%}
-                  {%- set repo_components = parts[3:] -%}
-                {%- endif -%}
-                {%- for domain, key_url in gpg_key_map.items() -%}
-                  {%- if domain in repo_uri and key_url -%}
-                    {%- set signed_by_key = key_url -%}
-                  {%- endif -%}
-                {%- endfor -%}
-                {%- set _ = repos.append({
-                  'name': filename,
-                  'types': repo_type,
-                  'uris': repo_uri,
-                  'suites': repo_suite,
-                  'components': repo_components,
-                  'signed_by': signed_by_key,
-                  'state': 'present',
-                  'enabled': true
-                }) -%}
+          {%- set filename = file_result.source | basename | regex_replace('\.(list|sources)$', '') -%}
+          {%- if file_result.source.endswith('.sources') -%}
+            {%- set repo_data = {} -%}
+            {%- for line in file_content.split('\n') -%}
+              {%- set line = line.strip() -%}
+              {%- if line and not line.startswith('#') and ':' in line -%}
+                {%- set key_value = line.split(':', 1) -%}
+                {%- set key = key_value[0].strip() -%}
+                {%- set value = key_value[1].strip() -%}
+                {%- set _ = repo_data.update({key: value}) -%}
               {%- endif -%}
+            {%- endfor -%}
+            {%- if repo_data.get('URIs') and repo_data.get('Suites') and repo_data.get('Components') -%}
+              {%- set signed_by_key = none -%}
+              {%- for domain, key_url in gpg_key_map.items() -%}
+                {%- if domain in repo_data.get('URIs', '') and key_url -%}
+                  {%- set signed_by_key = key_url -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {%- set _ = repos.append({
+                'name': filename,
+                'types': repo_data.get('Types', 'deb'),
+                'uris': repo_data.get('URIs'),
+                'suites': repo_data.get('Suites'),
+                'components': repo_data.get('Components').split(),
+                'signed_by': signed_by_key,
+                'state': 'present',
+                'enabled': repo_data.get('Enabled', 'yes') == 'yes'
+              }) -%}
             {%- endif -%}
-          {%- endfor -%}
+          {%- else -%}
+            {%- for line in file_content.split('\n') -%}
+              {%- set line = line.strip() -%}
+              {%- if line and not line.startswith('#') and line.startswith('deb') -%}
+                {%- set parts = line.split() -%}
+                {%- if parts | length >= 4 -%}
+                  {%- set repo_type = parts[0] -%}
+                  {%- set repo_uri = '' -%}
+                  {%- set repo_suite = '' -%}
+                  {%- set repo_components = [] -%}
+                  {%- set signed_by_key = none -%}
+                  {%- if '[' in parts[1] -%}
+                    {%- set repo_uri = parts[2] -%}
+                    {%- set repo_suite = parts[3] -%}
+                    {%- set repo_components = parts[4:] -%}
+                  {%- else -%}
+                    {%- set repo_uri = parts[1] -%}
+                    {%- set repo_suite = parts[2] -%}
+                    {%- set repo_components = parts[3:] -%}
+                  {%- endif -%}
+                  {%- for domain, key_url in gpg_key_map.items() -%}
+                    {%- if domain in repo_uri and key_url -%}
+                      {%- set signed_by_key = key_url -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {%- set _ = repos.append({
+                    'name': filename,
+                    'types': repo_type,
+                    'uris': repo_uri,
+                    'suites': repo_suite,
+                    'components': repo_components,
+                    'signed_by': signed_by_key,
+                    'state': 'present',
+                    'enabled': true
+                  }) -%}
+                {%- endif -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
         {%- endfor -%}
       {%- endif -%}
       {{ repos }}
