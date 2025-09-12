@@ -32,70 +32,6 @@
         success_msg: "Git configuration verified for testuser1"
 
     # =============================================================================
-    # VERIFY NODE.JS PACKAGES
-    # =============================================================================
-    - name: Check npm local packages for devuser
-      ansible.builtin.command:
-        cmd: npm list --depth=0
-        chdir: "/home/devuser"
-      register: npm_packages
-      become: true
-      become_user: devuser
-      changed_when: false
-      failed_when: false
-
-    - name: Verify npm packages for devuser
-      ansible.builtin.assert:
-        that:
-          - "'eslint@' in npm_packages.stdout"
-          - "'prettier@' in npm_packages.stdout"
-        fail_msg: "npm packages not installed correctly for devuser"
-        success_msg: "npm packages verified for devuser"
-      when: npm_packages.rc == 0
-
-    # =============================================================================
-    # VERIFY RUST PACKAGES
-    # =============================================================================
-    - name: Check Rust packages for devuser
-      ansible.builtin.command:
-        cmd: cargo install --list
-      register: cargo_packages
-      become: true
-      become_user: devuser
-      changed_when: false
-      failed_when: false
-      environment:
-        PATH: "/usr/local/cargo/bin:{{ ansible_env.PATH }}"
-
-    - name: Verify Rust packages for devuser
-      ansible.builtin.assert:
-        that:
-          - "'ripgrep' in cargo_packages.stdout"
-        fail_msg: "Rust packages not installed correctly for devuser"
-        success_msg: "Rust packages verified for devuser"
-      when: cargo_packages.rc == 0
-
-    # =============================================================================
-    # VERIFY GO PACKAGES
-    # =============================================================================
-    - name: Check Go packages for devuser
-      ansible.builtin.command:
-        cmd: ls -la ~/go/bin/
-      register: go_packages
-      become: true
-      become_user: devuser
-      changed_when: false
-      failed_when: false
-
-    - name: Verify Go packages for devuser
-      ansible.builtin.assert:
-        that:
-          - "'glow' in go_packages.stdout"
-        fail_msg: "Go packages not installed correctly for devuser"
-        success_msg: "Go packages verified for devuser"
-      when: go_packages.rc == 0
-
-    # =============================================================================
     # VERIFY SHELL CONFIGURATION
     # =============================================================================
     - name: Get user shell information
@@ -162,17 +98,17 @@
     # =============================================================================
     # VERIFY LANGUAGE PACKAGE CONSISTENCY
     # =============================================================================
-    - name: Display package installation summary
+    - name: Display user preferences verification summary
       ansible.builtin.debug:
         msg:
           - "=== Configure User Verification Complete ==="
           - "Platform: {{ ansible_distribution }} {{ ansible_distribution_version }}"
           - "Users configured: testuser1, devuser, dotfilesuser, shelluser"
           - "Git config: ✓ Verified for multiple users"
-          - "Language packages: ✓ Node.js, Rust, Go packages installed"
           - "Shell config: ✓ Platform-specific shells configured"
           - "Security: ✓ Root user properly skipped"
           - "Dotfiles: ✓ Structure verified (disabled for container test)"
+          - "Language packages: Tested separately in nodejs/rust/go molecule tests"
 
     # =============================================================================
     # TEST ERROR HANDLING

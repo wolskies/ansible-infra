@@ -59,10 +59,6 @@
       - "^snapd$" # snap package system
 
       # Infrastructure packages (handled by dedicated roles)
-      - "^docker-ce" # Docker CE packages
-      - '^docker\.io$' # Docker from distro repos
-      - '^containerd\.io$' # Container runtime
-      - "^docker-compose" # Docker compose
       - "^nvidia-container-toolkit$" # NVIDIA container support
       - "^libnvidia-container" # NVIDIA container libs
       - "^gitlab-runner$" # GitLab CI runner

@@ -84,7 +84,9 @@ firewall:
 {% endif %}
 {% if discovery_firewall_rules | length > 0 %}
   rules:
-{{ discovery_firewall_rules | to_nice_yaml(indent=4) }}
+{% for rule in discovery_firewall_rules %}
+    - {{ rule | to_json }}
+{% endfor %}
 {% endif %}
 {% endif %}
 
@@ -116,7 +118,9 @@ apt:
   repositories:
     host:
       {{ ansible_distribution }}:
-{{ discovery_repositories | to_nice_yaml(indent=8) }}
+{% for repo in discovery_repositories %}
+        - {{ repo | to_json }}
+{% endfor %}
 {% elif ansible_system == "Darwin" and discovery_homebrew_taps | length > 0 %}
 homebrew:
   taps:
