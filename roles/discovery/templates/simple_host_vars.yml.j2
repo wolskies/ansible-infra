@@ -29,7 +29,7 @@ domain_ntp:
 
 {% if users is defined and users is sequence and users | length > 0 %}
 users:
-{{ users | to_nice_yaml(indent=2) }}
+{{ users | to_nice_yaml(indent=2) | indent(2, first=true) }}
 {% else %}
 users: []
 {% endif %}
