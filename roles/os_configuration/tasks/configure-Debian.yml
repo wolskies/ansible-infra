@@ -55,3 +55,38 @@
   tags:
     - apt
     - packages
+
+- name: Install Nerd Fonts (Debian/Ubuntu)
+  block:
+    - name: Ensure fonts directory exists
+      ansible.builtin.file:
+        path: "{{ host_fonts.nerd_fonts.install_dir | default('/usr/share/fonts/nerd-fonts') }}"
+        state: directory
+        mode: "0755"
+      become: true
+
+    - name: Download and extract Nerd Fonts
+      ansible.builtin.unarchive:
+        src: "{{ item.url }}"
+        dest: "{{ host_fonts.nerd_fonts.install_dir | default('/usr/share/fonts/nerd-fonts') }}"
+        remote_src: true
+        mode: "0644"
+        owner: root
+        group: root
+      loop: "{{ host_fonts.nerd_fonts.fonts | default([]) }}"
+      become: true
+      register: font_install
+
+    - name: Update font cache after installation
+      ansible.builtin.command:
+        cmd: fc-cache -fv
+      become: true
+      when: font_install is changed
+      changed_when: false
+      tags: ["skip_ansible_lint"]
+  when:
+    - host_fonts.nerd_fonts.enabled | default(false)
+    - host_fonts.nerd_fonts.fonts | default([]) | length > 0
+  tags:
+    - fonts
+    - nerd-fonts

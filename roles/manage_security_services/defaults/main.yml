@@ -6,31 +6,30 @@
 # Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
-infrastructure:
-  host:
-    firewall:
-      enabled: false
-      prevent_ssh_lockout: true
-      package: "ufw"
-      stealth_mode: false
-      block_all: false
-      logging: false
-      rules: []
-    fail2ban:
-      enabled: false
-      sender: "root@localhost"
-      dest_email: ""
-      defaults:
-        bantime: 3600
-        findtime: 600
-        maxretry: 5
-      services:
-        - name: sshd
-          enabled: true
-          maxretry: 5
-          bantime: 3600
-          findtime: 600
-          logpath: /var/log/auth.log
-      ignoreips:
-        - "127.0.0.1/8"
-        - "::1"
+firewall:
+  enabled: false
+  prevent_ssh_lockout: true
+  package: "ufw"
+  stealth_mode: false
+  block_all: false
+  logging: false
+  rules: []
+
+fail2ban:
+  enabled: false
+  sender: "root@localhost"
+  dest_email: ""
+  defaults:
+    bantime: 3600
+    findtime: 600
+    maxretry: 5
+  services:
+    - name: sshd
+      enabled: true
+      maxretry: 5
+      bantime: 3600
+      findtime: 600
+      logpath: /var/log/auth.log
+  ignoreips:
+    - "127.0.0.1/8"
+    - "::1"

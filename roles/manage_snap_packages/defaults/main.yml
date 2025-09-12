@@ -6,8 +6,6 @@
 # Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
-infrastructure:
-  host:
-    snap:
-      disable_and_remove: false
-      packages: {}
+snap:
+  disable_and_remove: false
+  packages: {}
