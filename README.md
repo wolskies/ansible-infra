@@ -1,8 +1,13 @@
 # Ansible Collection - wolskinet.infrastructure
 
-Infrastructure automation collection for multi-OS environments: **Ubuntu 22+**, **Debian 12+**, **Arch Linux**, and **macOS**.
+Automates installation and maintenance tasks for multiple machines/operating systems.
 
-**Language Package Requirements**: nodejs, rust, go packages require **Ubuntu 24.04+** and **Debian 13+** for reliable auto-installation due to package availability.
+## Supported Operating Systems
+
+**Ubuntu 22+**, **Debian 12+**, **Arch Linux**, and **macOS**.
+
+**Note**:
+This collection has the ability to specify nodejs, go and rust packages to install at the user level in configure_users. The nodejs, rustup, and go packages are if missing, are installed via system package manager. For Debian family, only **Ubuntu 24.04+** and **Debian 13+** have system packages available. For those operating systems nodejs, rustup, and go must be installed manually before running the script.
 
 ## Quick Start
 
@@ -49,17 +54,22 @@ firewall:
   become: true
   roles:
     - wolskinet.infrastructure.configure_system
+    - wolskinet.infrastructure.configure_users
 ```
 
 ## Included Roles
 
-- **configure_system**: Orchestrates all infrastructure roles for complete system setup
+- **configure_system**: meta-role that orchestrates system configuration, system-level package installation, and initial user configuration (user, password, ssh keys)
+- **configure_users**: Configures users preferences and user-level software installation
 - **os_configuration**: System settings (timezone, hostname, services, kernel parameters, locale)
 - **manage_users**: Creates user accounts, groups, and SSH keys (system-level)
-- **configure_user**: Per-user preferences, language packages, Git config, dotfiles (user-level)
-- **manage_packages**: Package installation across distributions (apt, pacman, homebrew)
+- **manage_packages**: Manages packages via os-native package management system. For MacOS, homebrew is considered the 'native' package management system. If not present it will be installed via geerlingguy.mac collection.
 - **manage_security_services**: Firewall (UFW/macOS) and fail2ban configuration
-- **manage_snap_packages/manage_flatpak**: Alternative package system management
+- **manage_snap_packages**: System level snap management and snap package management. Has the option to completely remove and disable snap on Ubuntu systems
+- **manage_flatpak**: System level flatpak management, can enable flathub and browser extensions for flatpak
+- **nodejs**: Nodejs installation (system level) and user-level package management
+- **rust**: Rustup installation (system level) and user-level rust package management
+- **go**: Go installation (system level) and user-level go package management
 
 ## Dependencies and Credits
 
@@ -70,7 +80,7 @@ This collection uses and builds upon:
 
 ## Recommended Security Hardening
 
-For comprehensive security hardening, use alongside:
+This collection does not include configuration for SSH, other than firewall rules. For specific SSH configuration, we recommend the devsec.hardening.ssh_hardening role. It is quite comprehensive.:
 
 - **devsec.hardening**: OS and SSH hardening (os_hardening, ssh_hardening roles)
 
@@ -292,15 +302,9 @@ Each role can be used independently:
       become_user: "{{ item.name }}"
 ```
 
-## Platform Support
-
-**Critical**: Debian 12 and earlier do NOT include rustup packages. Use Debian 13+ or manually install rustup for Rust package support.
-
 ## Dependencies
 
 - **ansible-core**: 2.13+
 - **community.general**: For npm, homebrew, and flatpak modules
 - **ansible.posix**: For ACL and system management
 - **Xcode Command Line Tools**: Required on macOS hosts
-
-This collection provides consistent infrastructure automation across multiple operating systems with a focus on simplicity and reusability.

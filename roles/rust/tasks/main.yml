@@ -10,6 +10,13 @@
       - rust_packages is defined
     fail_msg: "rust role requires rust_user and rust_packages variables"
 
+- name: Check if rustup command exists
+  ansible.builtin.command: which rustup
+  register: rustup_exists
+  failed_when: false
+  changed_when: false
+  when: rust_packages | length > 0
+
 - name: Update apt cache
   ansible.builtin.apt:
     update_cache: true
@@ -29,9 +36,19 @@
   when:
     - rust_packages | length > 0
     - ansible_os_family == 'Debian'
+    - rustup_exists.rc != 0
+  failed_when: false
   tags:
     - rust
     - system-deps
+
+- name: Skip rustup installation (already available)
+  ansible.builtin.debug:
+    msg: "rustup command already available, skipping package installation"
+  when:
+    - rust_packages | length > 0
+    - ansible_os_family == 'Debian'
+    - rustup_exists.rc == 0
 
 - name: Install rustup (Arch Linux)
   ansible.builtin.package:

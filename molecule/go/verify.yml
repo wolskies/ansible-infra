@@ -1,0 +1,43 @@
+---
+- name: Verify go installation
+  hosts: all
+  become: true
+  tasks:
+    - name: Check go is available
+      ansible.builtin.command: which go
+      register: go_path
+      changed_when: false
+
+    - name: Verify go path exists
+      ansible.builtin.assert:
+        that:
+          - go_path.rc == 0
+        fail_msg: "go command not found in PATH"
+
+    - name: Check user's Go workspace exists
+      ansible.builtin.stat:
+        path: /home/testuser/go
+      register: go_workspace
+
+    - name: Verify Go workspace was created
+      ansible.builtin.assert:
+        that:
+          - go_workspace.stat.exists
+        fail_msg: "Go workspace directory not found"
+
+    - name: Check for glow binary in GOPATH
+      ansible.builtin.stat:
+        path: /home/testuser/go/bin/glow
+      register: glow_binary
+
+    - name: Check for lazygit binary in GOPATH
+      ansible.builtin.stat:
+        path: /home/testuser/go/bin/lazygit
+      register: lazygit_binary
+
+    - name: Verify go packages were installed
+      ansible.builtin.assert:
+        that:
+          - glow_binary.stat.exists
+          - lazygit_binary.stat.exists
+        fail_msg: "Expected go packages not found in GOPATH/bin"
