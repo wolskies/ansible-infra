@@ -39,7 +39,9 @@ users: []
 # HOST-LEVEL CONFIGURATION
 # =============================================================================
 
-{% if discovery_hostname %}host_hostname: {{ discovery_hostname | to_json }}{% endif %}
+{% if discovery_hostname %}host_hostname: {{ discovery_hostname | to_json }}
+
+{% endif %}
 {% if discovery_services_enabled | length > 0 or discovery_services_disabled | length > 0 %}
 # Services discovered on system:
 {% if discovery_services_enabled | length > 0 %}
@@ -81,8 +83,6 @@ host_udev:
 # =============================================================================
 # SYSTEM SERVICES CONFIGURATION
 # =============================================================================
-
-# No system services configuration discovered
 
 # =============================================================================
 # SECURITY CONFIGURATION
