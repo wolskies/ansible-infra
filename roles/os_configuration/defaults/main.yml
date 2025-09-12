@@ -7,63 +7,86 @@
 # Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
-infrastructure:
-  domain:
-    name: ""
-    timezone: ""
-    locale: "en_US.UTF-8"
-    language: "en_US.UTF-8"
-    ntp:
-      enabled: false
-      servers: []
-  host:
-    hostname: ""
-    update_hosts: true
-    journal:
-      configure: false
-      max_size: "500M"
-      max_retention: "30d"
-      forward_to_syslog: false
-      compress: true
-    rsyslog:
-      enabled: false
-      remote_host: ""
-      remote_port: 514
-      protocol: "udp"
-    services: {}
-    optimizations:
-      tune_swappiness: false
-      swappiness: 10
-    sysctl: {}
-    limits: {}
-    modules: {}
-    udev: {}
-    snap:
-      remove_completely: false
-    packages:
-      apt:
-        no_recommends: false
-        proxy: ""
-        unattended_upgrades:
-          enabled: true
-          email: ""
-          auto_reboot: false
-          reboot_with_users: false
-          reboot_time: "02:00"
-      pacman:
-        no_confirms: false
-        proxy: ""
-        multilib: false
-      macosx:
-        updates:
-          auto_check: true
-          auto_download: true
-        gatekeeper:
-          enabled: true
-        system_preferences:
-          natural_scroll: true
-          measurement_units: "Inches" # Inches, Centimeters
-          use_metric: false
-          show_all_extensions: false
-        airdrop:
-          ethernet_enabled: false
+domain_name: ""
+domain_timezone: ""
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_ntp:
+  enabled: false
+  servers: []
+
+host_hostname: ""
+host_update_hosts: true
+host_services:
+  enable: []
+  disable: []
+  mask: []
+
+host_sysctl:
+  parameters: {}
+
+host_limits:
+  limits: []
+
+host_modules:
+  load: []
+  blacklist: []
+  options: {}
+
+host_udev:
+  rules: []
+
+host_fonts:
+  nerd_fonts:
+    enabled: false
+    install_dir: "/usr/share/fonts/nerd-fonts"
+    fonts: []
+
+journal:
+  configure: false
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
+
+rsyslog:
+  enabled: false
+  remote_host: ""
+  remote_port: 514
+  protocol: "udp"
+
+optimizations:
+  tune_swappiness: false
+  swappiness: 10
+
+apt:
+  no_recommends: false
+  proxy: ""
+  unattended_upgrades:
+    enabled: true
+    email: ""
+    auto_reboot: false
+    reboot_with_users: false
+    reboot_time: "02:00"
+
+pacman:
+  no_confirms: false
+  proxy: ""
+  multilib: false
+
+macosx:
+  updates:
+    auto_check: true
+    auto_download: true
+  gatekeeper:
+    enabled: true
+  system_preferences:
+    natural_scroll: true
+    measurement_units: "Inches" # Inches, Centimeters
+    use_metric: false
+    show_all_extensions: false
+  airdrop:
+    ethernet_enabled: false
+
+snap:
+  remove_completely: false

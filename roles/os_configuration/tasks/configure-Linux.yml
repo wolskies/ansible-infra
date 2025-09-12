@@ -134,6 +134,18 @@
         - host_services is defined
         - host_services.disable | default([]) | length > 0
 
+    - name: Mask services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        masked: true
+        state: stopped
+      loop: "{{ host_services.mask | default([]) }}"
+      become: true
+      failed_when: false
+      when:
+        - host_services is defined
+        - host_services.mask | default([]) | length > 0
+
     - name: Configure vm.swappiness
       ansible.posix.sysctl:
         name: vm.swappiness
@@ -205,6 +217,22 @@
   when:
     - host_modules is defined
     - host_modules.blacklist | default([]) | length > 0
+  tags:
+    - modules
+    - kernel
+
+- name: Configure kernel module options
+  ansible.builtin.lineinfile:
+    path: "/etc/modprobe.d/{{ item.key }}-options.conf"
+    line: "options {{ item.key }} {{ item.value | dict2items | map(attribute='key') | zip(item.value | dict2items | map(attribute='value')) | map('join', '=') | join(' ') }}"
+    create: true
+    mode: "0644"
+  loop: "{{ host_modules.options | default({}) | dict2items }}"
+  become: true
+  when:
+    - host_modules is defined
+    - host_modules.options | default({}) | length > 0
+  notify: "{{ 'Update mkinitcpio' if ansible_distribution == 'Archlinux' else 'Update initramfs' }}"
   tags:
     - modules
     - kernel

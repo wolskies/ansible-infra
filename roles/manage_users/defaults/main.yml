@@ -6,19 +6,16 @@
 # User preferences are configured separately by configure_user role
 # =============================================================================
 
-infrastructure:
-  domain:
-    users: []
-    # Example user with cross-platform and OS-specific preferences:
-    # - name: alice                 # Required: username
-    #   comment: "Alice Developer"  # Optional: GECOS field
-    #   groups: [sudo, docker]      # Optional: additional groups
-    #   ssh_pubkey: "ssh-ed25519 AAAAC3..." # Optional: SSH public key
-    #   password: "plaintext"       # Optional: password (auto-hashed if plaintext)
-    #   uid: 1001                   # Optional: specific user ID
-    #   home: "/custom/home"        # Optional: home directory path
-    #   create_home: true           # Optional: create home directory
-    #   state: present              # Optional: present (default) or absent
-    #
+users: []
+# Example user with cross-platform and OS-specific preferences:
+# - name: alice                 # Required: username
+#   comment: "Alice Developer"  # Optional: GECOS field
+#   groups: [sudo, docker]      # Optional: additional groups
+#   ssh_pubkey: "ssh-ed25519 AAAAC3..." # Optional: SSH public key
+#   password: "plaintext"       # Optional: password (auto-hashed if plaintext)
+#   uid: 1001                   # Optional: specific user ID
+#   home: "/custom/home"        # Optional: home directory path
+#   create_home: true           # Optional: create home directory
+#   state: present              # Optional: present (default) or absent
 
-    users_absent: [] # List of usernames to remove (for migration)
+users_absent: [] # List of usernames to remove (for migration)

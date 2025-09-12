@@ -1,4 +1,0 @@
----
-# Debian-specific variables for manage_system_settings
-
-system_settings_initramfs_update_command: "update-initramfs -u"

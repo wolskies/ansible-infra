@@ -12,6 +12,7 @@
       register: git_config_check
       become: true
       become_user: testuser1
+      become_method: su
       loop:
         - key: user.name
           expected: "Test User One"
@@ -86,6 +87,7 @@
       register: devuser_git
       become: true
       become_user: devuser
+      become_method: su
       changed_when: false
 
     - name: Verify cross-platform Git consistency

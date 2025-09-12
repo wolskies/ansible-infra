@@ -35,3 +35,19 @@
   become: true
   when: ansible_system == 'Linux'
   failed_when: false
+
+- name: Update mkinitcpio
+  ansible.builtin.command: mkinitcpio -P
+  become: true
+  when:
+    - ansible_distribution == 'Archlinux'
+    - ansible_virtualization_type | default('') != 'docker'
+  failed_when: false
+
+- name: Update initramfs
+  ansible.builtin.command: update-initramfs -u
+  become: true
+  when:
+    - ansible_os_family == 'Debian'
+    - ansible_virtualization_type | default('') != 'docker'
+  failed_when: false
