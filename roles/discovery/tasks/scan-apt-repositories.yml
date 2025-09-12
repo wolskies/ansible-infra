@@ -39,7 +39,7 @@
                 {%- set repo_uri = '' -%}
                 {%- set repo_suite = '' -%}
                 {%- set repo_components = [] -%}
-                {%- set signed_by_key = null -%}
+                {%- set signed_by_key = none -%}
                 {%- if '[' in parts[1] -%}
                   {%- set repo_uri = parts[2] -%}
                   {%- set repo_suite = parts[3] -%}
