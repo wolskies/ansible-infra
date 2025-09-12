@@ -2,6 +2,8 @@
 
 Ansible infrastructure automation for Ubuntu 22+, Debian 12+, Arch Linux, and macOS.
 
+**Note**: Language packages (nodejs, rust, go) require Ubuntu 24.04+ and Debian 13+ for reliable auto-installation due to package availability.
+
 ## Architecture Overview
 
 ### Variable Structure
@@ -413,6 +415,11 @@ Language tools are installed automatically when user requests packages:
 - Snap system management (complete removal or controlled usage)
 - UFW firewall with fail2ban integration
 - Unattended upgrades configuration
+
+**Language Package Requirements:**
+- **Ubuntu 24.04+**: Required for reliable nodejs and rustup package availability
+- **Debian 13+**: Required for rustup package (nodejs available in 12+)
+- **Older versions**: Language packages may fail to auto-install; manually install tools first
 
 **Arch Linux**
 

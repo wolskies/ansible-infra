@@ -164,6 +164,17 @@ infrastructure:
 - **Linux dotfiles**: Stow package (auto-installed)
 - **macOS dotfiles**: Stow via Homebrew (auto-installed)
 
+### OS Version Requirements for Language Packages
+
+Language package auto-installation requires specific OS versions due to package availability:
+
+- **Debian**: 13+ (Trixie) - for `rustup` and modern `nodejs` packages
+- **Ubuntu**: 24.04+ (Noble) - for reliable `nodejs` and `rustup` package availability
+- **Arch Linux**: Current rolling release - all language packages available
+- **macOS**: 10.15+ (Catalina) - via Homebrew package manager
+
+**Note**: On older OS versions, language packages (nodejs, rust, go) may fail to auto-install. Users can manually install the language tools (`npm`, `cargo`, `go`) before running this role as a workaround.
+
 ## Dependencies
 
 - `community.general` - Git config, npm module, osx_defaults, homebrew
