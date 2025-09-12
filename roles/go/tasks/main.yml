@@ -38,8 +38,7 @@
   community.general.homebrew:
     name: go
     state: present
-  become: true
-  become_user: "{{ go_user }}"
+  # Note: Run as ansible_user who owns Homebrew, not as target user
   when:
     - go_packages | length > 0
     - ansible_system == 'Darwin'

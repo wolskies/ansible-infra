@@ -12,36 +12,47 @@
     - nodejs
     - system-deps
 
-- name: Download NodeSource signing key (Debian/Ubuntu)
+- name: Create apt keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  become: true
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Download NodeSource GPG key (Debian/Ubuntu)
   ansible.builtin.get_url:
     url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
-    dest: /etc/apt/signing-key-nodesource-repo.asc
-    owner: root
-    group: root
-    mode: "0444"
+    dest: /tmp/nodesource-repo.gpg.key
+    mode: "0644"
   become: true
-  register: node_signing_key
+  tags:
+    - nodejs
+    - system-deps
+
+- name: Install NodeSource GPG key (Debian/Ubuntu)
+  ansible.builtin.shell: |
+    gpg --dearmor < /tmp/nodesource-repo.gpg.key > /etc/apt/keyrings/nodesource.gpg
+    chmod 644 /etc/apt/keyrings/nodesource.gpg
+  args:
+    creates: /etc/apt/keyrings/nodesource.gpg
+  become: true
   tags:
     - nodejs
     - system-deps
 
 - name: Add NodeSource repository (Debian/Ubuntu)
-  ansible.builtin.deb822_repository:
-    name: nodesource_{{ nodejs_version }}x
-    uris: "https://deb.nodesource.com/node_{{ nodejs_version }}.x"
-    types: deb
-    suites: nodistro
-    components: main
-    signed_by: "{{ node_signing_key.dest }}"
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_{{ nodejs_version }}.x nodistro main"
     state: present
+    filename: nodesource
+    update_cache: true
   become: true
-  notify: Update apt cache
   tags:
     - nodejs
     - system-deps
-
-- name: Force handler execution before package installation
-  ansible.builtin.meta: flush_handlers
 
 - name: Install Node.js and npm (Debian/Ubuntu)
   ansible.builtin.apt:

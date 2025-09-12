@@ -5,8 +5,7 @@
   community.general.homebrew:
     name: node
     state: present
-  become: true
-  become_user: "{{ node_user }}"
+  # Note: Run as ansible_user who owns Homebrew, not as target user
   tags:
     - nodejs
     - system-deps
