@@ -6,11 +6,11 @@
 Storage=persistent
 
 # Size limits
-SystemMaxUse={{ infrastructure.host.journal.max_size }}
-RuntimeMaxUse={{ infrastructure.host.journal.max_size }}
+SystemMaxUse={{ journal.max_size }}
+RuntimeMaxUse={{ journal.max_size }}
 
 # Retention settings
-MaxRetentionSec={{ infrastructure.host.journal.max_retention }}
+MaxRetentionSec={{ journal.max_retention }}
 
 # Compression
 Compress=yes

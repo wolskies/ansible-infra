@@ -16,13 +16,13 @@ Unattended-Upgrade::Package-Blacklist {
 };
 
 // Automatically reboot if required
-Unattended-Upgrade::Automatic-Reboot "{{ infrastructure[ansible_distribution].apt.unattended_upgrades.auto_reboot | default(false) | lower }}";
+Unattended-Upgrade::Automatic-Reboot "{{ apt.unattended_upgrades.auto_reboot | default(false) | lower }}";
 
 // Automatically reboot at specific time
-Unattended-Upgrade::Automatic-Reboot-Time "{{ infrastructure[ansible_distribution].apt.unattended_upgrades.reboot_time | default('02:00') }}";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ apt.unattended_upgrades.reboot_time | default('02:00') }}";
 
 // Send email to this address for problems or packages upgrades
-Unattended-Upgrade::Mail "{{ infrastructure[ansible_distribution].apt.unattended_upgrades.email | default('') }}";
+Unattended-Upgrade::Mail "{{ apt.unattended_upgrades.email | default('') }}";
 
 // Remove unused kernel packages when safe
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
@@ -31,7 +31,7 @@ Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
 
 // Automatically reboot even if users are logged in
-Unattended-Upgrade::Automatic-Reboot-WithUsers "{{ infrastructure[ansible_distribution].apt.unattended_upgrades.reboot_with_users | default(false) | lower }}";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "{{ apt.unattended_upgrades.reboot_with_users | default(false) | lower }}";
 
 // Keep debs after install
 Unattended-Upgrade::Keep-Debs-After-Install "false";
