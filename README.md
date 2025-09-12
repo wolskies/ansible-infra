@@ -61,10 +61,15 @@ firewall:
 - **manage_security_services**: Firewall (UFW/macOS) and fail2ban configuration
 - **manage_snap_packages/manage_flatpak**: Alternative package system management
 
-## Recommended Complementary Collections
+## Dependencies and Credits
+
+This collection uses and builds upon:
+- **geerlingguy.mac**: Homebrew installation on macOS
+- **Jeff Geerling's nodejs role**: Inspiration for our nodejs implementation
+
+## Recommended Security Hardening
 
 For comprehensive security hardening, use alongside:
-- **geerlingguy.security**: Jeff Geerling's security automation roles
 - **devsec.hardening**: OS and SSH hardening (os_hardening, ssh_hardening roles)
 
 ## Variable Reference
