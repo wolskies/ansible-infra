@@ -41,7 +41,7 @@ test-failures: ## Run failure scenario tests (negative testing)
 .PHONY: test-comprehensive
 test-comprehensive: ## Run comprehensive integration tests (all scenarios)
 	@echo "🧪 Running comprehensive integration tests..."
-	@for scenario in discovery packages os_configuration users security system_settings configure_user rust nodejs go; do \
+	@for scenario in discovery packages os_configuration users security configure_user rust nodejs go; do \
 		echo "Testing scenario: $$scenario"; \
 		molecule test -s $$scenario; \
 	done
@@ -55,7 +55,6 @@ test-quick: lint syntax-check ## Quick validation tests (fast feedback)
 test-system: ## Test core system provisioning functionality
 	@echo "🖥️  Running system provisioning tests..."
 	molecule test -s os_configuration
-	molecule test -s system_settings
 
 .PHONY: test-template-edge-cases
 test-template-edge-cases: ## Test template edge cases

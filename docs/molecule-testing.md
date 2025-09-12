@@ -15,7 +15,6 @@ This guide covers local molecule testing for the wolskinet.infrastructure collec
 - **`configure_user`**: Per-user configuration testing (includes dotfiles and language packages)
 - **`security`**: Security services testing (firewall, fail2ban)
 - **`os_configuration`**: OS configuration testing
-- **`system_settings`**: System settings management testing
 
 ## Running Tests Locally
 
