@@ -92,7 +92,6 @@ mock_roles:
   - wolskinet.infrastructure.discovery
   - wolskinet.infrastructure.dotfiles
   - wolskinet.infrastructure.manage_language_packages
-  - wolskinet.infrastructure.manage_system_settings
 
 # Offline mode - don't download schemas
 offline: true

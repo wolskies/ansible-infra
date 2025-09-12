@@ -112,7 +112,7 @@ infrastructure:
           enabled: true
 ```
 
-**Note**: GUI-related macOS settings (Dock, Finder, behavior tweaks) have been moved to the `manage_system_settings` role for better separation of concerns. Use that role for desktop customizations.
+**Note**: This role focuses on core OS configuration. GUI-related macOS settings were previously handled by the manage_system_settings role, but that functionality has been consolidated into this role.
 
 ## Example Usage
 

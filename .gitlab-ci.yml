@@ -174,13 +174,6 @@ test-security-services:
     - molecule test -s security
     - echo "✅ Security services tests passed"
 
-test-system-settings:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s system_settings
-    - echo "✅ System settings tests passed"
-
 test-configure-user:
   extends: .molecule_test_template
   stage: test
