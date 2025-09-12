@@ -14,8 +14,6 @@
       ansible.builtin.apt:
         name:
           - git
-          - nodejs
-          - npm
           - curl
           - wget
           - zsh
