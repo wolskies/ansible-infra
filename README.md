@@ -64,12 +64,14 @@ firewall:
 ## Dependencies and Credits
 
 This collection uses and builds upon:
+
 - **geerlingguy.mac**: Homebrew installation on macOS
 - **Jeff Geerling's nodejs role**: Inspiration for our nodejs implementation
 
 ## Recommended Security Hardening
 
 For comprehensive security hardening, use alongside:
+
 - **devsec.hardening**: OS and SSH hardening (os_hardening, ssh_hardening roles)
 
 ## Variable Reference
@@ -77,55 +79,55 @@ For comprehensive security hardening, use alongside:
 ### Domain Configuration
 
 ```yaml
-domain_name: "company.com"              # Optional domain name
-domain_timezone: "America/New_York"     # System timezone
-domain_locale: "en_US.UTF-8"           # System locale
-domain_language: "en_US"               # System language
+domain_name: "company.com" # Optional domain name
+domain_timezone: "America/New_York" # System timezone
+domain_locale: "en_US.UTF-8" # System locale
+domain_language: "en_US" # System language
 domain_ntp:
-  enabled: true                         # Enable NTP synchronization
-  servers:                              # Custom NTP servers
+  enabled: true # Enable NTP synchronization
+  servers: # Custom NTP servers
     - "time1.company.com"
     - "time2.company.com"
-users: []                               # Domain-wide user definitions
+users: [] # Domain-wide user definitions
 ```
 
 ### Host Configuration
 
 ```yaml
-host_hostname: "web01"               # Individual hostname
-host_update_hosts: true              # Manage /etc/hosts file
+host_hostname: "web01" # Individual hostname
+host_update_hosts: true # Manage /etc/hosts file
 
-host_services:                       # systemd service management
+host_services: # systemd service management
   enable: [nginx, redis]
   disable: [bluetooth, cups]
 
-host_sysctl:                         # Kernel parameters
+host_sysctl: # Kernel parameters
   parameters:
     vm.swappiness: 10
     net.ipv4.ip_forward: 1
 
-host_limits:                         # PAM limits
+host_limits: # PAM limits
   - domain: "*"
     type: soft
     item: nofile
     value: 65536
 
-host_modules:                        # Kernel modules
+host_modules: # Kernel modules
   load: [uvcvideo]
   blacklist: [nouveau, radeon]
 
-host_udev:                          # udev rules
+host_udev: # udev rules
   rules:
     - name: pico-permissions
       content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", MODE="0666"'
       priority: 99
       state: present
 
-packages: {}                        # Package management (see below)
-firewall: {}                        # Firewall configuration (see below)
-journal: {}                         # Journal settings (see below)
-snap: {}                            # Snap management (see below)
-flatpak: {}                         # Flatpak management (see below)
+packages: {} # Package management (see below)
+firewall: {} # Firewall configuration (see below)
+journal: {} # Journal settings (see below)
+snap: {} # Snap management (see below)
+flatpak: {} # Flatpak management (see below)
 ```
 
 ### Package Management
@@ -133,25 +135,25 @@ flatpak: {}                         # Flatpak management (see below)
 ```yaml
 packages:
   present:
-    all:                       # Packages for all hosts
+    all: # Packages for all hosts
       Ubuntu: [git, curl, vim]
       Debian: [git, curl, vim]
       Archlinux: [git, curl, vim]
       MacOSX: [git, curl, vim]
-    group:                     # Group-specific packages
+    group: # Group-specific packages
       Ubuntu: [nginx, postgresql]
-    host:                      # Host-specific packages
+    host: # Host-specific packages
       Ubuntu: [redis-server]
   remove:
     all:
-      Ubuntu: [snapd]          # Remove unwanted packages
-  casks_present:               # macOS casks
+      Ubuntu: [snapd] # Remove unwanted packages
+  casks_present: # macOS casks
     all: [visual-studio-code, docker]
 
-apt:                           # APT-specific settings
+apt: # APT-specific settings
   unattended_upgrades:
     enabled: true
-  repositories:                # Custom repositories
+  repositories: # Custom repositories
     all:
       Ubuntu:
         - name: nodejs
@@ -161,7 +163,7 @@ apt:                           # APT-specific settings
           components: [main]
           signed_by: /etc/apt/keyrings/nodesource.gpg
 
-homebrew:                      # Homebrew settings
+homebrew: # Homebrew settings
   taps:
     - homebrew/cask-fonts
 ```
@@ -190,8 +192,8 @@ users:
       packages: [github.com/charmbracelet/glow@latest]
 
     # OS-specific preferences
-    shell: /bin/zsh             # Cross-platform shell
-    dotfiles:                   # Linux/macOS dotfiles
+    shell: /bin/zsh # Cross-platform shell
+    dotfiles: # Linux/macOS dotfiles
       enable: true
       repository: "https://github.com/user/dotfiles"
       branch: main
@@ -200,63 +202,55 @@ users:
 ### Firewall Configuration
 
 ```yaml
-infrastructure:
-  host:
-    firewall:
-      enabled: true
-      prevent_ssh_lockout: true    # Always allow SSH
-      rules:
-        - port: 80
-          proto: tcp
-          comment: "HTTP traffic"
-        - port: 443
-          proto: tcp
-          comment: "HTTPS traffic"
-        - port: "8080:8090"
-          proto: tcp
-          comment: "Application range"
+firewall:
+  enabled: true
+  prevent_ssh_lockout: true # Always allow SSH
+  rules:
+    - port: 80
+      proto: tcp
+      comment: "HTTP traffic"
+    - port: 443
+      proto: tcp
+      comment: "HTTPS traffic"
+    - port: "8080:8090"
+      proto: tcp
+      comment: "Application range"
 ```
 
 ### Security Services
 
 ```yaml
-infrastructure:
-  host:
-    fail2ban:
+fail2ban:
+  enabled: true
+  services:
+    - name: sshd
       enabled: true
-      services:
-        - name: sshd
-          enabled: true
-          maxretry: 5
-          bantime: 3600
+      maxretry: 5
+      bantime: 3600
 ```
 
 ### System Journal
 
 ```yaml
-infrastructure:
-  host:
-    journal:
-      max_size: "500M"
-      max_retention: "30d"
-      forward_to_syslog: false
+journal:
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
 ```
 
 ### Alternative Package Systems
 
 ```yaml
-infrastructure:
-  host:
-    snap:
-      packages:
-        install: [hello-world, code]
-        remove: [unwanted-snap]
+snap:
+  packages:
+    install: [hello-world, code]
+    remove: [unwanted-snap]
 
-    flatpak:
-      enabled: true
-      flathub: true
-      packages:
-        install: [org.gimp.GIMP, com.spotify.Client]
+flatpak:
+  enabled: true
+  flathub: true
+  packages:
+    install: [org.gimp.GIMP, com.spotify.Client]
 ```
 
 ## Role Usage
@@ -293,24 +287,12 @@ Each role can be used independently:
         name: wolskinet.infrastructure.configure_user
       vars:
         target_user: "{{ item.name }}"
-      loop: "{{ infrastructure.domain.users }}"
+      loop: "{{ users }}"
       when: item.name != 'root'
       become_user: "{{ item.name }}"
 ```
 
 ## Platform Support
-
-| Feature | Ubuntu 22+ | Debian 12+ | Debian 13+ | Arch Linux | macOS |
-|---------|------------|------------|------------|------------|--------|
-| Core OS Config | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Package Management | ✅ | ✅ | ✅ | ✅ | ✅ |
-| User Management | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Node.js Auto-Install | ❌ | ❌ | ✅ | ✅ | ✅ |
-| Rust Auto-Install | ✅ | ❌ | ✅ | ✅ | ✅ |
-| Go Auto-Install | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Firewall (UFW/macOS) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Snap Management | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Flatpak Management | ✅ | ✅ | ✅ | ✅ | ❌ |
 
 **Critical**: Debian 12 and earlier do NOT include rustup packages. Use Debian 13+ or manually install rustup for Rust package support.
 
@@ -320,6 +302,5 @@ Each role can be used independently:
 - **community.general**: For npm, homebrew, and flatpak modules
 - **ansible.posix**: For ACL and system management
 - **Xcode Command Line Tools**: Required on macOS hosts
-
 
 This collection provides consistent infrastructure automation across multiple operating systems with a focus on simplicity and reusability.
