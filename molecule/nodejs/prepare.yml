@@ -1,5 +1,5 @@
 ---
-- name: Prepare configure_user test environment
+- name: Prepare nodejs test environment
   hosts: all
   become: true
   gather_facts: true
@@ -10,28 +10,20 @@
         cache_valid_time: 3600
       when: ansible_os_family == "Debian"
 
-    - name: Install required packages for testing
+    - name: Install basic dependencies
       ansible.builtin.apt:
         name:
-          - git
-          - nodejs
-          - npm
           - curl
           - wget
-          - zsh
-          - dash
-          - python3-debian
+          - build-essential
         state: present
       when: ansible_os_family == "Debian"
 
-    # Create test users that configure_user will configure
-    - name: Create test users for configuration
+    - name: Create test user
       ansible.builtin.user:
-        name: "{{ item }}"
+        name: testuser
         create_home: true
         shell: /bin/bash
         state: present
-      loop:
-        - testuser1
-        - dotfilesuser
-        - shelluser
+
+    # The nodejs role will handle nodejs installation automatically

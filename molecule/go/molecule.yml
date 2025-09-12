@@ -4,8 +4,8 @@ dependency:
 driver:
   name: docker
 platforms:
-  # Test manual nodejs installation (older distributions)
-  - name: debian12-nodejs-manual
+  # Test manual go installation (older distributions)
+  - name: debian12-go-manual
     image: geerlingguy/docker-debian12-ansible:latest
     pre_build_image: true
     privileged: true
@@ -13,7 +13,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: ubuntu22-nodejs-manual
+  - name: ubuntu22-go-manual
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
     privileged: true
@@ -21,8 +21,8 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  # Test automated nodejs installation (newer distributions)
-  - name: debian13-nodejs-auto
+  # Test automated go installation (newer distributions)
+  - name: debian13-go-auto
     image: geerlingguy/docker-debian13-ansible:latest
     pre_build_image: true
     privileged: true
@@ -30,7 +30,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: ubuntu24-nodejs-auto
+  - name: ubuntu24-go-auto
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -53,17 +53,21 @@ provisioner:
         molecule_test: true
         ansible_managed: "Managed by Ansible - do not edit manually"
     host_vars:
-      debian12-nodejs-manual:
-        node_user: testuser
-        node_packages: [eslint, prettier]
-      ubuntu22-nodejs-manual:
-        node_user: testuser
-        node_packages: [eslint, prettier]
-      debian13-nodejs-auto:
-        node_user: testuser
-        node_packages: [eslint, prettier]
-      ubuntu24-nodejs-auto:
-        node_user: testuser
-        node_packages: [eslint, prettier]
+      debian12-go-manual:
+        go_user: testuser
+        go_packages:
+          ["github.com/charmbracelet/glow@latest", "github.com/jesseduffield/lazygit@latest"]
+      ubuntu22-go-manual:
+        go_user: testuser
+        go_packages:
+          ["github.com/charmbracelet/glow@latest", "github.com/jesseduffield/lazygit@latest"]
+      debian13-go-auto:
+        go_user: testuser
+        go_packages:
+          ["github.com/charmbracelet/glow@latest", "github.com/jesseduffield/lazygit@latest"]
+      ubuntu24-go-auto:
+        go_user: testuser
+        go_packages:
+          ["github.com/charmbracelet/glow@latest", "github.com/jesseduffield/lazygit@latest"]
 verifier:
   name: ansible

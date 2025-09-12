@@ -4,6 +4,6 @@
   become: true
   gather_facts: true
   tasks:
-    - name: Include nodejs role
+    - name: Include go role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.nodejs
+        name: wolskinet.infrastructure.go

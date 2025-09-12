@@ -41,7 +41,7 @@ test-failures: ## Run failure scenario tests (negative testing)
 .PHONY: test-comprehensive
 test-comprehensive: ## Run comprehensive integration tests (all scenarios)
 	@echo "🧪 Running comprehensive integration tests..."
-	@for scenario in discovery packages os_configuration users security system_settings configure_user; do \
+	@for scenario in discovery packages os_configuration users security system_settings configure_user rust nodejs go; do \
 		echo "Testing scenario: $$scenario"; \
 		molecule test -s $$scenario; \
 	done
@@ -90,7 +90,7 @@ syntax-check: ## Check Ansible syntax for all roles
 	done
 
 .PHONY: test
-test: test-pre-commit test-system test-integration ## Run complete test suite
+test: test-pre-commit test-system test-integration test-language-roles ## Run complete test suite
 	@echo "✅ Complete test suite passed!"
 
 .PHONY: test-discovery
@@ -102,6 +102,13 @@ test-integration: ## Run integration tests with all roles
 	molecule test -s users
 	molecule test -s packages
 	molecule test -s security
+
+.PHONY: test-language-roles
+test-language-roles: ## Test language-specific roles (rust, nodejs, go)
+	@echo "🔧 Testing language-specific roles..."
+	molecule test -s rust
+	molecule test -s nodejs
+	molecule test -s go
 
 .PHONY: ci-test
 ci-test: deps test-pre-commit test-failures test-system test-integration ## CI-style complete testing

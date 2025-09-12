@@ -188,6 +188,28 @@ test-configure-user:
     - molecule test -s configure_user
     - echo "✅ Configure user tests passed"
 
+# Language-specific role tests
+test-rust:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - molecule test -s rust
+    - echo "✅ Rust role tests passed"
+
+test-nodejs:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - molecule test -s nodejs
+    - echo "✅ NodeJS role tests passed"
+
+test-go:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - molecule test -s go
+    - echo "✅ Go role tests passed"
+
 # REMOVED: test-dotfiles - functionality consolidated into configure_user role
 # Dotfiles deployment is now handled as part of per-user configuration
 
