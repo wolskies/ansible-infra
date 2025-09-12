@@ -45,12 +45,11 @@
     - rust
     - system-deps
 
-- name: Install Rust and Cargo (macOS)
+- name: Install rustup (macOS)
   community.general.homebrew:
-    name: rust
+    name: rustup
     state: present
-  become: true
-  become_user: "{{ rust_user }}"
+  # Note: Run as ansible_user who owns Homebrew, not as target user
   when:
     - rust_packages | length > 0
     - ansible_system == 'Darwin'
@@ -60,6 +59,8 @@
 
 - name: Initialize rustup default toolchain
   ansible.builtin.command: rustup default stable
+  environment:
+    PATH: "{{ ansible_env.PATH }}{{ ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else '' }}"
   become: true
   become_user: "{{ rust_user }}"
   register: rustup_default
@@ -70,8 +71,17 @@
     - rust
     - language-packages
 
+- name: Get rust_user home directory
+  ansible.builtin.user:
+    name: "{{ rust_user }}"
+  register: rust_user_info
+  when:
+    - rust_packages | length > 0
+
 - name: Install Rust packages for {{ rust_user }}
   ansible.builtin.command: cargo install {{ item }}
+  environment:
+    PATH: "{{ rust_user_info.home }}/.cargo/bin:{{ ansible_env.PATH }}{{ ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else '' }}"
   register: cargo_install
   changed_when: "'Installing' in cargo_install.stderr"
   failed_when: cargo_install.rc != 0
