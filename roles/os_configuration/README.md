@@ -4,10 +4,11 @@ OS configuration for Ubuntu 22+, Debian 12+, Arch Linux, and MacOSX.
 
 ## Description
 
-Configures basic OS configuration (timezone, locale, NTP, hostname) and distribution-specific settings (services, journals).
+Configures basic OS configuration (timezone, locale, NTP, hostname) and distribution-specific settings (services, journals). On Linux systems, applies comprehensive security hardening using devsec.hardening.os_hardening.
 
 ## Features
 
+- **Security hardening**: Comprehensive OS hardening for Linux systems (200+ security configurations)
 - **Basic OS settings**: timezone, locale, NTP, hostname, /etc/hosts management
 - **Distribution-specific**: systemd services, journald, unattended upgrades, platform optimizations
 - **Cross-platform**: Ubuntu/Debian/Arch Linux/macOS
@@ -18,7 +19,7 @@ Configures basic OS configuration (timezone, locale, NTP, hostname) and distribu
 
 1. **Common Setup** (`main.yml`): Distribution config setup, timezone
 2. **OS-Specific**:
-   - `configure-Linux.yml`: Locale, NTP, journal, hostname (all Linux distributions)
+   - `configure-Linux.yml`: **OS hardening first**, then locale, NTP, journal, hostname (all Linux distributions)
    - `configure-Darwin.yml`: macOS-specific configuration
 3. **Distribution-Specific** (for Linux only):
    - `configure-Debian.yml`: Ubuntu + Debian specific settings
@@ -72,10 +73,18 @@ infrastructure:
       tune_swappiness: false
       swappiness: 10
 
+    # Security hardening options (Linux)
+    security:
+      disable_ctrl_alt_del: false      # Disable Ctrl-Alt-Del key combination
+      users_allow: []                  # List of things users are allowed to do (e.g., ['change_user'])
+      remove_additional_root_users: false  # Remove users with UID=0 except root
+      enforce_password_aging: true     # Enforce password aging policies
+
     # Kernel parameters (sysctl) (Linux)
     sysctl:
       parameters: {}
       # Example: { "net.core.default_qdisc": "fq" }
+      # Note: These will be merged with/override security hardening sysctl settings
 
     # PAM limits configuration (Linux)
     limits:

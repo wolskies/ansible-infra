@@ -62,6 +62,11 @@ host_sysctl: {}
 host_limits: {}
 host_modules: {}
 host_udev: {}
+host_security:
+  disable_ctrl_alt_del: false
+  users_allow: []
+  remove_additional_root_users: false
+  enforce_password_aging: true
 
 journal:
   configure: false

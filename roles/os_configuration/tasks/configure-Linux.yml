@@ -1,4 +1,18 @@
 ---
+- name: Apply OS security hardening (Linux)
+  ansible.builtin.include_role:
+    name: devsec.hardening.os_hardening
+  vars:
+    # Map existing infrastructure variables to hardening variables
+    sysctl_overwrite: "{{ host_sysctl.parameters | default({}) }}"
+    os_ctrlaltdel_disabled: "{{ host_security.disable_ctrl_alt_del | default(false) }}"
+    os_security_users_allow: "{{ host_security.users_allow | default([]) }}"
+    os_remove_additional_root_users: "{{ host_security.remove_additional_root_users | default(false) }}"
+    os_user_pw_ageing: "{{ host_security.enforce_password_aging | default(true) }}"
+  tags:
+    - security
+    - hardening
+
 - name: Configure system locale
   community.general.locale_gen:
     name: "{{ domain_locale }}"
