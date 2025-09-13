@@ -47,26 +47,24 @@ domain_ntp:
 host_hostname: ""
 host_update_hosts: true
 
-# Host services (Linux)
-host_services: {}
-# Example: { enable: ["nginx"], disable: ["bluetooth"] }
+host_services: {} # systemd service management
+# Example: { enable: ["nginx"], disable: ["bluetooth"], mask: ["snapd"] }
 
-# Host security hardening (Linux)
-host_security:
-  hardening_enabled: true              # Enable/disable comprehensive OS hardening
-  disable_ctrl_alt_del: false
-  users_allow: []
-  remove_additional_root_users: false
-  enforce_password_aging: true
-
-host_sysctl: {} # passed to devsec.hardening as sysctl_overwrite
-# Example: { parameters: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 } }
+host_sysctl: # passed to devsec.hardening as sysctl_overwrite
+  parameters: {} # Example: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 }
 
 host_modules: {} # kernel module management
 # Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
 
 host_udev: {} # udev rules
 # Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
+
+host_security:
+  hardening_enabled: true # passed to devsec.hardening as os_hardening_enabled
+  disable_ctrl_alt_del: false # passed to devsec.hardening as os_ctrlaltdel_disabled
+  users_allow: [] # passed to devsec.hardening as os_security_users_allow
+  remove_additional_root_users: false # passed to devsec.hardening as os_remove_additional_root_users
+  enforce_password_aging: true # passed to devsec.hardening as os_user_pw_ageing
 
 # Journal configuration (Linux)
 journal:
@@ -240,20 +238,25 @@ host_security:
 
 ## Tags
 
-Use tags for selective execution:
+Available tags for selective execution:
+
+- **security, hardening** - Security hardening via devsec.hardening
+- **hostname** - Hostname configuration
+- **timezone** - Timezone settings
+- **ntp, time** - NTP time synchronization
+- **journal, logging** - Journal and logging configuration
+- **rsyslog** - Remote syslog configuration
+- **modules, kernel** - Kernel module management
+- **udev, hardware** - udev hardware rules
+- **os-configuration** - General OS configuration
+- **distribution-specific** - Distribution-specific tasks
 
 ```bash
-# Configure only hostname
-ansible-playbook -t hostname playbook.yml
-
-# Configure only time-related settings
-ansible-playbook -t ntp,time,timezone playbook.yml
-
-# OS-specific configuration only
-ansible-playbook -t os-specific playbook.yml
-
-# Skip NTP configuration
-ansible-playbook --skip-tags ntp playbook.yml
+# Examples
+ansible-playbook -t security playbook.yml         # Security hardening only
+ansible-playbook -t hostname,timezone playbook.yml # Basic system identity
+ansible-playbook -t modules,udev playbook.yml     # Hardware configuration
+ansible-playbook --skip-tags hardening playbook.yml # Skip security hardening
 ```
 
 ## License

@@ -3,13 +3,8 @@
   ansible.builtin.include_role:
     name: devsec.hardening.os_hardening
   vars:
-    # Map infrastructure variables to devsec.hardening variables
     os_hardening_enabled: "{{ host_security.hardening_enabled | default(true) }}"
-
-    # Pass through user sysctl settings to devsec.hardening
     sysctl_overwrite: "{{ host_sysctl.parameters | default({}) }}"
-
-    # Security settings
     os_ctrlaltdel_disabled: "{{ host_security.disable_ctrl_alt_del | default(false) }}"
     os_security_users_allow: "{{ host_security.users_allow | default([]) }}"
     os_remove_additional_root_users: "{{ host_security.remove_additional_root_users | default(false) }}"

@@ -22,16 +22,16 @@ domain_ntp:
 host_hostname: ""
 host_update_hosts: true
 
-host_services: {} # systemd service management
+host_services: {}
 # Example: { enable: ["nginx"], disable: ["bluetooth"], mask: ["snapd"] }
 
 host_sysctl: # passed to devsec.hardening as sysctl_overwrite
   parameters: {} # Example: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 }
 
-host_modules: {} # kernel module management
+host_modules: {}
 # Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
 
-host_udev: {} # udev rules
+host_udev: {}
 # Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
 
 host_security:
