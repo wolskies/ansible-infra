@@ -51,6 +51,7 @@ host_services: {}
 
 # Host security hardening (Linux)
 host_security:
+  hardening_enabled: true              # Enable/disable comprehensive OS hardening
   disable_ctrl_alt_del: false
   users_allow: []
   remove_additional_root_users: false
@@ -170,6 +171,10 @@ host_services:
   disable: ["bluetooth"]
 host_security:
   disable_ctrl_alt_del: true
+
+# inventory/host_vars/development.yml (disable hardening for dev systems)
+host_security:
+  hardening_enabled: false
 ```
 
 ## Requirements
