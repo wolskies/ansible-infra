@@ -26,7 +26,7 @@ compose_file_content: ""           # Custom docker-compose content (overrides de
 service_use_proxy: false           # Enable proxy mode (no direct port exposure)
 proxy_network_name: "proxy"       # Name of the external proxy network
 proxy_network_external: true      # Whether proxy network is external
-service_ports: []                 # Ports to expose (ignored when using proxy)
+service_ports: []                 # Ports to expose (defaults to "80:80" if empty and not using proxy)
 service_labels: {}                # Labels for proxy configuration (e.g., Traefik)
 ```
 
