@@ -1,6 +1,7 @@
 ---
 galaxy_info:
-  author: wolskinet
+  role_name: go
+  author: wolskies.infrastructure
   description: Install Go toolchain and manage go packages for specific users
   license: MIT
   min_ansible_version: "2.12"

@@ -1,0 +1,28 @@
+---
+version: '3.8'
+
+services:
+  {{ service_name }}:
+    {% if compose_file_content %}
+{{ compose_file_content | indent(4) }}
+    {% else %}
+    # Default service configuration - customize as needed
+    image: nginx:alpine
+    container_name: {{ service_name }}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./data:/data
+    {% if service_env_vars %}
+    env_file:
+      - .env
+    {% endif %}
+    {% endif %}
+
+networks:
+  default:
+    name: {{ service_name }}_network

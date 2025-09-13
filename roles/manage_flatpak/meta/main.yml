@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   role_name: manage_flatpak
-  author: wolskinet.infrastructure
+  author: wolskies.infrastructure
   description: Comprehensive Flatpak package management - install, remove, or purge
   company: Wolski Networks
 

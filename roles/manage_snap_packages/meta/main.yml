@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: Ansible Collection - wolskinet.infrastructure
+  author: wolskies.infrastructure
   description: Manage snap packages - install, remove, or completely purge snap from system
   role_name: manage_snap_packages
   license: MIT

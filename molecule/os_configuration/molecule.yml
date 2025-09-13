@@ -82,7 +82,7 @@ provisioner:
               priority: 99
               state: present
         apt:
-          proxy: "http://proxy.example.com:8080"
+          proxy: ""
           no_recommends: true
           unattended_upgrades:
             enabled: true

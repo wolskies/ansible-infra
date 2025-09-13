@@ -1,0 +1,71 @@
+---
+- name: Check if Docker is installed
+  ansible.builtin.command: docker --version
+  register: docker_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Check if Docker service is enabled
+  ansible.builtin.systemd:
+    name: docker
+  register: docker_service_status
+  failed_when: false
+
+- name: Set Docker installation facts
+  ansible.builtin.set_fact:
+    docker_installed: "{{ docker_version_check.rc == 0 }}"
+    docker_enabled: "{{ docker_service_status.status is defined and docker_service_status.status.ActiveState == 'active' }}"
+
+- name: Install Docker using geerlingguy.docker role
+  ansible.builtin.include_role:
+    name: geerlingguy.docker
+  when: not docker_installed or not docker_enabled
+
+- name: Check for NVIDIA GPU
+  ansible.builtin.command: lspci | grep -i nvidia
+  register: nvidia_gpu_check
+  failed_when: false
+  changed_when: false
+  when: ansible_system == 'Linux'
+
+- name: Set NVIDIA GPU fact
+  ansible.builtin.set_fact:
+    nvidia_gpu_present: "{{ nvidia_gpu_check.rc == 0 if ansible_system == 'Linux' else false }}"
+
+- name: Add NVIDIA Container Toolkit repository (Ubuntu/Debian)
+  ansible.builtin.deb822_repository:
+    name: nvidia-container-toolkit
+    types: [deb]
+    uris: "https://nvidia.github.io/libnvidia-container/stable/deb/{{ ansible_architecture }}"
+    suites: ["/"]
+    signed_by: "https://nvidia.github.io/libnvidia-container/gpgkey"
+    state: present
+  when:
+    - nvidia_gpu_present
+    - ansible_os_family == 'Debian'
+  become: true
+
+- name: Install NVIDIA Container Toolkit (Ubuntu/Debian)
+  ansible.builtin.apt:
+    name: nvidia-container-toolkit
+    state: present
+    update_cache: true
+  when:
+    - nvidia_gpu_present
+    - ansible_os_family == 'Debian'
+  become: true
+
+- name: Install NVIDIA Container Toolkit (Arch Linux)
+  ansible.builtin.package:
+    name: nvidia-container-toolkit
+    state: present
+  when:
+    - nvidia_gpu_present
+    - ansible_os_family == 'Archlinux'
+  become: true
+
+- name: Configure NVIDIA Container Runtime
+  ansible.builtin.command: nvidia-ctk runtime configure --runtime=docker
+  when: nvidia_gpu_present
+  become: true
+  notify: restart docker

@@ -6,4 +6,4 @@
   tasks:
     - name: Include nodejs role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.nodejs
+        name: wolskies.infrastructure.nodejs

@@ -1,9 +1,10 @@
 ---
 galaxy_info:
-  author: Ed Wolski
+  role_name: manage_users
+  author: wolskies.infrastructure
   description: Manage system users, groups, and dotfiles deployment
   company: wolskinet
-  license: GPL-3.0-or-later
+  license: MIT
   min_ansible_version: "2.15"
   platforms:
     - name: Ubuntu

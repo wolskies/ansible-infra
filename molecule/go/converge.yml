@@ -6,4 +6,4 @@
   tasks:
     - name: Include go role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.go
+        name: wolskies.infrastructure.go

@@ -78,3 +78,6 @@ macosx:
 # Snap configuration
 snap:
   remove_completely: false
+
+# Docker services configuration
+docker_services_root: "/srv/docker"
