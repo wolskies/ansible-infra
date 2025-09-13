@@ -29,6 +29,11 @@ host_security:
   users_allow: []
   remove_additional_root_users: false
   enforce_password_aging: true
+  ssh_hardening_enabled: false
+  ssh_server_ports: ["22"]
+  ssh_client_port: "22"
+  ssh_listen_to: ["0.0.0.0"]
+  sftp_enabled: true
 
 # System logging
 journal:
