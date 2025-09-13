@@ -29,6 +29,26 @@ host_sysctl:
 
 **Note on compatibility**: Some older systems may need adjusted hardening settings (see os_configuration role documentation for memory randomization and SSH key compatibility).
 
+## Installation
+
+Install the collection and its dependencies:
+
+```bash
+# Install all dependencies (collections and roles)
+ansible-galaxy install -r requirements.yml
+
+# Install the collection
+ansible-galaxy collection install wolskies.infrastructure
+```
+
+Or install from a local clone:
+```bash
+git clone https://github.com/wolskinet/ansible-infrastructure
+cd ansible-infrastructure
+ansible-galaxy install -r requirements.yml
+ansible-galaxy collection install . --force
+```
+
 ## Quick Start
 
 ```yaml
