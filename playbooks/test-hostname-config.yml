@@ -8,7 +8,7 @@
   tasks:
     - name: Test with hostname and domain
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.configure_host
+        name: wolskies.infrastructure.os_configuration
       vars:
         config_hostname: "test-host"
         config_domain: "test.local"

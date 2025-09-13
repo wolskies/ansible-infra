@@ -52,7 +52,7 @@
 
   roles:
     # 1. Core system setup with standard OS packages
-    - role: wolskies.infrastructure.configure_host
+    - role: wolskies.infrastructure.os_configuration
       tags:
         - basic
         - system
