@@ -16,18 +16,16 @@ A convenience role for configuring a system - calls multiple roles in this colle
 
 ## Configuration
 
-Uses the unified infrastructure variable structure:
+Uses flat variable structure (see configure_system/defaults/main.yml for complete reference):
 
 ```yaml
-infrastructure:
-  domain:
-    name: "company.com"
-    timezone: "America/New_York"
-    users:
-      - name: alice
-        groups: [sudo]
-        git: { user_name: "Alice", user_email: "alice@company.com" }
-        nodejs: { packages: [typescript] }
+domain_name: "company.com"
+domain_timezone: "America/New_York"
+users:
+  - name: alice
+    groups: [sudo]
+    git: { user_name: "Alice", user_email: "alice@company.com" }
+    nodejs: { packages: [typescript] }
 
   host:
     hostname: "web01"
@@ -56,61 +54,51 @@ infrastructure:
   roles:
     - wolskinet.infrastructure.configure_system
   vars:
-    infrastructure:
-      domain:
-        name: "company.com"
-        timezone: "America/New_York"  # Optional: preserves system default if empty
-        users:
-          - name: admin
-            groups: [sudo]
-            ssh_pubkey: "ssh-ed25519 AAAAC3..."
-      host:
-        hostname: "{{ inventory_hostname }}"
-        packages:
-          present:
-            all:
-              Ubuntu: [git, htop, nginx]
+    domain_name: "company.com"
+    domain_timezone: "America/New_York"
+    users:
+      - name: admin
+        groups: [sudo]
+        ssh_pubkey: "ssh-ed25519 AAAAC3..."
+    host_hostname: "{{ inventory_hostname }}"
+    packages:
+      present:
+        all:
+          Ubuntu: [git, htop, nginx]
 ```
 
 ### Multi-Group Configuration
 
 ```yaml
 # inventory/group_vars/all.yml
-infrastructure:
-  domain:
-    name: "company.local"
-    timezone: "America/New_York"
-    users:
-      - name: deploy
-        groups: [sudo]
-        git: { user_name: "Deploy User", user_email: "deploy@company.com" }
-  host:
-    packages:
-      present:
-        all:
-          Ubuntu: [git, curl, vim]
+domain_name: "company.local"
+domain_timezone: "America/New_York"
+users:
+  - name: deploy
+    groups: [sudo]
+    git: { user_name: "Deploy User", user_email: "deploy@company.com" }
+packages:
+  present:
+    all:
+      Ubuntu: [git, curl, vim]
 
 # inventory/group_vars/webservers.yml
-infrastructure:
-  host:
-    packages:
-      present:
-        group:
-          Ubuntu: [nginx, certbot]
-    firewall:
-      enabled: true
-      rules:
-        - { port: 80, proto: tcp }
-        - { port: 443, proto: tcp }
+packages:
+  present:
+    group:
+      Ubuntu: [nginx, certbot]
+firewall:
+  enabled: true
+  rules:
+    - { port: 80, proto: tcp }
+    - { port: 443, proto: tcp }
 
 # inventory/host_vars/web01.yml
-infrastructure:
-  host:
-    hostname: "web01"
-    packages:
-      present:
-        host:
-          Ubuntu: [redis-server]
+host_hostname: "web01"
+packages:
+  present:
+    host:
+      Ubuntu: [redis-server]
 ```
 
 ### User Configuration
