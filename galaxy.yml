@@ -53,7 +53,6 @@ dependencies:
   community.docker: ">=3.0.0"
   ansible.posix: ">=1.5.0"
   geerlingguy.mac: ">=2.0.0"
-  geerlingguy.docker: ">=7.0.0"
   kewlfft.aur: ">=0.13.0"
   devsec.hardening: ">=9.0.0"
 
