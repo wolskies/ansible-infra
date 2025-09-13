@@ -5,11 +5,22 @@
   vars:
     # Map existing infrastructure variables to hardening variables
     os_hardening_enabled: "{{ host_security.hardening_enabled | default(true) }}"
+
+    # Sysctl parameters (devsec.hardening handles comprehensive sysctl + our overrides)
     sysctl_overwrite: "{{ host_sysctl.parameters | default({}) }}"
+
+    # Security settings
     os_ctrlaltdel_disabled: "{{ host_security.disable_ctrl_alt_del | default(false) }}"
     os_security_users_allow: "{{ host_security.users_allow | default([]) }}"
     os_remove_additional_root_users: "{{ host_security.remove_additional_root_users | default(false) }}"
     os_user_pw_ageing: "{{ host_security.enforce_password_aging | default(true) }}"
+
+    # Kernel modules (devsec.hardening handles modules + our additions)
+    os_kernel_modules_load: "{{ host_modules.load | default([]) }}"
+    os_unused_filesystems: "{{ host_modules.blacklist | default([]) }}"
+
+    # PAM limits (devsec.hardening handles PAM configuration)
+    # Note: host_limits are handled by devsec.hardening's PAM configuration
   when: host_security.hardening_enabled | default(true)
   tags:
     - security
@@ -162,96 +173,16 @@
         - host_services is defined
         - host_services.mask | default([]) | length > 0
 
-    - name: Configure vm.swappiness
-      ansible.posix.sysctl:
-        name: vm.swappiness
-        value: "{{ optimizations.swappiness }}"
-        state: present
-        reload: true
-      become: true
-      when:
-        - optimizations is defined
-        - optimizations.tune_swappiness | default(false)
+    # Note: vm.swappiness is now handled via sysctl_overwrite in devsec.hardening
+    # Include optimizations.swappiness in host_sysctl.parameters instead
   tags:
     - optimization
     - services
 
-- name: Configure kernel parameters (sysctl)
-  ansible.posix.sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
-    state: present
-    sysctl_file: "/etc/sysctl.d/99-ansible-managed.conf"
-    reload: true
-  loop: "{{ host_sysctl.parameters | default({}) | dict2items }}"
-  become: true
-  when:
-    - host_sysctl is defined
-    - host_sysctl.parameters | default({}) | length > 0
-  tags:
-    - sysctl
-    - kernel
-
-- name: Configure PAM limits
-  community.general.pam_limits:
-    domain: "{{ item.domain }}"
-    limit_type: "{{ item.limit_type }}"
-    limit_item: "{{ item.limit_item }}"
-    value: "{{ item.value }}"
-  loop: "{{ host_limits.limits | default([]) }}"
-  become: true
-  when:
-    - host_limits is defined
-    - host_limits.limits | default([]) | length > 0
-  tags:
-    - limits
-    - pam
-
-- name: Load kernel modules at boot
-  ansible.builtin.lineinfile:
-    path: "/etc/modules-load.d/{{ item }}.conf"
-    line: "{{ item }}"
-    create: true
-    mode: "0644"
-  loop: "{{ host_modules.load | default([]) }}"
-  become: true
-  when:
-    - host_modules is defined
-    - host_modules.load | default([]) | length > 0
-  tags:
-    - modules
-    - kernel
-
-- name: Blacklist kernel modules
-  ansible.builtin.lineinfile:
-    path: /etc/modprobe.d/blacklist-ansible-managed.conf
-    line: "blacklist {{ item }}"
-    create: true
-    mode: "0644"
-  loop: "{{ host_modules.blacklist | default([]) }}"
-  become: true
-  when:
-    - host_modules is defined
-    - host_modules.blacklist | default([]) | length > 0
-  tags:
-    - modules
-    - kernel
-
-- name: Configure kernel module options
-  ansible.builtin.lineinfile:
-    path: "/etc/modprobe.d/{{ item.key }}-options.conf"
-    line: "options {{ item.key }} {{ item.value | dict2items | map(attribute='key') | zip(item.value | dict2items | map(attribute='value')) | map('join', '=') | join(' ') }}"
-    create: true
-    mode: "0644"
-  loop: "{{ host_modules.options | default({}) | dict2items }}"
-  become: true
-  when:
-    - host_modules is defined
-    - host_modules.options | default({}) | length > 0
-  notify: "{{ 'Update mkinitcpio' if ansible_distribution == 'Archlinux' else 'Update initramfs' }}"
-  tags:
-    - modules
-    - kernel
+# Note: The following tasks are now handled by devsec.hardening.os_hardening:
+# - Sysctl parameters (via sysctl_overwrite mapping)
+# - PAM limits (via comprehensive PAM configuration)
+# - Kernel module loading/blacklisting (via os_kernel_modules_load and os_unused_filesystems)
 
 - name: Configure udev rules
   block:

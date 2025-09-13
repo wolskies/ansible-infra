@@ -27,6 +27,8 @@ host_sysctl:
     net.ipv4.ip_forward: 1  # Required for Docker/Kubernetes
 ```
 
+**Note on compatibility**: Some older systems may need adjusted hardening settings (see os_configuration role documentation for memory randomization and SSH key compatibility).
+
 ## Quick Start
 
 ```yaml
