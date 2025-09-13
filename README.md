@@ -19,6 +19,14 @@ This collection uses a three-tier privilege model:
 
 The ansible_user must have passwordless sudo for package management on Arch Linux (pacman) and macOS (if Homebrew needs system changes).
 
+**Important for Docker/Kubernetes users**: The collection applies security hardening that disables IP forwarding by default. If you're running containers, you must enable it:
+
+```yaml
+host_sysctl:
+  parameters:
+    net.ipv4.ip_forward: 1  # Required for Docker/Kubernetes
+```
+
 ## Quick Start
 
 ```yaml
