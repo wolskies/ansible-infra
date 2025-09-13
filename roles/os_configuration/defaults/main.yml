@@ -34,12 +34,12 @@ host_modules: {} # kernel module management
 host_udev: {} # udev rules
 # Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
 
-host_security: # passed to devsec.hardening as os_hardening_enabled, os_ctrlaltdel_disabled, etc.
-  hardening_enabled: true
-  disable_ctrl_alt_del: false
-  users_allow: []
-  remove_additional_root_users: false
-  enforce_password_aging: true
+host_security:
+  hardening_enabled: true # → os_hardening_enabled
+  disable_ctrl_alt_del: false # → os_ctrlaltdel_disabled
+  users_allow: [] # → os_security_users_allow
+  remove_additional_root_users: false # → os_remove_additional_root_users
+  enforce_password_aging: true # → os_user_pw_ageing
 
 host_fonts:
   nerd_fonts:
