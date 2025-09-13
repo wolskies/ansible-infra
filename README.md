@@ -71,7 +71,7 @@ firewall:
 
 - **configure_system**: meta-role that orchestrates system configuration, system-level package installation, and initial user configuration (user, password, ssh keys)
 - **configure_users**: Configures users preferences and user-level software installation
-- **os_configuration**: System settings (timezone, hostname, services, kernel parameters, locale)
+- **os_configuration**: System settings (timezone, hostname, services, kernel parameters, locale) + comprehensive security hardening for Linux systems
 - **manage_users**: Creates user accounts, groups, and SSH keys (system-level)
 - **manage_packages**: Manages packages via os-native package management system. For MacOS, homebrew is considered the 'native' package management system. If not present it will be installed via geerlingguy.mac collection.
 - **manage_security_services**: Firewall (UFW/macOS) and fail2ban configuration
@@ -86,11 +86,13 @@ firewall:
 This collection uses and builds upon:
 
 - **geerlingguy.mac**: Homebrew installation on macOS
+- **devsec.hardening**: Comprehensive OS security hardening for Linux systems
+- **kewlfft.aur**: AUR package management for Arch Linux
 - **Jeff Geerling's nodejs role**: Inspiration for our nodejs implementation
 
-## Recommended Security Hardening
+## Additional Security Hardening
 
-This collection does not include configuration for SSH, other than firewall rules. For specific SSH configuration, we recommend the devsec.hardening.ssh_hardening role. It is quite comprehensive.:
+This collection includes comprehensive OS-level security hardening for Linux systems via devsec.hardening.os_hardening. For additional SSH-specific hardening, consider adding:
 
 - **devsec.hardening**: OS and SSH hardening (os_hardening, ssh_hardening roles)
 
