@@ -124,7 +124,6 @@ infrastructure:
       all: [git, vim, htop]
       settings:
         enable_aur: true
-        aur_helper: paru
     pacman:
       multilib: true
       no_confirms: false

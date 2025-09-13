@@ -8,7 +8,7 @@
     - host-configuration
     - core
 
-- name: Manage Security Services
+- name: Manage Firewall & fail2ban
   ansible.builtin.include_role:
     name: "wolskinet.infrastructure.manage_security_services"
   tags:
@@ -61,16 +61,3 @@
   tags:
     - user-preferences
     - optional
-
-- name: Display system configuration completion
-  ansible.builtin.debug:
-    msg:
-      - "=== System Configuration Complete ==="
-      - "Host: {{ inventory_hostname }}"
-      - "Execution complete. Use tags to control which components are executed:"
-      - "  Core components: --tags core"
-      - "  Optional components: --tags optional"
-      - "  Specific components: --tags users,packages,dotfiles"
-  tags:
-    - always
-    - progress

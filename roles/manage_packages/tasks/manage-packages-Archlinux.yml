@@ -27,25 +27,23 @@
     - merged_packages_install | length > 0
     - not (pacman.enable_aur | default(false))
 
-- name: Install packages (AUR enabled - use paru)
+- name: Install packages (AUR enabled)
   block:
-    - name: Check if paru is available
-      ansible.builtin.command: which paru
-      register: paru_check
-      changed_when: false
-      failed_when: false
+    - name: Ensure ansible_user can run pacman without password
+      ansible.builtin.lineinfile:
+        path: "/etc/sudoers.d/11-install-{{ ansible_user_id }}"
+        line: "{{ ansible_user_id }} ALL=(ALL) NOPASSWD: /usr/bin/pacman"
+        create: yes
+        mode: "0644"
+        validate: "visudo -cf %s"
+      become: true
 
-    - name: Install paru if missing
-      ansible.builtin.include_tasks: install-paru.yml
-      when: paru_check.rc != 0
-
-    - name: Install all packages via paru (handles both official and AUR)
-      ansible.builtin.command:
-        cmd: "paru -S --noconfirm --needed {{ merged_packages_install | join(' ') }}"
-      become: false
-      register: paru_result
-      changed_when: "'installing' in paru_result.stdout or 'upgrading' in paru_result.stdout"
-      failed_when: paru_result.rc != 0
+    - name: Install packages via kewlfft.aur module (handles both official and AUR)
+      kewlfft.aur.aur:
+        name: "{{ merged_packages_install }}"
+        use: auto # Auto-detects: yay, paru, pacaur, trizen, pikaur, or falls back to makepkg
+        state: present
+      become: false # Run as ansible_user, not root
   when:
     - merged_packages_install | length > 0
     - pacman.enable_aur | default(false)

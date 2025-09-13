@@ -81,8 +81,7 @@ infrastructure:
             Ubuntu: []
             Debian: []
       pacman:             # Arch Linux settings
-        enable_aur: true  # Use AUR helper for packages
-        aur_helper: paru
+        enable_aur: true  # Use kewlfft.aur module for AUR packages
       homebrew:           # macOS settings
         taps: []
         cleanup_cache: false
@@ -128,9 +127,16 @@ infrastructure:
                 signed_by: "https://download.docker.com/linux/ubuntu/gpg"
 ```
 
-### Arch Linux (Hybrid pacman/paru approach)
+### Arch Linux (kewlfft.aur module with auto-detection)
 
-**When `enable_aur: true`** (default) - Uses `paru` command for everything:
+**When `enable_aur: true`** - Uses kewlfft.aur module for all packages (official + AUR):
+
+The kewlfft.aur module automatically:
+- Detects installed AUR helpers (yay, paru, pacaur, trizen, pikaur)
+- Uses the first available helper found
+- Falls back to makepkg if no helper is installed
+- Handles both official repository and AUR packages seamlessly
+- Runs as the ansible_user (non-root) with sudo privileges for pacman
 ```yaml
 infrastructure:
   host:
@@ -141,8 +147,7 @@ infrastructure:
             - firefox        # Official package
             - visual-studio-code-bin  # AUR package - handled transparently
       pacman:
-        enable_aur: true     # Use paru for all packages
-        aur_helper: paru     # Currently only paru supported
+        enable_aur: true     # Use kewlfft.aur for all packages
 ```
 
 **When `enable_aur: false`** - Uses `community.general.pacman` directly:
@@ -257,7 +262,7 @@ infrastructure:
                 all:
                   Archlinux:
                     - base-devel           # Official
-                    - paru                 # AUR
+                    - yay                  # AUR (or any AUR helper)
                     - visual-studio-code-bin  # AUR
               pacman:
                 enable_aur: true           # Handle both official and AUR
@@ -265,7 +270,8 @@ infrastructure:
 
 ## Dependencies
 
-- `community.general` - For pacman module (Arch Linux)
+- `community.general` - For pacman module (Arch Linux fallback)
+- `kewlfft.aur` - For AUR package management on Arch Linux
 - `ansible.posix` - For various system tasks
 - `geerlingguy.mac.homebrew` - For macOS package management (auto-installed via galaxy)
 
@@ -274,7 +280,7 @@ infrastructure:
 - [ansible.builtin.apt module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html) (Debian/Ubuntu)
 - [community.general.pacman module](https://docs.ansible.com/ansible/latest/collections/community/general/pacman_module.html) (Arch Linux)
 - [geerlingguy.mac.homebrew role](https://galaxy.ansible.com/geerlingguy/mac) (macOS)
-- [paru AUR helper](https://github.com/Morganamilo/paru) (Arch Linux AUR)
+- [kewlfft.aur module](https://github.com/kewlfft/ansible-aur) (Arch Linux AUR support)
 
 ## License
 

@@ -52,6 +52,7 @@ dependencies:
   community.general: ">=8.0.0"
   ansible.posix: ">=1.5.0"
   geerlingguy.mac: ">=2.0.0"
+  kewlfft.aur: ">=1.0.0"
 
 # The URL of the originating SCM repository
 repository: https://github.com/wolskinet/ansible-infrastructure
