@@ -1,10 +1,22 @@
 ---
-# Ansible Collection Dependencies for wolskinet.infrastructure
+# Ansible Dependencies for wolskinet.infrastructure
+# Install with: ansible-galaxy install -r requirements.yml
 
 collections:
   - name: community.general
-    version: ">=11.0.0"
+    version: ">=8.0.0"
+  - name: community.docker
+    version: ">=3.0.0"
   - name: ansible.posix
     version: ">=1.5.0"
-  - name: community.docker
-    version: ">=3.4.0"
+  - name: geerlingguy.mac
+    version: ">=2.0.0"
+  - name: kewlfft.aur
+    version: ">=0.13.0"
+  - name: devsec.hardening
+    version: ">=9.0.0"
+
+# External roles required by this collection
+roles:
+  - name: geerlingguy.docker
+    version: ">=7.0.0"
