@@ -19,11 +19,13 @@ Configures basic OS configuration (timezone, locale, NTP, hostname) and distribu
 
 1. **Common Setup** (`main.yml`): Distribution config setup, timezone
 2. **OS-Specific**:
-   - `configure-Linux.yml`: **OS hardening first**, then locale, NTP, journal, hostname (all Linux distributions)
+   - `configure-Linux.yml`: **devsec.hardening.os_hardening first** (handles sysctl, PAM limits, kernel modules), then locale, NTP, journal, hostname
    - `configure-Darwin.yml`: macOS-specific configuration
 3. **Distribution-Specific** (for Linux only):
    - `configure-Debian.yml`: Ubuntu + Debian specific settings
    - `configure-Archlinux.yml`: Arch Linux specific settings
+
+**devsec.hardening Integration:** This role leverages devsec.hardening.os_hardening for comprehensive Linux security hardening, eliminating the need for duplicate sysctl, PAM limits, and kernel module management. Our variables (`host_sysctl.parameters`, `host_modules`, `host_limits`) are mapped to devsec.hardening variables for unified configuration.
 
 ## Role Variables
 
@@ -59,16 +61,18 @@ host_security:
 
 # Host sysctl parameters (Linux)
 host_sysctl: {}
-# Example: { parameters: { "vm.swappiness": 10 } }
-# Note: These override/extend security hardening sysctl settings
+# Example: { parameters: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 } }
+# Note: These extend/override devsec.hardening's comprehensive sysctl security settings
 
-# Host limits (Linux)
+# Host limits (Linux) - HANDLED BY DEVSEC.HARDENING
 host_limits: {}
-# Example: { limits: [{ domain: "*", limit_type: "soft", limit_item: "nofile", value: 65536 }] }
+# Note: PAM limits are managed by devsec.hardening.os_hardening's comprehensive PAM configuration
+# This variable is preserved for backward compatibility but functionality is delegated
 
-# Host modules (Linux)
+# Host modules (Linux) - PARTIALLY HANDLED BY DEVSEC.HARDENING
 host_modules: {}
 # Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
+# Note: load/blacklist are mapped to devsec.hardening variables for unified management
 
 # Host udev rules (Linux)
 host_udev: {}
@@ -89,10 +93,8 @@ rsyslog:
   remote_port: 514
   protocol: "udp"
 
-# System optimizations (Linux)
-optimizations:
-  tune_swappiness: false
-  swappiness: 10
+# Note: System optimizations are now handled via host_sysctl.parameters
+# which are passed to devsec.hardening.os_hardening for comprehensive management
 ```
 
 ## Example Usage
@@ -137,9 +139,6 @@ optimizations:
     journal:
       configure: true
       max_size: "1G"
-    optimizations:
-      tune_swappiness: true
-      swappiness: 1
 ```
 
 ### macOS Configuration
@@ -205,6 +204,41 @@ host_sysctl:
 - Kubernetes nodes (masters and workers)
 - Systems running container orchestration
 - Hosts with NAT/routing requirements
+
+## Common Hardening Issues and Solutions
+
+### Memory Randomization Compatibility (vm.mmap_rnd_bits)
+
+The hardening sets `vm.mmap_rnd_bits: 32` by default for enhanced security, but some older systems only support smaller values. If you encounter errors like "Invalid argument" during sysctl application:
+
+```yaml
+host_sysctl:
+  parameters:
+    # Reduce memory randomization for older systems
+    vm.mmap_rnd_bits: 16
+    # Or disable completely if needed
+    vm.mmap_rnd_bits: 0
+```
+
+**Common systems requiring lower values**:
+- Older kernel versions (< 4.1)
+- 32-bit systems
+- Some virtualization platforms
+- Embedded systems
+
+### SSH Keys and Password Expiry
+
+The hardening enables password aging by default, which can block SSH key logins after passwords expire. The collection handles this automatically, but if you use custom PAM configuration, ensure the `pam_unix.so` module includes `no_pass_expiry`:
+
+```
+account     required      pam_unix.so no_pass_expiry
+```
+
+To disable password aging entirely:
+```yaml
+host_security:
+  enforce_password_aging: false
+```
 
 ## Requirements
 

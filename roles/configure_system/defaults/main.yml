@@ -82,9 +82,9 @@ rsyslog:
   remote_port: 514
   protocol: "udp"
 
-optimizations:
-  tune_swappiness: false
-  swappiness: 10
+# Note: System optimizations like vm.swappiness are now handled via host_sysctl.parameters
+# and passed to devsec.hardening.os_hardening via sysctl_overwrite
+# Example: host_sysctl.parameters.vm.swappiness: 10
 
 firewall:
   enabled: false
