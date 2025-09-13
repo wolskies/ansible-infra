@@ -5,9 +5,8 @@
 # This role handles domain-level and host-level OS configuration including
 # hostname, timezone, locale, NTP, logging, services, and security hardening
 #
-# DEVSEC.HARDENING INTEGRATION: This role leverages devsec.hardening.os_hardening
-# for comprehensive Linux security (200+ configurations). Variables like
-# host_sysctl and host_modules are passed through to devsec.hardening for unified management.
+# Uses devsec.hardening.os_hardening for Linux security hardening.
+# Some variables exposed for convenience. See devsec.hardening docs for advanced usage.
 #
 # Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
@@ -23,31 +22,24 @@ domain_ntp:
 host_hostname: ""
 host_update_hosts: true
 
-# Host services (Linux systemd service management)
-host_services: {}
+host_services: {} # systemd service management
 # Example: { enable: ["nginx"], disable: ["bluetooth"], mask: ["snapd"] }
 
-# Host sysctl parameters (Linux) - passed through to devsec.hardening
-host_sysctl: {}
+host_sysctl: {} # passed through to devsec.hardening as sysctl_overwrite
 # Example: { parameters: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 } }
-# Note: devsec.hardening applies comprehensive security sysctl, these extend/override via sysctl_overwrite
 
-# Host kernel modules (Linux) - passed through to devsec.hardening
-host_modules: {}
+host_modules: {} # passed through to devsec.hardening as os_kernel_modules_load/os_unused_filesystems
 # Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
-# Note: load/blacklist are passed to devsec.hardening via os_kernel_modules_load/os_unused_filesystems
 
-# Host udev rules (Linux) - NOT handled by devsec.hardening
-host_udev: {}
+host_udev: {} # udev rules (not handled by devsec.hardening)
 # Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
 
-# Host security settings - mapped to devsec.hardening.os_hardening variables
-host_security:
-  hardening_enabled: true # Enable/disable comprehensive OS hardening
-  disable_ctrl_alt_del: false # Disable ctrl-alt-delete key combination
-  users_allow: [] # List of users allowed to perform privileged operations
-  remove_additional_root_users: false # Remove additional root users beyond root
-  enforce_password_aging: true # Enable password aging policies
+host_security: # passed through to devsec.hardening
+  hardening_enabled: true
+  disable_ctrl_alt_del: false
+  users_allow: []
+  remove_additional_root_users: false
+  enforce_password_aging: true
 
 host_fonts:
   nerd_fonts:
@@ -67,10 +59,6 @@ rsyslog:
   remote_host: ""
   remote_port: 514
   protocol: "udp"
-
-# Note: System optimizations like vm.swappiness are handled via host_sysctl.parameters
-# which are passed through to devsec.hardening.os_hardening via sysctl_overwrite
-# Example: host_sysctl.parameters.vm.swappiness: 10
 
 apt:
   no_recommends: false

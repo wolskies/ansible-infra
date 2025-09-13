@@ -25,7 +25,7 @@ Configures basic OS configuration (timezone, locale, NTP, hostname) and distribu
    - `configure-Debian.yml`: Ubuntu + Debian specific settings
    - `configure-Archlinux.yml`: Arch Linux specific settings
 
-**devsec.hardening Integration:** This role leverages devsec.hardening.os_hardening for comprehensive Linux security hardening, eliminating the need for duplicate sysctl, PAM limits, and kernel module management. Our variables (`host_sysctl.parameters`, `host_modules`, `host_limits`) are mapped to devsec.hardening variables for unified configuration.
+**Security Hardening:** Uses devsec.hardening.os_hardening for comprehensive Linux security (200+ configurations). Some variables are exposed in our defaults for convenience. Power users should refer to devsec.hardening documentation for additional functionality.
 
 ## Role Variables
 
@@ -59,20 +59,11 @@ host_security:
   remove_additional_root_users: false
   enforce_password_aging: true
 
-# Host sysctl parameters (Linux)
-host_sysctl: {}
+host_sysctl: {} # passed through to devsec.hardening as sysctl_overwrite
 # Example: { parameters: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 } }
-# Note: These extend/override devsec.hardening's comprehensive sysctl security settings
 
-# Host limits (Linux) - HANDLED BY DEVSEC.HARDENING
-host_limits: {}
-# Note: PAM limits are managed by devsec.hardening.os_hardening's comprehensive PAM configuration
-# This variable is preserved for backward compatibility but functionality is delegated
-
-# Host modules (Linux) - PARTIALLY HANDLED BY DEVSEC.HARDENING
-host_modules: {}
+host_modules: {} # passed through to devsec.hardening as os_kernel_modules_load/os_unused_filesystems
 # Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
-# Note: load/blacklist are mapped to devsec.hardening variables for unified management
 
 # Host udev rules (Linux)
 host_udev: {}
@@ -93,8 +84,6 @@ rsyslog:
   remote_port: 514
   protocol: "udp"
 
-# Note: System optimizations are now handled via host_sysctl.parameters
-# which are passed to devsec.hardening.os_hardening for comprehensive management
 ```
 
 ## Example Usage
