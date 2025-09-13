@@ -27,102 +27,72 @@ Configures basic OS configuration (timezone, locale, NTP, hostname) and distribu
 
 ## Role Variables
 
-### Infrastructure Hierarchy
+### Variable Structure
 
-Uses the unified infrastructure structure with domain/host separation:
+Uses flat variables for configuration (see configure_system/defaults/main.yml for complete reference):
 
 ```yaml
-infrastructure:
-  domain:
-    name: "company.com" # Domain name
-    timezone: "America/New_York" # Optional: shared timezone (empty = system default)
-    locale: "en_US.UTF-8" # Shared locale
-    language: "en_US.UTF-8" # Shared language
-    ntp:
-      enabled: true # Enable NTP synchronization
-      servers: # Optional: custom NTP servers (empty = system defaults)
-        - time1.company.com
-        - time2.company.com
+# Domain-level variables (shared across hosts)
+domain_name: "company.com"
+domain_timezone: "America/New_York"
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_ntp:
+  enabled: true
+  servers: ["time1.company.com"]
 
-  host:
-    hostname: "" # Individual hostname (empty = keep current)
-    update_hosts: true # Update /etc/hosts with hostname
+# Host-level variables
+host_hostname: ""
+host_update_hosts: true
 
-    # systemd journal configuration (Linux)
-    journal:
-      configure: true
-      max_size: "500M"
-      max_retention: "30d"
-      forward_to_syslog: false
-      compress: true
+# Host services (Linux)
+host_services: {}
+# Example: { enable: ["nginx"], disable: ["bluetooth"] }
 
-    # Remote logging via rsyslog (Linux)
-    rsyslog:
-      enabled: false
-      remote_host: ""
-      remote_port: 514
-      protocol: "udp"
+# Host security hardening (Linux)
+host_security:
+  disable_ctrl_alt_del: false
+  users_allow: []
+  remove_additional_root_users: false
+  enforce_password_aging: true
 
-    # System service management (Linux)
-    services:
-      enable: [] # Services to enable and start
-      disable: [] # Services to disable and stop
+# Host sysctl parameters (Linux)
+host_sysctl: {}
+# Example: { parameters: { "vm.swappiness": 10 } }
+# Note: These override/extend security hardening sysctl settings
 
-    # System optimizations (Linux)
-    optimizations:
-      tune_swappiness: false
-      swappiness: 10
+# Host limits (Linux)
+host_limits: {}
+# Example: { limits: [{ domain: "*", limit_type: "soft", limit_item: "nofile", value: 65536 }] }
 
-    # Security hardening options (Linux)
-    security:
-      disable_ctrl_alt_del: false      # Disable Ctrl-Alt-Del key combination
-      users_allow: []                  # List of things users are allowed to do (e.g., ['change_user'])
-      remove_additional_root_users: false  # Remove users with UID=0 except root
-      enforce_password_aging: true     # Enforce password aging policies
+# Host modules (Linux)
+host_modules: {}
+# Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
 
-    # Kernel parameters (sysctl) (Linux)
-    sysctl:
-      parameters: {}
-      # Example: { "net.core.default_qdisc": "fq" }
-      # Note: These will be merged with/override security hardening sysctl settings
+# Host udev rules (Linux)
+host_udev: {}
+# Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
 
-    # PAM limits configuration (Linux)
-    limits:
-      limits: []
-      # Example: [{ domain: "*", limit_type: "soft", limit_item: "nofile", value: 65536 }]
+# Journal configuration (Linux)
+journal:
+  configure: false
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
 
-    # Kernel module management (Linux)
-    modules:
-      load: [] # Modules to load at boot
-      blacklist: [] # Modules to blacklist
+# Remote logging (Linux)
+rsyslog:
+  enabled: false
+  remote_host: ""
+  remote_port: 514
+  protocol: "udp"
 
-    # Snap package system settings (Ubuntu/Debian)
-    snap:
-      remove_completely: false
-
-    # Package manager settings
-    packages:
-      apt: # Ubuntu/Debian settings
-        no_recommends: false
-        proxy: ""
-        unattended_upgrades:
-          enabled: true
-          email: ""
-          auto_reboot: false
-          reboot_time: "02:00"
-      pacman: # Arch Linux settings
-        no_confirms: false
-        proxy: ""
-        multilib: false
-      macosx: # macOS settings
-        updates:
-          auto_check: true
-          auto_download: true
-        gatekeeper:
-          enabled: true
+# System optimizations (Linux)
+optimizations:
+  tune_swappiness: false
+  swappiness: 10
 ```
-
-**Note**: This role focuses on core OS configuration. GUI-related macOS settings were previously handled by the manage_system_settings role, but that functionality has been consolidated into this role.
 
 ## Example Usage
 
@@ -133,86 +103,73 @@ infrastructure:
   include_role:
     name: wolskinet.infrastructure.os_configuration
   vars:
-    infrastructure:
-      domain:
-        name: "example.com"
-        timezone: "America/New_York"
-      host:
-        hostname: "web-server-01"
+    domain_name: "example.com"
+    domain_timezone: "America/New_York"
+    host_hostname: "web-server-01"
 ```
 
-### Advanced Ubuntu Server
+### Advanced Linux Server
 
 ```yaml
-- name: Configure Ubuntu server
+- name: Configure Linux server with hardening
   include_role:
     name: wolskinet.infrastructure.os_configuration
   vars:
-    infrastructure:
-      domain:
-        name: "internal.company.com"
-        timezone: "America/New_York"
-        ntp:
-          servers: [ntp1.company.com, ntp2.company.com]
-      host:
-        hostname: "db-primary"
-        journal:
-          configure: true
-          max_size: "1G"
-        services:
-          enable: ["systemd-timesyncd"]
-          disable: ["bluetooth", "cups"]
-        optimizations:
-          tune_swappiness: true
-          swappiness: 1
-        packages:
-          apt:
-            no_recommends: true
-            unattended_upgrades:
-              enabled: true
-              email: "admin@company.com"
-              auto_reboot: true
-              reboot_time: "03:00"
+    domain_name: "internal.company.com"
+    domain_timezone: "America/New_York"
+    domain_ntp:
+      enabled: true
+      servers: ["ntp1.company.com", "ntp2.company.com"]
+
+    host_hostname: "db-primary"
+    host_services:
+      enable: ["systemd-timesyncd"]
+      disable: ["bluetooth", "cups"]
+    host_security:
+      disable_ctrl_alt_del: true
+      enforce_password_aging: true
+    host_sysctl:
+      parameters:
+        vm.swappiness: 1
+        net.core.default_qdisc: "fq"
+
+    journal:
+      configure: true
+      max_size: "1G"
+    optimizations:
+      tune_swappiness: true
+      swappiness: 1
 ```
 
-### macOS Workstation
+### macOS Configuration
 
 ```yaml
-- name: Configure macOS workstation
+- name: Configure macOS system
   include_role:
     name: wolskinet.infrastructure.os_configuration
   vars:
-    infrastructure:
-      domain:
-        name: "local"
-        timezone: "America/Los_Angeles"
-      host:
-        hostname: "MacBook-Pro"
-        packages:
-          macosx:
-            updates:
-              auto_check: true
-              auto_download: false
+    domain_name: "local"
+    domain_timezone: "America/Los_Angeles"
+    host_hostname: "MacBook-Pro"
 ```
 
 ### Multi-Host Environment
 
 ```yaml
 # inventory/group_vars/all.yml
-infrastructure:
-  domain:
-    name: "company.com"
-    timezone: "America/New_York"  # Optional timezone
-    locale: "en_US.UTF-8"
-    ntp:
-      servers: [time1.company.com, time2.company.com]  # Optional: custom NTP servers
+domain_name: "company.com"
+domain_timezone: "America/New_York"
+domain_locale: "en_US.UTF-8"
+domain_ntp:
+  enabled: true
+  servers: ["time1.company.com", "time2.company.com"]
 
 # inventory/host_vars/web01.yml
-infrastructure:
-  host:
-    hostname: "web01"
-    services:
-      disable: [bluetooth]
+host_hostname: "web01"
+host_services:
+  disable: ["bluetooth"]
+host_security:
+  disable_ctrl_alt_del: true
 ```
 
 ## Requirements
