@@ -62,7 +62,7 @@ host_security:
 host_sysctl: {} # passed through to devsec.hardening as sysctl_overwrite
 # Example: { parameters: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 } }
 
-host_modules: {} # blacklist passed to devsec.hardening, load handled directly
+host_modules: {} # kernel module management (not handled by devsec.hardening)
 # Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
 
 # Host udev rules (Linux)
