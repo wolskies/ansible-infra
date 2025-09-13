@@ -3,24 +3,19 @@
   ansible.builtin.include_role:
     name: devsec.hardening.os_hardening
   vars:
-    # Map existing infrastructure variables to hardening variables
+    # Map infrastructure variables to devsec.hardening variables
     os_hardening_enabled: "{{ host_security.hardening_enabled | default(true) }}"
 
-    # Sysctl parameters (devsec.hardening handles comprehensive sysctl + our overrides)
+    # Pass through user sysctl and module settings to devsec.hardening
     sysctl_overwrite: "{{ host_sysctl.parameters | default({}) }}"
+    os_kernel_modules_load: "{{ host_modules.load | default([]) }}"
+    os_unused_filesystems: "{{ host_modules.blacklist | default([]) }}"
 
     # Security settings
     os_ctrlaltdel_disabled: "{{ host_security.disable_ctrl_alt_del | default(false) }}"
     os_security_users_allow: "{{ host_security.users_allow | default([]) }}"
     os_remove_additional_root_users: "{{ host_security.remove_additional_root_users | default(false) }}"
     os_user_pw_ageing: "{{ host_security.enforce_password_aging | default(true) }}"
-
-    # Kernel modules (devsec.hardening handles modules + our additions)
-    os_kernel_modules_load: "{{ host_modules.load | default([]) }}"
-    os_unused_filesystems: "{{ host_modules.blacklist | default([]) }}"
-
-    # PAM limits (devsec.hardening handles PAM configuration)
-    # Note: host_limits are handled by devsec.hardening's PAM configuration
   when: host_security.hardening_enabled | default(true)
   tags:
     - security

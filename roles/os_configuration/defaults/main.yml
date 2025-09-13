@@ -7,7 +7,7 @@
 #
 # DEVSEC.HARDENING INTEGRATION: This role leverages devsec.hardening.os_hardening
 # for comprehensive Linux security (200+ configurations). Variables like
-# host_sysctl, host_modules, and host_security are mapped to hardening variables.
+# host_sysctl and host_modules are passed through to devsec.hardening for unified management.
 #
 # Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
@@ -27,20 +27,15 @@ host_update_hosts: true
 host_services: {}
 # Example: { enable: ["nginx"], disable: ["bluetooth"], mask: ["snapd"] }
 
-# Host sysctl parameters (Linux) - extends/overrides devsec.hardening settings
+# Host sysctl parameters (Linux) - passed through to devsec.hardening
 host_sysctl: {}
 # Example: { parameters: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 } }
-# Note: These are passed to devsec.hardening.os_hardening via sysctl_overwrite
+# Note: devsec.hardening applies comprehensive security sysctl, these extend/override via sysctl_overwrite
 
-# Host PAM limits (Linux) - HANDLED BY DEVSEC.HARDENING
-host_limits: {}
-# Note: PAM limits are managed by devsec.hardening.os_hardening's comprehensive PAM configuration
-# This variable is preserved for backward compatibility but functionality is delegated
-
-# Host kernel modules (Linux) - PARTIALLY HANDLED BY DEVSEC.HARDENING
+# Host kernel modules (Linux) - passed through to devsec.hardening
 host_modules: {}
-# Example: { load: ["uvcvideo"], blacklist: ["nouveau"], options: { "snd-hda-intel": { "enable": 1 } } }
-# Note: load/blacklist are mapped to devsec.hardening variables for unified management
+# Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
+# Note: load/blacklist are passed to devsec.hardening via os_kernel_modules_load/os_unused_filesystems
 
 # Host udev rules (Linux) - NOT handled by devsec.hardening
 host_udev: {}
@@ -73,8 +68,8 @@ rsyslog:
   remote_port: 514
   protocol: "udp"
 
-# Note: System optimizations like vm.swappiness are now handled via host_sysctl.parameters
-# and passed to devsec.hardening.os_hardening via sysctl_overwrite
+# Note: System optimizations like vm.swappiness are handled via host_sysctl.parameters
+# which are passed through to devsec.hardening.os_hardening via sysctl_overwrite
 # Example: host_sysctl.parameters.vm.swappiness: 10
 
 apt:
