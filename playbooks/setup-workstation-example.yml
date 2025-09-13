@@ -52,43 +52,48 @@
 
   roles:
     # 1. Core system setup with standard OS packages
-    - role: wolskies.infrastructure.os_configuration
+    - role: os_configuration
       tags:
         - basic
         - system
         - configuration
 
-    - role: wolskies.infrastructure.manage_packages
+    - role: manage_packages
       tags:
         - basic
         - system
         - packages
 
-    - role: wolskies.infrastructure.manage_users
+    - role: manage_users
       tags:
         - basic
         - system
         - users
 
-    # 2. Language packages (npm, pip, cargo, go)
-    - role: wolskies.infrastructure.manage_language_packages
-      when: >
-        (pip_packages is defined and pip_packages | length > 0) or
-        (npm_packages is defined and npm_packages | length > 0) or
-        (third_party_packages is defined and third_party_packages | length > 0) or
-        (additional_repositories is defined)
-      tags:
-        - third-party
-        - development
-        - repositories
+    # 2. Language packages (uncomment if you have language-specific roles)
+    # - role: nodejs
+    #   when: npm_packages is defined and npm_packages | length > 0
+    #   tags:
+    #     - nodejs
+    #     - development
+    # - role: rust
+    #   when: cargo_packages is defined and cargo_packages | length > 0
+    #   tags:
+    #     - rust
+    #     - development
+    # - role: go
+    #   when: go_packages is defined and go_packages | length > 0
+    #   tags:
+    #     - go
+    #     - development
 
-    # 3. User configuration and dotfiles
-    - role: wolskies.infrastructure.dotfiles
-      become: false
-      when: dotfiles_repository_url is defined and dotfiles_repository_url != ""
-      tags:
-        - dotfiles
-        - user-config
+    # 3. User configuration (configure_user role)
+    # - role: configure_user
+    #   become: false
+    #   when: configure_user is defined
+    #   tags:
+    #     - dotfiles
+    #     - user-config
 
   post_tasks:
     - name: Enable desktop services (Linux)
