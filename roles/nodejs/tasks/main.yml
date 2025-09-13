@@ -6,7 +6,7 @@
   ansible.builtin.assert:
     that:
       - node_user is defined
-      - node_user | length > 0
+      - node_user
       - node_packages is defined
     fail_msg: "nodejs role requires node_user and node_packages variables"
 
@@ -16,25 +16,25 @@
     state: present
   become: true
   when:
-    - node_packages | length > 0
+    - node_packages
     - ansible_os_family != 'Darwin'
 
 - name: Install Node.js system dependencies (Debian/Ubuntu)
   ansible.builtin.include_tasks: setup-Debian.yml
   when:
-    - node_packages | length > 0
+    - node_packages
     - ansible_os_family == 'Debian'
 
 - name: Install Node.js system dependencies (Arch Linux)
   ansible.builtin.include_tasks: setup-Archlinux.yml
   when:
-    - node_packages | length > 0
+    - node_packages
     - ansible_os_family == 'Archlinux'
 
 - name: Install Node.js system dependencies (macOS)
   ansible.builtin.include_tasks: setup-Darwin.yml
   when:
-    - node_packages | length > 0
+    - node_packages
     - ansible_system == 'Darwin'
 
 - name: Create npm global directory for {{ node_user }}
@@ -44,7 +44,7 @@
     mode: "0755"
   become: true
   become_user: "{{ node_user }}"
-  when: node_packages | length > 0
+  when: node_packages
   tags:
     - nodejs
     - user-packages
@@ -62,7 +62,7 @@
   loop: "{{ node_packages }}"
   become: true
   become_user: "{{ node_user }}"
-  when: node_packages | length > 0
+  when: node_packages
   tags:
     - nodejs
     - user-packages

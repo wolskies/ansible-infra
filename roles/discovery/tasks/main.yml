@@ -1,24 +1,6 @@
 ---
 # Simplified Discovery Role - trust Ansible's built-ins
 
-- name: Validate supported OS versions
-  ansible.builtin.fail:
-    msg: |
-      {{ ansible_distribution }} {{ ansible_distribution_version }} is not supported.
-      Supported distributions:
-      - Ubuntu 22+
-      - Debian 12+
-      - Arch Linux
-      - macOS
-  when:
-    - (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int < 22) or
-      (ansible_distribution == "Debian" and ansible_distribution_major_version | int < 12) or
-      (ansible_distribution not in ["Archlinux", "Ubuntu", "Debian", "MacOSX"])
-  tags:
-    - always
-    - validation
-    - discovery
-
 - name: Set output paths
   ansible.builtin.set_fact:
     discovery_paths:
@@ -76,34 +58,6 @@
 - name: Discover system settings state
   ansible.builtin.include_tasks: scan-system-settings.yml
 
-- name: Get current timezone configuration
-  ansible.builtin.command: timedatectl show --property=Timezone --value
-  register: current_timezone_cmd
-  changed_when: false
-  failed_when: false
-  when: ansible_system == "Linux"
-
-- name: Get current timezone configuration (macOS)
-  ansible.builtin.command: readlink /etc/localtime
-  register: current_timezone_macos_cmd
-  changed_when: false
-  failed_when: false
-  when: ansible_system == "Darwin"
-
-- name: Get current locale settings
-  ansible.builtin.command: locale
-  register: current_locale_cmd
-  changed_when: false
-  failed_when: false
-  when: ansible_system == "Linux"
-
-- name: Get current locale settings (macOS)
-  ansible.builtin.command: locale
-  register: current_locale_macos_cmd
-  changed_when: false
-  failed_when: false
-  when: ansible_system == "Darwin"
-
 - name: Get NTP status
   ansible.builtin.command: timedatectl show --property=NTP --value
   register: current_ntp_cmd
@@ -122,24 +76,9 @@
   ansible.builtin.set_fact:
     discovery_hostname: "{{ ansible_hostname }}"
     discovery_domain_name: "{{ ansible_domain | default('') }}"
-    discovery_domain_timezone: >-
-      {{
-        current_timezone_cmd.stdout | default(
-          current_timezone_macos_cmd.stdout | default('') | regex_replace('.*/zoneinfo/(.*)', '\1')
-        ) | default('')
-      }}
-    discovery_domain_locale: >-
-      {{
-        (current_locale_cmd.stdout | default(current_locale_macos_cmd.stdout | default('')))
-        | regex_findall('LANG=(.+)')
-        | first | default('')
-      }}
-    discovery_domain_language: >-
-      {{
-        (current_locale_cmd.stdout | default(current_locale_macos_cmd.stdout | default('')))
-        | regex_findall('LANG=(.+)')
-        | first | default('')
-      }}
+    discovery_domain_timezone: "{{ ansible_date_time.tz }}"
+    discovery_domain_locale: "{{ ansible_env.LANG | default('') }}"
+    discovery_domain_language: "{{ ansible_env.LANG | default('') }}"
     discovery_domain_ntp_enabled: >-
       {{
         (current_ntp_cmd is defined and

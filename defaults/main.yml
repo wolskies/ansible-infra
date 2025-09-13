@@ -1,0 +1,80 @@
+---
+# =============================================================================
+# COLLECTION-WIDE DEFAULTS
+# =============================================================================
+# Shared variables used across multiple roles to eliminate duplication
+# Individual roles can override these as needed
+# =============================================================================
+
+# Domain-level configuration
+domain_name: ""
+domain_timezone: ""
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_ntp:
+  enabled: false
+  servers: []
+
+# Host-level configuration
+host_hostname: ""
+host_update_hosts: true
+host_services: {}
+host_sysctl:
+  parameters: {}
+host_modules: {}
+host_udev: {}
+host_security:
+  hardening_enabled: true
+  disable_ctrl_alt_del: false
+  users_allow: []
+  remove_additional_root_users: false
+  enforce_password_aging: true
+
+# System logging
+journal:
+  configure: false
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
+
+rsyslog:
+  enabled: false
+  remote_host: ""
+  remote_port: 514
+  protocol: "udp"
+
+# Package manager configuration
+apt:
+  no_recommends: false
+  proxy: ""
+  unattended_upgrades:
+    enabled: true
+    email: ""
+    auto_reboot: false
+    reboot_with_users: false
+    reboot_time: "02:00"
+
+pacman:
+  no_confirms: false
+  proxy: ""
+  multilib: false
+
+# macOS specific
+macosx:
+  updates:
+    auto_check: true
+    auto_download: true
+  gatekeeper:
+    enabled: true
+  system_preferences:
+    natural_scroll: true
+    measurement_units: "Inches"
+    use_metric: false
+    show_all_extensions: false
+  airdrop:
+    ethernet_enabled: false
+
+# Snap configuration
+snap:
+  remove_completely: false

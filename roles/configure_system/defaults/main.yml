@@ -15,80 +15,9 @@
 #   - optional            : All optional components
 # =============================================================================
 
-domain_name: ""
-domain_timezone: ""
-domain_locale: "en_US.UTF-8"
-domain_language: "en_US.UTF-8"
-domain_ntp:
-  enabled: false
-  servers: [] # Leave empty to use OS defaults
+# Role-specific defaults (shared variables moved to collection defaults/main.yml)
+
 users: []
-# User configuration structure documented in collection README
-# Example user with cross-platform and OS-specific preferences:
-# - name: alice
-#   comment: "Alice Developer"
-#   groups: [sudo, docker]
-#   ssh_pubkey: "ssh-ed25519 AAAAC3..."
-#   password: "plaintext"
-#   uid: 1001                   # Optional: specific user ID
-#   home: "/custom/home"        # Optional: home directory path
-#   create_home: true           # Optional: create home directory
-#   state: present              # Optional: present (default) or absent
-#   shell: /usr/bin/zsh
-#   dotfiles:
-#     repository: "https://github.com/alice/dotfiles-linux"
-#     branch: main                    # Optional: default branch to use
-#     dest: .dotfiles                 # Optional: destination directory name
-#     enable: true                    # Optional: enable dotfiles deployment
-#     disable_clone: false            # Optional: skip git operations, only stow
-#   git:
-#     user_name: "Alice Smith"
-#     user_email: "alice@company.com"
-#   nodejs:
-#     packages: [typescript, eslint, prettier]
-#   rust:
-#     packages: [ripgrep, fd-find, bat]
-#   go:
-#     packages: [github.com/charmbracelet/glow@latest]
-#   macosx:
-#     dock:
-#       tile_size: 48
-#       autohide: true
-
-host_hostname: ""
-host_update_hosts: true
-
-host_services: {} # systemd service management
-# Example: { enable: ["nginx"], disable: ["bluetooth"], mask: ["snapd"] }
-
-host_sysctl: # passed to devsec.hardening as sysctl_overwrite
-  parameters: {} # Example: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 }
-
-host_modules: {} # kernel module management
-# Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
-
-host_udev: {} # udev rules
-# Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
-
-host_security:
-  hardening_enabled: true # passed to devsec.hardening as os_hardening_enabled
-  disable_ctrl_alt_del: false # passed to devsec.hardening as os_ctrlaltdel_disabled
-  users_allow: [] # passed to devsec.hardening as os_security_users_allow
-  remove_additional_root_users: false # passed to devsec.hardening as os_remove_additional_root_users
-  enforce_password_aging: true # passed to devsec.hardening as os_user_pw_ageing
-
-journal:
-  configure: false
-  max_size: "500M"
-  max_retention: "30d"
-  forward_to_syslog: false
-  compress: true
-
-rsyslog:
-  enabled: false
-  remote_host: ""
-  remote_port: 514
-  protocol: "udp"
 
 firewall:
   enabled: false
@@ -121,8 +50,6 @@ fail2ban:
 packages:
   present: {}
   remove: {}
-  # Package structure documented in collection README:
-  # present/remove: { all/group/host: { Ubuntu: [], Debian: [], Archlinux: [], MacOSX: [] } }
   casks_present:
     all: []
     group: []

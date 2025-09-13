@@ -38,16 +38,11 @@
         fail_msg: "UFW SSH rule not configured correctly"
       when: security_services.ufw.enabled | default(false)
 
-    - name: Check UFW numbered rules
+    - name: Verify UFW rules structure
       ansible.builtin.command:
         cmd: ufw status numbered
       register: ufw_numbered
       changed_when: false
-      when: security_services.ufw.enabled | default(false)
-
-    - name: Verify UFW rules structure
-      ansible.builtin.debug:
-        msg: "UFW rules configured: {{ ufw_numbered.stdout_lines }}"
       when: security_services.ufw.enabled | default(false)
 
     # Test host-specific rules - skip for now as not configured
