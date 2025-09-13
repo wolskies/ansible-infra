@@ -5,7 +5,7 @@
       - service_name is defined
       - service_name | length > 0
       - docker_services_root is defined
-    fail_msg: "docker_service_boilerplate role requires service_name and docker_services_root variables"
+    fail_msg: "docker_compose_generic role requires service_name and docker_services_root variables"
 
 - name: Ensure Docker is installed
   ansible.builtin.include_role:

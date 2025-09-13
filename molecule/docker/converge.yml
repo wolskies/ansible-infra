@@ -10,5 +10,5 @@
 
     - name: Test Docker service deployment
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.docker_service_boilerplate
+        name: wolskies.infrastructure.docker_compose_generic
       when: test_docker_only is not defined

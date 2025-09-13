@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  role_name: docker_service_boilerplate
+  role_name: docker_compose_generic
   author: wolskies.infrastructure
   description: Deploy Docker Compose services with standardized templates
   license: MIT
