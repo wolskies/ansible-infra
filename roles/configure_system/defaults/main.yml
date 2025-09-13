@@ -63,6 +63,7 @@ host_limits: {}
 host_modules: {}
 host_udev: {}
 host_security:
+  hardening_enabled: true
   disable_ctrl_alt_del: false
   users_allow: []
   remove_additional_root_users: false
