@@ -138,9 +138,9 @@ Services are deployed to:
 ## Notes
 
 - When `service_use_proxy` is true, ports are not exposed directly
-- The service is automatically connected to both networks:
+- With proxy mode, the service connects to:
   - **External proxy network** (e.g., `proxy`) - for incoming traffic from reverse proxy
-  - **Internal service network** (`service_name_internal`) - for container-to-container communication
+  - **Default network** - Docker's automatic isolated network for the service
+- Without proxy mode, Docker automatically creates an isolated network (no configuration needed)
 - Labels are only added when using proxy mode
 - Environment variables in `.env` are automatically loaded by Docker Compose
-- The internal network is NOT external - it's created by Docker Compose for this service only

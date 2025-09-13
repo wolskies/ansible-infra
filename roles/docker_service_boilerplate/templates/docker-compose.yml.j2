@@ -41,13 +41,10 @@ services:
     {% endif %}
     {% endif %}
 
+{% if service_use_proxy %}
 networks:
-  {% if service_use_proxy %}
-  # External proxy network (must already exist)
   {{ proxy_network_name }}:
     external: {{ proxy_network_external | lower }}
-  {% endif %}
-  # Internal network for this service (created by docker-compose)
-  default:
-    name: {{ service_name }}_internal
+  default:  # Docker's automatic internal network
     driver: bridge
+{% endif %}
