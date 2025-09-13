@@ -6,9 +6,8 @@
     # Map infrastructure variables to devsec.hardening variables
     os_hardening_enabled: "{{ host_security.hardening_enabled | default(true) }}"
 
-    # Pass through user sysctl and module settings to devsec.hardening
+    # Pass through user settings to devsec.hardening
     sysctl_overwrite: "{{ host_sysctl.parameters | default({}) }}"
-    os_kernel_modules_load: "{{ host_modules.load | default([]) }}"
     os_unused_filesystems: "{{ host_modules.blacklist | default([]) }}"
 
     # Security settings
@@ -174,10 +173,25 @@
     - optimization
     - services
 
+- name: Load kernel modules at boot
+  ansible.builtin.lineinfile:
+    path: "/etc/modules-load.d/{{ item }}.conf"
+    line: "{{ item }}"
+    create: true
+    mode: "0644"
+  loop: "{{ host_modules.load | default([]) }}"
+  become: true
+  when:
+    - host_modules is defined
+    - host_modules.load | default([]) | length > 0
+  tags:
+    - modules
+    - kernel
+
 # Note: The following tasks are now handled by devsec.hardening.os_hardening:
 # - Sysctl parameters (via sysctl_overwrite mapping)
 # - PAM limits (via comprehensive PAM configuration)
-# - Kernel module loading/blacklisting (via os_kernel_modules_load and os_unused_filesystems)
+# - Kernel module blacklisting (via os_unused_filesystems mapping)
 
 - name: Configure udev rules
   block:
