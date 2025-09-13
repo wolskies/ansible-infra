@@ -5,7 +5,7 @@
   tasks:
     - name: Test configure_user role per user
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.configure_user
+        name: wolskies.infrastructure.configure_user
       vars:
         target_user: "{{ user }}"
       loop: "{{ users }}"
@@ -18,7 +18,7 @@
     # Test idempotency by running again
     - name: Test configure_user role idempotency
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.configure_user
+        name: wolskies.infrastructure.configure_user
       vars:
         target_user: "{{ user }}"
       loop: "{{ users }}"

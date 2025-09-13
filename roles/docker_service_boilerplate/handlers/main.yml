@@ -1,0 +1,8 @@
+---
+- name: restart docker service
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_services_root }}/{{ service_name }}"
+    state: present
+    restarted: true
+  become: true
+  when: service_enabled

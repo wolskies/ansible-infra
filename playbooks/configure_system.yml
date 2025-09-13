@@ -17,21 +17,21 @@
 
     - name: Configure operating system
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.os_configuration
+        name: wolskies.infrastructure.os_configuration
       tags:
         - os
         - infrastructure
 
     - name: Manage system packages
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_packages
+        name: wolskies.infrastructure.manage_packages
       tags:
         - packages
         - infrastructure
 
     - name: Configure security services
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_security_services
+        name: wolskies.infrastructure.manage_security_services
       tags:
         - security
         - infrastructure
@@ -42,14 +42,14 @@
 
     - name: Manage user accounts
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_users
+        name: wolskies.infrastructure.manage_users
       tags:
         - users
         - accounts
 
     - name: Configure user preferences
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.configure_user
+        name: wolskies.infrastructure.configure_user
       vars:
         target_user: "{{ item.username }}"
         current_user_config: "{{ item }}"

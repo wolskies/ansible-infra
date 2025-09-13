@@ -1,0 +1,76 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - service_name is defined
+      - service_name | length > 0
+      - docker_services_root is defined
+    fail_msg: "docker_service_boilerplate role requires service_name and docker_services_root variables"
+
+- name: Ensure Docker is installed
+  ansible.builtin.include_role:
+    name: wolskies.infrastructure.install_docker
+
+- name: Create Docker services root directory
+  ansible.builtin.file:
+    path: "{{ docker_services_root }}"
+    state: directory
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+    mode: "0755"
+  become: true
+
+- name: Create service directory
+  ansible.builtin.file:
+    path: "{{ docker_services_root }}/{{ service_name }}"
+    state: directory
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+    mode: "0755"
+  become: true
+
+- name: Create service data directory
+  ansible.builtin.file:
+    path: "{{ docker_services_root }}/{{ service_name }}/data"
+    state: directory
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+    mode: "0755"
+  become: true
+
+- name: Deploy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_services_root }}/{{ service_name }}/docker-compose.yml"
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+    mode: "0644"
+    backup: true
+  become: true
+  notify: restart docker service
+
+- name: Deploy .env file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ docker_services_root }}/{{ service_name }}/.env"
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+    mode: "0644"
+    backup: true
+  become: true
+  when: service_env_vars | length > 0
+  notify: restart docker service
+
+- name: Start and enable Docker Compose service
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_services_root }}/{{ service_name }}"
+    state: present
+  become: true
+  when: service_enabled
+
+- name: Stop Docker Compose service
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_services_root }}/{{ service_name }}"
+    state: absent
+  become: true
+  when: not service_enabled

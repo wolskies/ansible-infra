@@ -39,11 +39,9 @@ provisioner:
     host_vars:
       ubuntu22-go-manual:
         go_user: testuser
-        go_packages:
-          ["github.com/charmbracelet/glow@latest", "github.com/jesseduffield/lazygit@latest"]
+        go_packages: ["github.com/charmbracelet/glow@latest"]
       ubuntu24-go-auto:
         go_user: testuser
-        go_packages:
-          ["github.com/charmbracelet/glow@latest", "github.com/jesseduffield/lazygit@latest"]
+        go_packages: ["github.com/charmbracelet/glow@latest"]
 verifier:
   name: ansible

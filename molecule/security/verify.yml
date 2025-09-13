@@ -252,7 +252,7 @@
     # =============================================================================
     - name: Test idempotency - run security services again
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_security_services
+        name: wolskies.infrastructure.manage_security_services
       register: idempotency_test
 
     - name: Verify idempotency (no changes on second run)

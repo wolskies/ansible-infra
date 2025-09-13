@@ -14,7 +14,7 @@
   block:
     - name: Install Node.js and packages
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.nodejs
+        name: wolskies.infrastructure.nodejs
       vars:
         node_user: "{{ target_user.name }}"
         node_packages: "{{ target_user.nodejs.packages }}"
@@ -23,7 +23,7 @@
 
     - name: Install Rust and packages
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.rust
+        name: wolskies.infrastructure.rust
       vars:
         rust_user: "{{ target_user.name }}"
         rust_packages: "{{ target_user.rust.packages }}"
@@ -32,7 +32,7 @@
 
     - name: Install Go and packages
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.go
+        name: wolskies.infrastructure.go
       vars:
         go_user: "{{ target_user.name }}"
         go_packages: "{{ target_user.go.packages }}"

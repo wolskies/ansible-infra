@@ -1,7 +1,8 @@
 ---
 # meta file for manage_security_services
 galaxy_info:
-  author: Ed Wolski
+  role_name: manage_security_services
+  author: wolskies.infrastructure
   description: Security services management for fail2ban, intrusion prevention, and firewall services
   company: wolskinet
   license: MIT

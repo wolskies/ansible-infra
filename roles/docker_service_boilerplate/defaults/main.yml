@@ -1,0 +1,7 @@
+---
+# Docker service configuration defaults
+docker_services_root: "/srv/docker"
+service_name: ""
+service_enabled: true
+service_env_vars: {}
+compose_file_content: ""

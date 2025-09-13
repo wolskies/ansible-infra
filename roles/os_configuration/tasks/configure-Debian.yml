@@ -1,7 +1,7 @@
 ---
 - name: Disable and purge snapd
   ansible.builtin.include_role:
-    name: wolskinet.infrastructure.manage_snap_packages
+    name: wolskies.infrastructure.manage_snap_packages
   vars:
     snap_management_action: "purge"
     snap_purge_confirm: "{{ snap.remove_completely | default(false) }}"

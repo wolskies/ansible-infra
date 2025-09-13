@@ -1,5 +1,5 @@
 ---
-# Discovery Playbook for wolskinet.infrastructure collection
+# Discovery Playbook for wolskies.infrastructure collection
 # Scans target machine(s) and generates deployment configurations
 #
 # Usage: ansible-playbook playbooks/run-discovery.yml -i inventory/inventory.yml -l target-host --ask-become-pass
