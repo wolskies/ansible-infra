@@ -10,7 +10,7 @@
       block:
         - name: Test with both hostname and domain
           ansible.builtin.include_role:
-            name: wolskies.infrastructure.configure_host
+            name: wolskies.infrastructure.os_configuration
           vars:
             config_hostname: "test-host"
             config_domain: "test.local"
@@ -29,7 +29,7 @@
       block:
         - name: Test with only domain defined
           ansible.builtin.include_role:
-            name: wolskies.infrastructure.configure_host
+            name: wolskies.infrastructure.os_configuration
           vars:
             config_hostname: "" # Empty - use current hostname
             config_domain: "production.example.com"
@@ -48,7 +48,7 @@
       block:
         - name: Test with only hostname defined
           ansible.builtin.include_role:
-            name: wolskies.infrastructure.configure_host
+            name: wolskies.infrastructure.os_configuration
           vars:
             config_hostname: "new-server"
             config_domain: "" # Empty - use default 'localdomain'
@@ -67,7 +67,7 @@
       block:
         - name: Test with neither defined
           ansible.builtin.include_role:
-            name: wolskies.infrastructure.configure_host
+            name: wolskies.infrastructure.os_configuration
           vars:
             config_hostname: ""
             config_domain: ""
