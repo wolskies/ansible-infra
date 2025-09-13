@@ -175,7 +175,36 @@ host_security:
 # inventory/host_vars/development.yml (disable hardening for dev systems)
 host_security:
   hardening_enabled: false
+
+# inventory/host_vars/docker-host.yml (Docker/Kubernetes host)
+host_sysctl:
+  parameters:
+    # Enable IPv4 forwarding for Docker/Kubernetes
+    net.ipv4.ip_forward: 1
+    # Optional: Enable IPv6 forwarding if using IPv6
+    net.ipv6.conf.all.forwarding: 1
 ```
+
+## Docker/Kubernetes Support
+
+The OS hardening configuration disables IP forwarding by default for security. If you're running Docker or Kubernetes, you must override this setting:
+
+```yaml
+host_sysctl:
+  parameters:
+    # Required for Docker/Kubernetes
+    net.ipv4.ip_forward: 1
+    # Optional: Enable IPv6 forwarding if needed
+    net.ipv6.conf.all.forwarding: 1
+```
+
+**Why this is needed**: Docker and Kubernetes require IP forwarding to route container traffic. The security hardening sets `net.ipv4.ip_forward: 0` by default, which will break container networking.
+
+**Common use cases requiring IP forwarding**:
+- Docker container hosts
+- Kubernetes nodes (masters and workers)
+- Systems running container orchestration
+- Hosts with NAT/routing requirements
 
 ## Requirements
 
