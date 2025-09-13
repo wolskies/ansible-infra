@@ -9,6 +9,16 @@ Automates installation and maintenance tasks for multiple machines/operating sys
 **Note**:
 This collection has the ability to specify nodejs, go and rust packages to install at the user level in configure_users. The nodejs, rustup, and go packages are if missing, are installed via system package manager. For Debian family, only **Ubuntu 24.04+** and **Debian 13+** have system packages available. For those operating systems nodejs, rustup, and go must be installed manually before running the script.
 
+## Privilege and Execution Model
+
+This collection uses a three-tier privilege model:
+
+1. **System operations** (`become: true`): Package installation, system configuration, service management
+2. **Package managers** (`become: false` as ansible_user): AUR helpers (paru) and Homebrew require non-root execution
+3. **User operations** (`become: true, become_user: target`): User preferences, dotfiles, language packages
+
+The ansible_user must have passwordless sudo for package management on Arch Linux (pacman) and macOS (if Homebrew needs system changes).
+
 ## Quick Start
 
 ```yaml

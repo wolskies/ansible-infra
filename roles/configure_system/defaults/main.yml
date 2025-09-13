@@ -2,11 +2,7 @@
 # =============================================================================
 # SYSTEM CONFIGURATION
 # =============================================================================
-# This role orchestrates multiple infrastructure roles to provide complete system
-# setup.  It is provided as a convenience for users.
-#
-# The variables shown here are EXAMPLES of the structure that all roles
-# in this collection use. Define these in your inventory/group_vars/host_vars.
+# This is an orchestration role for convenience.  It calls several other roles
 #
 # Available tags:
 #   - host-configuration  : Basic host setup (hostname, NTP, locale)
@@ -145,7 +141,6 @@ pacman:
   proxy: ""
   multilib: false
   enable_aur: false
-  aur_helper: paru
   config_reflector: true
 
 homebrew:

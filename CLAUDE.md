@@ -32,6 +32,25 @@ The role is intended to support Archlinux, MacOSX, Debian 12+, and Ubuntu 22+. T
 
 ## Core Architecture
 
+### Privilege and Execution Model
+
+This collection uses a three-tier privilege model for different types of operations:
+
+1. **System-level operations (sudo/root)**: Package installation via apt/pacman, system configuration, service management
+   - Uses: `become: true` without specifying become_user (defaults to root)
+   - Examples: Installing packages system-wide, modifying /etc files, managing services
+
+2. **Package manager operations (ansible_user)**: AUR helper (paru) and Homebrew operations
+   - Uses: `become: false` to run as the connecting ansible_user
+   - Rationale: These tools refuse to run as root and expect to be run by a regular user with sudo privileges
+   - The ansible_user must have passwordless sudo for package management commands
+
+3. **User-specific operations (target user)**: Dotfiles, language packages, user preferences
+   - Uses: `become: true` with `become_user: {{ target_user }}`
+   - Examples: Installing npm/cargo/go packages for a user, deploying dotfiles, configuring git
+
+This separation ensures proper security boundaries and follows the principle of least privilege.
+
 ### Unified Infrastructure Variable Structure
 
 The roles use an identical variable naming convention with the intent of allowing them to work both independently as individual roles, or called as a collection of roles by the `configure_system` role.

@@ -1,20 +1,21 @@
 # os_configuration
 
-Essential OS-level configuration for Ubuntu 22+, Debian 12+, Arch Linux, and macOS using domain/host/distribution separation.
+OS configuration for Ubuntu 22+, Debian 12+, Arch Linux, and MacOSX.
 
 ## Description
 
-Configures foundational OS settings using the unified infrastructure hierarchy. Handles basic OS configuration (timezone, locale, NTP, hostname) and distribution-specific settings (services, journals).
+Configures basic OS configuration (timezone, locale, NTP, hostname) and distribution-specific settings (services, journals).
 
 ## Features
 
 - **Basic OS settings**: timezone, locale, NTP, hostname, /etc/hosts management
 - **Distribution-specific**: systemd services, journald, unattended upgrades, platform optimizations
-- **Cross-platform**: Ubuntu/Debian/Arch Linux/macOS with unified variable structure
+- **Cross-platform**: Ubuntu/Debian/Arch Linux/macOS
 
 ## Architecture
 
 **Task Flow:**
+
 1. **Common Setup** (`main.yml`): Distribution config setup, timezone
 2. **OS-Specific**:
    - `configure-Linux.yml`: Locale, NTP, journal, hostname (all Linux distributions)
@@ -32,19 +33,19 @@ Uses the unified infrastructure structure with domain/host separation:
 ```yaml
 infrastructure:
   domain:
-    name: "company.com"             # Domain name
-    timezone: "America/New_York"     # Optional: shared timezone (empty = system default)
-    locale: "en_US.UTF-8"          # Shared locale
-    language: "en_US.UTF-8"        # Shared language
+    name: "company.com" # Domain name
+    timezone: "America/New_York" # Optional: shared timezone (empty = system default)
+    locale: "en_US.UTF-8" # Shared locale
+    language: "en_US.UTF-8" # Shared language
     ntp:
-      enabled: true                 # Enable NTP synchronization
-      servers:                      # Optional: custom NTP servers (empty = system defaults)
+      enabled: true # Enable NTP synchronization
+      servers: # Optional: custom NTP servers (empty = system defaults)
         - time1.company.com
         - time2.company.com
 
   host:
-    hostname: ""                    # Individual hostname (empty = keep current)
-    update_hosts: true              # Update /etc/hosts with hostname
+    hostname: "" # Individual hostname (empty = keep current)
+    update_hosts: true # Update /etc/hosts with hostname
 
     # systemd journal configuration (Linux)
     journal:
@@ -63,8 +64,8 @@ infrastructure:
 
     # System service management (Linux)
     services:
-      enable: []                    # Services to enable and start
-      disable: []                   # Services to disable and stop
+      enable: [] # Services to enable and start
+      disable: [] # Services to disable and stop
 
     # System optimizations (Linux)
     optimizations:
@@ -83,8 +84,8 @@ infrastructure:
 
     # Kernel module management (Linux)
     modules:
-      load: []                      # Modules to load at boot
-      blacklist: []                 # Modules to blacklist
+      load: [] # Modules to load at boot
+      blacklist: [] # Modules to blacklist
 
     # Snap package system settings (Ubuntu/Debian)
     snap:
@@ -92,7 +93,7 @@ infrastructure:
 
     # Package manager settings
     packages:
-      apt:                          # Ubuntu/Debian settings
+      apt: # Ubuntu/Debian settings
         no_recommends: false
         proxy: ""
         unattended_upgrades:
@@ -100,11 +101,11 @@ infrastructure:
           email: ""
           auto_reboot: false
           reboot_time: "02:00"
-      pacman:                       # Arch Linux settings
+      pacman: # Arch Linux settings
         no_confirms: false
         proxy: ""
         multilib: false
-      macosx:                       # macOS settings
+      macosx: # macOS settings
         updates:
           auto_check: true
           auto_download: true

@@ -39,8 +39,7 @@ pacman:
   no_confirms: false
   proxy: ""
   multilib: false
-  enable_aur: false # When true, attempts to install packages from AUR if not in official repos
-  aur_helper: paru
+  enable_aur: false # When true, uses kewlfft.aur to install from both official repos and AUR
   config_reflector: true
 
 homebrew:
