@@ -61,16 +61,16 @@ host_update_hosts: true
 host_services: {} # systemd service management
 # Example: { enable: ["nginx"], disable: ["bluetooth"], mask: ["snapd"] }
 
-host_sysctl: {} # passed through to devsec.hardening as sysctl_overwrite
+host_sysctl: {} # passed to devsec.hardening as sysctl_overwrite
 # Example: { parameters: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 } }
 
-host_modules: {} # kernel module management (not handled by devsec.hardening)
+host_modules: {} # kernel module management
 # Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
 
-host_udev: {} # udev rules (not handled by devsec.hardening)
+host_udev: {} # udev rules
 # Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
 
-host_security: # passed through to devsec.hardening
+host_security: # passed to devsec.hardening
   hardening_enabled: true
   disable_ctrl_alt_del: false
   users_allow: []
