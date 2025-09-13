@@ -59,14 +59,13 @@ host_security:
   remove_additional_root_users: false
   enforce_password_aging: true
 
-host_sysctl: {} # passed through to devsec.hardening as sysctl_overwrite
+host_sysctl: {} # passed to devsec.hardening as sysctl_overwrite
 # Example: { parameters: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 } }
 
-host_modules: {} # kernel module management (not handled by devsec.hardening)
+host_modules: {} # kernel module management
 # Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
 
-# Host udev rules (Linux)
-host_udev: {}
+host_udev: {} # udev rules
 # Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
 
 # Journal configuration (Linux)
