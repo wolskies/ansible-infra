@@ -1,4 +1,4 @@
-# Docker Service Boilerplate Role
+# Docker Compose Generic Role
 
 Deploy Docker Compose services with standardized templates and optional proxy support.
 
@@ -26,7 +26,7 @@ compose_file_content: ""           # Custom docker-compose content (overrides de
 service_use_proxy: false           # Enable proxy mode (no direct port exposure)
 proxy_network_name: "proxy"       # Name of the external proxy network
 proxy_network_external: true      # Whether proxy network is external
-service_ports: []                 # Ports to expose (defaults to "80:80" if empty and not using proxy)
+service_ports: []                 # Ports to expose (no default ports - must be explicitly defined)
 service_labels: {}                # Labels for proxy configuration (e.g., Traefik)
 ```
 
@@ -37,7 +37,7 @@ service_labels: {}                # Labels for proxy configuration (e.g., Traefi
 ```yaml
 - name: Deploy nginx service
   include_role:
-    name: wolskies.infrastructure.docker_service_boilerplate
+    name: wolskies.infrastructure.docker_compose_generic
   vars:
     service_name: "nginx"
     service_ports:
@@ -52,7 +52,7 @@ service_labels: {}                # Labels for proxy configuration (e.g., Traefi
 ```yaml
 - name: Deploy service behind Traefik
   include_role:
-    name: wolskies.infrastructure.docker_service_boilerplate
+    name: wolskies.infrastructure.docker_compose_generic
   vars:
     service_name: "webapp"
     service_use_proxy: true
@@ -76,7 +76,7 @@ service_labels: {}                # Labels for proxy configuration (e.g., Traefi
 ```yaml
 - name: Deploy service behind nginx-proxy
   include_role:
-    name: wolskies.infrastructure.docker_service_boilerplate
+    name: wolskies.infrastructure.docker_compose_generic
   vars:
     service_name: "blog"
     service_use_proxy: true
@@ -92,7 +92,7 @@ service_labels: {}                # Labels for proxy configuration (e.g., Traefi
 ```yaml
 - name: Deploy database service
   include_role:
-    name: wolskies.infrastructure.docker_service_boilerplate
+    name: wolskies.infrastructure.docker_compose_generic
   vars:
     service_name: "postgres"
     service_use_proxy: "{{ use_database_proxy | default(false) }}"

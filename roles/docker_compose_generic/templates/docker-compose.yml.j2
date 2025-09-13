@@ -15,9 +15,6 @@ services:
 {% for port in service_ports %}
       - "{{ port }}"
 {% endfor %}
-    {% elif not service_use_proxy %}
-    ports:
-      - "80:80"
     {% endif %}
     environment:
       - PUID=1000
