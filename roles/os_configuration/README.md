@@ -65,6 +65,11 @@ host_security:
   users_allow: [] # passed to devsec.hardening as os_security_users_allow
   remove_additional_root_users: false # passed to devsec.hardening as os_remove_additional_root_users
   enforce_password_aging: true # passed to devsec.hardening as os_user_pw_ageing
+  ssh_hardening_enabled: false # Enable SSH hardening via devsec.hardening.ssh_hardening
+  ssh_server_ports: ["22"] # SSH server ports
+  ssh_client_port: "22" # SSH client port
+  ssh_listen_to: ["0.0.0.0"] # IP addresses SSH server should listen on
+  sftp_enabled: true # Enable SFTP (required for Ansible file transfers)
 
 # Journal configuration (Linux)
 journal:
@@ -117,6 +122,10 @@ rsyslog:
     host_security:
       disable_ctrl_alt_del: true
       enforce_password_aging: true
+      ssh_hardening_enabled: true
+      ssh_server_ports: ["22"]
+      ssh_listen_to: ["10.0.0.5"]  # Only listen on internal interface
+      sftp_enabled: true
     host_sysctl:
       parameters:
         vm.swappiness: 1

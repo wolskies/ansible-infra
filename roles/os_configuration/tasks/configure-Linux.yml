@@ -14,6 +14,22 @@
     - security
     - hardening
 
+- name: Apply SSH security hardening (Linux)
+  ansible.builtin.include_role:
+    name: devsec.hardening.ssh_hardening
+  vars:
+    ssh_server_enabled: true
+    ssh_server_ports: "{{ host_security.ssh_server_ports | default(['22']) }}"
+    ssh_client_port: "{{ host_security.ssh_client_port | default('22') }}"
+    ssh_listen_to: "{{ host_security.ssh_listen_to | default(['0.0.0.0']) }}"
+    sftp_enabled: "{{ host_security.sftp_enabled | default(true) }}"
+    network_ipv6_enable: "{{ ':' in (host_security.ssh_listen_to | default(['0.0.0.0']) | join('')) }}"
+  when: host_security.ssh_hardening_enabled | default(false)
+  tags:
+    - security
+    - ssh
+    - hardening
+
 - name: Configure system locale
   community.general.locale_gen:
     name: "{{ domain_locale }}"
