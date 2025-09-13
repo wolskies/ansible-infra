@@ -10,19 +10,41 @@ services:
     image: nginx:alpine
     container_name: {{ service_name }}
     restart: unless-stopped
+    {% if not service_use_proxy and service_ports %}
+    ports:
+{% for port in service_ports %}
+      - "{{ port }}"
+{% endfor %}
+    {% elif not service_use_proxy %}
     ports:
       - "80:80"
+    {% endif %}
     environment:
       - PUID=1000
       - PGID=1000
     volumes:
       - ./data:/data
+    {% endif %}
     {% if service_env_vars %}
     env_file:
       - .env
     {% endif %}
+    {% if service_use_proxy %}
+    networks:
+      - {{ proxy_network_name }}
+      - default
+    {% if service_labels %}
+    labels:
+{% for key, value in service_labels.items() %}
+      - "{{ key }}={{ value }}"
+{% endfor %}
+    {% endif %}
     {% endif %}
 
 networks:
+  {% if service_use_proxy %}
+  {{ proxy_network_name }}:
+    external: {{ proxy_network_external | lower }}
+  {% endif %}
   default:
     name: {{ service_name }}_network

@@ -5,3 +5,10 @@ service_name: ""
 service_enabled: true
 service_env_vars: {}
 compose_file_content: ""
+
+# Proxy configuration
+service_use_proxy: false
+proxy_network_name: "proxy" # External network name (e.g., traefik_proxy)
+proxy_network_external: true # Whether the proxy network is external
+service_ports: [] # Ports to expose (empty when using proxy)
+service_labels: {} # Labels for proxy configuration (e.g., Traefik labels)
