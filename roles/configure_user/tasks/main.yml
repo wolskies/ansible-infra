@@ -7,7 +7,7 @@
     that:
       - target_user is defined
       - target_user.name is defined
-      - target_user.name | length > 0
+      - target_user.name
     fail_msg: "configure_user role requires target_user variable with name field"
 
 - name: Configure language toolchains for {{ target_user.name }}
@@ -18,7 +18,7 @@
       vars:
         node_user: "{{ target_user.name }}"
         node_packages: "{{ target_user.nodejs.packages }}"
-      when: target_user.nodejs.packages | default([]) | length > 0
+      when: target_user.nodejs.packages | default([])
       tags: nodejs
 
     - name: Install Rust and packages
@@ -27,7 +27,7 @@
       vars:
         rust_user: "{{ target_user.name }}"
         rust_packages: "{{ target_user.rust.packages }}"
-      when: target_user.rust.packages | default([]) | length > 0
+      when: target_user.rust.packages | default([])
       tags: rust
 
     - name: Install Go and packages
@@ -36,7 +36,7 @@
       vars:
         go_user: "{{ target_user.name }}"
         go_packages: "{{ target_user.go.packages }}"
-      when: target_user.go.packages | default([]) | length > 0
+      when: target_user.go.packages | default([])
       tags: go
   when: target_user.name != 'root'
   tags:

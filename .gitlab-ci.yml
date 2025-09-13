@@ -4,7 +4,6 @@ stages:
   - integration
   - build
   - publish
-  - sync
 
 variables:
   ANSIBLE_FORCE_COLOR: "true"
@@ -272,48 +271,3 @@ publish-galaxy:
     - tags
   variables:
     GALAXY_API_KEY: $GALAXY_API_KEY
-
-# Sync to GitHub after successful CI
-sync-to-github:
-  stage: sync
-  image: alpine:latest
-  timeout: 10m # Prevent 1 hour timeout
-  before_script:
-    - apk add --no-cache git openssh-client
-    # Setup SSH for GitHub
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - |
-      # Write SSH key directly to file instead of using ssh-agent
-      echo "$GITHUB_DEPLOY_KEY" | base64 -d > ~/.ssh/github_deploy_key
-      chmod 600 ~/.ssh/github_deploy_key
-    # Configure SSH to use the key for GitHub
-    - |
-      cat > ~/.ssh/config <<EOF
-      Host github.com
-        HostName github.com
-        User git
-        IdentityFile ~/.ssh/github_deploy_key
-        StrictHostKeyChecking no
-        AddKeysToAgent no
-        PasswordAuthentication no
-      EOF
-    - chmod 600 ~/.ssh/config
-    # Test SSH connection
-    - ssh -T git@github.com || true
-  script:
-    - echo "Setting up git configuration..."
-    - git config --global user.name "GitLab CI"
-    - git config --global user.email "gitlab-ci@wolskinet.com"
-    - echo "Current git remotes:"
-    - git remote -v
-    - echo "Adding GitHub remote..."
-    - git remote add github git@github.com:wolskies/ansible-infra.git || echo "Remote already exists"
-    - echo "Updated git remotes:"
-    - git remote -v
-    - echo "Pushing to GitHub..."
-    - git push github HEAD:${CI_COMMIT_REF_NAME} --force
-    - echo "Sync completed successfully!"
-  only:
-    - main
-  when: on_success

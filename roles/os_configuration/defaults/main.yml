@@ -11,83 +11,10 @@
 # Variables mirror the structure in configure_system/defaults/main.yml
 # =============================================================================
 
-domain_name: ""
-domain_timezone: ""
-domain_locale: "en_US.UTF-8"
-domain_language: "en_US.UTF-8"
-domain_ntp:
-  enabled: false
-  servers: []
-
-host_hostname: ""
-host_update_hosts: true
-
-host_services: {}
-# Example: { enable: ["nginx"], disable: ["bluetooth"], mask: ["snapd"] }
-
-host_sysctl: # passed to devsec.hardening as sysctl_overwrite
-  parameters: {} # Example: { "vm.swappiness": 10, "net.ipv4.ip_forward": 1 }
-
-host_modules: {}
-# Example: { load: ["uvcvideo"], blacklist: ["nouveau"] }
-
-host_udev: {}
-# Example: { rules: [{ name: "pico", priority: 99, content: "...", state: "present" }] }
-
-host_security:
-  hardening_enabled: true # passed to devsec.hardening as os_hardening_enabled
-  disable_ctrl_alt_del: false # passed to devsec.hardening as os_ctrlaltdel_disabled
-  users_allow: [] # passed to devsec.hardening as os_security_users_allow
-  remove_additional_root_users: false # passed to devsec.hardening as os_remove_additional_root_users
-  enforce_password_aging: true # passed to devsec.hardening as os_user_pw_ageing
+# Role-specific defaults (shared variables moved to collection defaults/main.yml)
 
 host_fonts:
   nerd_fonts:
     enabled: false
     install_dir: "/usr/share/fonts/nerd-fonts"
     fonts: []
-
-journal:
-  configure: false
-  max_size: "500M"
-  max_retention: "30d"
-  forward_to_syslog: false
-  compress: true
-
-rsyslog:
-  enabled: false
-  remote_host: ""
-  remote_port: 514
-  protocol: "udp"
-
-apt:
-  no_recommends: false
-  proxy: ""
-  unattended_upgrades:
-    enabled: true
-    email: ""
-    auto_reboot: false
-    reboot_with_users: false
-    reboot_time: "02:00"
-
-pacman:
-  no_confirms: false
-  proxy: ""
-  multilib: false
-
-macosx:
-  updates:
-    auto_check: true
-    auto_download: true
-  gatekeeper:
-    enabled: true
-  system_preferences:
-    natural_scroll: true
-    measurement_units: "Inches" # Inches, Centimeters
-    use_metric: false
-    show_all_extensions: false
-  airdrop:
-    ethernet_enabled: false
-
-snap:
-  remove_completely: false
