@@ -1,9 +1,17 @@
 ---
 # =============================================================================
-# COLLECTION-WIDE DEFAULTS
+# WOLSKIES.INFRASTRUCTURE COLLECTION - MASTER VARIABLE REFERENCE
 # =============================================================================
-# Shared variables used across multiple roles to eliminate duplication
-# Individual roles can override these as needed
+# This file serves as both collection-wide defaults AND the complete variable
+# reference for the entire collection. All possible variables are documented
+# here with their default values and descriptions.
+#
+# Usage:
+# - Collection defaults: These values are used across all roles
+# - Variable reference: Use this file to see all available variables
+# - Individual role defaults only contain role-specific overrides
+#
+# Variable precedence: playbook vars > role vars > role defaults > collection defaults
 # =============================================================================
 
 # Domain-level configuration
@@ -80,9 +88,89 @@ macosx:
   airdrop:
     ethernet_enabled: false
 
+# Docker services configuration
+docker_services_root: "/srv/docker"
+service_name: ""
+service_enabled: true
+service_env_vars: {}
+compose_file_content: ""
+service_image: ""
+service_volumes: []
+service_command: ""
+service_environment: []
+service_use_proxy: false
+proxy_network_name: "proxy"
+proxy_network_external: true
+service_ports: []
+service_labels: {}
+
+# Package management
+packages:
+  present: {}
+  remove: {}
+  casks_present:
+    all: []
+    group: []
+    host: []
+  casks_remove: []
+
+homebrew:
+  install: true
+  update_homebrew: true
+  cleanup_cache: false
+  taps: []
+
+# User management
+users: []
+users_absent: []
+target_user: {}
+
+# Language toolchains
+node_user: ""
+node_packages: []
+nodejs_version: "20"
+nodejs_update_cache: true
+
+rust_user: ""
+rust_packages: []
+
+go_user: ""
+go_packages: []
+
+# System optimization
+optimizations:
+  tune_swappiness: false
+  swappiness: 60
+
+# Security services
+security_services:
+  ufw:
+    enabled: false
+    default_policy:
+      incoming: deny
+      outgoing: allow
+      routed: deny
+    logging: "off"
+    rules: []
+  fail2ban:
+    enabled: false
+    bantime: 3600
+    findtime: 600
+    maxretry: 5
+    ignoreip: []
+    jails: {}
+
 # Snap configuration
 snap:
   remove_completely: false
+  packages:
+    install: []
+    remove: []
 
-# Docker services configuration
-docker_services_root: "/srv/docker"
+# Flatpak configuration
+flatpak:
+  enabled: false
+  remotes: []
+  packages:
+    install: []
+    remove: []

@@ -1,20 +1,12 @@
 ---
-# Docker service configuration defaults
-docker_services_root: "/srv/docker"
-service_name: ""
-service_enabled: true
-service_env_vars: {}
-compose_file_content: "" # Optional: overrides automatic template generation
+# =============================================================================
+# DOCKER_COMPOSE_GENERIC ROLE - Template role for Docker service deployment
+# =============================================================================
+# This role uses collection-wide defaults from defaults/main.yml
+# Only role-specific overrides and documentation are included here
+#
+# For complete variable reference, see: defaults/main.yml
+# =============================================================================
 
-# Simple service configuration (alternative to compose_file_content)
-service_image: "" # Docker image (e.g., "portainer/portainer-ce:latest")
-service_volumes: [] # Volume mounts (e.g., ["./data:/data", "/var/run/docker.sock:/var/run/docker.sock:ro"])
-service_command: "" # Optional command override
-service_environment: [] # Environment variables as list (e.g., ["TZ=UTC", "DEBUG=true"])
-
-# Proxy configuration
-service_use_proxy: false # Enable proxy mode (no direct port exposure)
-proxy_network_name: "proxy" # Name of the external proxy network
-proxy_network_external: true # Whether proxy network is external
-service_ports: [] # Ports to expose (no default ports - must be explicitly defined)
-service_labels: {} # Labels for proxy configuration (e.g., Traefik labels)
+# All docker service variables are defined in collection defaults
+# No role-specific overrides needed

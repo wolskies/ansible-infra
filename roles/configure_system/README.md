@@ -16,7 +16,7 @@ A convenience role for configuring a system - calls multiple roles in this colle
 
 ## Configuration
 
-Uses flat variable structure (see configure_system/defaults/main.yml for complete reference):
+See configure_system/defaults/main.yml for complete reference:
 
 ```yaml
 domain_name: "company.com"
@@ -27,22 +27,21 @@ users:
     git: { user_name: "Alice", user_email: "alice@company.com" }
     nodejs: { packages: [typescript] }
 
-  host:
-    hostname: "web01"
-    packages:
-      present:
-        all:
-          Ubuntu: [git, curl, htop]
-        group:
-          Ubuntu: [nginx]
-        host:
-          Ubuntu: [redis-server]
-    firewall:
-      enabled: true
-      rules:
-        - { port: 80, proto: tcp }
-    snap:
-      disable_and_remove: true  # Opt-in snap removal
+host_hostname: "web01"
+packages:
+  present:
+    all:
+      Ubuntu: [git, curl, htop]
+    group:
+      Ubuntu: [nginx]
+    host:
+      Ubuntu: [redis-server]
+firewall:
+  enabled: true
+  rules:
+    - { port: 80, proto: tcp }
+  snap:
+    disable_and_remove: true
 ```
 
 ## Usage Examples
@@ -146,10 +145,8 @@ ansible-playbook --skip-tags snap-packages,flatpak-packages playbook.yml
 
 ### Non-Opinionated Group Structure
 
-The collection doesn't force specific inventory group naming. Use whatever group structure fits your environment:
-
 ```yaml
-# Works with any group structure
+
 [webservers]
 web01
 web02
