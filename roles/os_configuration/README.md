@@ -4,7 +4,9 @@ OS configuration for Ubuntu 22+, Debian 12+, Arch Linux, and MacOSX.
 
 ## Description
 
-Configures basic OS configuration (timezone, locale, NTP, hostname), user management, and distribution-specific settings (services, journals). On Linux systems, applies comprehensive security hardening using devsec.hardening.os_hardening.
+Comprehensive OS configuration role that handles system-level setup including timezone, locale, NTP, hostname, user account management, and distribution-specific settings (services, journals). On Linux systems, applies comprehensive security hardening using devsec.hardening.os_hardening.
+
+This role provides a complete foundation for system configuration and should be used early in your playbook execution before other application-specific roles.
 
 ## Features
 
@@ -33,7 +35,7 @@ Configures basic OS configuration (timezone, locale, NTP, hostname), user manage
 
 ### Variable Structure
 
-Uses flat variables for configuration (see configure_system/defaults/main.yml for complete reference):
+Uses flat variables for configuration (see collection defaults/main.yml for complete reference):
 
 ```yaml
 # Domain-level variables (shared across hosts)
@@ -98,7 +100,14 @@ users_absent: []
 #     groups: [sudo, docker]
 #     ssh_keys:
 #       - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+#       - "ssh-rsa AAAAB3NzaC1yc2EAAAA..."  # Multiple keys supported
 #     password: "plaintext"  # Auto-hashed with SHA-512
+#     uid: 1001             # Optional: specific user ID
+#     shell: /bin/bash      # Default shell
+#     home: /home/alice     # Home directory
+#     create_home: true     # Create home directory
+#     system: false         # Regular user (not system account)
+#     state: present        # present (default) or absent
 
 ```
 
@@ -109,7 +118,7 @@ users_absent: []
 ```yaml
 - name: Configure operating system
   include_role:
-    name: wolskinet.infrastructure.os_configuration
+    name: wolskies.infrastructure.os_configuration
   vars:
     domain_name: "example.com"
     domain_timezone: "America/New_York"
@@ -121,7 +130,7 @@ users_absent: []
 ```yaml
 - name: Configure Linux server with hardening
   include_role:
-    name: wolskinet.infrastructure.os_configuration
+    name: wolskies.infrastructure.os_configuration
   vars:
     domain_name: "internal.company.com"
     domain_timezone: "America/New_York"
@@ -155,7 +164,7 @@ users_absent: []
 ```yaml
 - name: Configure macOS system
   include_role:
-    name: wolskinet.infrastructure.os_configuration
+    name: wolskies.infrastructure.os_configuration
   vars:
     domain_name: "local"
     domain_timezone: "America/Los_Angeles"
@@ -167,20 +176,46 @@ users_absent: []
 ```yaml
 - name: Configure OS with user accounts
   include_role:
-    name: wolskinet.infrastructure.os_configuration
+    name: wolskies.infrastructure.os_configuration
   vars:
     domain_name: "company.com"
     users:
+      # Admin user with password and SSH keys
       - name: admin
         comment: "System Administrator"
-        groups: [sudo]
+        groups: [sudo, adm]
         ssh_keys:
           - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+        password: "$6$salt$hashedpassword..."  # Pre-hashed SHA-512
+
+      # Developer user with custom shell and multiple SSH keys
       - name: developer
-        groups: [sudo, docker]
+        comment: "Development User"
+        uid: 1001
+        groups: [sudo, docker, www-data]
         shell: /bin/zsh
         ssh_keys:
           - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+          - "ssh-rsa AAAAB3NzaC1yc2EAAAA..."
+
+      # Service account with restricted access
+      - name: webapp
+        comment: "Web Application Service"
+        uid: 2001
+        groups: [www-data]
+        shell: /usr/sbin/nologin
+        home: /opt/webapp
+        system: true
+        create_home: true
+
+      # User removal
+      - name: olduser
+        state: absent
+
+    # Legacy user removal (still supported)
+    users_absent:
+      - tempuser
+      - testuser
 ```
 
 ### Multi-Host Environment
@@ -270,6 +305,42 @@ host_security:
   enforce_password_aging: false
 ```
 
+## Integration with Other Roles
+
+This role provides the foundation for system configuration and integrates well with other collection roles:
+
+### Typical Playbook Flow
+```yaml
+- hosts: all
+  become: true
+  roles:
+    # 1. System foundation
+    - wolskies.infrastructure.os_configuration
+
+    # 2. Package management
+    - wolskies.infrastructure.manage_packages
+
+    # 3. Application services
+    - wolskies.infrastructure.install_docker
+
+  tasks:
+    # 4. Per-user environment setup
+    - name: Configure user environments
+      include_role:
+        name: wolskies.infrastructure.configure_user
+      vars:
+        target_user: "{{ item }}"
+      loop: "{{ users }}"
+      when:
+        - item.state | default('present') == 'present'
+        - item.name != 'root'
+      become_user: "{{ item.name }}"
+```
+
+### User Lifecycle Management
+- **os_configuration**: Creates system accounts, sets passwords, SSH keys
+- **configure_user**: Configures user preferences, dotfiles, development tools
+
 ## Requirements
 
 - **macOS**: Xcode Command Line Tools (`xcode-select --install`)
@@ -278,7 +349,9 @@ host_security:
 ## Dependencies
 
 - `community.general` (for timezone, locale_gen, osx_defaults)
-- `ansible.posix` (for sysctl)
+- `ansible.posix` (for sysctl, authorized_key)
+- `ansible.builtin.user` (for user management)
+- `devsec.hardening` (for OS and SSH hardening)
 
 ## Tags
 
@@ -311,4 +384,4 @@ MIT
 
 ## Author Information
 
-This role is part of the `wolskinet.infrastructure` Ansible collection.
+This role is part of the `wolskies.infrastructure` Ansible collection.
