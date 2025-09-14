@@ -4,11 +4,12 @@ OS configuration for Ubuntu 22+, Debian 12+, Arch Linux, and MacOSX.
 
 ## Description
 
-Configures basic OS configuration (timezone, locale, NTP, hostname) and distribution-specific settings (services, journals). On Linux systems, applies comprehensive security hardening using devsec.hardening.os_hardening.
+Configures basic OS configuration (timezone, locale, NTP, hostname), user management, and distribution-specific settings (services, journals). On Linux systems, applies comprehensive security hardening using devsec.hardening.os_hardening.
 
 ## Features
 
 - **Security hardening**: Comprehensive OS hardening for Linux systems (200+ security configurations)
+- **User management**: Batch user account creation with SSH key deployment
 - **Basic OS settings**: timezone, locale, NTP, hostname, /etc/hosts management
 - **Distribution-specific**: systemd services, journald, unattended upgrades, platform optimizations
 - **Cross-platform**: Ubuntu/Debian/Arch Linux/macOS
@@ -17,11 +18,12 @@ Configures basic OS configuration (timezone, locale, NTP, hostname) and distribu
 
 **Task Flow:**
 
-1. **Common Setup** (`main.yml`): Distribution config setup, timezone
-2. **OS-Specific**:
+1. **Common Setup** (`main.yml`): Hostname, timezone, /etc/hosts
+2. **User Management** (`users.yml`): User account creation and SSH key deployment
+3. **OS-Specific**:
    - `configure-Linux.yml`: **devsec.hardening.os_hardening first** (handles sysctl, PAM limits, kernel modules), then locale, NTP, journal, hostname
    - `configure-Darwin.yml`: macOS-specific configuration
-3. **Distribution-Specific** (for Linux only):
+4. **Distribution-Specific** (for Linux only):
    - `configure-Debian.yml`: Ubuntu + Debian specific settings
    - `configure-Archlinux.yml`: Arch Linux specific settings
 
@@ -86,6 +88,18 @@ rsyslog:
   remote_port: 514
   protocol: "udp"
 
+# User management (batch wrapper around ansible.builtin.user)
+users: []
+users_absent: []
+# Example:
+# users:
+#   - name: alice
+#     comment: "Alice Developer"
+#     groups: [sudo, docker]
+#     ssh_keys:
+#       - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+#     password: "plaintext"  # Auto-hashed with SHA-512
+
 ```
 
 ## Example Usage
@@ -146,6 +160,27 @@ rsyslog:
     domain_name: "local"
     domain_timezone: "America/Los_Angeles"
     host_hostname: "MacBook-Pro"
+```
+
+### User Management
+
+```yaml
+- name: Configure OS with user accounts
+  include_role:
+    name: wolskinet.infrastructure.os_configuration
+  vars:
+    domain_name: "company.com"
+    users:
+      - name: admin
+        comment: "System Administrator"
+        groups: [sudo]
+        ssh_keys:
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+      - name: developer
+        groups: [sudo, docker]
+        shell: /bin/zsh
+        ssh_keys:
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
 ```
 
 ### Multi-Host Environment
@@ -250,6 +285,7 @@ host_security:
 Available tags for selective execution:
 
 - **security, hardening** - Security hardening via devsec.hardening
+- **users** - User account management and SSH key deployment
 - **hostname** - Hostname configuration
 - **timezone** - Timezone settings
 - **ntp, time** - NTP time synchronization
@@ -263,6 +299,7 @@ Available tags for selective execution:
 ```bash
 # Examples
 ansible-playbook -t security playbook.yml         # Security hardening only
+ansible-playbook -t users playbook.yml           # User management only
 ansible-playbook -t hostname,timezone playbook.yml # Basic system identity
 ansible-playbook -t modules,udev playbook.yml     # Hardware configuration
 ansible-playbook --skip-tags hardening playbook.yml # Skip security hardening

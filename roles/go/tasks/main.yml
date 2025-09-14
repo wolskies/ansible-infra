@@ -16,7 +16,7 @@
     state: present
   become: true
   when:
-    - go_packages
+    - go_packages | length > 0
     - ansible_os_family == 'Debian'
   tags:
     - go
@@ -28,7 +28,7 @@
     state: present
   become: true
   when:
-    - go_packages
+    - go_packages | length > 0
     - ansible_os_family == 'Archlinux'
   tags:
     - go
@@ -40,7 +40,7 @@
     state: present
   # Note: Run as ansible_user who owns Homebrew, not as target user
   when:
-    - go_packages
+    - go_packages | length > 0
     - ansible_system == 'Darwin'
   tags:
     - go
@@ -55,7 +55,7 @@
   become: true
   become_user: "{{ go_user }}"
   when:
-    - go_packages
+    - go_packages | length > 0
   tags:
     - go
     - user-packages

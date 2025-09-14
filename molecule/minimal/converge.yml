@@ -9,11 +9,13 @@
         name: wolskies.infrastructure.os_configuration
       tags: minimal-test
 
-    # Test manage_users with minimal config - should not fail
-    - name: Test manage_users role with minimal config
+    # Test user management (now part of os_configuration) with minimal config - should not fail
+    - name: Test user management with minimal config
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_users
-      tags: minimal-test
+        name: wolskies.infrastructure.os_configuration
+      tags:
+        - minimal-test
+        - users
 
     # Test manage_security_services with minimal config - should not fail
     - name: Test manage_security_services role with minimal config

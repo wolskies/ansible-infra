@@ -60,6 +60,13 @@
     - domain_name is defined
     - domain_name | length > 0
 
+- name: Include user management tasks
+  ansible.builtin.include_tasks: users.yml
+  when: (users is defined and users | length > 0) or (users_absent is defined and users_absent | length > 0)
+  tags:
+    - users
+    - os-configuration
+
 - name: Include OS-specific configuration
   ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
   tags:

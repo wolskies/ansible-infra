@@ -1,12 +1,13 @@
 ---
-# Check which groups exist on the system before adding users
-- name: Get list of existing groups
+# User management tasks - batch wrapper around ansible.builtin.user
+# Handles user creation, removal, and SSH key deployment
+
+- name: Get list of existing groups (Linux)
   ansible.builtin.getent:
     database: group
   register: system_groups
   when: ansible_system == "Linux"
 
-# macOS uses different commands for group management
 - name: Get list of existing groups (macOS)
   ansible.builtin.command: dscl . -list /Groups
   register: macos_groups_raw
@@ -18,8 +19,7 @@
     macos_groups: "{{ macos_groups_raw.stdout_lines | default([]) }}"
   when: ansible_system == "Darwin"
 
-# Filter user groups to only those that exist on the system
-- name: Prepare users with filtered groups
+- name: Filter user groups to only those that exist on the system
   ansible.builtin.set_fact:
     filtered_users: >-
       {%- set user_list = [] -%}
@@ -42,7 +42,7 @@
       {{ user_list }}
   when: users is defined and users | length > 0
 
-- name: Add users to system
+- name: Create/update users
   become: true
   ansible.builtin.user:
     name: "{{ item.name }}"
@@ -58,6 +58,7 @@
       }}
     state: "{{ item.state | default('present') }}"
     create_home: "{{ item.create_home | default(omit) }}"
+    system: "{{ item.system | default(omit) }}"
     groups: "{{ item.groups | default(omit) }}"
     append: true
   loop: "{{ filtered_users | default(users) }}"
@@ -67,21 +68,43 @@
     - item.name != (ansible_user | default(''))
     - item.name != 'root'
 
-- name: Add SSH public keys for users
+- name: Deploy SSH keys for users
   become: true
   ansible.posix.authorized_key:
-    user: "{{ item.name }}"
-    key: "{{ item.ssh_pubkey }}"
+    user: "{{ item.0.name }}"
+    key: "{{ item.1 }}"
     state: present
-  loop: "{{ users }}"
+  with_subelements:
+    - "{{ users | default([]) }}"
+    - ssh_keys
+    - skip_missing: true
   when:
-    - users is defined
-    - users | length > 0
+    - item.0.state | default('present') == 'present'
+    - item.0.name != (ansible_user | default(''))
+    - item.0.name != 'root'
+
+- name: Remove users (from users list)
+  become: true
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    state: absent
+    remove: true
+  loop: "{{ users | default([]) }}"
+  when:
+    - item.state is defined
+    - item.state == 'absent'
     - item.name != (ansible_user | default(''))
     - item.name != 'root'
-    - item.state | default('present') == 'present'
-    - item.ssh_pubkey is defined
-    - item.ssh_pubkey is not none
-    - item.ssh_pubkey != ""
-    - not item.ssh_pubkey.startswith('var_')
-    - item.ssh_pubkey is match('^ssh-.*') or item.ssh_pubkey is match('^ecdsa-.*') or item.ssh_pubkey is match('^ssh-ed25519.*')
+
+- name: Remove users (from users_absent list - legacy)
+  become: true
+  ansible.builtin.user:
+    name: "{{ item }}"
+    state: absent
+    remove: true
+  loop: "{{ users_absent | default([]) }}"
+  when:
+    - users_absent is defined
+    - users_absent | length > 0
+    - item != (ansible_user | default(''))
+    - item != 'root'
