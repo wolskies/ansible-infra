@@ -3,7 +3,7 @@
 # OS CONFIGURATION ROLE VARIABLES
 # =============================================================================
 # This role handles domain-level and host-level OS configuration including
-# hostname, timezone, locale, NTP, logging, services, and security hardening
+# hostname, timezone, locale, NTP, logging, services, user management, and security hardening
 #
 # Uses devsec.hardening.os_hardening for Linux security hardening.
 # Some variables exposed for convenience. See devsec.hardening docs for advanced usage.
@@ -18,3 +18,7 @@ host_fonts:
     enabled: false
     install_dir: "/usr/share/fonts/nerd-fonts"
     fonts: []
+
+# User management (batch wrapper around ansible.builtin.user)
+users: []
+users_absent: []

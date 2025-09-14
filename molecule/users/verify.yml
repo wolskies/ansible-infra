@@ -207,7 +207,9 @@
     # =============================================================================
     - name: Test idempotency - run user creation again
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_users
+        name: wolskies.infrastructure.os_configuration
+      tags:
+        - users
       register: idempotency_test
 
     - name: Verify idempotency (no changes on second run)

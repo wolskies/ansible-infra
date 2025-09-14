@@ -3,6 +3,8 @@
   hosts: all
   become: true
   tasks:
-    - name: Include manage_users role
+    - name: Include os_configuration role for user management
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_users
+        name: wolskies.infrastructure.os_configuration
+      tags:
+        - users
