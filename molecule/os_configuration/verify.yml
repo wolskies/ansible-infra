@@ -149,10 +149,10 @@
       register: proxy_config
       when: inventory_hostname == "ubuntu-os-config-test"
 
-    - name: Verify proxy configuration exists (Ubuntu test host)
+    - name: Verify proxy configuration does not exist (Ubuntu test host - empty proxy)
       ansible.builtin.assert:
         that:
-          - proxy_config.stat.exists
-        fail_msg: "APT proxy configuration not found"
-        success_msg: "APT proxy configuration exists"
+          - not proxy_config.stat.exists
+        fail_msg: "APT proxy configuration should not exist when proxy is empty"
+        success_msg: "APT proxy configuration correctly absent for empty proxy"
       when: inventory_hostname == "ubuntu-os-config-test"
