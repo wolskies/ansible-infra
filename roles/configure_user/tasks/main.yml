@@ -38,6 +38,14 @@
         go_packages: "{{ target_user.go.packages }}"
       when: target_user.go.packages | default([]) | length > 0
       tags: go
+
+    - name: Install and configure Neovim
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.neovim
+      vars:
+        neovim_user: "{{ target_user.name }}"
+      when: target_user.neovim.enabled | default(false)
+      tags: neovim
   when: target_user.name != 'root'
   tags:
     - user-config

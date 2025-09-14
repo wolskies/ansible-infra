@@ -3,64 +3,10 @@
 # CONFIGURE_USER ROLE - Per-user preference configuration
 # =============================================================================
 # This role uses collection-wide defaults from defaults/main.yml
-# Main variable is target_user containing complete user configuration
+# Configures preferences for users as defined in the users array
 #
 # For complete variable reference, see: defaults/main.yml
 # =============================================================================
 
-# This role configures preferences for a single user
-# Required variable when calling this role with complete user configuration
-
-target_user: {}
-# Example target_user structure:
-# target_user:
-#   name: developer                    # Username (required)
-#
-#   # Language toolchains with automatic system installation
-#   nodejs:
-#     packages:
-#       - typescript
-#       - eslint
-#       - prettier
-#       - "@vue/cli"
-#   rust:
-#     packages:
-#       - ripgrep      # Modern grep replacement
-#       - bat          # Modern cat replacement
-#       - fd-find      # Modern find replacement
-#       - cargo-watch  # Auto-rebuild on file changes
-#   go:
-#     packages:
-#       - github.com/charmbracelet/glow@latest
-#       - github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-#
-#   # Cross-platform preferences
-#   shell: /bin/zsh                    # Preferred shell (if available)
-#
-#   # Git configuration
-#   git:
-#     user_name: "Developer Name"
-#     user_email: "dev@company.com"
-#     editor: vim                      # Optional
-#
-#   # Dotfiles deployment using GNU Stow
-#   dotfiles:
-#     enable: true
-#     repository: "https://github.com/developer/dotfiles"
-#     branch: main                     # Optional: defaults to main
-#     packages: [zsh, tmux, vim]       # Stow packages to deploy
-#
-#   # macOS-specific GUI preferences
-#   Darwin:
-#     dock:
-#       tile_size: 48                  # Dock icon size
-#       autohide: true                 # Auto-hide dock
-#       minimize_to_application: false # Minimize to app icon
-#     finder:
-#       show_extensions: true          # Show file extensions
-#       show_hidden: true              # Show hidden files
-#       show_pathbar: true             # Show path bar
-#
-#   # Linux-specific preferences (future expansion)
-#   Linux:
-#     # Linux-specific settings would go here
+# This role configures preferences for individual users
+# Users are defined in the main users array with all preferences included

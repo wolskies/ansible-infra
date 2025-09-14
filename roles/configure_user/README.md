@@ -1,14 +1,14 @@
 # configure_user
 
-Configures individual user preferences and development environments for a single target user.
+Configures individual user preferences and development environments.
 
 ## Description
 
-This role configures user-specific preferences and development tools for a single user. It handles cross-platform settings (Git configuration, language packages) and OS-specific preferences (shell, dotfiles). The role runs as the target user and automatically installs language toolchains when packages are requested.
+This role configures user-specific preferences and development tools. It handles cross-platform settings (Git configuration, language packages) and OS-specific preferences (shell, dotfiles). The role runs as the target user and automatically installs language toolchains when packages are requested.
 
 ## Features
 
-- **Cross-platform**: Git configuration, language packages (nodejs, rust, go)
+- **Cross-platform**: Git configuration, language packages (nodejs, rust, go, neovim)
 - **OS-specific**: Shell settings, dotfiles management, GUI preferences (macOS)
 - **Language ecosystems**: Automatic nodejs/rustup/golang installation when packages requested
 - **Dotfiles integration**: Clone and deploy dotfiles using stow
@@ -16,37 +16,46 @@ This role configures user-specific preferences and development tools for a singl
 
 ## Role Variables
 
-### Required Variable
+### User Configuration Structure
 
-This role requires a `target_user` variable containing the complete user configuration:
+Users are defined in the main `users` array with all preferences included:
 
 ```yaml
-target_user:
-  name: alice                    # Username (required)
-  nodejs:                        # Optional: Node.js packages to install
-    packages: [typescript, eslint, prettier]
-  rust:                          # Optional: Rust packages to install
-    packages: [ripgrep, fd-find, bat]
-  go:                            # Optional: Go packages to install
-    packages: [github.com/charmbracelet/glow@latest]
-  shell: /bin/zsh               # Optional: Preferred shell
-  dotfiles:                     # Optional: Dotfiles configuration
-    enable: true
-    repository: "https://github.com/alice/dotfiles"
-    branch: main                # Optional: defaults to main
-    packages: [zsh, tmux, vim]  # Stow packages to deploy
-  Darwin:                       # Optional: macOS-specific settings
-    dock:
-      tile_size: 48
-      autohide: true
-    finder:
-      show_extensions: true
-      show_hidden: true
+users:
+  - name: alice                    # Username (required)
+    comment: "Alice Developer"     # User description
+    group: alice                   # Primary group
+    groups: [docker, sudo]         # Additional groups
+    shell: /bin/bash              # Login shell
+    ssh_keys:                     # SSH public keys
+      - "ssh-ed25519 AAAAC3N..."
+    state: present                # User state
+    # Development environment preferences
+    nodejs:                        # Optional: Node.js packages to install
+      packages: [typescript, eslint, prettier]
+    rust:                          # Optional: Rust packages to install
+      packages: [ripgrep, fd-find, bat]
+    go:                            # Optional: Go packages to install
+      packages: [github.com/charmbracelet/glow@latest]
+    neovim:                        # Optional: Neovim configuration
+      enabled: true
+    dotfiles:                     # Optional: Dotfiles configuration
+      enable: true
+      repository: "https://github.com/alice/dotfiles"
+      branch: main                # Optional: defaults to main
+      packages: [zsh, tmux, vim]  # Stow packages to deploy
+    Darwin:                       # Optional: macOS-specific settings
+      dock:
+        tile_size: 48
+        autohide: true
+      finder:
+        show_extensions: true
+        show_hidden: true
 ```
 
-### System User Definition
+### Internal Role Variable
 
-The target user must exist in the `users` list (managed by manage_users role):
+This role is called automatically by configure_system and receives a `target_user` variable containing the individual user configuration.
 
 ```yaml
 users:

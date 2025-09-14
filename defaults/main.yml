@@ -178,6 +178,20 @@ users: []
 #     ssh_keys:
 #       - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
 #     state: present
+#     # Language toolchains and development tools
+#     nodejs:
+#       packages: [eslint, prettier, typescript]
+#     rust:
+#       packages: [cargo-watch, ripgrep]
+#     go:
+#       packages: [github.com/golangci/golangci-lint/cmd/golangci-lint]
+#     neovim:
+#       enabled: true
+#     # Dotfiles and shell configuration
+#     dotfiles:
+#       enable: true
+#       repo: ""
+#       dest: ""
 #   - name: deploy
 #     comment: "Deployment User"
 #     group: deploy
@@ -187,16 +201,6 @@ users: []
 #     state: present
 users_absent: []
 # Example: users_absent: [olduser, tempuser]
-target_user: {}
-# Example:
-# target_user:
-#   name: developer
-#   nodejs:
-#     packages: [eslint, prettier, typescript]
-#   rust:
-#     packages: [cargo-watch, ripgrep]
-#   go:
-#     packages: [github.com/golangci/golangci-lint/cmd/golangci-lint]
 
 # Language toolchains
 node_user: ""

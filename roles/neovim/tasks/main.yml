@@ -27,7 +27,7 @@
   when:
     - neovim_installed.rc != 0
     - ansible_os_family == 'Debian'
-  ignore_errors: true # Some packages might not be available in older repos
+  failed_when: false # Some LSP packages might not be available in older repos
 
 - name: Install neovim (Arch Linux)
   ansible.builtin.package:

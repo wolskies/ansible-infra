@@ -47,12 +47,13 @@
     name: "wolskies.infrastructure.configure_user"
   vars:
     target_user: "{{ user_item }}"
-  loop: "{{ infrastructure.domain.users | default([]) }}"
+  loop: "{{ users | default([]) }}"
   loop_control:
     loop_var: user_item
   when:
     - user_item.name is defined
     - user_item.name != 'root' # Skip system accounts
+    - user_item.state | default('present') == 'present'
   tags:
     - user-preferences
     - optional
