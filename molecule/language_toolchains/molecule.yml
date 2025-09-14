@@ -57,5 +57,9 @@ provisioner:
         go_packages:
           - github.com/charmbracelet/glow@latest
           - golang.org/x/tools/cmd/goimports
+
+        # Neovim configuration
+        neovim_user: testdev
+        neovim_config_enabled: true
 verifier:
   name: ansible

@@ -1,0 +1,10 @@
+---
+# =============================================================================
+# NEOVIM ROLE VARIABLES - User-level neovim configuration
+# =============================================================================
+# Installs neovim system-wide, then configures per-user neovim setup with
+# lazy.nvim plugin manager and comprehensive LSP support
+# =============================================================================
+
+neovim_user: "" # Target username (required)
+neovim_config_enabled: true # Whether to install user configuration

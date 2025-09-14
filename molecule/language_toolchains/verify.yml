@@ -109,6 +109,47 @@
         success_msg: "go packages installed successfully"
 
     # =============================================================================
+    # NEOVIM VERIFICATION
+    # =============================================================================
+    - name: Check if neovim is available for testdev
+      ansible.builtin.command: sudo -u testdev which nvim
+      register: nvim_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify neovim is installed
+      ansible.builtin.assert:
+        that:
+          - nvim_check.rc == 0
+        fail_msg: "neovim not found for testdev user"
+        success_msg: "neovim successfully installed"
+
+    - name: Check neovim configuration exists
+      ansible.builtin.stat:
+        path: "/home/testdev/.config/nvim/init.lua"
+      register: nvim_config
+
+    - name: Verify neovim configuration is installed
+      ansible.builtin.assert:
+        that:
+          - nvim_config.stat.exists
+        fail_msg: "neovim configuration not installed"
+        success_msg: "neovim configuration installed successfully"
+
+    - name: Check vim alias exists
+      ansible.builtin.stat:
+        path: "/home/testdev/.local/bin/vim"
+      register: vim_alias
+
+    - name: Verify vim alias is installed
+      ansible.builtin.assert:
+        that:
+          - vim_alias.stat.exists
+          - vim_alias.stat.executable
+        fail_msg: "vim alias not installed"
+        success_msg: "vim alias installed successfully"
+
+    # =============================================================================
     # CROSS-TOOLCHAIN VERIFICATION
     # =============================================================================
     - name: Display toolchain installation summary
@@ -118,4 +159,5 @@
           - "✅ Node.js: {{ 'PASS' if npm_check.rc == 0 else 'FAIL' }}"
           - "✅ Rust: {{ 'PASS' if cargo_check.rc == 0 else 'FAIL' }}"
           - "✅ Go: {{ 'PASS' if go_check.rc == 0 else 'FAIL' }}"
+          - "✅ Neovim: {{ 'PASS' if nvim_check.rc == 0 else 'FAIL' }}"
           - "User: testdev created with proper toolchain access"
