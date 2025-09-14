@@ -1,0 +1,103 @@
+---
+# Install neovim and configure user-level settings
+# Expects: neovim_user (target user) and neovim_config_enabled (optional)
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - neovim_user is defined
+      - neovim_user | length > 0
+    fail_msg: "neovim role requires neovim_user variable"
+
+- name: Check if neovim is installed
+  ansible.builtin.command: which nvim
+  register: neovim_installed
+  failed_when: false
+  changed_when: false
+
+- name: Install neovim (Ubuntu/Debian)
+  ansible.builtin.apt:
+    name:
+      - neovim
+      - lua-language-server # LSP support
+      - pyright # Python LSP (if available)
+    state: present
+    update_cache: true
+  become: true
+  when:
+    - neovim_installed.rc != 0
+    - ansible_os_family == 'Debian'
+  ignore_errors: true # Some packages might not be available in older repos
+
+- name: Install neovim (Arch Linux)
+  ansible.builtin.package:
+    name:
+      - neovim
+      - lua-language-server
+      - pyright
+    state: present
+  become: true
+  when:
+    - neovim_installed.rc != 0
+    - ansible_os_family == 'Archlinux'
+
+- name: Install neovim (macOS)
+  community.general.homebrew:
+    name:
+      - neovim
+      - lua-language-server
+      - pyright
+    state: present
+  when:
+    - neovim_installed.rc != 0
+    - ansible_system == 'Darwin'
+
+# User-level configuration (run as target user)
+- name: Configure neovim for {{ neovim_user }}
+  block:
+    - name: Ensure local bin directory exists
+      ansible.builtin.file:
+        path: "~/.local/bin"
+        state: directory
+        mode: "0755"
+
+    - name: Install vim alias script
+      ansible.builtin.copy:
+        src: vim
+        dest: ~/.local/bin/vim
+        mode: "0755"
+
+    - name: Install lazy.nvim plugin manager
+      ansible.builtin.git:
+        repo: https://github.com/folke/lazy.nvim.git
+        dest: ~/.local/share/nvim/lazy/lazy.nvim
+        clone: true
+        update: true
+
+    - name: Define neovim config files
+      ansible.builtin.set_fact:
+        nvim_config_files:
+          - init.lua
+          - lua/config/lazy.lua
+          - lua/plugins/configuration.lua
+          - lua/plugins/lsp.lua
+          - lua/plugins/support.lua
+          - lua/plugins/ui.lua
+
+    - name: Ensure neovim config directories exist
+      ansible.builtin.file:
+        path: "~/.config/nvim/{{ item | dirname }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ nvim_config_files }}"
+
+    - name: Copy neovim configuration files
+      ansible.builtin.copy:
+        src: "nvim/{{ item }}"
+        dest: "~/.config/nvim/{{ item }}"
+        mode: "0644"
+      loop: "{{ nvim_config_files }}"
+
+  become: true
+  become_user: "{{ neovim_user }}"
+  when: neovim_config_enabled | default(true)

@@ -24,3 +24,8 @@
     - name: Test go role
       ansible.builtin.include_role:
         name: wolskies.infrastructure.go
+
+    # Test Neovim setup
+    - name: Test neovim role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.neovim
