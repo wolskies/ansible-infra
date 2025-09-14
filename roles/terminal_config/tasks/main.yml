@@ -42,7 +42,7 @@
       when: _terminals_to_compile | length > 0
 
     - name: Process each terminal that needs compilation
-      include_tasks: configure_terminal.yml
+      ansible.builtin.include_tasks: configure_terminal.yml
       vars:
         terminal_name: "{{ terminal_item }}"
         terminal_config: "{{ terminal_configs[terminal_item] }}"

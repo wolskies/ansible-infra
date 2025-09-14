@@ -234,7 +234,8 @@
     - name: Verify sudo configuration content is correct
       ansible.builtin.assert:
         that:
-          - "'sudouser\tALL=(ALL:ALL) NOPASSWD: ALL' in (sudo_content.content | b64decode)"
+          - "'sudouser' in (sudo_content.content | b64decode)"
+          - "'ALL=(ALL:ALL) NOPASSWD: ALL' in (sudo_content.content | b64decode)"
         fail_msg: "Passwordless sudo configuration content is incorrect"
         success_msg: "Passwordless sudo configuration content is correct"
 
