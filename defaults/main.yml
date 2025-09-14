@@ -216,34 +216,45 @@ optimizations:
   swappiness: 60
 
 # Security services
-security_services:
-  ufw:
-    enabled: false
-    default_policy:
-      incoming: deny
-      outgoing: allow
-      routed: deny
-    logging: "off"
-    rules: []
-    # Example:
-    # rules:
-    #   - rule: allow
-    #     port: 22
-    #     proto: tcp
-    #   - rule: allow
-    #     port: 80,443
-    #     proto: tcp
-    #   - rule: allow
-    #     from_ip: 192.168.1.0/24
-    #     port: 3000
-    #     proto: tcp
-  fail2ban:
-    enabled: false
+firewall:
+  enabled: false
+  prevent_ssh_lockout: true
+  package: "ufw"
+  stealth_mode: false
+  block_all: false
+  logging: false
+  rules: []
+  # Example:
+  # rules:
+  #   - rule: allow
+  #     port: 22
+  #     proto: tcp
+  #   - rule: allow
+  #     port: 80,443
+  #     proto: tcp
+  #   - rule: allow
+  #     from_ip: 192.168.1.0/24
+  #     port: 3000
+  #     proto: tcp
+
+fail2ban:
+  enabled: false
+  sender: "root@localhost"
+  dest_email: ""
+  defaults:
     bantime: 3600
     findtime: 600
     maxretry: 5
-    ignoreip: []
-    jails: {}
+  services:
+    - name: sshd
+      enabled: true
+      maxretry: 5
+      bantime: 3600
+      findtime: 600
+      logpath: /var/log/auth.log
+  ignoreips:
+    - "127.0.0.1/8"
+    - "::1"
 
 # Snap configuration
 snap:

@@ -71,14 +71,14 @@ domain_ntp:
 users:
   - name: admin
     groups: [sudo]
-    ssh_pubkey: "ssh-ed25519 AAAAC3..."
-    git:
-      user_name: "Admin User"
-      user_email: "admin@company.com"
-    nodejs:
-      packages: [typescript, eslint]
-    rust:
-      packages: [ripgrep, bat]
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3..."
+target_user:
+  name: admin
+  nodejs:
+    packages: [typescript, eslint]
+  rust:
+    packages: [ripgrep, bat]
 
 # host_vars/web01.yml
 host_hostname: "web01"
@@ -92,9 +92,9 @@ packages:
 firewall:
   enabled: true
   rules:
-    - port: 80
+    - rule: allow
+      port: 80
       proto: tcp
-      comment: "HTTP"
 ```
 
 ```yaml
@@ -172,6 +172,7 @@ host_udev: # udev rules
 
 packages: {} # Package management (see below)
 firewall: {} # Firewall configuration (see below)
+fail2ban: {} # Fail2ban configuration (see below)
 journal: {} # Journal settings (see below)
 snap: {} # Snap management (see below)
 flatpak: {} # Flatpak management (see below)
@@ -201,14 +202,13 @@ apt: # APT-specific settings
   unattended_upgrades:
     enabled: true
   repositories: # Custom repositories
-    all:
-      Ubuntu:
-        - name: nodejs
-          types: deb
-          uris: "https://deb.nodesource.com/node_20.x"
-          suites: nodistro
-          components: [main]
-          signed_by: /etc/apt/keyrings/nodesource.gpg
+    nodejs:
+      name: nodejs
+      types: [deb]
+      uris: "https://deb.nodesource.com/node_20.x"
+      suites: ["nodistro"]
+      components: [main]
+      signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
 
 homebrew: # Homebrew settings
   taps:
@@ -222,7 +222,8 @@ users:
   - name: developer
     comment: "Development User"
     groups: [sudo, docker]
-    ssh_pubkey: "ssh-ed25519 AAAAC3..."
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3..."
 
     # Cross-platform preferences (identical across OS)
     git:
@@ -251,30 +252,37 @@ users:
 ```yaml
 firewall:
   enabled: true
-  prevent_ssh_lockout: true # Always allow SSH
+  prevent_ssh_lockout: true
   rules:
-    - port: 80
+    - rule: allow
+      port: 22
       proto: tcp
-      comment: "HTTP traffic"
-    - port: 443
+    - rule: allow
+      port: 80,443
       proto: tcp
-      comment: "HTTPS traffic"
-    - port: "8080:8090"
+    - rule: allow
+      from_ip: 192.168.1.0/24
+      port: 3000
       proto: tcp
-      comment: "Application range"
 ```
 
-### Security Services
+### Fail2ban Configuration
 
 ```yaml
 fail2ban:
   enabled: true
+  dest_email: "admin@company.com"
+  defaults:
+    bantime: 3600
+    findtime: 600
+    maxretry: 5
   services:
     - name: sshd
       enabled: true
-      maxretry: 5
-      bantime: 3600
+      maxretry: 3
+      bantime: 7200
 ```
+
 
 ### System Journal
 
@@ -333,7 +341,7 @@ Each role can be used independently:
       include_role:
         name: wolskinet.infrastructure.configure_user
       vars:
-        target_user: "{{ item.name }}"
+        target_user: "{{ item }}"
       loop: "{{ users }}"
       when: item.name != 'root'
       become_user: "{{ item.name }}"
