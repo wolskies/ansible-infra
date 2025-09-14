@@ -1,0 +1,26 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == 'Debian'
+
+    - name: Install Docker directly in container (for testing)
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose
+          - python3-docker
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Start Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+      when: ansible_os_family == 'Debian'
