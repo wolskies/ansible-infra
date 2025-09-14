@@ -159,12 +159,7 @@ test-os-configuration:
     - molecule test -s os_configuration
     - echo "✅ OS configuration tests passed"
 
-test-users:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s users
-    - echo "✅ User management tests passed"
+# REMOVED: test-users - user management now tested in os_configuration scenario
 
 test-security-services:
   extends: .molecule_test_template
@@ -180,27 +175,27 @@ test-configure-user:
     - molecule test -s configure_user
     - echo "✅ Configure user tests passed"
 
-# Language-specific role tests
-test-rust:
+# Language toolchain tests (consolidated)
+test-language-toolchains:
   extends: .molecule_test_template
   stage: test
   script:
-    - molecule test -s rust
-    - echo "✅ Rust role tests passed"
+    - molecule test -s language_toolchains
+    - echo "✅ Language toolchain tests passed (Node.js, Rust, Go)"
 
-test-nodejs:
+test-docker:
   extends: .molecule_test_template
   stage: test
   script:
-    - molecule test -s nodejs
-    - echo "✅ NodeJS role tests passed"
+    - molecule test -s docker
+    - echo "✅ Docker installation and compose tests passed"
 
-test-go:
+test-minimal:
   extends: .molecule_test_template
   stage: test
   script:
-    - molecule test -s go
-    - echo "✅ Go role tests passed"
+    - molecule test -s minimal
+    - echo "✅ Minimal configuration safety tests passed"
 
 # REMOVED: test-dotfiles - functionality consolidated into configure_user role
 # Dotfiles deployment is now handled as part of per-user configuration

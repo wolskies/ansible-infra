@@ -156,3 +156,48 @@
         fail_msg: "APT proxy configuration should not exist when proxy is empty"
         success_msg: "APT proxy configuration correctly absent for empty proxy"
       when: inventory_hostname == "ubuntu-os-config-test"
+
+    # =============================================================================
+    # USER MANAGEMENT VERIFICATION
+    # =============================================================================
+    - name: Get user information
+      ansible.builtin.getent:
+        database: passwd
+      register: users_info
+
+    - name: Verify test user was created
+      ansible.builtin.assert:
+        that:
+          - users_info.ansible_facts.getent_passwd.testuser is defined
+          - users_info.ansible_facts.getent_passwd.testuser[1] == "1001"
+          - users_info.ansible_facts.getent_passwd.testuser[3] == "Test User for OS Config"
+          - users_info.ansible_facts.getent_passwd.testuser[5] == "/bin/bash"
+        fail_msg: "Test user not configured correctly"
+        success_msg: "Test user created successfully"
+
+    - name: Check user group membership
+      ansible.builtin.command:
+        cmd: id -Gn testuser
+      register: user_groups
+      changed_when: false
+
+    - name: Verify user is in sudo group
+      ansible.builtin.assert:
+        that:
+          - "'sudo' in user_groups.stdout"
+        fail_msg: "User not in sudo group"
+        success_msg: "User correctly added to sudo group"
+
+    - name: Check user home directory
+      ansible.builtin.stat:
+        path: "/home/testuser"
+      register: user_home
+
+    - name: Verify user home directory exists
+      ansible.builtin.assert:
+        that:
+          - user_home.stat.exists
+          - user_home.stat.isdir
+          - user_home.stat.pw_name == "testuser"
+        fail_msg: "User home directory not configured correctly"
+        success_msg: "User home directory created with correct ownership"

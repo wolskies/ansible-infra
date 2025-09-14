@@ -39,7 +39,15 @@ provisioner:
           servers:
             - 0.pool.ntp.org
             - 1.pool.ntp.org
-        users: []
+        users:
+          - name: testuser
+            uid: 1001
+            groups: [sudo]
+            shell: /bin/bash
+            comment: "Test User for OS Config"
+            ssh_keys:
+              - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... test@molecule"
+            create_home: true
 
         host_hostname: "molecule-test"
         host_update_hosts: false # Disabled for Docker container testing
