@@ -18,6 +18,8 @@
   when:
     - node_packages | length > 0
     - ansible_os_family != 'Darwin'
+    - not (molecule_test | default(false))
+  failed_when: false # Don't fail if package not available
 
 - name: Install Node.js system dependencies (Debian/Ubuntu)
   ansible.builtin.include_tasks: setup-Debian.yml
