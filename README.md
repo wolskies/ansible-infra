@@ -2,29 +2,37 @@
 
 Automates installation and maintenance tasks for multiple machines/operating systems.
 
+## Included Roles
+
+- **configure_system**: meta-role that orchestrates system configuration, system-level package installation, and initial user configuration (user, password, ssh keys)
+- **configure_users**: Configures users preferences and user-level software installation
+- **os_configuration**: System settings (timezone, hostname, services, kernel parameters, locale) + comprehensive security hardening for Linux systems
+- **manage_users**: Creates user accounts, groups, and SSH keys (system-level)
+- **manage_packages**: Manages packages via os-native package management system. For MacOS, homebrew is considered the 'native' package management system. If not present it will be installed via geerlingguy.mac collection.
+- **manage_security_services**: Firewall (UFW/macOS) and fail2ban configuration
+- **manage_snap_packages**: System level snap management and snap package management. Has the option to completely remove and disable snap on Ubuntu systems
+- **manage_flatpak**: System level flatpak management, can enable flathub and browser extensions for flatpak
+- **nodejs**: Nodejs installation (system level) and user-level package management
+- **rust**: Rustup installation (system level) and user-level rust package management
+- **go**: Go installation (system level) and user-level go package management
+
 ## Supported Operating Systems
 
 **Ubuntu 22+**, **Debian 12+**, **Arch Linux**, and **macOS**.
 
 **Note**:
-This collection has the ability to specify nodejs, go and rust packages to install at the user level in configure_users. The nodejs, rustup, and go packages are if missing, are installed via system package manager. For Debian family, only **Ubuntu 24.04+** and **Debian 13+** have system packages available. For those operating systems nodejs, rustup, and go must be installed manually before running the script.
+This collection has the ability to specify nodejs, go and rust packages to install at the user level in configure_users. The nodejs, rustup, and go packages, if missing, are installed via system package manager. For Debian family, only **Ubuntu 24.04+** and **Debian 13+** have system packages available. For those operating systems nodejs, rustup, and go must be installed manually before running the script.
 
 ## Privilege and Execution Model
 
-This collection uses a three-tier privilege model:
-
-1. **System operations** (`become: true`): Package installation, system configuration, service management
-2. **Package managers** (`become: false` as ansible_user): AUR helpers (paru) and Homebrew require non-root execution
-3. **User operations** (`become: true, become_user: target`): User preferences, dotfiles, language packages
-
-The ansible_user must have passwordless sudo for package management on Arch Linux (pacman) and macOS (if Homebrew needs system changes).
+This collection supports a limited ability to configure multiple users and preferences on a host. System packages are installed normally with elevated privileges. In the case of homebrew, which can be picky about privileges, while intended to be common across users, the "homebrew user" will be the ansible user. Local packages and preferences can be configured at the user-level and will be installed to the user's home directory with the exception that any tooling ("rustup" in the case of rust) will be installed at the system level.
 
 **Important for Docker/Kubernetes users**: The collection applies security hardening that disables IP forwarding by default. If you're running containers, you must enable it:
 
 ```yaml
 host_sysctl:
   parameters:
-    net.ipv4.ip_forward: 1  # Required for Docker/Kubernetes
+    net.ipv4.ip_forward: 1 # Required for Docker/Kubernetes
 ```
 
 **Note on compatibility**: Some older systems may need adjusted hardening settings (see os_configuration role documentation for memory randomization and SSH key compatibility).
@@ -42,6 +50,7 @@ ansible-galaxy collection install wolskies.infrastructure
 ```
 
 Or install from a local clone:
+
 ```bash
 git clone https://github.com/wolskinet/ansible-infrastructure
 cd ansible-infrastructure
@@ -96,20 +105,6 @@ firewall:
     - wolskinet.infrastructure.configure_system
     - wolskinet.infrastructure.configure_users
 ```
-
-## Included Roles
-
-- **configure_system**: meta-role that orchestrates system configuration, system-level package installation, and initial user configuration (user, password, ssh keys)
-- **configure_users**: Configures users preferences and user-level software installation
-- **os_configuration**: System settings (timezone, hostname, services, kernel parameters, locale) + comprehensive security hardening for Linux systems
-- **manage_users**: Creates user accounts, groups, and SSH keys (system-level)
-- **manage_packages**: Manages packages via os-native package management system. For MacOS, homebrew is considered the 'native' package management system. If not present it will be installed via geerlingguy.mac collection.
-- **manage_security_services**: Firewall (UFW/macOS) and fail2ban configuration
-- **manage_snap_packages**: System level snap management and snap package management. Has the option to completely remove and disable snap on Ubuntu systems
-- **manage_flatpak**: System level flatpak management, can enable flathub and browser extensions for flatpak
-- **nodejs**: Nodejs installation (system level) and user-level package management
-- **rust**: Rustup installation (system level) and user-level rust package management
-- **go**: Go installation (system level) and user-level go package management
 
 ## Dependencies and Credits
 

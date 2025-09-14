@@ -44,7 +44,7 @@
     mode: "0755"
   become: true
   become_user: "{{ node_user }}"
-  when: node_packages
+  when: node_packages | length > 0
   tags:
     - nodejs
     - user-packages
@@ -62,7 +62,7 @@
   loop: "{{ node_packages }}"
   become: true
   become_user: "{{ node_user }}"
-  when: node_packages
+  when: node_packages | length > 0
   tags:
     - nodejs
     - user-packages
