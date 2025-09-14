@@ -1,191 +1,298 @@
 # configure_user
 
-Per-user preference configuration with cross-platform language packages and OS-specific settings.
+Configures individual user preferences and development environments for a single target user.
 
 ## Description
 
-Configures individual user preferences and development environments. Runs as the target user (not root) and reads configuration from `infrastructure.domain.users[]`. Handles cross-platform settings (Git, language packages) and OS-specific preferences (shell, dotfiles, GUI settings).
+This role configures user-specific preferences and development tools for a single user. It handles cross-platform settings (Git configuration, language packages) and OS-specific preferences (shell, dotfiles). The role runs as the target user and automatically installs language toolchains when packages are requested.
 
 ## Features
 
-- **Cross-platform**: Git config, language packages (nodejs, rust, go) with auto-dependency installation
-- **OS-specific**: Shell settings, dotfiles (Stow-based), GUI preferences (macOS Dock/Finder)
+- **Cross-platform**: Git configuration, language packages (nodejs, rust, go)
+- **OS-specific**: Shell settings, dotfiles management, GUI preferences (macOS)
 - **Language ecosystems**: Automatic nodejs/rustup/golang installation when packages requested
-- **Dotfiles integration**: Clone and stow dotfiles from user repositories
-- **Per-user execution**: Must be called with `target_user` variable and `become_user`
+- **Dotfiles integration**: Clone and deploy dotfiles using stow
+- **User-level execution**: Runs as the target user, not root
 
 ## Role Variables
 
-### Required Variables
+### Required Variable
 
-This role requires a `target_user` variable specifying which user to configure:
+This role requires a `target_user` variable containing the complete user configuration:
 
 ```yaml
-target_user: alice  # Must match a user in infrastructure.domain.users[]
+target_user:
+  name: alice                    # Username (required)
+  nodejs:                        # Optional: Node.js packages to install
+    packages: [typescript, eslint, prettier]
+  rust:                          # Optional: Rust packages to install
+    packages: [ripgrep, fd-find, bat]
+  go:                            # Optional: Go packages to install
+    packages: [github.com/charmbracelet/glow@latest]
+  shell: /bin/zsh               # Optional: Preferred shell
+  dotfiles:                     # Optional: Dotfiles configuration
+    enable: true
+    repository: "https://github.com/alice/dotfiles"
+    branch: main                # Optional: defaults to main
+    packages: [zsh, tmux, vim]  # Stow packages to deploy
+  Darwin:                       # Optional: macOS-specific settings
+    dock:
+      tile_size: 48
+      autohide: true
+    finder:
+      show_extensions: true
+      show_hidden: true
 ```
 
-### User Configuration Structure
+### System User Definition
 
-User preferences are read from `infrastructure.domain.users[]`:
+The target user must exist in the `users` list (managed by manage_users role):
 
 ```yaml
-infrastructure:
-  domain:
-    users:
-      - name: alice
-        # System account fields (used by manage_users role)
-        groups: [sudo]
-        ssh_pubkey: "ssh-ed25519 AAAAC3..."
-
-        # Cross-platform preferences (used by this role)
-        shell: /bin/zsh                    # Cross-platform shell preference
-        git:
-          user_name: "Alice Smith"
-          user_email: "alice@company.com"
-          editor: "vim"                    # Optional
-        nodejs:
-          packages: [typescript, eslint, prettier]  # Auto-installs nodejs if missing
-        rust:
-          packages: [ripgrep, fd-find, bat]         # Auto-installs rustup if missing
-        go:
-          packages: [github.com/charmbracelet/glow@latest]  # Auto-installs golang if missing
-        dotfiles:
-          repository: "https://github.com/alice/dotfiles"
-          method: stow                     # Currently only stow supported
-          packages: [zsh, tmux, vim]       # Stow packages to deploy
-
-        # Only macOS-specific GUI preferences need their own section
-        macosx:
-          dock:
-            tile_size: 48
-            autohide: true
-            minimize_to_application: false  # Optional
-          finder:
-            show_extensions: true
-            show_hidden: true
-            show_pathbar: true              # Optional
+users:
+  - name: alice
+    comment: "Alice Smith"
+    groups: [sudo, docker]
+    shell: /bin/bash
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGrT..."
+    state: present
 ```
 
 ## Usage Examples
 
-### Per-User Configuration
+### Configure Single User
 
 ```yaml
-# Configure a specific user by passing the user object as target_user
-- name: Configure alice's preferences
-  include_role:
-    name: wolskinet.infrastructure.configure_user
-  vars:
-    target_user: "{{ infrastructure.domain.users | selectattr('name', 'equalto', 'alice') | first }}"
+- hosts: workstations
+  become: true
+  tasks:
+    - name: Configure alice's development environment
+      include_role:
+        name: wolskies.infrastructure.configure_user
+      vars:
+        target_user:
+          name: alice
+          nodejs:
+            packages: [typescript, eslint, prettier]
+          rust:
+            packages: [ripgrep, bat]
+          shell: /bin/zsh
+          dotfiles:
+            enable: true
+            repository: "https://github.com/alice/dotfiles"
+            packages: [zsh, vim]
+      become_user: alice
 ```
 
-### Configure All Domain Users (Recommended Pattern)
+### Configure All Users (Recommended Pattern)
 
 ```yaml
-# Loop at playbook level and pass each user object as target_user
 - hosts: all
+  become: true
   tasks:
     - name: Configure user preferences
       include_role:
-        name: wolskinet.infrastructure.configure_user
+        name: wolskies.infrastructure.configure_user
       vars:
-        target_user: "{{ user_item }}"
-      loop: "{{ infrastructure.domain.users }}"
-      loop_control:
-        loop_var: user_item
-      when: user_item.name != 'root'  # Skip system accounts
+        target_user: "{{ item }}"
+      loop: "{{ users }}"
+      when: item.name != 'root'
+      become_user: "{{ item.name }}"
 ```
 
-### Common Mistake: Incorrect Variable Passing
+### Language Package Configuration
+
+Configure development environments with automatic toolchain installation:
 
 ```yaml
-# ❌ WRONG: This creates 'user' variable, but role expects 'target_user'
-- name: Configure users (incorrect)
-  include_role:
-    name: wolskinet.infrastructure.configure_user
-  loop: "{{ infrastructure.domain.users }}"
-  loop_control:
-    loop_var: user  # Role can't access this as target_user
-
-# ✅ CORRECT: Pass loop variable as target_user
-- name: Configure users (correct)
-  include_role:
-    name: wolskinet.infrastructure.configure_user
-  vars:
-    target_user: "{{ user_item }}"  # Explicitly pass as target_user
-  loop: "{{ infrastructure.domain.users }}"
-  loop_control:
-    loop_var: user_item
-```
-
-### Language Package Auto-Installation
-
-The role automatically installs language tools when users request packages:
-
-```yaml
-infrastructure:
-  domain:
-    users:
-      - name: developer
-        nodejs:
-          packages: [typescript]  # Will install nodejs if npm not found
-        rust:
-          packages: [ripgrep]     # Will install rustup if cargo not found
-        go:
-          packages: [github.com/charmbracelet/glow@latest]  # Will install golang if go not found
+target_user:
+  name: developer
+  nodejs:
+    packages:
+      - typescript
+      - eslint
+      - prettier
+      - "@vue/cli"
+  rust:
+    packages:
+      - ripgrep      # Modern grep replacement
+      - bat          # Modern cat replacement
+      - fd-find      # Modern find replacement
+      - cargo-watch  # Auto-rebuild on changes
+  go:
+    packages:
+      - github.com/charmbracelet/glow@latest
+      - github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 ```
 
 **Installation behavior**:
-- Checks if tool exists (`npm`, `cargo`, `go`)
-- If missing, installs via system package manager (`nodejs`, `rustup`, `golang`)
-- Then installs user packages (`npm -g`, `cargo install`, `go install`)
+- Checks if language tool exists (`npm`, `cargo`, `go`)
+- If missing, includes appropriate language role to install system packages
+- Then installs user packages in user's home directory
+
+### Dotfiles Configuration
+
+Deploy dotfiles using GNU Stow:
+
+```yaml
+target_user:
+  name: alice
+  dotfiles:
+    enable: true
+    repository: "https://github.com/alice/dotfiles"
+    branch: main                    # Optional: defaults to main
+    packages: [zsh, tmux, vim]      # Stow packages to deploy
+```
+
+**Dotfiles structure expected**:
+```
+dotfiles/
+├── zsh/
+│   └── .zshrc
+├── tmux/
+│   └── .tmux.conf
+└── vim/
+    └── .vimrc
+```
+
+### macOS GUI Configuration
+
+Configure macOS Dock and Finder preferences:
+
+```yaml
+target_user:
+  name: alice
+  Darwin:
+    dock:
+      tile_size: 48              # Dock icon size
+      autohide: true             # Auto-hide dock
+      minimize_to_application: false
+    finder:
+      show_extensions: true      # Show file extensions
+      show_hidden: true          # Show hidden files
+      show_pathbar: true         # Show path bar
+```
+
+## Variable Structure Details
+
+### Language Packages
+
+Each language section follows the same pattern:
+
+```yaml
+nodejs:
+  packages: []                   # Array of npm packages to install globally
+
+rust:
+  packages: []                   # Array of cargo crates to install
+
+go:
+  packages: []                   # Array of Go packages (full module paths)
+```
+
+### Cross-Platform Settings
+
+Settings that work on all supported platforms:
+
+```yaml
+shell: /bin/zsh                  # Preferred shell (if available)
+dotfiles:                        # Dotfiles deployment
+  enable: true
+  repository: "https://github.com/user/dotfiles"
+  branch: main
+  packages: [package1, package2]
+```
+
+### OS-Specific Settings
+
+Platform-specific settings use the OS name as the key:
+
+```yaml
+Darwin:                          # macOS settings
+  dock: {}
+  finder: {}
+Linux:                           # Linux settings (future expansion)
+  # Linux-specific settings would go here
+```
 
 ## Architecture
 
 ### Execution Flow
 
-1. **Validation**: Ensures `target_user` is defined and exists in `infrastructure.domain.users[]`
-2. **User lookup**: Finds the target user's configuration
-3. **Cross-platform config**: Applies Git settings and language packages
-4. **OS-specific config**: Applies shell, dotfiles, GUI preferences
+1. **Validation**: Ensures `target_user` is defined with required fields
+2. **Language toolchains**: Installs nodejs, rust, go packages (if requested)
+3. **Cross-platform**: Applies shell and dotfiles configuration
+4. **OS-specific**: Applies platform-specific preferences
 
 ### Task Organization
 
-- `configure-cross-platform.yml`: Git config, nodejs/rust/go packages
-- `configure-Linux.yml`: Shell, dotfiles (stow), Linux-specific settings
-- `configure-Darwin.yml`: Shell, dotfiles (stow), Dock, Finder preferences
+- `main.yml`: Validation and orchestration
+- `configure-cross-platform.yml`: Git config, language packages
+- `configure-Linux.yml`: Linux-specific settings and dotfiles
+- `configure-Darwin.yml`: macOS-specific settings, Dock, Finder
 
 ## Requirements
 
-- **All platforms**: Must be called with `target_user` variable and `become_user`
-- **Language packages**: System package manager access (for auto-installation)
-- **Dotfiles**: Git access to dotfiles repositories
-- **macOS GUI**: User session (for defaults changes to apply)
-- **Linux dotfiles**: Stow package (auto-installed)
-- **macOS dotfiles**: Stow via Homebrew (auto-installed)
+### All Platforms
+- User must exist on the system (use manage_users role first)
+- Role must be called with `become_user: {{ target_user.name }}`
 
-### OS Version Requirements for Language Packages
+### Language Packages
+- System package manager access for automatic toolchain installation
+- Network access for downloading packages
 
-Language package auto-installation requires specific OS versions due to package availability:
+### Dotfiles
+- Git access to dotfiles repositories
+- GNU Stow (automatically installed if missing)
 
-- **Debian**: 13+ (Trixie) - for `rustup` and modern `nodejs` packages
-- **Ubuntu**: 24.04+ (Noble) - for reliable `nodejs` and `rustup` package availability
-- **Arch Linux**: Current rolling release - all language packages available
-- **macOS**: 10.15+ (Catalina) - via Homebrew package manager
+### macOS GUI Settings
+- User must be logged in for Dock/Finder changes to take effect
+- May require logout/login for some settings
 
-**Note**: On older OS versions, language packages (nodejs, rust, go) may fail to auto-install. Users can manually install the language tools (`npm`, `cargo`, `go`) before running this role as a workaround.
+## Integration with Other Roles
+
+This role works with other collection roles:
+
+1. **manage_users**: Creates user accounts and SSH keys (run first)
+2. **nodejs/rust/go**: Language toolchain installation (called automatically)
+3. **configure_user**: User preferences (this role)
+
+Example playbook order:
+```yaml
+- hosts: all
+  become: true
+  roles:
+    - wolskies.infrastructure.manage_users        # Create accounts
+
+  tasks:
+    - name: Configure user preferences
+      include_role:
+        name: wolskies.infrastructure.configure_user
+      vars:
+        target_user: "{{ item }}"
+      loop: "{{ users }}"
+      when: item.name != 'root'
+      become_user: "{{ item.name }}"               # Run as target user
+```
 
 ## Dependencies
 
-- `community.general` - Git config, npm module, osx_defaults, homebrew
-- `ansible.builtin` - User management, command execution
+- `community.general`: npm, osx_defaults, homebrew modules
+- `ansible.builtin`: Core modules for file operations
+- Language roles (nodejs, rust, go): Called automatically when packages requested
 
-## Integration
+## OS Support
 
-Works seamlessly with `manage_users` role:
-1. `manage_users` creates accounts (sudo)
-2. `configure_user` configures preferences (per-user)
+- **Ubuntu 22+**: Full support with automatic language toolchain installation
+- **Debian 12+**: Full support with automatic language toolchain installation
+- **Arch Linux**: Full support with AUR package installation
+- **macOS 10.15+**: Full support including GUI preferences
 
 ## License
 
 MIT
+
+## Author Information
+
+This role is part of the wolskies.infrastructure collection.
