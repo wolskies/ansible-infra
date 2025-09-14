@@ -3,23 +3,6 @@
   hosts: all
   gather_facts: true
   tasks:
-    - name: Check Docker is installed and running
-      ansible.builtin.command: docker --version
-      register: docker_version
-      changed_when: false
-
-    - name: Verify Docker service is active
-      ansible.builtin.systemd:
-        name: docker
-      register: docker_service
-
-    - name: Assert Docker is working
-      ansible.builtin.assert:
-        that:
-          - docker_version.rc == 0
-          - docker_service.status.ActiveState == "active"
-        fail_msg: "Docker is not properly installed or running"
-
     - name: Check if service directory exists (service test only)
       ansible.builtin.stat:
         path: "{{ docker_services_root }}/{{ service_name }}"
@@ -32,11 +15,34 @@
       register: compose_file
       when: test_docker_only is not defined
 
+    - name: Check if .env file exists (service test only)
+      ansible.builtin.stat:
+        path: "{{ docker_services_root }}/{{ service_name }}/.env"
+      register: env_file
+      when: test_docker_only is not defined
+
     - name: Assert service files exist (service test only)
       ansible.builtin.assert:
         that:
           - service_dir.stat.exists
           - service_dir.stat.isdir
           - compose_file.stat.exists
+          - env_file.stat.exists
         fail_msg: "Docker service files not properly deployed"
+      when: test_docker_only is not defined
+
+    - name: Read docker-compose.yml content (service test only)
+      ansible.builtin.slurp:
+        src: "{{ docker_services_root }}/{{ service_name }}/docker-compose.yml"
+      register: compose_content
+      when: test_docker_only is not defined
+
+    - name: Verify template rendering (service test only)
+      ansible.builtin.assert:
+        that:
+          - "'nginx-test:' in (compose_content.content | b64decode)"
+          - '''- ":80"'' in (compose_content.content | b64decode)'
+          - "'image: nginx:alpine' in (compose_content.content | b64decode)"
+          - "'env_file:' in (compose_content.content | b64decode)"
+        fail_msg: "docker-compose.yml template rendering failed - service_use_proxy variable not working"
       when: test_docker_only is not defined

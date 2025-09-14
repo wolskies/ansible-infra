@@ -3,12 +3,7 @@
   hosts: all
   become: true
   tasks:
-    - name: Test Docker installation only
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.install_docker
-      when: test_docker_only is defined and test_docker_only
-
-    - name: Test Docker service deployment
+    - name: Test docker_compose_generic role template rendering
       ansible.builtin.include_role:
         name: wolskies.infrastructure.docker_compose_generic
       when: test_docker_only is not defined

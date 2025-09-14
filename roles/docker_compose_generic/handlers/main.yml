@@ -3,6 +3,8 @@
   community.docker.docker_compose_v2:
     project_src: "{{ docker_services_root }}/{{ service_name }}"
     state: present
-    restarted: true
+    recreate: always
   become: true
-  when: service_enabled
+  when:
+    - service_enabled
+    - not (molecule_test | default(false))

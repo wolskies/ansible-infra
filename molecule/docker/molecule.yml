@@ -37,6 +37,10 @@ provisioner:
         molecule_test: true
         ansible_managed: "Managed by Ansible - do not edit manually"
         docker_services_root: "/opt/docker-services"
+        # Skip Docker service management in containers
+        docker_service_state: stopped
+        docker_service_enabled: false
+        docker_restart_on_failure: false
     host_vars:
       ubuntu24-docker-test:
         # Test basic Docker installation
@@ -45,6 +49,7 @@ provisioner:
         # Test Docker service deployment
         service_name: "nginx-test"
         service_enabled: true
+        service_use_proxy: false
         service_env_vars:
           NGINX_PORT: "8080"
           NGINX_HOST: "0.0.0.0"

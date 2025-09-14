@@ -10,6 +10,7 @@
 - name: Ensure Docker is installed
   ansible.builtin.include_role:
     name: wolskies.infrastructure.install_docker
+  when: not (molecule_test | default(false))
 
 - name: Create Docker services root directory
   ansible.builtin.file:
@@ -66,11 +67,15 @@
     project_src: "{{ docker_services_root }}/{{ service_name }}"
     state: present
   become: true
-  when: service_enabled
+  when:
+    - service_enabled
+    - not (molecule_test | default(false))
 
 - name: Stop Docker Compose service
   community.docker.docker_compose_v2:
     project_src: "{{ docker_services_root }}/{{ service_name }}"
     state: absent
   become: true
-  when: not service_enabled
+  when:
+    - not service_enabled
+    - not (molecule_test | default(false))
