@@ -1,11 +1,10 @@
 ---
-# nodejs role default variables
-
-# User to install npm packages for (required)
-node_user: ""
-
-# List of npm packages to install globally for the user
-node_packages: []
+# =============================================================================
+# NODEJS ROLE - Node.js toolchain installation and package management
+# =============================================================================
+# Core variables (node_user, node_packages) are defined in collection defaults
+# Only role-specific configuration overrides are defined here
+# =============================================================================
 
 # Node.js version to install (used in repository setup)
 nodejs_version: "20"
