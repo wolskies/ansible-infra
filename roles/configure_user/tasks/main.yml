@@ -7,7 +7,7 @@
     that:
       - target_user is defined
       - target_user.name is defined
-      - target_user.name
+      - target_user.name | length > 0
     fail_msg: "configure_user role requires target_user variable with name field"
 
 - name: Configure language toolchains for {{ target_user.name }}
