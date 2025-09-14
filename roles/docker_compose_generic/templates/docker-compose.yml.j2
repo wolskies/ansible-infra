@@ -6,8 +6,12 @@ services:
     {% if compose_file_content %}
 {{ compose_file_content | indent(4) }}
     {% else %}
+    {% if service_image %}
+    image: {{ service_image }}
+    {% else %}
     # Default service configuration - customize as needed
     image: nginx:alpine
+    {% endif %}
     container_name: {{ service_name }}
     restart: unless-stopped
     {% if not service_use_proxy and service_ports %}
@@ -16,11 +20,28 @@ services:
       - "{{ port }}"
 {% endfor %}
     {% endif %}
+    {% if service_environment %}
+    environment:
+{% for env in service_environment %}
+      - "{{ env }}"
+{% endfor %}
+    {% else %}
     environment:
       - PUID=1000
       - PGID=1000
+    {% endif %}
+    {% if service_volumes %}
+    volumes:
+{% for volume in service_volumes %}
+      - "{{ volume }}"
+{% endfor %}
+    {% else %}
     volumes:
       - ./data:/data
+    {% endif %}
+    {% if service_command %}
+    command: {{ service_command }}
+    {% endif %}
     {% endif %}
     {% if service_env_vars %}
     env_file:

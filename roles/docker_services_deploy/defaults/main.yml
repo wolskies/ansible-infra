@@ -1,0 +1,4 @@
+---
+# Docker services deployment defaults
+docker_services_deploy: []
+docker_services: {}

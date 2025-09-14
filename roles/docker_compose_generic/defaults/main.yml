@@ -4,7 +4,13 @@ docker_services_root: "/srv/docker"
 service_name: ""
 service_enabled: true
 service_env_vars: {}
-compose_file_content: ""
+compose_file_content: "" # Optional: overrides automatic template generation
+
+# Simple service configuration (alternative to compose_file_content)
+service_image: "" # Docker image (e.g., "portainer/portainer-ce:latest")
+service_volumes: [] # Volume mounts (e.g., ["./data:/data", "/var/run/docker.sock:/var/run/docker.sock:ro"])
+service_command: "" # Optional command override
+service_environment: [] # Environment variables as list (e.g., ["TZ=UTC", "DEBUG=true"])
 
 # Proxy configuration
 service_use_proxy: false # Enable proxy mode (no direct port exposure)

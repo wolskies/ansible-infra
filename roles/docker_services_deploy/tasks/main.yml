@@ -1,0 +1,16 @@
+---
+- name: Validate docker_services_deploy is defined
+  ansible.builtin.assert:
+    that:
+      - docker_services_deploy is defined
+      - docker_services_deploy | length > 0
+    fail_msg: "docker_services_deploy must be defined with a list of services"
+
+- name: Deploy each Docker service
+  ansible.builtin.include_role:
+    name: wolskies.infrastructure.docker_compose_generic
+  vars: "{{ docker_services[item] }}"
+  loop: "{{ docker_services_deploy }}"
+  when:
+    - item in docker_services
+    - docker_services[item] is defined
