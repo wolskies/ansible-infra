@@ -26,6 +26,9 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
+        # Disable OS hardening in containers (auditd package not available)
+        host_security:
+          hardening_enabled: false
         # Test user for language toolchain installation
         test_user: testdev
     host_vars:

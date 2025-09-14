@@ -111,9 +111,12 @@ After system setup, configure user preferences:
     target_user: "{{ item }}"
   include_role:
     name: wolskinet.infrastructure.configure_user
-  become: true
-  become_user: "{{ item }}"
-  loop: "{{ infrastructure.domain.users | map(attribute='name') | list }}"
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+  when:
+    - item.name is defined
+    - item.name != 'root'
 ```
 
 ## Tags
