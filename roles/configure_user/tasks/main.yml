@@ -18,7 +18,7 @@
       vars:
         node_user: "{{ target_user.name }}"
         node_packages: "{{ target_user.nodejs.packages }}"
-      when: target_user.nodejs.packages | default([])
+      when: target_user.nodejs.packages | default([]) | length > 0
       tags: nodejs
 
     - name: Install Rust and packages
@@ -27,7 +27,7 @@
       vars:
         rust_user: "{{ target_user.name }}"
         rust_packages: "{{ target_user.rust.packages }}"
-      when: target_user.rust.packages | default([])
+      when: target_user.rust.packages | default([]) | length > 0
       tags: rust
 
     - name: Install Go and packages
@@ -36,7 +36,7 @@
       vars:
         go_user: "{{ target_user.name }}"
         go_packages: "{{ target_user.go.packages }}"
-      when: target_user.go.packages | default([])
+      when: target_user.go.packages | default([]) | length > 0
       tags: go
   when: target_user.name != 'root'
   tags:

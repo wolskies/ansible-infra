@@ -12,6 +12,7 @@ A convenience role for configuring a system - calls multiple roles in this colle
 4. **manage_security_services** - Firewall and fail2ban configuration
 5. **manage_snap_packages** - Snap management (Ubuntu/Debian, optional)
 6. **manage_flatpak** - Flatpak management (Linux, optional)
+7. **configure_user** - Per-user preferences and dotfiles
 
 ## Configuration
 
