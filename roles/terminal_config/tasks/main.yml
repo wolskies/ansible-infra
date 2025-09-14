@@ -1,0 +1,55 @@
+---
+# Configure terminal emulators with proper terminfo entries
+# Expects: terminal_user (target user) and terminal_entries (list of terminals)
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - terminal_user is defined
+      - terminal_user | length > 0
+      - terminal_entries is defined
+      - terminal_entries | length > 0
+    fail_msg: "terminal_config role requires terminal_user and terminal_entries variables"
+
+- name: Configure terminal emulators for {{ terminal_user }}
+  block:
+    - name: Check existing terminfo entries
+      ansible.builtin.command: "infocmp -x {{ item.1 }}"
+      register: _terminal_infocmp
+      changed_when: false
+      failed_when: false
+      loop: "{{ terminal_entries | map('extract', terminal_configs) | subelements('entries') }}"
+      loop_control:
+        label: "{{ item.1 }}"
+
+    - name: Determine which terminals need terminfo compilation
+      ansible.builtin.set_fact:
+        _terminals_to_compile: >-
+          {{
+            _terminal_infocmp.results
+            | selectattr('rc', 'ne', 0)
+            | map(attribute='item')
+            | map('first')
+            | unique
+            | list
+          }}
+
+    - name: Ensure user terminfo directory exists
+      ansible.builtin.file:
+        path: "~/.terminfo"
+        state: directory
+        mode: "0755"
+      when: _terminals_to_compile | length > 0
+
+    - name: Process each terminal that needs compilation
+      include_tasks: configure_terminal.yml
+      vars:
+        terminal_name: "{{ terminal_item }}"
+        terminal_config: "{{ terminal_configs[terminal_item] }}"
+      loop: "{{ _terminals_to_compile }}"
+      loop_control:
+        loop_var: terminal_item
+        label: "{{ terminal_item }}"
+
+  become: true
+  become_user: "{{ terminal_user }}"

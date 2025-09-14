@@ -29,3 +29,8 @@
     - name: Test neovim role
       ansible.builtin.include_role:
         name: wolskies.infrastructure.neovim
+
+    # Test terminal configuration
+    - name: Test terminal_config role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.terminal_config

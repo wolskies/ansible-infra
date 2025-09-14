@@ -64,5 +64,11 @@ provisioner:
         # Neovim configuration
         neovim_user: testdev
         neovim_config_enabled: true
+
+        # Terminal configuration
+        terminal_user: testdev
+        terminal_entries:
+          - alacritty
+          - kitty
 verifier:
   name: ansible

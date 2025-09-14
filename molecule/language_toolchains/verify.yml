@@ -150,6 +150,41 @@
         success_msg: "vim alias installed successfully"
 
     # =============================================================================
+    # TERMINAL CONFIGURATION VERIFICATION
+    # =============================================================================
+    - name: Check terminal terminfo directory exists
+      ansible.builtin.stat:
+        path: "/home/testdev/.terminfo"
+      register: terminfo_dir
+
+    - name: Verify terminfo directory was created
+      ansible.builtin.assert:
+        that:
+          - terminfo_dir.stat.exists
+          - terminfo_dir.stat.isdir
+        fail_msg: "terminfo directory not created"
+        success_msg: "terminfo directory created successfully"
+
+    - name: Check alacritty terminfo entries
+      ansible.builtin.command: sudo -u testdev infocmp -x alacritty
+      register: alacritty_terminfo
+      changed_when: false
+      failed_when: false
+
+    - name: Check kitty terminfo entries
+      ansible.builtin.command: sudo -u testdev infocmp -x xterm-kitty
+      register: kitty_terminfo
+      changed_when: false
+      failed_when: false
+
+    - name: Verify terminal terminfo entries are available
+      ansible.builtin.assert:
+        that:
+          - alacritty_terminfo.rc == 0 or kitty_terminfo.rc == 0
+        fail_msg: "terminal terminfo entries not installed correctly"
+        success_msg: "terminal terminfo entries installed successfully"
+
+    # =============================================================================
     # CROSS-TOOLCHAIN VERIFICATION
     # =============================================================================
     - name: Display toolchain installation summary
@@ -160,4 +195,5 @@
           - "✅ Rust: {{ 'PASS' if cargo_check.rc == 0 else 'FAIL' }}"
           - "✅ Go: {{ 'PASS' if go_check.rc == 0 else 'FAIL' }}"
           - "✅ Neovim: {{ 'PASS' if nvim_check.rc == 0 else 'FAIL' }}"
+          - "✅ Terminal Config: {{ 'PASS' if (alacritty_terminfo.rc == 0 or kitty_terminfo.rc == 0) else 'FAIL' }}"
           - "User: testdev created with proper toolchain access"

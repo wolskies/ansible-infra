@@ -8,9 +8,10 @@ This role configures user-specific preferences and development tools. It handles
 
 ## Features
 
-- **Cross-platform**: Git configuration, language packages (nodejs, rust, go, neovim)
+- **Cross-platform**: Git configuration, language packages (nodejs, rust, go, neovim), terminal configuration
 - **OS-specific**: Shell settings, dotfiles management, GUI preferences (macOS)
 - **Language ecosystems**: Automatic nodejs/rustup/golang installation when packages requested
+- **Terminal integration**: Terminfo setup for modern terminals (Alacritty, Kitty, WezTerm)
 - **Dotfiles integration**: Clone and deploy dotfiles using stow
 - **User-level execution**: Runs as the target user, not root
 
@@ -39,6 +40,9 @@ users:
       packages: [github.com/charmbracelet/glow@latest]
     neovim:                        # Optional: Neovim configuration
       enabled: true
+    terminal_entries:              # Optional: Terminal emulators to configure
+      - alacritty
+      - kitty
     dotfiles:                     # Optional: Dotfiles configuration
       enable: true
       repository: "https://github.com/alice/dotfiles"
