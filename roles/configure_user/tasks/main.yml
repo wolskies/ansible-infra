@@ -46,6 +46,15 @@
         neovim_user: "{{ target_user.name }}"
       when: target_user.neovim.enabled | default(false)
       tags: neovim
+
+    - name: Configure terminal emulators
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.terminal_config
+      vars:
+        terminal_user: "{{ target_user.name }}"
+        terminal_entries: "{{ target_user.terminal_entries }}"
+      when: target_user.terminal_entries | default([]) | length > 0
+      tags: terminal
   when: target_user.name != 'root'
   tags:
     - user-config

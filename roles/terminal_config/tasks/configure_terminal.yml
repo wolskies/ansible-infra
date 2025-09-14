@@ -1,0 +1,32 @@
+---
+# Configure a specific terminal emulator's terminfo
+# Expects: terminal_name, terminal_config
+
+- name: "Create temporary file for {{ terminal_name }} terminfo"
+  ansible.builtin.tempfile:
+    state: file
+    suffix: ".{{ terminal_name }}.info"
+  register: _terminal_tmp
+
+- name: "Download {{ terminal_name }} terminfo source"
+  ansible.builtin.get_url:
+    url: "{{ terminal_config.terminfo_url }}"
+    dest: "{{ _terminal_tmp.path }}"
+    mode: "0644"
+    force: true
+  failed_when: false # Some URLs might not be accessible
+
+- name: "Compile and install {{ terminal_name }} terminfo to ~/.terminfo"
+  ansible.builtin.command: >-
+    tic {{ terminal_config.tic_options }}
+    -o ~/.terminfo
+    -e {{ terminal_config.entries | join(',') }}
+    "{{ _terminal_tmp.path }}"
+  register: _terminal_tic
+  changed_when: _terminal_tic.rc == 0
+  failed_when: false # Don't fail if terminfo compilation has issues
+
+- name: "Clean up temporary file for {{ terminal_name }}"
+  ansible.builtin.file:
+    path: "{{ _terminal_tmp.path }}"
+    state: absent

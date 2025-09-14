@@ -187,6 +187,8 @@ users: []
 #       packages: [github.com/golangci/golangci-lint/cmd/golangci-lint]
 #     neovim:
 #       enabled: true
+#     # Terminal emulator configuration
+#     terminal_entries: [alacritty, kitty]
 #     # Dotfiles and shell configuration
 #     dotfiles:
 #       enable: true
