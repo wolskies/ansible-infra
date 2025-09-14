@@ -28,5 +28,8 @@ provisioner:
         infrastructure: {}
         # This simulates real-world deployments where users might have
         # empty or minimal infrastructure configuration
+        # Disable security hardening for minimal/container testing
+        host_security:
+          hardening_enabled: false
 verifier:
   name: ansible
