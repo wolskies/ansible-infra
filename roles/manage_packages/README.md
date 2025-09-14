@@ -1,286 +1,261 @@
 # manage_packages
 
-Hierarchical package management with unified variable structure for Ubuntu 22+, Debian 12+, Arch Linux, and macOS.
+Cross-platform package management for Ubuntu, Debian, Arch Linux, and macOS.
 
 ## Description
 
-This role provides a unified interface for package management across multiple operating systems. It acts as a wrapper around platform-specific package managers (`ansible.builtin.apt`, `community.general.pacman`, `geerlingguy.mac.homebrew`) while adding hierarchical variable merging that combines packages from all/group/host levels with automatic deduplication.
-
-## Features
-
-- **Unified structure** - Uses `infrastructure.host.packages` hierarchy across all platforms
-- **Hierarchical merging** - Combines all/group/host package lists with automatic deduplication
-- **Platform detection** - Automatically uses correct package manager based on `ansible_distribution`
-- **Repository management** - APT repositories (Debian/Ubuntu), Homebrew taps (macOS)
-- **AUR Integration** - Seamless official+AUR package management for Arch Linux
+Manages system packages across multiple operating systems using a unified variable structure. Automatically detects the platform and uses the appropriate package manager (apt, pacman, homebrew). Supports hierarchical package organization (all/group/host levels) with automatic deduplication and repository management.
 
 ## Role Variables
 
-### Core Configuration
-
-Uses the unified infrastructure structure:
-
 ```yaml
-infrastructure:
-  host:
-    packages:
-      present:
-        all:
-          Ubuntu: []    # Global packages for all Ubuntu machines
-          Debian: []    # Global packages for all Debian machines
-          Archlinux: [] # Global packages for all Arch machines
-          MacOSX: []    # Global packages for all macOS machines
-        group:
-          Ubuntu: []    # Group-specific packages
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-        host:
-          Ubuntu: []    # Host-specific packages
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-      remove:
-        all:
-          Ubuntu: []    # Packages to remove
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-        group:
-          Ubuntu: []
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-        host:
-          Ubuntu: []
-          Debian: []
-          Archlinux: []
-          MacOSX: []
-      casks_present:      # macOS only
-        all: []
-        group: []
-        host: []
-      casks_remove: []    # macOS only
+packages:
+  present: {}                    # Packages to install (hierarchical structure)
+  remove: {}                     # Packages to remove (hierarchical structure)
+  casks_present:                 # macOS GUI applications (homebrew casks)
+    all: []
+    group: []
+    host: []
+  casks_remove: []               # macOS casks to remove
 
-      # Package manager specific settings
-      apt:                # Debian/Ubuntu settings
-        apt_cache:
-          update_cache: true
-          valid_time: 3600
-        system_upgrade:
-          enable: false
-          type: safe        # safe, full, or dist
-        repositories:
-          all:
-            Ubuntu: []
-            Debian: []
-          group:
-            Ubuntu: []
-            Debian: []
-          host:
-            Ubuntu: []
-            Debian: []
-      pacman:             # Arch Linux settings
-        enable_aur: true  # Use kewlfft.aur module for AUR packages
-      homebrew:           # macOS settings
-        taps: []
-        cleanup_cache: false
+apt:                             # APT configuration (Ubuntu/Debian)
+  no_recommends: false
+  proxy: ""
+  unattended_upgrades:
+    enabled: true
+    email: ""
+    auto_reboot: false
+    reboot_with_users: false
+    reboot_time: "02:00"
+  repositories: {}               # Additional APT repositories
+
+pacman:                          # Pacman configuration (Arch Linux)
+  no_confirms: false
+  proxy: ""
+  multilib: false
+  enable_aur: false              # Enable AUR package support
+
+homebrew:                        # Homebrew configuration (macOS)
+  install: true
+  update_homebrew: true
+  cleanup_cache: false
+  taps: []                       # Additional homebrew taps
 ```
 
-### What This Role Adds
+## Package Structure
 
-Beyond standard package manager modules:
-
-1. **Hierarchical Merging**: Automatically combines all/group/host levels with deduplication
-2. **Cross-Platform Abstraction**: Single variable structure works across all OS families
-3. **Repository Lifecycle**: Manages repository addition/removal with proper cleanup
-4. **AUR Integration**: Seamless official+AUR package management for Arch Linux
-
-## Platform-Specific Implementation
-
-### Linux (Debian/Ubuntu via ansible.builtin.apt)
-
-Wrapper around `ansible.builtin.apt` and `ansible.builtin.deb822_repository`:
+Packages are organized hierarchically to allow different scopes:
 
 ```yaml
-infrastructure:
-  host:
-    packages:
-      present:
-        all:
-          Ubuntu: [git, curl, htop]
-      apt:
-        apt_cache:
-          update_cache: true
-          valid_time: 3600
-        system_upgrade:
-          enable: false
-          type: safe
-        repositories:
-          all:
-            Ubuntu:
-              - name: "docker"
-                types: "deb"
-                uris: "https://download.docker.com/linux/ubuntu"
-                suites: "{{ ansible_distribution_release }}"
-                components: "stable"
-                signed_by: "https://download.docker.com/linux/ubuntu/gpg"
-```
-
-### Arch Linux (kewlfft.aur module with auto-detection)
-
-**When `enable_aur: true`** - Uses kewlfft.aur module for all packages (official + AUR):
-
-The kewlfft.aur module automatically:
-- Detects installed AUR helpers (yay, paru, pacaur, trizen, pikaur)
-- Uses the first available helper found
-- Falls back to makepkg if no helper is installed
-- Handles both official repository and AUR packages seamlessly
-- Runs as the ansible_user (non-root) with sudo privileges for pacman
-```yaml
-infrastructure:
-  host:
-    packages:
-      present:
-        all:
-          Archlinux:
-            - firefox        # Official package
-            - visual-studio-code-bin  # AUR package - handled transparently
-      pacman:
-        enable_aur: true     # Use kewlfft.aur for all packages
-```
-
-**When `enable_aur: false`** - Uses `community.general.pacman` directly:
-```yaml
-infrastructure:
-  host:
-    packages:
-      pacman:
-        enable_aur: false  # Use pacman module only
-```
-
-### macOS (via geerlingguy.mac.homebrew)
-
-Direct pass-through to `geerlingguy.mac.homebrew` role:
-
-```yaml
-infrastructure:
-  host:
-    packages:
-      present:
-        all:
-          MacOSX: [git, wget, htop]  # Homebrew formulae
-      casks_present:
-        all: [visual-studio-code, docker]  # GUI applications
-      homebrew:
-        taps: [homebrew/cask-fonts]  # Additional taps
-        cleanup_cache: false
+packages:
+  present:
+    all:                         # Packages for all hosts
+      Ubuntu: [git, curl, vim]
+      Debian: [git, curl, vim]
+      Archlinux: [git, curl, vim]
+      MacOSX: [git, curl, vim]
+    group:                       # Group-specific packages
+      Ubuntu: [nginx, certbot]
+    host:                        # Host-specific packages
+      Ubuntu: [redis-server]
 ```
 
 ## Usage Examples
 
-### Basic Cross-Platform
+### Standalone Usage
+
 ```yaml
 - hosts: all
+  become: true
   roles:
-    - role: wolskinet.infrastructure.manage_packages
+    - role: wolskies.infrastructure.manage_packages
       vars:
-        infrastructure:
-          host:
-            packages:
-              present:
-                all:
-                  Ubuntu: [git, curl, vim, htop]
-                  Debian: [git, curl, vim, htop]
-                  Archlinux: [git, curl, vim, htop]
-                  MacOSX: [git, curl, vim, htop]
+        packages:
+          present:
+            all:
+              Ubuntu: [git, curl, vim, htop]
+              Debian: [git, curl, vim, htop]
+              Archlinux: [git, curl, vim, htop]
+              MacOSX: [git, curl, vim, htop]
 ```
 
-### Hierarchical Package Management
+### With Variable Files
+
 ```yaml
 # group_vars/all.yml
-infrastructure:
-  host:
-    packages:
-      present:
-        all:
-          Ubuntu: [git, curl, htop]  # All Ubuntu machines
+packages:
+  present:
+    all:
+      Ubuntu: [git, curl, htop]
+      Debian: [git, curl, htop]
+      Archlinux: [git, curl, htop]
+      MacOSX: [git, curl, htop]
 
 # group_vars/webservers.yml
-infrastructure:
-  host:
-    packages:
-      present:
-        group:
-          Ubuntu: [nginx, certbot]  # Web servers only
+packages:
+  present:
+    group:
+      Ubuntu: [nginx, certbot]
+      Debian: [nginx, certbot]
 
 # host_vars/web01.yml
-infrastructure:
-  host:
-    packages:
-      present:
-        host:
-          Ubuntu: [redis-server]  # This host only
+packages:
+  present:
+    host:
+      Ubuntu: [redis-server]
 
-# Result for web01: [git, curl, htop, nginx, certbot, redis-server]
+# playbook.yml
+- hosts: all
+  become: true
+  roles:
+    - wolskies.infrastructure.manage_packages
 ```
 
-### Repository Management (Debian/Ubuntu)
+### Repository Management
+
 ```yaml
-- hosts: ubuntu_servers
-  roles:
-    - role: wolskinet.infrastructure.manage_packages
-      vars:
-        infrastructure:
-          host:
-            packages:
-              present:
-                all:
-                  Ubuntu: [docker-ce, docker-ce-cli]
-              apt:
-                repositories:
-                  all:
-                    Ubuntu:
-                      - name: docker
-                        types: deb
-                        uris: "https://download.docker.com/linux/ubuntu"
-                        suites: "{{ ansible_distribution_release }}"
-                        components: stable
-                        signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+packages:
+  present:
+    all:
+      Ubuntu: [docker-ce, docker-ce-cli]
+
+apt:
+  repositories:
+    docker:
+      name: docker
+      types: [deb]
+      uris: "https://download.docker.com/linux/ubuntu"
+      suites: ["{{ ansible_distribution_release }}"]
+      components: [stable]
+      signed_by: "https://download.docker.com/linux/ubuntu/gpg"
 ```
 
 ### Arch Linux with AUR
+
 ```yaml
-- hosts: arch_systems
+packages:
+  present:
+    all:
+      Archlinux:
+        - base-devel
+        - yay
+        - visual-studio-code-bin    # AUR package
+
+pacman:
+  enable_aur: true                # Enable AUR support via kewlfft.aur
+```
+
+### macOS with Homebrew Casks
+
+```yaml
+packages:
+  present:
+    all:
+      MacOSX: [git, wget, htop]    # Command-line tools
+  casks_present:
+    all:
+      - visual-studio-code         # GUI applications
+      - docker
+      - firefox
+
+homebrew:
+  taps:
+    - homebrew/cask-fonts         # Additional repositories
+```
+
+## Package Hierarchical Merging
+
+The role automatically combines packages from all levels:
+
+1. **all**: Packages applied to every host of that OS
+2. **group**: Packages applied to hosts in specific groups
+3. **host**: Packages applied to individual hosts
+
+Example result for `web01` host in `webservers` group:
+- All packages: `[git, curl, htop]`
+- Group packages: `[nginx, certbot]`
+- Host packages: `[redis-server]`
+- **Final result**: `[git, curl, htop, nginx, certbot, redis-server]`
+
+## Platform-Specific Behavior
+
+### Ubuntu/Debian (APT)
+- Uses `ansible.builtin.apt` for package management
+- Supports deb822 repository format
+- Handles unattended-upgrades configuration
+- Repository GPG key management
+
+### Arch Linux (Pacman/AUR)
+- Uses `community.general.pacman` by default
+- With `pacman.enable_aur: true`, uses `kewlfft.aur` for AUR support
+- AUR helper auto-detection (yay, paru, etc.)
+- Seamless official + AUR package management
+
+### macOS (Homebrew)
+- Uses `community.general.homebrew` for packages
+- Uses `community.general.homebrew_cask` for GUI applications
+- Custom tap management
+- Automatic Homebrew installation if missing
+
+## Installation Behavior
+
+1. **Platform Detection**: Identifies OS and selects appropriate package manager
+2. **Repository Setup**: Configures additional repositories (if specified)
+3. **Package Removal**: Removes packages in `remove` lists
+4. **Package Installation**: Installs packages in `present` lists
+5. **Cache Management**: Updates package caches and cleans up (configurable)
+
+## OS Support
+
+- **Ubuntu 22+**: Full APT support with deb822 repositories
+- **Debian 12+**: Full APT support with deb822 repositories
+- **Arch Linux**: Full pacman + optional AUR support
+- **macOS 10.15+**: Full Homebrew + cask support
+
+## Requirements
+
+- System package manager access (sudo privileges)
+- Internet access for downloading packages and repository metadata
+- For AUR (Arch): `kewlfft.aur` collection
+- For macOS: `community.general` collection
+
+## Integration Notes
+
+### With configure_system Role
+This role integrates with system configuration:
+
+```yaml
+- hosts: all
+  become: true
   roles:
-    - role: wolskinet.infrastructure.manage_packages
-      vars:
-        infrastructure:
-          host:
-            packages:
-              present:
-                all:
-                  Archlinux:
-                    - base-devel           # Official
-                    - yay                  # AUR (or any AUR helper)
-                    - visual-studio-code-bin  # AUR
-              pacman:
-                enable_aur: true           # Handle both official and AUR
+    - wolskies.infrastructure.os_configuration     # System settings
+    - wolskies.infrastructure.manage_packages      # Package management
+    - wolskies.infrastructure.manage_users         # User accounts
+```
+
+### Package Manager Configuration
+Configure package manager behavior:
+
+```yaml
+apt:
+  unattended_upgrades:
+    enabled: true
+    auto_reboot: false
+    email: "admin@company.com"
+
+pacman:
+  enable_aur: true              # Enable AUR package support
+
+homebrew:
+  cleanup_cache: true           # Clean up download cache
 ```
 
 ## Dependencies
 
-- `community.general` - For pacman module (Arch Linux fallback)
-- `kewlfft.aur` - For AUR package management on Arch Linux
-- `ansible.posix` - For various system tasks
-- `geerlingguy.mac.homebrew` - For macOS package management (auto-installed via galaxy)
-
-## See Also
-
-- [ansible.builtin.apt module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html) (Debian/Ubuntu)
-- [community.general.pacman module](https://docs.ansible.com/ansible/latest/collections/community/general/pacman_module.html) (Arch Linux)
-- [geerlingguy.mac.homebrew role](https://galaxy.ansible.com/geerlingguy/mac) (macOS)
-- [kewlfft.aur module](https://github.com/kewlfft/ansible-aur) (Arch Linux AUR support)
+- `ansible.builtin.apt`: Ubuntu/Debian package management
+- `community.general.pacman`: Arch Linux package management
+- `community.general.homebrew`: macOS package management
+- `kewlfft.aur`: AUR support for Arch Linux (optional)
 
 ## License
 
@@ -288,4 +263,4 @@ MIT
 
 ## Author Information
 
-This role is part of the `wolskinet.infrastructure` Ansible collection.
+This role is part of the wolskies.infrastructure collection.

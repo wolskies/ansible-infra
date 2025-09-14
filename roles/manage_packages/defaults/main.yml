@@ -39,8 +39,7 @@ pacman:
   no_confirms: false
   proxy: ""
   multilib: false
-  enable_aur: false # When true, uses kewlfft.aur to install from both official repos and AUR
-  config_reflector: true
+  enable_aur: false
 
 homebrew:
   install: true

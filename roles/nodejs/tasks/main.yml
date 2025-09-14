@@ -16,7 +16,7 @@
     state: present
   become: true
   when:
-    - node_packages
+    - node_packages | length > 0
     - ansible_os_family != 'Darwin'
 
 - name: Install Node.js system dependencies (Debian/Ubuntu)
