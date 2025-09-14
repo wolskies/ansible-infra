@@ -72,11 +72,10 @@
         - system
         - packages
 
-    - role: manage_users
-      tags:
-        - basic
-        - system
-        - users
+    # User management now handled by os_configuration role
+    # Use os_configuration with 'users' tag for user management only:
+    # - role: wolskies.infrastructure.os_configuration
+    #   tags: [users]
 
     # 3. Language packages (uncomment if you have language-specific roles)
     # - role: nodejs

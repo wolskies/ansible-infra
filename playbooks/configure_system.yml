@@ -40,12 +40,7 @@
     # USER CONFIGURATION
     # ---------------------------------------------------------------------
 
-    - name: Manage user accounts
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_users
-      tags:
-        - users
-        - accounts
+    # User account management now handled by os_configuration role above
 
     - name: Configure user preferences
       ansible.builtin.include_role:

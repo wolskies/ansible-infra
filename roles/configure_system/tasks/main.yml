@@ -15,13 +15,8 @@
     - security-services
     - core
 
-- name: Manage Users
-  ansible.builtin.include_role:
-    name: "wolskies.infrastructure.manage_users"
-  tags:
-    - users
-    - user-management
-    - core
+# User management now handled by os_configuration role
+# Users are created as part of OS configuration above
 
 - name: Manage System Packages
   ansible.builtin.include_role:
