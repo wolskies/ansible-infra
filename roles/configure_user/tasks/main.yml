@@ -65,7 +65,10 @@
     name: acl
     state: present
   become: true
-  when: ansible_os_family != 'Darwin'
+  when:
+    - ansible_os_family != 'Darwin'
+    - not (molecule_test | default(false))
+  failed_when: false # Don't fail if package not available
 
 - name: Configure user preferences for {{ target_user.name }}
   block:
