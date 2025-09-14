@@ -83,6 +83,32 @@
     - item.0.name != (ansible_user | default(''))
     - item.0.name != 'root'
 
+- name: Configure passwordless sudo for users
+  become: true
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ item.name }}"
+    mode: "0440"
+    content: "{{ item.name }}\tALL=(ALL:ALL) NOPASSWD: ALL\n"
+    validate: "visudo -cf %s"
+  loop: "{{ users | default([]) }}"
+  when:
+    - item.sudo_no_password | default(false)
+    - item.state | default('present') == 'present'
+    - item.name != (ansible_user | default(''))
+    - item.name != 'root'
+
+- name: Remove passwordless sudo files for users who no longer need it
+  become: true
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/{{ item.name }}"
+    state: absent
+  loop: "{{ users | default([]) }}"
+  when:
+    - not (item.sudo_no_password | default(false))
+    - item.state | default('present') == 'present'
+    - item.name != (ansible_user | default(''))
+    - item.name != 'root'
+
 - name: Remove users (from users list)
   become: true
   ansible.builtin.user:

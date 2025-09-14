@@ -31,6 +31,7 @@ users:
     ssh_keys:                     # SSH public keys
       - "ssh-ed25519 AAAAC3N..."
     state: present                # User state
+    sudo_no_password: false       # Allow passwordless sudo
     # Development environment preferences
     nodejs:                        # Optional: Node.js packages to install
       packages: [typescript, eslint, prettier]
