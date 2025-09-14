@@ -87,7 +87,7 @@ mock_modules:
 mock_roles:
   - wolskinet.infrastructure.configure_host
   - wolskinet.infrastructure.manage_packages
-  - wolskinet.infrastructure.manage_users
+  # manage_users role removed - functionality moved to os_configuration
   - wolskinet.infrastructure.manage_firewall
   - wolskinet.infrastructure.discovery
   - wolskinet.infrastructure.dotfiles

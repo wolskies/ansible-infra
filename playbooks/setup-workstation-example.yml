@@ -64,9 +64,10 @@
         - system
         - packages
 
-    - role: manage_users
-      tags:
-        - basic
+        # User management now handled by os_configuration role
+        # Use os_configuration with 'users' tag for user management only:
+        # - role: wolskies.infrastructure.os_configuration
+        #   tags: [users]
         - system
         - users
 
