@@ -29,8 +29,23 @@ host_update_hosts: true
 host_services: {}
 host_sysctl:
   parameters: {}
+  # Example:
+  # parameters:
+  #   net.ipv4.ip_forward: 1
+  #   vm.swappiness: 10
+  #   fs.file-max: 65536
 host_modules: {}
 host_udev: {}
+  # Example:
+  # rules:
+  #   - name: pico-usb
+  #     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
+  #     priority: 99
+  #     state: present
+  #   - name: dialout-tty
+  #     content: 'KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"'
+  #     priority: 99
+  #     state: present
 host_security:
   hardening_enabled: true
   disable_ctrl_alt_del: false
@@ -67,6 +82,16 @@ apt:
     auto_reboot: false
     reboot_with_users: false
     reboot_time: "02:00"
+  repositories: {}
+  # Example:
+  # repositories:
+  #   docker:
+  #     name: docker
+  #     types: [deb]
+  #     uris: "https://download.docker.com/linux/ubuntu"
+  #     suites: ["{{ ansible_distribution_release }}"]
+  #     components: [stable]
+  #     signed_by: "https://download.docker.com/linux/ubuntu/gpg"
 
 pacman:
   no_confirms: false
@@ -107,11 +132,32 @@ service_labels: {}
 # Package management
 packages:
   present: {}
+  # Example:
+  # present:
+  #   all:
+  #     Ubuntu: [curl, git, vim]
+  #     Debian: [curl, git, vim]
+  #     Archlinux: [curl, git, neovim]
+  #     MacOSX: [curl, git]
+  #   group:
+  #     Ubuntu: [docker.io, nginx]
+  #     Archlinux: [docker, nginx]
+  #   host:
+  #     Ubuntu: [postgresql, redis]
   remove: {}
+  # Example:
+  # remove:
+  #   all:
+  #     Ubuntu: [snapd, whoopsie]
   casks_present:
     all: []
     group: []
     host: []
+  # Example:
+  # casks_present:
+  #   all: [firefox, visual-studio-code]
+  #   group: [docker, postman]
+  #   host: [slack, spotify]
   casks_remove: []
 
 homebrew:
@@ -122,8 +168,35 @@ homebrew:
 
 # User management
 users: []
+# Example:
+# users:
+#   - name: developer
+#     comment: "Development User"
+#     group: developer
+#     groups: [docker, sudo]
+#     shell: /bin/bash
+#     ssh_keys:
+#       - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
+#     state: present
+#   - name: deploy
+#     comment: "Deployment User"
+#     group: deploy
+#     groups: [docker]
+#     shell: /bin/bash
+#     system: true
+#     state: present
 users_absent: []
+# Example: users_absent: [olduser, tempuser]
 target_user: {}
+# Example:
+# target_user:
+#   name: developer
+#   nodejs:
+#     packages: [eslint, prettier, typescript]
+#   rust:
+#     packages: [cargo-watch, ripgrep]
+#   go:
+#     packages: [github.com/golangci/golangci-lint/cmd/golangci-lint]
 
 # Language toolchains
 node_user: ""
