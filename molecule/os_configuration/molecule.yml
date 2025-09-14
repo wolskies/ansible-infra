@@ -48,6 +48,13 @@ provisioner:
             ssh_keys:
               - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... test@molecule"
             create_home: true
+          - name: sudouser
+            uid: 1002
+            groups: [sudo]
+            shell: /bin/bash
+            comment: "Test User with Passwordless Sudo"
+            sudo_no_password: true
+            create_home: true
 
         host_hostname: "molecule-test"
         host_update_hosts: false # Disabled for Docker container testing

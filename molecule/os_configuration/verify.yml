@@ -201,3 +201,51 @@
           - user_home.stat.pw_name == "testuser"
         fail_msg: "User home directory not configured correctly"
         success_msg: "User home directory created with correct ownership"
+
+    # =============================================================================
+    # PASSWORDLESS SUDO VERIFICATION
+    # =============================================================================
+    - name: Verify sudouser was created
+      ansible.builtin.assert:
+        that:
+          - users_info.ansible_facts.getent_passwd.sudouser is defined
+          - users_info.ansible_facts.getent_passwd.sudouser[1] == "1002"
+        fail_msg: "Sudo test user not created"
+        success_msg: "Sudo test user created successfully"
+
+    - name: Check passwordless sudo configuration file exists
+      ansible.builtin.stat:
+        path: "/etc/sudoers.d/sudouser"
+      register: sudo_config
+
+    - name: Verify passwordless sudo file was created
+      ansible.builtin.assert:
+        that:
+          - sudo_config.stat.exists
+          - sudo_config.stat.mode == "0440"
+        fail_msg: "Passwordless sudo configuration file not created or incorrect permissions"
+        success_msg: "Passwordless sudo configuration file created with correct permissions"
+
+    - name: Check sudo configuration content
+      ansible.builtin.slurp:
+        src: "/etc/sudoers.d/sudouser"
+      register: sudo_content
+
+    - name: Verify sudo configuration content is correct
+      ansible.builtin.assert:
+        that:
+          - "'sudouser\tALL=(ALL:ALL) NOPASSWD: ALL' in (sudo_content.content | b64decode)"
+        fail_msg: "Passwordless sudo configuration content is incorrect"
+        success_msg: "Passwordless sudo configuration content is correct"
+
+    - name: Check that normal user does not have passwordless sudo file
+      ansible.builtin.stat:
+        path: "/etc/sudoers.d/testuser"
+      register: normal_sudo_config
+
+    - name: Verify normal user does not have passwordless sudo
+      ansible.builtin.assert:
+        that:
+          - not normal_sudo_config.stat.exists
+        fail_msg: "Normal user should not have passwordless sudo configuration"
+        success_msg: "Normal user correctly does not have passwordless sudo"
