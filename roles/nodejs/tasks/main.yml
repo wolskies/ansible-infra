@@ -6,7 +6,7 @@
   ansible.builtin.assert:
     that:
       - node_user is defined
-      - node_user
+      - node_user | length > 0
       - node_packages is defined
     fail_msg: "nodejs role requires node_user and node_packages variables"
 
