@@ -14,7 +14,6 @@
     name: git
     state: present
   become: true
-  failed_when: false # Don't fail if git installation fails in containers
 
 - name: Check if neovim is installed
   ansible.builtin.command: which nvim
