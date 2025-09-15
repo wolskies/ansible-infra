@@ -59,7 +59,7 @@ provisioner:
         go_user: testdev
         go_packages:
           - github.com/charmbracelet/glow@latest
-          - golang.org/x/tools/cmd/goimports
+          - golang.org/x/tools/cmd/goimports # @latest will be added automatically
 
         # Neovim configuration
         neovim_user: testdev
