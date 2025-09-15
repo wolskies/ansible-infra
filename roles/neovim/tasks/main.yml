@@ -9,6 +9,13 @@
       - neovim_user | length > 0
     fail_msg: "neovim role requires neovim_user variable"
 
+- name: Ensure git is available for plugin manager
+  ansible.builtin.package:
+    name: git
+    state: present
+  become: true
+  failed_when: false # Don't fail if git installation fails in containers
+
 - name: Check if neovim is installed
   ansible.builtin.command: which nvim
   register: neovim_installed
@@ -67,12 +74,19 @@
         dest: ~/.local/bin/vim
         mode: "0755"
 
+    - name: Check if git is available
+      ansible.builtin.command: which git
+      register: git_available
+      failed_when: false
+      changed_when: false
+
     - name: Install lazy.nvim plugin manager
       ansible.builtin.git:
         repo: https://github.com/folke/lazy.nvim.git
         dest: ~/.local/share/nvim/lazy/lazy.nvim
         clone: true
         update: true
+      when: git_available.rc == 0
 
     - name: Define neovim config files
       ansible.builtin.set_fact:
