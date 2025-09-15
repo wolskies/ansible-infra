@@ -24,6 +24,9 @@ platforms:
     command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
+  ansible_args:
+    - --skip-tags
+    - docker-compose
   config_options:
     defaults:
       remote_tmp: /tmp/ansible-remote-tmp
