@@ -47,11 +47,13 @@
     - system-deps
 
 - name: Install Go packages for {{ go_user }}
-  ansible.builtin.command: go install {{ item if '@' in item else item + '@latest' }}
+  ansible.builtin.command: go install {{ go_package if '@' in go_package else go_package + '@latest' }}
   register: go_install
   changed_when: "'downloading' in go_install.stderr"
   failed_when: go_install.rc != 0
   loop: "{{ go_packages }}"
+  loop_control:
+    loop_var: go_package
   become: true
   become_user: "{{ go_user }}"
   when:

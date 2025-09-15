@@ -70,12 +70,14 @@
     - rust_packages | length > 0
 
 - name: Install Rust packages for {{ rust_user }}
-  ansible.builtin.command: cargo install {{ item }}
+  ansible.builtin.command: cargo install {{ rust_package }}
   environment:
     PATH: "{{ rust_user_info.home }}/.cargo/bin:{{ ansible_env.PATH }}{{ ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else '' }}"
   register: cargo_install
   changed_when: "'Installing' in cargo_install.stderr"
   loop: "{{ rust_packages }}"
+  loop_control:
+    loop_var: rust_package
   become: true
   become_user: "{{ rust_user }}"
   when:
