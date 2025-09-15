@@ -182,9 +182,6 @@
       when:
         - host_services is defined
         - host_services.mask | default([]) | length > 0
-
-    # Note: vm.swappiness is now handled via sysctl_overwrite in devsec.hardening
-    # Include optimizations.swappiness in host_sysctl.parameters instead
   tags:
     - optimization
     - services
@@ -218,11 +215,6 @@
   tags:
     - modules
     - kernel
-
-# Note: The following tasks are now handled by devsec.hardening.os_hardening:
-# - Sysctl parameters (via sysctl_overwrite mapping)
-# - PAM limits (via comprehensive PAM configuration)
-# - Filesystem module blacklisting (via os_unused_filesystems for cramfs, jffs2, etc.)
 
 - name: Configure udev rules
   block:

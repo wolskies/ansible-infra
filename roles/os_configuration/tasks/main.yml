@@ -22,36 +22,13 @@
     - os-configuration
 
 - name: Update /etc/hosts file
-  block:
-    - name: Check if hosts entry needs updating
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        regexp: '^127\.0\.0\.1\s+.*{{ host_hostname | regex_escape }}.*'
-        line: "127.0.0.1\tlocalhost {{ host_hostname }}.{{ domain_name }} {{ host_hostname }}"
-        create: false
-      become: true
-      check_mode: true
-      register: hosts_check
-
-    - name: Backup /etc/hosts before modification
-      ansible.builtin.copy:
-        src: /etc/hosts
-        dest: /etc/hosts.backup
-        owner: root
-        group: "{{ 'wheel' if ansible_system == 'Darwin' else 'root' }}"
-        mode: "0644"
-        remote_src: true
-      become: true
-      when: hosts_check is changed
-      tags: ["skip_ansible_lint"]
-
-    - name: Update /etc/hosts - Add FQDN and hostname
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        regexp: '^127\.0\.0\.1\s+.*{{ host_hostname | regex_escape }}.*'
-        line: "127.0.0.1\tlocalhost {{ host_hostname }}.{{ domain_name }} {{ host_hostname }}"
-        create: false
-      become: true
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.0\.1\s+.*{{ host_hostname | regex_escape }}.*'
+    line: "127.0.0.1\tlocalhost {{ host_hostname }}.{{ domain_name }} {{ host_hostname }}"
+    create: false
+    backup: true
+  become: true
   when:
     - host_update_hosts | default(false)
     - host_hostname is defined
