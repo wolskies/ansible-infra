@@ -1,0 +1,49 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-go-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # Disable OS hardening in containers (auditd package not available)
+        host_security:
+          hardening_enabled: false
+    host_vars:
+      ubuntu-go-test:
+        # Test user for go installation
+        users:
+          - name: testdev
+            uid: 1001
+            groups: [sudo]
+            shell: /bin/bash
+            comment: "Test Developer User"
+            create_home: true
+
+        # Go configuration
+        go_user: testdev
+        go_packages:
+          - github.com/charmbracelet/glow@latest
+          - golang.org/x/tools/cmd/goimports # @latest will be added automatically
+verifier:
+  name: ansible

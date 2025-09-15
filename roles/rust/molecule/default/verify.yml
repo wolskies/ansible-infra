@@ -1,0 +1,56 @@
+---
+- name: Verify rust installation
+  hosts: all
+  become: true
+  tasks:
+    # =============================================================================
+    # USER VERIFICATION
+    # =============================================================================
+    - name: Verify test user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: testdev
+      register: user_check
+
+    - name: Assert user was created
+      ansible.builtin.assert:
+        that:
+          - user_check.ansible_facts.getent_passwd.testdev is defined
+        fail_msg: "Test user 'testdev' was not created"
+
+    # =============================================================================
+    # RUST VERIFICATION
+    # =============================================================================
+    - name: Check if cargo is available for testdev
+      ansible.builtin.command: sudo -u testdev which cargo
+      register: cargo_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify cargo is installed
+      ansible.builtin.assert:
+        that:
+          - cargo_check.rc == 0
+        fail_msg: "cargo not found for testdev user"
+        success_msg: "cargo successfully installed"
+
+    - name: Check if rust packages are available
+      ansible.builtin.command: sudo -u testdev which ripgrep
+      register: rust_packages_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify rust packages are installed
+      ansible.builtin.assert:
+        that:
+          - rust_packages_check.rc == 0
+        fail_msg: "rust packages not installed correctly"
+        success_msg: "rust packages installed successfully"
+
+    - name: Display rust installation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Rust Installation Complete ==="
+          - "✅ Rust: {{ 'PASS' if cargo_check.rc == 0 else 'FAIL' }}"
+          - "✅ Rust packages: {{ 'PASS' if rust_packages_check.rc == 0 else 'FAIL' }}"
+          - "User: testdev created with proper rust access"

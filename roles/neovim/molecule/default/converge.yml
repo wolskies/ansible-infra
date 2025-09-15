@@ -1,0 +1,16 @@
+---
+- name: Test neovim role
+  hosts: all
+  become: true
+  tasks:
+    # First create the user for neovim installation
+    - name: Include os_configuration role for user creation
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.os_configuration
+      tags:
+        - users
+
+    # Test Neovim role
+    - name: Test neovim role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.neovim

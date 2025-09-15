@@ -1,0 +1,57 @@
+---
+- name: Verify go installation
+  hosts: all
+  become: true
+  tasks:
+    # =============================================================================
+    # USER VERIFICATION
+    # =============================================================================
+    - name: Verify test user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: testdev
+      register: user_check
+
+    - name: Assert user was created
+      ansible.builtin.assert:
+        that:
+          - user_check.ansible_facts.getent_passwd.testdev is defined
+        fail_msg: "Test user 'testdev' was not created"
+
+    # =============================================================================
+    # GO VERIFICATION
+    # =============================================================================
+    - name: Check if go is available for testdev
+      ansible.builtin.command: sudo -u testdev which go
+      register: go_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify go is installed
+      ansible.builtin.assert:
+        that:
+          - go_check.rc == 0
+        fail_msg: "go not found for testdev user"
+        success_msg: "go successfully installed"
+
+    - name: Check go packages in user's GOPATH
+      ansible.builtin.command: sudo -u testdev ls -la /home/testdev/go/bin/
+      register: go_packages_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify go packages are installed
+      ansible.builtin.assert:
+        that:
+          - go_packages_check.rc == 0
+          - go_packages_check.stdout | length > 0
+        fail_msg: "go packages not installed correctly"
+        success_msg: "go packages installed successfully"
+
+    - name: Display go installation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Go Installation Complete ==="
+          - "✅ Go: {{ 'PASS' if go_check.rc == 0 else 'FAIL' }}"
+          - "✅ Go packages: {{ 'PASS' if (go_packages_check.rc == 0 and go_packages_check.stdout | length > 0) else 'FAIL' }}"
+          - "User: testdev created with proper go access"
