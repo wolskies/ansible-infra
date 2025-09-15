@@ -34,3 +34,20 @@ When working with molecule tests and CI:
 - **Let roles fail semantically** - Roles should fail properly when dependencies are missing rather than masking issues
 - **Container vs VM testing** - Some functionality (like hostname changes, docker-compose) requires VM testing with delegated driver
 - **VM testing approach** - Use molecule with delegated driver for external VMs. The user manages VM provisioning; molecule connects via SSH to existing infrastructure for realistic system testing
+
+### Testing Strategy Migration Plan
+
+**Principle**: Every role gets a specific test. The complexity of the role determines the test type.
+
+**Target testing structure**:
+1. **Simple, standalone roles** → Individual role tests in `test-{role-name}` scenarios
+   - Examples: test-os-configuration, test-packages, test-security-services, test-language-toolchains
+   - Focus: Role-specific functionality, package installation, configuration validation
+
+2. **Complex roles that orchestrate other roles** → Integration tests in `test-integration`
+   - Examples: configure_system (calls multiple roles), complex multi-role workflows
+   - Focus: Role interactions, cross-role dependencies, end-to-end scenarios
+
+3. **Integration tests should NOT repeat unit-level testing** already covered by individual role tests
+
+**Migration approach**: Incremental - each time we fix a molecule issue, extract one more individual role test from integration, following this plan until complete.
