@@ -10,6 +10,13 @@
       - target_user.name | length > 0
     fail_msg: "configure_user role requires target_user variable with name field"
 
+- name: Ensure ACL package is installed for privilege escalation
+  ansible.builtin.package:
+    name: acl
+    state: present
+  become: true
+  when: ansible_os_family != 'Darwin'
+
 - name: Configure language toolchains for {{ target_user.name }}
   block:
     - name: Install Node.js and packages
@@ -59,16 +66,6 @@
   tags:
     - user-config
     - language-packages
-
-- name: Ensure ACL package is installed for privilege escalation
-  ansible.builtin.package:
-    name: acl
-    state: present
-  become: true
-  when:
-    - ansible_os_family != 'Darwin'
-    - not (molecule_test | default(false))
-  failed_when: false # Don't fail if package not available
 
 - name: Configure user preferences for {{ target_user.name }}
   block:

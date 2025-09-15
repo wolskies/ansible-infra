@@ -10,45 +10,20 @@
       - rust_packages is defined
     fail_msg: "rust role requires rust_user and rust_packages variables"
 
-- name: Check if rustup command exists
-  ansible.builtin.command: which rustup
-  register: rustup_exists
-  failed_when: false
-  changed_when: false
-  when: rust_packages | length > 0
-
-- name: Update apt cache
+- name: Install rustup (Debian/Ubuntu)
   ansible.builtin.apt:
+    name: rustup
+    state: present
     update_cache: true
   become: true
   when:
     - rust_packages | length > 0
     - ansible_os_family == 'Debian'
+    - (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version | int >= 24) or
+      (ansible_distribution == 'Debian' and ansible_distribution_major_version | int >= 13)
   tags:
     - rust
     - system-deps
-
-- name: Install rustup (Debian/Ubuntu)
-  ansible.builtin.apt:
-    name: rustup
-    state: present
-  become: true
-  when:
-    - rust_packages | length > 0
-    - ansible_os_family == 'Debian'
-    - rustup_exists.rc != 0
-  failed_when: false
-  tags:
-    - rust
-    - system-deps
-
-- name: Skip rustup installation (already available)
-  ansible.builtin.debug:
-    msg: "rustup command already available, skipping package installation"
-  when:
-    - rust_packages | length > 0
-    - ansible_os_family == 'Debian'
-    - rustup_exists.rc == 0
 
 - name: Install rustup (Arch Linux)
   ansible.builtin.package:
@@ -66,7 +41,6 @@
   community.general.homebrew:
     name: rustup
     state: present
-  # Note: Run as ansible_user who owns Homebrew, not as target user
   when:
     - rust_packages | length > 0
     - ansible_system == 'Darwin'
@@ -101,7 +75,6 @@
     PATH: "{{ rust_user_info.home }}/.cargo/bin:{{ ansible_env.PATH }}{{ ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else '' }}"
   register: cargo_install
   changed_when: "'Installing' in cargo_install.stderr"
-  failed_when: cargo_install.rc != 0
   loop: "{{ rust_packages }}"
   become: true
   become_user: "{{ rust_user }}"

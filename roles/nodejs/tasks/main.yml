@@ -10,17 +10,6 @@
       - node_packages is defined
     fail_msg: "nodejs role requires node_user and node_packages variables"
 
-- name: Ensure ACL package is installed for privilege escalation
-  ansible.builtin.package:
-    name: acl
-    state: present
-  become: true
-  when:
-    - node_packages | length > 0
-    - ansible_os_family != 'Darwin'
-    - not (molecule_test | default(false))
-  failed_when: false # Don't fail if package not available
-
 - name: Install Node.js system dependencies (Debian/Ubuntu)
   ansible.builtin.include_tasks: setup-Debian.yml
   when:

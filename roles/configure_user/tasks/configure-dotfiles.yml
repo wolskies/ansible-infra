@@ -34,7 +34,6 @@
   become: true
   become_user: "{{ target_user.name }}"
   when: stow_conflicts.stderr_lines | length > 0
-  failed_when: false
 
 - name: Deploy dotfiles with stow
   ansible.builtin.command:
