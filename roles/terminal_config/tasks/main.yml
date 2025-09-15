@@ -13,24 +13,22 @@
 
 - name: Configure terminal emulators for {{ terminal_user }}
   block:
-    - name: Check existing terminfo entries
-      ansible.builtin.command: "infocmp -x {{ item.1 }}"
-      register: _terminal_infocmp
+    - name: Check which terminals need terminfo compilation
+      ansible.builtin.command: "infocmp -x {{ terminal_configs[item].entries[0] }}"
+      register: _terminal_checks
       changed_when: false
       failed_when: false
-      loop: "{{ terminal_entries | map('extract', terminal_configs) | subelements('entries') }}"
+      loop: "{{ terminal_entries }}"
       loop_control:
-        label: "{{ item.1 }}"
+        label: "{{ item }}"
 
     - name: Determine which terminals need terminfo compilation
       ansible.builtin.set_fact:
         _terminals_to_compile: >-
           {{
-            _terminal_infocmp.results
+            _terminal_checks.results
             | selectattr('rc', 'ne', 0)
             | map(attribute='item')
-            | map('first')
-            | unique
             | list
           }}
 

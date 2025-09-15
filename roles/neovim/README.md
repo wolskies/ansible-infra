@@ -10,7 +10,7 @@ Installs neovim system-wide if not present, then configures per-user neovim setu
 
 - **System installation**: Installs neovim via system package manager if missing
 - **User configuration**: Sets up per-user neovim config with lazy.nvim
-- **LSP support**: Includes lua-language-server and pyright for development
+- **LSP support**: Includes lua-language-server and pyright on Arch Linux and macOS
 - **Vim compatibility**: Creates vim alias script for easy transition
 - **Plugin management**: Lazy.nvim for modern plugin management
 - **Cross-platform**: Works on Ubuntu, Debian, Arch Linux, and macOS
@@ -100,12 +100,14 @@ Creates `~/.local/bin/vim` script that executes `nvim "$@"` for seamless transit
 
 ## OS Support
 
-- **Ubuntu 22+**: Full support with LSP packages
-- **Debian 12+**: Full support with LSP packages
-- **Arch Linux**: Full support with all packages
-- **macOS 10.15+**: Full support via Homebrew
+- **Ubuntu 22+**: Neovim installation only (LSP packages not available in repos)
+- **Debian 12+**: Neovim installation only (LSP packages not available in repos)
+- **Arch Linux**: Full support with LSP packages (lua-language-server, pyright)
+- **macOS 10.15+**: Full support with LSP packages via Homebrew
 
-**Note**: Some LSP packages may not be available in older Ubuntu/Debian repositories and will be skipped gracefully.
+**LSP Setup on Ubuntu/Debian**: LSP packages (lua-language-server, pyright) are not available in Ubuntu/Debian repositories. After running this role, manually install LSP servers:
+- Use `:Mason` in neovim to install language servers
+- Or manually install lua-language-server and pyright via their binary releases
 
 ## Requirements
 

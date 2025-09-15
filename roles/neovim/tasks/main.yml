@@ -15,25 +15,13 @@
     state: present
   become: true
 
-- name: Check if neovim is installed
-  ansible.builtin.command: which nvim
-  register: neovim_installed
-  failed_when: false
-  changed_when: false
-
 - name: Install neovim (Ubuntu/Debian)
   ansible.builtin.apt:
-    name:
-      - neovim
-      - lua-language-server # LSP support
-      - pyright # Python LSP (if available)
+    name: neovim
     state: present
     update_cache: true
   become: true
-  when:
-    - neovim_installed.rc != 0
-    - ansible_os_family == 'Debian'
-  failed_when: false # Some LSP packages might not be available in older repos
+  when: ansible_os_family == 'Debian'
 
 - name: Install neovim (Arch Linux)
   ansible.builtin.package:
@@ -43,9 +31,7 @@
       - pyright
     state: present
   become: true
-  when:
-    - neovim_installed.rc != 0
-    - ansible_os_family == 'Archlinux'
+  when: ansible_os_family == 'Archlinux'
 
 - name: Install neovim (macOS)
   community.general.homebrew:
@@ -54,9 +40,7 @@
       - lua-language-server
       - pyright
     state: present
-  when:
-    - neovim_installed.rc != 0
-    - ansible_system == 'Darwin'
+  when: ansible_system == 'Darwin'
 
 # User-level configuration (run as target user)
 - name: Configure neovim for {{ neovim_user }}
