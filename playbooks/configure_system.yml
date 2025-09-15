@@ -46,8 +46,10 @@
       ansible.builtin.include_role:
         name: wolskies.infrastructure.configure_user
       vars:
-        target_user: "{{ item }}"
+        target_user: "{{ user_item }}"
       loop: "{{ users | selectattr('state', 'equalto', 'present') | list }}"
+      loop_control:
+        loop_var: user_item
       tags:
         - users
         - preferences
