@@ -8,7 +8,6 @@
       - gnupg
     state: present
   become: true
-  failed_when: false # Don't fail if packages unavailable in containers
   tags:
     - nodejs
     - system-deps

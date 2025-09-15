@@ -46,10 +46,8 @@
       ansible.builtin.include_role:
         name: wolskies.infrastructure.configure_user
       vars:
-        target_user: "{{ item.username }}"
-        current_user_config: "{{ item }}"
+        target_user: "{{ item }}"
       loop: "{{ users | selectattr('state', 'equalto', 'present') | list }}"
-      when: item[ansible_distribution] is defined
       tags:
         - users
         - preferences

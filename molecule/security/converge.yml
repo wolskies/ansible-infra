@@ -1,8 +1,0 @@
----
-- name: Converge
-  hosts: all
-  become: true
-  tasks:
-    - name: Include manage_security_services role
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_security_services

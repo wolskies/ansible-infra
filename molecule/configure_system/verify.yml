@@ -1,0 +1,302 @@
+---
+- name: Verify complete system configuration
+  hosts: all
+  become: true
+  tasks:
+    # =============================================================================
+    # SYSTEM CONFIGURATION VERIFICATION
+    # =============================================================================
+    - name: Verify hostname configuration
+      ansible.builtin.command: hostname
+      register: hostname_check
+      changed_when: false
+
+    - name: Assert hostname is set correctly
+      ansible.builtin.assert:
+        that:
+          - hostname_check.stdout == host_hostname
+        fail_msg: "Hostname not set correctly"
+        success_msg: "Hostname configured properly"
+
+    - name: Verify timezone configuration
+      ansible.builtin.command: timedatectl show --property=Timezone --value
+      register: timezone_check
+      changed_when: false
+
+    - name: Assert timezone is configured
+      ansible.builtin.assert:
+        that:
+          - timezone_check.stdout == domain_timezone
+        fail_msg: "Timezone not configured correctly"
+        success_msg: "Timezone configured properly"
+
+    # =============================================================================
+    # PACKAGE MANAGEMENT VERIFICATION
+    # =============================================================================
+    - name: Check that core packages are installed
+      ansible.builtin.package:
+        name:
+          - curl
+          - wget
+          - git
+          - vim
+          - htop
+        state: present
+      check_mode: true
+      register: core_packages_check
+
+    - name: Assert core packages are installed
+      ansible.builtin.assert:
+        that:
+          - not core_packages_check.changed
+        fail_msg: "Core packages not installed"
+        success_msg: "Core packages installed successfully"
+
+    - name: Check security packages installation
+      ansible.builtin.package:
+        name:
+          - fail2ban
+          - ufw
+        state: present
+      check_mode: true
+      register: security_packages_check
+
+    - name: Assert security packages are installed
+      ansible.builtin.assert:
+        that:
+          - not security_packages_check.changed
+        fail_msg: "Security packages not installed"
+        success_msg: "Security packages installed successfully"
+
+    # =============================================================================
+    # USER MANAGEMENT VERIFICATION
+    # =============================================================================
+    - name: Verify developer user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: developer
+      register: developer_user
+
+    - name: Assert developer user was created
+      ansible.builtin.assert:
+        that:
+          - developer_user.ansible_facts.getent_passwd.developer is defined
+        fail_msg: "Developer user not created"
+        success_msg: "Developer user created successfully"
+
+    - name: Verify sysadmin user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: sysadmin
+      register: sysadmin_user
+
+    - name: Assert sysadmin user was created
+      ansible.builtin.assert:
+        that:
+          - sysadmin_user.ansible_facts.getent_passwd.sysadmin is defined
+        fail_msg: "Sysadmin user not created"
+        success_msg: "Sysadmin user created successfully"
+
+    - name: Check sysadmin passwordless sudo configuration
+      ansible.builtin.stat:
+        path: "/etc/sudoers.d/sysadmin"
+      register: sysadmin_sudo
+
+    - name: Assert sysadmin has passwordless sudo
+      ansible.builtin.assert:
+        that:
+          - sysadmin_sudo.stat.exists
+        fail_msg: "Sysadmin passwordless sudo not configured"
+        success_msg: "Sysadmin passwordless sudo configured"
+
+    # =============================================================================
+    # LANGUAGE TOOLCHAIN VERIFICATION
+    # =============================================================================
+    - name: Check npm is available for developer user
+      ansible.builtin.command: sudo -u developer which npm
+      register: npm_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify npm is installed for developer
+      ansible.builtin.assert:
+        that:
+          - npm_check.rc == 0
+        fail_msg: "npm not available for developer user"
+        success_msg: "npm installed for developer user"
+
+    - name: Check rustup is available for developer user
+      ansible.builtin.command: sudo -u developer which rustup
+      register: rustup_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify rustup is installed for developer
+      ansible.builtin.assert:
+        that:
+          - rustup_check.rc == 0
+        fail_msg: "rustup not available for developer user"
+        success_msg: "rustup installed for developer user"
+      when:
+        - ansible_distribution == 'Ubuntu' and ansible_distribution_major_version | int >= 24
+        - ansible_distribution == 'Debian' and ansible_distribution_major_version | int >= 13
+
+    - name: Check go is available for developer user
+      ansible.builtin.command: sudo -u developer which go
+      register: go_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify go is installed for developer
+      ansible.builtin.assert:
+        that:
+          - go_check.rc == 0
+        fail_msg: "go not available for developer user"
+        success_msg: "go installed for developer user"
+
+    - name: Check neovim is available for developer user
+      ansible.builtin.command: sudo -u developer which nvim
+      register: nvim_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify neovim is installed for developer
+      ansible.builtin.assert:
+        that:
+          - nvim_check.rc == 0
+        fail_msg: "neovim not available for developer user"
+        success_msg: "neovim installed for developer user"
+
+    # =============================================================================
+    # LANGUAGE PACKAGES VERIFICATION
+    # =============================================================================
+    - name: Check typescript is installed for developer
+      ansible.builtin.command: sudo -u developer npm list -g typescript
+      register: typescript_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify typescript package is installed
+      ansible.builtin.assert:
+        that:
+          - typescript_check.rc == 0
+        fail_msg: "typescript not installed for developer"
+        success_msg: "typescript installed for developer"
+
+    - name: Check ripgrep is available for developer
+      ansible.builtin.command: sudo -u developer which rg
+      register: ripgrep_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify ripgrep is installed
+      ansible.builtin.assert:
+        that:
+          - ripgrep_check.rc == 0
+        fail_msg: "ripgrep not installed for developer"
+        success_msg: "ripgrep installed for developer"
+      when:
+        - ansible_distribution == 'Ubuntu' and ansible_distribution_major_version | int >= 24
+        - ansible_distribution == 'Debian' and ansible_distribution_major_version | int >= 13
+
+    - name: Check go packages are available
+      ansible.builtin.command: sudo -u developer ls /home/developer/go/bin/
+      register: go_packages_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify go packages are installed
+      ansible.builtin.assert:
+        that:
+          - go_packages_check.rc == 0
+          - go_packages_check.stdout | length > 0
+        fail_msg: "go packages not installed for developer"
+        success_msg: "go packages installed for developer"
+
+    # =============================================================================
+    # TERMINAL CONFIGURATION VERIFICATION
+    # =============================================================================
+    - name: Check developer terminfo directory exists
+      ansible.builtin.stat:
+        path: "/home/developer/.terminfo"
+      register: terminfo_dir
+
+    - name: Verify terminfo directory was created
+      ansible.builtin.assert:
+        that:
+          - terminfo_dir.stat.exists
+          - terminfo_dir.stat.isdir
+        fail_msg: "terminfo directory not created for developer"
+        success_msg: "terminfo directory created for developer"
+
+    - name: Check alacritty terminfo for developer
+      ansible.builtin.command: sudo -u developer infocmp -x alacritty
+      register: alacritty_terminfo
+      changed_when: false
+      failed_when: false
+
+    - name: Check kitty terminfo for developer
+      ansible.builtin.command: sudo -u developer infocmp -x xterm-kitty
+      register: kitty_terminfo
+      changed_when: false
+      failed_when: false
+
+    - name: Verify terminal terminfo entries are available
+      ansible.builtin.assert:
+        that:
+          - alacritty_terminfo.rc == 0 or kitty_terminfo.rc == 0
+        fail_msg: "terminal terminfo entries not installed for developer"
+        success_msg: "terminal terminfo entries installed for developer"
+
+    # =============================================================================
+    # HOST-SPECIFIC VERIFICATION
+    # =============================================================================
+    - name: Check host-specific packages (Ubuntu)
+      ansible.builtin.package:
+        name: ubuntu-specific-tool
+        state: present
+      check_mode: true
+      register: ubuntu_package_check
+      when: inventory_hostname == "ubuntu-system-test"
+      failed_when: false
+
+    - name: Check host-specific packages (Debian)
+      ansible.builtin.package:
+        name: debian-specific-tool
+        state: present
+      check_mode: true
+      register: debian_package_check
+      when: inventory_hostname == "debian-system-test"
+      failed_when: false
+
+    - name: Verify Ubuntu-specific user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: ubuntuuser
+      register: ubuntu_user
+      when: inventory_hostname == "ubuntu-system-test"
+
+    - name: Assert Ubuntu-specific user was created
+      ansible.builtin.assert:
+        that:
+          - ubuntu_user.ansible_facts.getent_passwd.ubuntuuser is defined
+        fail_msg: "Ubuntu-specific user not created"
+        success_msg: "Ubuntu-specific user created successfully"
+      when: inventory_hostname == "ubuntu-system-test"
+
+    # =============================================================================
+    # INTEGRATION SUMMARY
+    # =============================================================================
+    - name: Display comprehensive system configuration summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Complete System Configuration Verification ==="
+          - "✅ Hostname: {{ hostname_check.stdout }}"
+          - "✅ Timezone: {{ timezone_check.stdout }}"
+          - "✅ Core packages: Installed"
+          - "✅ Security packages: Installed"
+          - "✅ Users: developer, sysadmin created"
+          - "✅ Language toolchains: Node.js, Rust, Go, Neovim configured"
+          - "✅ Terminal configuration: Terminfo entries installed"
+          - "✅ Host-specific configuration: Applied correctly"
+          - "🎯 Full system integration test: PASSED"

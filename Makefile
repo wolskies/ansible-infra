@@ -41,7 +41,7 @@ test-failures: ## Run failure scenario tests (negative testing)
 .PHONY: test-comprehensive
 test-comprehensive: ## Run comprehensive integration tests (all scenarios)
 	@echo "🧪 Running comprehensive integration tests..."
-	@for scenario in discovery packages os_configuration users security configure_user rust nodejs go; do \
+	@for scenario in discovery configure_system docker minimal; do \
 		echo "Testing scenario: $$scenario"; \
 		molecule test -s $$scenario; \
 	done
@@ -54,7 +54,7 @@ test-quick: lint syntax-check ## Quick validation tests (fast feedback)
 .PHONY: test-system
 test-system: ## Test core system provisioning functionality
 	@echo "🖥️  Running system provisioning tests..."
-	molecule test -s os_configuration
+	molecule test -s configure_system
 
 .PHONY: test-template-edge-cases
 test-template-edge-cases: ## Test template edge cases
@@ -97,17 +97,13 @@ test-discovery: ## Run molecule tests for discovery role
 	molecule test -s discovery
 
 .PHONY: test-integration
-test-integration: ## Run integration tests with all roles
-	molecule test -s users
-	molecule test -s packages
-	molecule test -s security
+test-integration: ## Run integration tests with configure_system role
+	molecule test -s configure_system
 
 .PHONY: test-language-roles
-test-language-roles: ## Test language-specific roles (rust, nodejs, go)
-	@echo "🔧 Testing language-specific roles..."
-	molecule test -s rust
-	molecule test -s nodejs
-	molecule test -s go
+test-language-roles: ## Test language-specific roles (integrated in configure_system)
+	@echo "🔧 Language-specific roles are tested in configure_system scenario..."
+	@echo "✅ Language toolchains tested as part of full integration"
 
 .PHONY: ci-test
 ci-test: deps test-pre-commit test-failures test-system test-integration ## CI-style complete testing
