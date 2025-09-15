@@ -24,7 +24,6 @@
     docker_install_compose_plugin: "{{ docker_install_compose_plugin }}"
     docker_compose_package: "{{ docker_compose_package }}"
     docker_compose_package_state: "{{ docker_compose_package_state }}"
-    docker_install_compose: "{{ docker_install_compose }}"
     docker_users: "{{ docker_users }}"
     docker_daemon_options: "{{ docker_daemon_options }}"
   when: not docker_installed or not docker_enabled
