@@ -46,11 +46,14 @@
     - system-deps
 
 - name: Add NodeSource repository (Debian/Ubuntu)
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_{{ nodejs_version }}.x nodistro main"
+  ansible.builtin.deb822_repository:
+    name: nodesource
+    types: [deb]
+    uris: "https://deb.nodesource.com/node_{{ nodejs_version }}.x"
+    suites: [nodistro]
+    components: [main]
+    signed_by: /etc/apt/keyrings/nodesource.gpg
     state: present
-    filename: nodesource
-    update_cache: true
   become: true
   tags:
     - nodejs
