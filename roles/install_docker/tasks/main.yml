@@ -5,6 +5,12 @@
   failed_when: false
   changed_when: false
 
+- name: Check if Docker Compose plugin is available
+  ansible.builtin.command: docker compose version
+  register: docker_compose_check
+  failed_when: false
+  changed_when: false
+
 - name: Check if Docker service is enabled
   ansible.builtin.systemd:
     name: docker
@@ -14,6 +20,7 @@
 - name: Set Docker installation facts
   ansible.builtin.set_fact:
     docker_installed: "{{ docker_version_check.rc == 0 }}"
+    docker_compose_available: "{{ docker_compose_check.rc == 0 }}"
     docker_enabled: "{{ docker_service_status.status is defined and docker_service_status.status.ActiveState == 'active' }}"
 
 - name: Install Docker using geerlingguy.docker role
