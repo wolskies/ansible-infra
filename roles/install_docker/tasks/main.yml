@@ -19,6 +19,12 @@
 - name: Install Docker using geerlingguy.docker role
   ansible.builtin.include_role:
     name: geerlingguy.docker
+  vars:
+    docker_edition: "{{ docker_edition }}"
+    docker_install_compose_plugin: "{{ docker_install_compose_plugin }}"
+    docker_install_compose: "{{ docker_install_compose }}"
+    docker_users: "{{ docker_users }}"
+    docker_daemon_options: "{{ docker_daemon_options }}"
   when: not docker_installed or not docker_enabled
 
 - name: Check for NVIDIA GPU

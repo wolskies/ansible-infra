@@ -50,6 +50,8 @@
     backup: true
   become: true
   notify: restart docker service
+  tags:
+    - docker-compose
 
 - name: Deploy .env file
   ansible.builtin.template:
@@ -62,6 +64,8 @@
   become: true
   when: service_env_vars | length > 0
   notify: restart docker service
+  tags:
+    - docker-compose
 
 - name: Start and enable Docker Compose service
   community.docker.docker_compose_v2:
