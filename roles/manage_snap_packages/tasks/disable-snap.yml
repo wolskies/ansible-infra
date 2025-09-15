@@ -11,13 +11,15 @@
     - snap-packages
 
 - name: Remove all installed snap packages
-  ansible.builtin.command: "snap remove {{ item.split()[0] }}"
+  ansible.builtin.command: "snap remove {{ snap_line.split()[0] }}"
   become: true
   loop: "{{ snap_list.stdout_lines[1:] }}"
+  loop_control:
+    loop_var: snap_line
   when:
     - snap_list.rc == 0
     - snap_list.stdout_lines | length > 1
-    - item.split()[0] != "core"
+    - snap_line.split()[0] != "core"
   failed_when: false
   tags:
     - snap-packages
@@ -32,7 +34,7 @@
 
 - name: Stop and disable snapd services
   ansible.builtin.systemd:
-    name: "{{ item }}"
+    name: "{{ snapd_service }}"
     state: stopped
     enabled: false
     daemon_reload: true
@@ -42,6 +44,8 @@
     - snapd.socket
     - snapd.seeded.service
     - snapd.apparmor.service
+  loop_control:
+    loop_var: snapd_service
   failed_when: false
   tags:
     - snap-packages
@@ -60,7 +64,7 @@
 
 - name: Remove snap directories
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: "{{ snap_dir }}"
     state: absent
   loop:
     - /snap
@@ -69,6 +73,8 @@
     - /var/cache/snapd
     - /usr/lib/snapd
     - "{{ ansible_env.HOME }}/snap"
+  loop_control:
+    loop_var: snap_dir
   become: true
   failed_when: false
   tags:

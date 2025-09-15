@@ -78,10 +78,12 @@
 
 - name: Remove flatpak packages
   community.general.flatpak:
-    name: "{{ item }}"
+    name: "{{ flatpak_package }}"
     state: absent
     method: "{{ flatpak.method | default('system') }}"
   loop: "{{ flatpak.packages.remove | default([]) }}"
+  loop_control:
+    loop_var: flatpak_package
   become: true
   become_user: "{{ flatpak.user | default(omit) }}"
   when:
@@ -90,10 +92,12 @@
 
 - name: Install flatpak packages
   community.general.flatpak:
-    name: "{{ item }}"
+    name: "{{ flatpak_package }}"
     state: present
     method: "{{ flatpak.method | default('system') }}"
   loop: "{{ flatpak.packages.install | default([]) }}"
+  loop_control:
+    loop_var: flatpak_package
   become: true
   become_user: "{{ flatpak.user | default(omit) }}"
   when:

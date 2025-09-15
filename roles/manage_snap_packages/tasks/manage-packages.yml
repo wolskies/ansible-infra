@@ -12,7 +12,7 @@
 
     - name: Start and enable snapd services
       ansible.builtin.systemd:
-        name: "{{ item }}"
+        name: "{{ snapd_service }}"
         state: started
         enabled: true
         daemon_reload: true
@@ -20,6 +20,8 @@
       loop:
         - snapd.service
         - snapd.socket
+      loop_control:
+        loop_var: snapd_service
 
     - name: Wait for snapd to be ready
       ansible.builtin.command: snap wait system seed.loaded
@@ -35,9 +37,11 @@
 
 - name: Remove snap packages
   community.general.snap:
-    name: "{{ item }}"
+    name: "{{ snap_package }}"
     state: absent
   loop: "{{ snap.packages.remove }}"
+  loop_control:
+    loop_var: snap_package
   become: true
   when:
     - snap is defined
@@ -48,9 +52,11 @@
 
 - name: Install snap packages
   community.general.snap:
-    name: "{{ item }}"
+    name: "{{ snap_package }}"
     state: present
   loop: "{{ snap.packages.install }}"
+  loop_control:
+    loop_var: snap_package
   become: true
   when:
     - snap is defined
