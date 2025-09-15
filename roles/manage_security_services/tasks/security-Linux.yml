@@ -1,4 +1,13 @@
 ---
+- name: Detect current SSH connection port
+  ansible.builtin.set_fact:
+    current_ssh_port: "{{ ansible_env.SSH_CONNECTION.split()[3] if ansible_env.SSH_CONNECTION is defined else ansible_port | default('22') }}"
+  when:
+    - firewall.enabled | default(false)
+    - firewall.prevent_ssh_lockout | default(true)
+  tags:
+    - firewall
+
 - name: Ensure firewall package is present
   ansible.builtin.package:
     name: "{{ firewall.package }}"
@@ -35,20 +44,6 @@
   tags:
     - firewall
     - firewall-rules
-
-- name: Ensure SSH access to prevent lockout
-  community.general.ufw:
-    rule: allow
-    port: "22"
-    proto: tcp
-    comment: "SSH access (prevent lockout)"
-  become: true
-  when:
-    - firewall.enabled | default(false)
-    - firewall.prevent_ssh_lockout | default(false)
-  tags:
-    - firewall
-    - ssh-lockout
 
 - name: Enable UFW firewall service
   community.general.ufw:
