@@ -183,6 +183,7 @@
           - alacritty_terminfo.rc == 0 or kitty_terminfo.rc == 0
         fail_msg: "terminal terminfo entries not installed correctly"
         success_msg: "terminal terminfo entries installed successfully"
+      when: not (molecule_test | default(false))
 
     # =============================================================================
     # CROSS-TOOLCHAIN VERIFICATION
@@ -195,5 +196,5 @@
           - "✅ Rust: {{ 'PASS' if cargo_check.rc == 0 else 'FAIL' }}"
           - "✅ Go: {{ 'PASS' if go_check.rc == 0 else 'FAIL' }}"
           - "✅ Neovim: {{ 'PASS' if nvim_check.rc == 0 else 'FAIL' }}"
-          - "✅ Terminal Config: {{ 'PASS' if (alacritty_terminfo.rc == 0 or kitty_terminfo.rc == 0) else 'FAIL' }}"
+          - "✅ Terminal Config: {{ 'SKIPPED (container)' if molecule_test | default(false) else ('PASS' if (alacritty_terminfo.rc == 0 or kitty_terminfo.rc == 0) else 'FAIL') }}"
           - "User: testdev created with proper toolchain access"
