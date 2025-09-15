@@ -158,12 +158,41 @@ test-minimal:
 # REMOVED: test-dotfiles - functionality consolidated into configure_user role
 # Dotfiles deployment is now handled as part of per-user configuration
 
-test-language-toolchains:
+# Individual role-level tests (run in parallel for faster feedback)
+test-role-nodejs:
   extends: .molecule_test_template
   stage: test
   script:
-    - molecule test -s language_toolchains
-    - echo "✅ Language toolchain tests passed"
+    - cd roles/nodejs && molecule test
+    - echo "✅ Node.js role tests passed"
+
+test-role-rust:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/rust && molecule test
+    - echo "✅ Rust role tests passed"
+
+test-role-go:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/go && molecule test
+    - echo "✅ Go role tests passed"
+
+test-role-neovim:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/neovim && molecule test
+    - echo "✅ Neovim role tests passed"
+
+test-role-terminal-config:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/terminal_config && molecule test
+    - echo "✅ Terminal config role tests passed"
 
 # Integration tests
 test-integration:
