@@ -31,6 +31,9 @@ provisioner:
       host_key_checking: false
       stdout_callback: ansible.builtin.default
       stdout_callback_format: yaml
+  ansible_args:
+    - --skip-tags
+    - docker-compose
   inventory:
     group_vars:
       all:
