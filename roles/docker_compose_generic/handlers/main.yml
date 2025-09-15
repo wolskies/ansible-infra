@@ -7,4 +7,5 @@
   become: true
   when:
     - service_enabled
-    - not (molecule_test | default(false))
+  tags:
+    - docker-compose
