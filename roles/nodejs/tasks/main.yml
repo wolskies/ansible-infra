@@ -24,19 +24,19 @@
 - name: Install Node.js system dependencies (Debian/Ubuntu)
   ansible.builtin.include_tasks: setup-Debian.yml
   when:
-    - node_packages
+    - node_packages | length > 0
     - ansible_os_family == 'Debian'
 
 - name: Install Node.js system dependencies (Arch Linux)
   ansible.builtin.include_tasks: setup-Archlinux.yml
   when:
-    - node_packages
+    - node_packages | length > 0
     - ansible_os_family == 'Archlinux'
 
 - name: Install Node.js system dependencies (macOS)
   ansible.builtin.include_tasks: setup-Darwin.yml
   when:
-    - node_packages
+    - node_packages | length > 0
     - ansible_system == 'Darwin'
 
 - name: Create npm global directory for {{ node_user }}
