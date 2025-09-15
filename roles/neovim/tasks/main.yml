@@ -74,19 +74,12 @@
         dest: ~/.local/bin/vim
         mode: "0755"
 
-    - name: Check if git is available
-      ansible.builtin.command: which git
-      register: git_available
-      failed_when: false
-      changed_when: false
-
     - name: Install lazy.nvim plugin manager
       ansible.builtin.git:
         repo: https://github.com/folke/lazy.nvim.git
         dest: ~/.local/share/nvim/lazy/lazy.nvim
         clone: true
         update: true
-      when: git_available.rc == 0
 
     - name: Define neovim config files
       ansible.builtin.set_fact:
