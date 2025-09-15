@@ -18,6 +18,18 @@ Finally, where there is an existing ansible module (ansible.builtin or community
 
 In the same light, ansible.builtin.command should be considered a last resort where a suitable module can be found -- and ansible.builtin.shell needs my explicit permission to include in a role.
 
+For repository management on Debian/Ubuntu systems, ALWAYS use ansible.builtin.deb822_repository. The deprecated apt_repository module will fail and must never be used.
+
 ### Supported Operating Systems
 
 The role is intended to support Archlinux, MacOSX, Debian 12+, and Ubuntu 22+. That should be clear to the user in the documentation. There doesn't need to be any excessive version checking.
+
+### Testing Principles
+
+When working with molecule tests and CI:
+
+- **Never add test-specific conditionals to production code** - Don't pollute roles with `when: not molecule_test` or similar defensive programming
+- **Use tags for container limitations** - Skip tasks that don't work in containers using tags (e.g., `skip-tags: hostname,docker-compose`)
+- **Individual role tests are valuable** - Maintain granular molecule scenarios for each role rather than only integration tests
+- **Let roles fail semantically** - Roles should fail properly when dependencies are missing rather than masking issues
+- **Container vs VM testing** - Some functionality (like hostname changes, docker-compose) requires VM testing with delegated driver
