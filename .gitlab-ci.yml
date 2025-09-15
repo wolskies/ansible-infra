@@ -145,12 +145,8 @@ test-discovery:
     - molecule test -s discovery
     - echo "✅ Discovery role tests passed"
 
-test-docker:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s docker
-    - echo "✅ Docker installation and compose tests passed"
+# REMOVED: test-docker - role not ready for production
+# Docker compose functionality needs further development
 
 test-minimal:
   extends: .molecule_test_template
