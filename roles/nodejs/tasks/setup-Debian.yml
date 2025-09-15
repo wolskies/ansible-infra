@@ -5,7 +5,7 @@
   ansible.builtin.apt:
     name:
       - apt-transport-https
-      - gnupg
+      - gpg
     state: present
   become: true
   tags:
