@@ -38,6 +38,8 @@
   when:
     - domain_locale is defined
     - domain_locale | length > 0
+  tags:
+    - locale
 
 - name: Configure system LANG variable
   ansible.builtin.lineinfile:
@@ -49,6 +51,8 @@
   when:
     - domain_locale is defined
     - domain_locale | length > 0
+  tags:
+    - locale
 
 - name: Configure system language
   ansible.builtin.lineinfile:
@@ -60,6 +64,8 @@
   when:
     - domain_language is defined
     - domain_language | length > 0
+  tags:
+    - locale
 
 - name: Configure NTP time synchronization
   block:

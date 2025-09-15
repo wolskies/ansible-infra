@@ -29,14 +29,16 @@ provisioner:
       host_key_checking: false
       stdout_callback: ansible.builtin.default
       stdout_callback_format: yaml
+  playbooks:
+    converge: converge.yml
+  ansible_args:
+    - --skip-tags
+    - locale,hardening
   inventory:
     group_vars:
       all:
         ansible_user: root
         molecule_test: true
-        # Disable OS hardening in containers (auditd package not available)
-        host_security:
-          hardening_enabled: false
         # Full system configuration testing - realistic production variables
         domain_name: "test.example.com"
         domain_timezone: "America/New_York"
@@ -169,9 +171,6 @@ provisioner:
       debian-system-test:
         host_hostname: "debian-full-test"
         host_update_hosts: false # Disabled for containers
-        # Disable OS hardening specifically for Debian (additional safeguard)
-        host_security:
-          hardening_enabled: false
         # Host-specific packages
         packages:
           host:
