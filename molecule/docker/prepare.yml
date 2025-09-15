@@ -25,5 +25,4 @@
         enabled: true
       when:
         - ansible_os_family == 'Debian'
-        - not (molecule_test | default(false))
       ignore_errors: true

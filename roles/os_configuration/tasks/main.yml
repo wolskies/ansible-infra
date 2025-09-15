@@ -6,7 +6,6 @@
   when:
     - host_hostname is defined
     - host_hostname | length > 0
-    - not (molecule_test | default(false))
   tags:
     - hostname
     - os-configuration
