@@ -21,6 +21,8 @@ provisioner:
       host_key_checking: false
       stdout_callback: ansible.builtin.default
       stdout_callback_format: yaml
+  options:
+    skip-tags: terminal-config
   inventory:
     group_vars:
       all:

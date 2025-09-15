@@ -50,3 +50,5 @@
         path: "{{ _terminal_tmp.path }}"
         state: absent
   when: _terminal_needs_compilation
+  tags:
+    - terminal-config
