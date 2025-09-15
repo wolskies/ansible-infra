@@ -1,0 +1,16 @@
+---
+- name: Test rust role
+  hosts: all
+  become: true
+  tasks:
+    # First create the user for rust installation
+    - name: Include os_configuration role for user creation
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.os_configuration
+      tags:
+        - users
+
+    # Test Rust role
+    - name: Test rust role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.rust

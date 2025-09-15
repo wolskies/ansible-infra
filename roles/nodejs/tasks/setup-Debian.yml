@@ -4,11 +4,11 @@
 - name: Install Node.js system dependencies (Debian/Ubuntu)
   ansible.builtin.apt:
     name:
-      - git
       - curl
       - gpg
       - apt-transport-https
     state: present
+    update_cache: true
   become: true
   tags:
     - nodejs

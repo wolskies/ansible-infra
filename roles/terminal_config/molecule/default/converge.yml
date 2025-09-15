@@ -1,0 +1,16 @@
+---
+- name: Test terminal_config role
+  hosts: all
+  become: true
+  tasks:
+    # First create the user for terminal config
+    - name: Include os_configuration role for user creation
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.os_configuration
+      tags:
+        - users
+
+    # Test terminal configuration role
+    - name: Test terminal_config role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.terminal_config

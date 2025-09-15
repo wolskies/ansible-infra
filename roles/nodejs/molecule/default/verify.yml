@@ -1,0 +1,58 @@
+---
+- name: Verify nodejs installation
+  hosts: all
+  become: true
+  tasks:
+    # =============================================================================
+    # USER VERIFICATION
+    # =============================================================================
+    - name: Verify test user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: testdev
+      register: user_check
+
+    - name: Assert user was created
+      ansible.builtin.assert:
+        that:
+          - user_check.ansible_facts.getent_passwd.testdev is defined
+        fail_msg: "Test user 'testdev' was not created"
+
+    # =============================================================================
+    # NODE.JS VERIFICATION
+    # =============================================================================
+    - name: Check if npm is available for testdev
+      ansible.builtin.command: sudo -u testdev which npm
+      register: npm_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify npm is installed
+      ansible.builtin.assert:
+        that:
+          - npm_check.rc == 0
+        fail_msg: "npm not found for testdev user"
+        success_msg: "npm successfully installed"
+
+    - name: Check npm global packages for testdev
+      ansible.builtin.command: sudo -u testdev npm list -g --depth=0
+      register: npm_packages
+      changed_when: false
+      failed_when: false
+
+    - name: Verify npm packages are installed
+      ansible.builtin.assert:
+        that:
+          - "'typescript' in npm_packages.stdout"
+          - "'eslint' in npm_packages.stdout"
+          - "'prettier' in npm_packages.stdout"
+        fail_msg: "npm packages not installed correctly"
+        success_msg: "npm packages installed successfully"
+
+    - name: Display nodejs installation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Node.js Installation Complete ==="
+          - "✅ Node.js: {{ 'PASS' if npm_check.rc == 0 else 'FAIL' }}"
+          - "✅ npm packages: {{ 'PASS' if ('typescript' in npm_packages.stdout and 'eslint' in npm_packages.stdout and 'prettier' in npm_packages.stdout) else 'FAIL' }}"
+          - "User: testdev created with proper nodejs access"
