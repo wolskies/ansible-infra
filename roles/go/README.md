@@ -23,15 +23,20 @@ go_packages: []                  # List of Go packages to install (required)
 
 ### Go Packages Format
 
-Go packages use full module paths with optional version specifiers:
+Go packages use full module paths with optional version specifiers. If no version is specified, `@latest` is automatically appended:
 
 ```yaml
 go_packages:
   - github.com/charmbracelet/glow@latest
   - github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2
-  - golang.org/x/tools/cmd/goimports
+  - golang.org/x/tools/cmd/goimports  # Becomes golang.org/x/tools/cmd/goimports@latest
   - github.com/air-verse/air@latest
 ```
+
+**Version Handling:**
+- Packages with `@version` are installed as-is
+- Packages without version get `@latest` automatically appended
+- This ensures compatibility with modern Go module requirements
 
 ## Usage Examples
 
