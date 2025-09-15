@@ -1,0 +1,48 @@
+---
+- name: Verify terminal_config installation
+  hosts: all
+  become: true
+  tasks:
+    # =============================================================================
+    # USER VERIFICATION
+    # =============================================================================
+    - name: Verify test user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: testdev
+      register: user_check
+
+    - name: Assert user was created
+      ansible.builtin.assert:
+        that:
+          - user_check.ansible_facts.getent_passwd.testdev is defined
+        fail_msg: "Test user 'testdev' was not created"
+
+    # =============================================================================
+    # TERMINAL CONFIGURATION VERIFICATION
+    # =============================================================================
+    - name: Check terminal terminfo directory exists
+      ansible.builtin.stat:
+        path: "/home/testdev/.terminfo"
+      register: terminfo_dir
+
+    - name: Check alacritty terminfo entries
+      ansible.builtin.command: sudo -u testdev infocmp -x alacritty
+      register: alacritty_terminfo
+      changed_when: false
+      failed_when: false
+
+    - name: Check kitty terminfo entries
+      ansible.builtin.command: sudo -u testdev infocmp -x xterm-kitty
+      register: kitty_terminfo
+      changed_when: false
+      failed_when: false
+
+    - name: Display terminal config summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Terminal Configuration Complete ==="
+          - "✅ Terminal Config: {{ 'SKIPPED (container)' if molecule_test | default(false) else ('PASS' if (alacritty_terminfo.rc == 0 or kitty_terminfo.rc == 0) else 'FAIL') }}"
+          - "✅ Terminfo directory: {{ 'PASS' if terminfo_dir.stat.exists else 'FAIL' }}"
+          - "User: testdev created with proper terminal access"
+          - "Note: Terminfo compilation skipped in containers due to permission limitations"

@@ -1,0 +1,69 @@
+---
+- name: Verify neovim installation
+  hosts: all
+  become: true
+  tasks:
+    # =============================================================================
+    # USER VERIFICATION
+    # =============================================================================
+    - name: Verify test user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: testdev
+      register: user_check
+
+    - name: Assert user was created
+      ansible.builtin.assert:
+        that:
+          - user_check.ansible_facts.getent_passwd.testdev is defined
+        fail_msg: "Test user 'testdev' was not created"
+
+    # =============================================================================
+    # NEOVIM VERIFICATION
+    # =============================================================================
+    - name: Check if neovim is available for testdev
+      ansible.builtin.command: sudo -u testdev which nvim
+      register: nvim_check
+      changed_when: false
+      failed_when: false
+
+    - name: Verify neovim is installed
+      ansible.builtin.assert:
+        that:
+          - nvim_check.rc == 0
+        fail_msg: "neovim not found for testdev user"
+        success_msg: "neovim successfully installed"
+
+    - name: Check neovim configuration exists
+      ansible.builtin.stat:
+        path: "/home/testdev/.config/nvim/init.lua"
+      register: nvim_config
+
+    - name: Verify neovim configuration is installed
+      ansible.builtin.assert:
+        that:
+          - nvim_config.stat.exists
+        fail_msg: "neovim configuration not installed"
+        success_msg: "neovim configuration installed successfully"
+
+    - name: Check vim alias exists
+      ansible.builtin.stat:
+        path: "/home/testdev/.local/bin/vim"
+      register: vim_alias
+
+    - name: Verify vim alias is installed
+      ansible.builtin.assert:
+        that:
+          - vim_alias.stat.exists
+          - vim_alias.stat.executable
+        fail_msg: "vim alias not installed"
+        success_msg: "vim alias installed successfully"
+
+    - name: Display neovim installation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Neovim Installation Complete ==="
+          - "✅ Neovim: {{ 'PASS' if nvim_check.rc == 0 else 'FAIL' }}"
+          - "✅ Configuration: {{ 'PASS' if nvim_config.stat.exists else 'FAIL' }}"
+          - "✅ Vim alias: {{ 'PASS' if (vim_alias.stat.exists and vim_alias.stat.executable) else 'FAIL' }}"
+          - "User: testdev created with proper neovim access"
