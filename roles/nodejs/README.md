@@ -190,7 +190,7 @@ nodejs_update_cache: false       # Skip apt cache update
 
 - `community.general`: npm module for package installation
 - `ansible.builtin.package`: For Node.js system installation
-- `ansible.builtin.apt_repository`: For NodeSource repository (Ubuntu/Debian)
+- `ansible.builtin.deb822_repository`: For NodeSource repository (Ubuntu/Debian)
 
 ## License
 

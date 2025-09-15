@@ -1,6 +1,6 @@
 ---
 # Simplified APT Repository Discovery for Ubuntu/Debian systems
-# Works with ansible.builtin.apt_repository module - no GPG key complexity needed
+# Scans existing repositories and converts format for deb822_repository module usage
 
 - name: Check if sources.list.d directory exists
   ansible.builtin.stat:
