@@ -1,0 +1,3 @@
+---
+- name: Test complete system configuration
+  ansible.builtin.import_playbook: ../../playbooks/configure_system.yml

@@ -1,8 +1,0 @@
----
-- name: Converge
-  hosts: all
-  become: true
-  tasks:
-    - name: Include os_configuration role
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.os_configuration

@@ -137,51 +137,13 @@ validate-all:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
 
-# Role-specific tests
+# Essential individual tests
 test-discovery:
   extends: .molecule_test_template
   stage: test
   script:
     - molecule test -s discovery
     - echo "✅ Discovery role tests passed"
-
-test-packages:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s packages
-    - echo "✅ Package management tests passed"
-
-test-os-configuration:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s os_configuration
-    - echo "✅ OS configuration tests passed"
-
-# REMOVED: test-users - user management now tested in os_configuration scenario
-
-test-security-services:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s security
-    - echo "✅ Security services tests passed"
-
-test-configure-user:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s configure_user
-    - echo "✅ Configure user tests passed"
-
-# Language toolchain tests (consolidated)
-test-language-toolchains:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s language_toolchains
-    - echo "✅ Language toolchain tests passed (Node.js, Rust, Go)"
 
 test-docker:
   extends: .molecule_test_template

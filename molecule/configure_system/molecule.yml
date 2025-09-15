@@ -1,0 +1,187 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-system-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: debian-system-test
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # Disable OS hardening in containers (auditd package not available)
+        host_security:
+          hardening_enabled: false
+        # Full system configuration testing - realistic production variables
+        domain_name: "test.example.com"
+        domain_timezone: "America/New_York"
+        domain_locale: "en_US.UTF-8"
+        domain_language: "en_US.UTF-8"
+        domain_ntp:
+          enabled: true
+          servers:
+            - 0.pool.ntp.org
+            - 1.pool.ntp.org
+
+        # System packages configuration
+        packages:
+          apt:
+            no_recommends: true
+            proxy: ""
+            unattended_upgrades:
+              enabled: true
+              email: ""
+              auto_reboot: false
+          # Group-level packages all hosts get
+          all:
+            - curl
+            - wget
+            - git
+            - vim
+            - htop
+          # Security packages
+          security:
+            - fail2ban
+            - ufw
+          # Development packages
+          development:
+            - build-essential
+            - python3-pip
+
+        # Security services configuration
+        security_services:
+          ufw:
+            enabled: false # Disabled in containers
+            rules:
+              - rule: allow
+                port: "22"
+                proto: tcp
+              - rule: allow
+                port: "80"
+                proto: tcp
+              - rule: allow
+                port: "443"
+                proto: tcp
+            default:
+              incoming: deny
+              outgoing: allow
+          fail2ban:
+            enabled: false # Disabled in containers
+            jails:
+              sshd:
+                enabled: true
+                port: ssh
+                logpath: /var/log/auth.log
+                maxretry: 3
+                bantime: 600
+
+        # User configuration - test full user lifecycle
+        users:
+          - name: developer
+            uid: 1001
+            groups: [sudo]
+            shell: /bin/bash
+            comment: "Developer User"
+            state: present
+            create_home: true
+            ssh_keys:
+              - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... developer@test"
+            # Language toolchain configuration
+            nodejs:
+              packages:
+                - typescript
+                - eslint
+            rust:
+              packages:
+                - ripgrep
+                - cargo-watch
+            go:
+              packages:
+                - github.com/charmbracelet/glow@latest
+                - golang.org/x/tools/cmd/goimports
+            neovim:
+              enabled: true
+            terminal_entries:
+              - alacritty
+              - kitty
+          - name: sysadmin
+            uid: 1002
+            groups: [sudo]
+            shell: /bin/bash
+            comment: "System Administrator"
+            state: present
+            create_home: true
+            sudo_no_password: true
+            # Minimal language tools
+            nodejs:
+              packages:
+                - typescript
+    host_vars:
+      ubuntu-system-test:
+        host_hostname: "ubuntu-full-test"
+        host_update_hosts: false # Disabled for containers
+        # Host-specific packages
+        packages:
+          host:
+            - ubuntu-specific-tool
+        # Host-specific security settings
+        security_services:
+          ufw:
+            enabled: false
+            rules:
+              - rule: allow
+                port: "8080"
+                proto: tcp
+        # Additional user for Ubuntu only
+        users:
+          - name: ubuntuuser
+            uid: 1003
+            groups: [sudo]
+            shell: /bin/bash
+            comment: "Ubuntu-specific User"
+            state: present
+            create_home: true
+      debian-system-test:
+        host_hostname: "debian-full-test"
+        host_update_hosts: false # Disabled for containers
+        # Disable OS hardening specifically for Debian (additional safeguard)
+        host_security:
+          hardening_enabled: false
+        # Host-specific packages
+        packages:
+          host:
+            - debian-specific-tool
+        # Different security config for Debian
+        security_services:
+          fail2ban:
+            enabled: false
+            jails:
+              sshd:
+                maxretry: 5 # Different from group default
+verifier:
+  name: ansible

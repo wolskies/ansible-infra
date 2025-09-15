@@ -13,38 +13,18 @@
 
 - name: Configure terminal emulators for {{ terminal_user }}
   block:
-    - name: Check which terminals need terminfo compilation
-      ansible.builtin.command: "infocmp -x {{ terminal_configs[item].entries[0] }}"
-      register: _terminal_checks
-      changed_when: false
-      failed_when: false
-      loop: "{{ terminal_entries }}"
-      loop_control:
-        label: "{{ item }}"
-
-    - name: Determine which terminals need terminfo compilation
-      ansible.builtin.set_fact:
-        _terminals_to_compile: >-
-          {{
-            _terminal_checks.results
-            | selectattr('rc', 'ne', 0)
-            | map(attribute='item')
-            | list
-          }}
-
     - name: Ensure user terminfo directory exists
       ansible.builtin.file:
         path: "~/.terminfo"
         state: directory
         mode: "0755"
-      when: _terminals_to_compile | length > 0
 
-    - name: Process each terminal that needs compilation
+    - name: Configure each terminal emulator
       ansible.builtin.include_tasks: configure_terminal.yml
       vars:
         terminal_name: "{{ terminal_item }}"
         terminal_config: "{{ terminal_configs[terminal_item] }}"
-      loop: "{{ _terminals_to_compile }}"
+      loop: "{{ terminal_entries }}"
       loop_control:
         loop_var: terminal_item
         label: "{{ terminal_item }}"

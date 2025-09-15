@@ -2,31 +2,51 @@
 # Configure a specific terminal emulator's terminfo
 # Expects: terminal_name, terminal_config
 
-- name: "Create temporary file for terminfo: {{ terminal_name }}"
-  ansible.builtin.tempfile:
-    state: file
-    suffix: ".{{ terminal_name }}.info"
-  register: _terminal_tmp
+- name: "Check if terminfo entries exist for {{ terminal_name }}"
+  ansible.builtin.command: "infocmp -x {{ item }}"
+  register: _terminal_entry_check
+  changed_when: false
+  failed_when: false
+  loop: "{{ terminal_config.entries }}"
+  loop_control:
+    label: "{{ item }}"
 
-- name: "Download terminfo source: {{ terminal_name }}"
-  ansible.builtin.get_url:
-    url: "{{ terminal_config.terminfo_url }}"
-    dest: "{{ _terminal_tmp.path }}"
-    mode: "0644"
-    force: true
-  failed_when: false # Some URLs might not be accessible
+- name: "Determine if terminfo compilation needed for {{ terminal_name }}"
+  ansible.builtin.set_fact:
+    _terminal_needs_compilation: >-
+      {{
+        _terminal_entry_check.results
+        | selectattr('rc', 'ne', 0)
+        | list
+        | length > 0
+      }}
 
-- name: "Compile and install terminfo to ~/.terminfo: {{ terminal_name }}"
-  ansible.builtin.command: >-
-    tic {{ terminal_config.tic_options }}
-    -o ~/.terminfo
-    -e {{ terminal_config.entries | join(',') }}
-    "{{ _terminal_tmp.path }}"
-  register: _terminal_tic
-  changed_when: _terminal_tic.rc == 0
-  failed_when: false # Don't fail if terminfo compilation has issues
+- name: "Download and compile terminfo for {{ terminal_name }}"
+  block:
+    - name: "Create temporary file for terminfo: {{ terminal_name }}"
+      ansible.builtin.tempfile:
+        state: file
+        suffix: ".{{ terminal_name }}.info"
+      register: _terminal_tmp
 
-- name: "Clean up temporary file: {{ terminal_name }}"
-  ansible.builtin.file:
-    path: "{{ _terminal_tmp.path }}"
-    state: absent
+    - name: "Download terminfo source: {{ terminal_name }}"
+      ansible.builtin.get_url:
+        url: "{{ terminal_config.terminfo_url }}"
+        dest: "{{ _terminal_tmp.path }}"
+        mode: "0644"
+        force: true
+
+    - name: "Compile and install terminfo to ~/.terminfo: {{ terminal_name }}"
+      ansible.builtin.command: >-
+        tic {{ terminal_config.tic_options }}
+        -o ~/.terminfo
+        -e {{ terminal_config.entries | join(',') }}
+        "{{ _terminal_tmp.path }}"
+      register: _terminal_tic
+      changed_when: true
+
+    - name: "Clean up temporary file: {{ terminal_name }}"
+      ansible.builtin.file:
+        path: "{{ _terminal_tmp.path }}"
+        state: absent
+  when: _terminal_needs_compilation
