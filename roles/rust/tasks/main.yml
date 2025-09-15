@@ -48,10 +48,17 @@
     - rust
     - system-deps
 
+- name: Get rust_user home directory
+  ansible.builtin.user:
+    name: "{{ rust_user }}"
+  register: rust_user_info
+  when:
+    - rust_packages | length > 0
+
 - name: Initialize rustup default toolchain
   ansible.builtin.command: rustup default stable
   environment:
-    PATH: "{{ ansible_env.PATH }}{{ ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else '' }}"
+    PATH: "{{ rust_user_info.home }}/.cargo/bin:{{ ansible_env.PATH }}{{ ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else '' }}"
   become: true
   become_user: "{{ rust_user }}"
   register: rustup_default
@@ -61,13 +68,6 @@
   tags:
     - rust
     - language-packages
-
-- name: Get rust_user home directory
-  ansible.builtin.user:
-    name: "{{ rust_user }}"
-  register: rust_user_info
-  when:
-    - rust_packages | length > 0
 
 - name: Install Rust packages for {{ rust_user }}
   ansible.builtin.command: cargo install {{ rust_package }}
