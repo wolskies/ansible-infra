@@ -46,3 +46,17 @@
           - "'env_file:' in (compose_content.content | b64decode)"
         fail_msg: "docker-compose.yml template rendering failed - service_use_proxy variable not working"
       when: test_docker_only is not defined
+
+    - name: Validate docker-compose.yml is valid YAML (service test only)
+      ansible.builtin.set_fact:
+        parsed_compose: "{{ compose_content.content | b64decode | from_yaml }}"
+      when: test_docker_only is not defined
+
+    - name: Assert docker-compose.yml structure is valid (service test only)
+      ansible.builtin.assert:
+        that:
+          - parsed_compose is defined
+          - parsed_compose.services is defined
+          - parsed_compose.services['nginx-test'] is defined
+        fail_msg: "docker-compose.yml is not valid YAML or missing required structure"
+      when: test_docker_only is not defined
