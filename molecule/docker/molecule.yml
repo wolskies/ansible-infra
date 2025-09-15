@@ -41,9 +41,7 @@ provisioner:
         ansible_managed: "Managed by Ansible - do not edit manually"
         docker_services_root: "/opt/docker-services"
         # Skip Docker service management in containers
-        docker_service_state: stopped
-        docker_service_enabled: false
-        docker_restart_on_failure: false
+        docker_service_manage: false
     host_vars:
       ubuntu24-docker-test:
         # Test basic Docker installation
