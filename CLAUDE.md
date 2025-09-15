@@ -33,3 +33,4 @@ When working with molecule tests and CI:
 - **Individual role tests are valuable** - Maintain granular molecule scenarios for each role rather than only integration tests
 - **Let roles fail semantically** - Roles should fail properly when dependencies are missing rather than masking issues
 - **Container vs VM testing** - Some functionality (like hostname changes, docker-compose) requires VM testing with delegated driver
+- **VM testing approach** - Use molecule with delegated driver for external VMs. The user manages VM provisioning; molecule connects via SSH to existing infrastructure for realistic system testing
