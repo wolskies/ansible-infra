@@ -2,6 +2,8 @@
 # Docker installation defaults - passed to geerlingguy.docker
 docker_edition: "ce"
 docker_install_compose_plugin: true
+docker_compose_package: "docker-compose-plugin"
+docker_compose_package_state: "present"
 docker_install_compose: false # Use plugin instead of standalone
 docker_users: ["{{ ansible_user | default('') }}"] # Add ansible_user to docker group
 docker_daemon_options:
