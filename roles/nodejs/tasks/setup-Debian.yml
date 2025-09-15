@@ -29,7 +29,6 @@
     dest: /tmp/nodesource-repo.gpg.key
     mode: "0644"
   become: true
-  when: not (molecule_test | default(false))
   tags:
     - nodejs
     - system-deps
@@ -41,7 +40,6 @@
   args:
     creates: /etc/apt/keyrings/nodesource.gpg
   become: true
-  when: not (molecule_test | default(false))
   tags:
     - nodejs
     - system-deps
@@ -53,30 +51,15 @@
     filename: nodesource
     update_cache: true
   become: true
-  when: not (molecule_test | default(false))
   tags:
     - nodejs
     - system-deps
 
-- name: Install Node.js and npm from NodeSource (Debian/Ubuntu)
+- name: Install Node.js and npm (Debian/Ubuntu)
   ansible.builtin.apt:
     name: nodejs
     state: present
   become: true
-  when: not (molecule_test | default(false))
-  tags:
-    - nodejs
-    - system-deps
-
-- name: Install Node.js and npm from system packages (molecule tests)
-  ansible.builtin.apt:
-    name:
-      - nodejs
-      - npm
-    state: present
-    update_cache: true
-  become: true
-  when: molecule_test | default(false)
   tags:
     - nodejs
     - system-deps
