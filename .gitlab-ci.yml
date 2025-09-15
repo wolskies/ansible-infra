@@ -158,11 +158,12 @@ test-minimal:
 # REMOVED: test-dotfiles - functionality consolidated into configure_user role
 # Dotfiles deployment is now handled as part of per-user configuration
 
-# REMOVED: test-language-packages - functionality moved to configure_user role
-# Language package management is now handled per-user in configure_user role
-
-# REMOVED: test-security - duplicate of test-security-services
-# Use test-security-services which tests manage_security_services role
+test-language-toolchains:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - molecule test -s language_toolchains
+    - echo "✅ Language toolchain tests passed"
 
 # Integration tests
 test-integration:
