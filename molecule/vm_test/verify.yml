@@ -1,0 +1,153 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    # Basic connectivity
+    - name: Verify system is accessible
+      ansible.builtin.ping:
+
+    # Hostname verification
+    - name: Verify hostname was configured
+      ansible.builtin.assert:
+        that:
+          - ansible_hostname == expected_hostname
+        fail_msg: "Hostname '{{ ansible_hostname }}' does not match expected '{{ expected_hostname }}'"
+      when: expected_hostname is defined
+
+    # Check /etc/hosts
+    - name: Read /etc/hosts file
+      ansible.builtin.slurp:
+        src: /etc/hosts
+      register: hosts_content
+      when: host_update_hosts | default(false)
+
+    - name: Verify /etc/hosts contains FQDN
+      ansible.builtin.assert:
+        that:
+          - "expected_hostname + '.' + domain_name in (hosts_content.content | b64decode)"
+        fail_msg: "FQDN not found in /etc/hosts"
+      when:
+        - host_update_hosts | default(false)
+        - expected_hostname is defined
+        - domain_name is defined
+
+    # Service verification
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+      become: true
+
+    - name: Verify expected services are running
+      ansible.builtin.assert:
+        that:
+          - >
+            ansible_facts.services[item + '.service'].state == 'running' or
+            ansible_facts.services[item].state == 'running' or
+            ansible_facts.services[item + 'd.service'].state == 'running'
+        fail_msg: "Service {{ item }} is not running"
+      loop: "{{ expected_services | default([]) }}"
+      when:
+        - expected_services is defined
+        - ansible_system == 'Linux'
+
+    # Package verification
+    - name: Check if expected packages are installed
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: present
+      check_mode: true
+      register: package_check
+      loop: "{{ expected_packages | default([]) }}"
+      when: expected_packages is defined
+
+    - name: Assert packages are installed
+      ansible.builtin.assert:
+        that:
+          - not item.changed # If no change in check mode, package is already installed
+        fail_msg: "Package {{ item.item }} is not installed"
+      loop: "{{ package_check.results | default([]) }}"
+      when: expected_packages is defined
+
+    # User verification
+    - name: Check if expected users exist
+      ansible.builtin.command: "id {{ item }}"
+      register: user_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ expected_users | default([]) }}"
+      when: expected_users is defined
+
+    - name: Assert users exist
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "User {{ item.item }} does not exist"
+      loop: "{{ user_check.results | default([]) }}"
+      when: expected_users is defined
+
+    # Firewall verification (Debian VM)
+    - name: Check UFW status
+      ansible.builtin.command: ufw status
+      register: ufw_status
+      become: true
+      changed_when: false
+      when:
+        - expected_firewall_active | default(false)
+        - ansible_os_family == "Debian"
+
+    - name: Verify firewall is active
+      ansible.builtin.assert:
+        that:
+          - "'Status: active' in ufw_status.stdout"
+        fail_msg: "UFW firewall is not active"
+      when:
+        - expected_firewall_active | default(false)
+        - ansible_os_family == "Debian"
+
+    - name: Verify SSH port is allowed in firewall
+      ansible.builtin.assert:
+        that:
+          - "'22/tcp' in ufw_status.stdout or 'OpenSSH' in ufw_status.stdout"
+        fail_msg: "SSH access not found in firewall rules"
+      when:
+        - expected_firewall_active | default(false)
+        - ansible_os_family == "Debian"
+        - firewall.prevent_ssh_lockout | default(true)
+
+    # System configuration verification
+    - name: Check system timezone
+      ansible.builtin.command: timedatectl show --property=Timezone --value
+      register: timezone_check
+      changed_when: false
+      when:
+        - domain_timezone is defined
+        - ansible_system == 'Linux'
+
+    - name: Verify timezone is set correctly
+      ansible.builtin.assert:
+        that:
+          - timezone_check.stdout == domain_timezone
+        fail_msg: "Timezone '{{ timezone_check.stdout }}' does not match expected '{{ domain_timezone }}'"
+      when:
+        - domain_timezone is defined
+        - ansible_system == 'Linux'
+
+    # Locale verification
+    - name: Check system locale
+      ansible.builtin.command: localectl status
+      register: locale_check
+      changed_when: false
+      when:
+        - domain_locale is defined
+        - ansible_system == 'Linux'
+      tags:
+        - locale
+
+    - name: Display verification summary
+      ansible.builtin.debug:
+        msg:
+          - "✅ Hostname: {{ ansible_hostname }}"
+          - "✅ OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "✅ Kernel: {{ ansible_kernel }}"
+          - "✅ Python: {{ ansible_python_version }}"
+          - "✅ All verification checks passed"
