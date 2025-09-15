@@ -1,0 +1,117 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: delegated
+  options:
+    managed: false # We don't manage the VM lifecycle
+    ansible_connection_options:
+      ansible_connection: ssh
+      ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+platforms:
+  # Workstations
+  - name: ws-arch
+    groups:
+      - workstations
+      - linux
+  - name: ws-ubuntu
+    groups:
+      - workstations
+      - linux
+  - name: ws-macos
+    groups:
+      - workstations
+      - darwin
+  # Servers
+  - name: sv-debian
+    groups:
+      - servers
+      - linux
+  - name: sv-ubuntu
+    groups:
+      - servers
+      - linux
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
+  inventory:
+    group_vars:
+      all:
+        ansible_user: ed # Update if different
+        ansible_ssh_private_key_file: ~/.ssh/id_rsa # Update path if needed
+        domain_name: "test.local"
+        domain_locale: "en_US.UTF-8"
+
+      workstations:
+        # Workstation-specific configuration
+        host_update_hosts: true
+        install_development_tools: true
+
+      servers:
+        # Server-specific configuration
+        host_update_hosts: true
+        firewall:
+          enabled: true
+          prevent_ssh_lockout: true
+          rules:
+            - rule: allow
+              port: 80
+              proto: tcp
+            - rule: allow
+              port: 443
+              proto: tcp
+
+    host_vars:
+      # Workstations
+      ws-arch:
+        ansible_host: 192.168.100.127
+        host_hostname: "ws-arch"
+        expected_hostname: "ws-arch"
+        expected_packages:
+          - vim
+          - git
+        expected_services:
+          - sshd
+
+      ws-ubuntu:
+        ansible_host: 192.168.100.231
+        host_hostname: "ws-ubuntu"
+        expected_hostname: "ws-ubuntu"
+        expected_packages:
+          - vim
+          - git
+          - curl
+        expected_services:
+          - ssh
+
+      ws-macos:
+        ansible_host: 207.254.38.250
+        host_hostname: "ws-macos"
+        expected_hostname: "ws-macos"
+        # macOS-specific expectations
+        expected_services: [] # macOS services work differently
+
+      # Servers
+      sv-debian:
+        ansible_host: 192.168.100.204
+        host_hostname: "sv-debian"
+        expected_hostname: "sv-debian"
+        expected_firewall_active: true
+        expected_services:
+          - ssh
+          - ufw
+
+      sv-ubuntu:
+        ansible_host: 192.168.100.205
+        host_hostname: "sv-ubuntu"
+        expected_hostname: "sv-ubuntu"
+        expected_firewall_active: true
+        expected_services:
+          - ssh
+          - ufw
+verifier:
+  name: ansible

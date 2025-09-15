@@ -33,7 +33,7 @@ provisioner:
     converge: converge.yml
   ansible_args:
     - --skip-tags
-    - locale,hardening
+    - locale,hardening,hostname
   inventory:
     group_vars:
       all:
