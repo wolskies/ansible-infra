@@ -1,0 +1,8 @@
+---
+- name: Test manage_snap_packages role
+  hosts: all
+  become: true
+  tasks:
+    - name: Test manage_snap_packages role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.manage_snap_packages

@@ -222,6 +222,20 @@ test-role-configure-user:
     - cd roles/configure_user && molecule test
     - echo "✅ User configuration role tests passed"
 
+test-role-manage-flatpak:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/manage_flatpak && molecule test
+    - echo "✅ Flatpak management role tests passed (Ubuntu + Arch Linux)"
+
+test-role-manage-snap-packages:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/manage_snap_packages && molecule test
+    - echo "✅ Snap packages role tests passed"
+
 # Integration tests
 test-integration:
   extends: .molecule_test_template

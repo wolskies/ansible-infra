@@ -1,0 +1,46 @@
+---
+- name: Verify manage_flatpak
+  hosts: all
+  become: true
+  tasks:
+    - name: Check if flatpak is installed
+      ansible.builtin.command:
+        cmd: which flatpak
+      register: flatpak_check
+      changed_when: false
+
+    - name: Assert flatpak is installed
+      ansible.builtin.assert:
+        that:
+          - flatpak_check.rc == 0
+        fail_msg: "Flatpak not installed"
+        success_msg: "Flatpak installed successfully"
+
+    - name: Check Flathub remote is enabled
+      ansible.builtin.command:
+        cmd: flatpak remotes --system
+      register: flathub_check
+      changed_when: false
+
+    - name: Assert Flathub remote exists
+      ansible.builtin.assert:
+        that:
+          - "'flathub' in flathub_check.stdout"
+        fail_msg: "Flathub remote not configured"
+        success_msg: "Flathub remote configured successfully"
+
+    - name: Check installed test package
+      ansible.builtin.command:
+        cmd: flatpak list --system --app
+      register: flatpak_list
+      changed_when: false
+
+    - name: Display manage_flatpak summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Flatpak Management Complete ==="
+          - "✅ Flatpak installed and functional"
+          - "✅ Flathub remote configured"
+          - "✅ OS: {{ ansible_os_family }} ({{ ansible_distribution }})"
+          - "✅ Platform tested: {{ inventory_hostname }}"
+          - "✅ Cross-platform flatpak management successful"
