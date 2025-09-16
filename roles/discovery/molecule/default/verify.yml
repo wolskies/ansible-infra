@@ -52,5 +52,5 @@
           - "System: {{ ansible_distribution }} {{ ansible_distribution_version }}"
           - "Host: {{ ansible_hostname }}"
           - "Discovery role successfully executed and discovered system information"
-          - "Packages found: {{ package_check.stdout_lines | length }} packages"
+          - "Packages found: {{ (package_check_deb.stdout_lines | length) if ansible_os_family == 'Debian' else (package_check_arch.stdout_lines | length) }} packages"
           - "Users discoverable: Yes"
