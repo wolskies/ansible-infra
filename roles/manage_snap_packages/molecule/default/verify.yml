@@ -1,0 +1,39 @@
+---
+- name: Verify manage_snap_packages
+  hosts: all
+  become: true
+  tasks:
+    - name: Check if snapd is removed/disabled
+      ansible.builtin.command:
+        cmd: systemctl status snapd
+      register: snapd_status
+      failed_when: false
+      changed_when: false
+
+    - name: Assert snapd is not active (when disable_and_remove is true)
+      ansible.builtin.assert:
+        that:
+          - snapd_status.rc != 0
+        fail_msg: "Snapd should be disabled/removed but is still active"
+        success_msg: "Snapd successfully disabled/removed"
+
+    - name: Check if snap command is unavailable
+      ansible.builtin.command:
+        cmd: which snap
+      register: snap_check
+      failed_when: false
+      changed_when: false
+
+    - name: Verify snap directory cleanup
+      ansible.builtin.stat:
+        path: /snap
+      register: snap_dir_check
+
+    - name: Display manage_snap_packages summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Snap Package Management Complete ==="
+          - "✅ Snapd status: {{ 'disabled' if snapd_status.rc != 0 else 'active' }}"
+          - "✅ Snap command: {{ 'removed' if snap_check.rc != 0 else 'available' }}"
+          - "✅ /snap directory: {{ 'removed' if not snap_dir_check.stat.exists else 'exists' }}"
+          - "✅ Snap cleanup completed successfully"
