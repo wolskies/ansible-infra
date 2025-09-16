@@ -35,7 +35,7 @@
         success_msg: "cargo successfully installed"
 
     - name: Check if rust packages are available
-      ansible.builtin.command: sudo -u testdev which ripgrep
+      ansible.builtin.command: sudo -u testdev which rg
       register: rust_packages_check
       changed_when: false
       failed_when: false
