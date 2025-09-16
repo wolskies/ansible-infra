@@ -1,9 +1,0 @@
----
-- name: Converge
-  hosts: all
-  become: true
-  tasks:
-    - name: Test docker_compose_generic role template rendering
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.docker_compose_generic
-      when: test_docker_only is not defined

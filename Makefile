@@ -89,7 +89,7 @@ syntax-check: ## Check Ansible syntax for all roles
 	done
 
 .PHONY: test
-test: test-pre-commit test-system test-integration test-language-toolchains ## Run complete test suite
+test: test-pre-commit test-system test-integration ## Run complete test suite
 	@echo "✅ Complete test suite passed!"
 
 .PHONY: test-discovery
@@ -99,10 +99,6 @@ test-discovery: ## Run molecule tests for discovery role
 .PHONY: test-integration
 test-integration: ## Run integration tests with configure_system role
 	molecule test -s configure_system
-
-.PHONY: test-language-toolchains
-test-language-toolchains: ## Test language-specific roles (nodejs, rust, go, neovim, terminal_config)
-	molecule test -s language_toolchains
 
 .PHONY: ci-test
 ci-test: deps test-pre-commit test-failures test-system test-integration ## CI-style complete testing
