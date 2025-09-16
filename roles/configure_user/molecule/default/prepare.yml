@@ -3,14 +3,30 @@
   hosts: all
   become: true
   tasks:
-    - name: Install acl package for proper become support
+    - name: Install acl package for proper become support (Debian/Ubuntu)
       ansible.builtin.apt:
         name: acl
         state: present
         update_cache: true
       when: ansible_os_family == 'Debian'
 
-    - name: Create test user for role testing
+    - name: Install acl package for proper become support (Arch Linux)
+      community.general.pacman:
+        name: acl
+        state: present
+        update_cache: true
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Fix ansible temp directory permissions for become_user
+      ansible.builtin.file:
+        path: /tmp/ansible-remote-tmp
+        state: directory
+        mode: "0777"
+        owner: root
+        group: root
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Create test user for role testing (Debian/Ubuntu)
       ansible.builtin.user:
         name: testuser
         uid: 1001
@@ -19,3 +35,15 @@
         comment: "Test Developer User"
         create_home: true
         state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Create test user for role testing (Arch Linux)
+      ansible.builtin.user:
+        name: testuser
+        uid: 1001
+        groups: [wheel]
+        shell: /bin/bash
+        comment: "Test Developer User"
+        create_home: true
+        state: present
+      when: ansible_os_family == 'Archlinux'
