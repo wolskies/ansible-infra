@@ -3,9 +3,16 @@
   hosts: all
   become: true
   tasks:
-    - name: Install acl package for proper become support
+    - name: Install acl package for proper become support (Debian/Ubuntu)
       ansible.builtin.apt:
         name: acl
         state: present
         update_cache: true
       when: ansible_os_family == 'Debian'
+
+    - name: Install acl package for proper become support (Arch Linux)
+      community.general.pacman:
+        name: acl
+        state: present
+        update_cache: true
+      when: ansible_os_family == 'Archlinux'
