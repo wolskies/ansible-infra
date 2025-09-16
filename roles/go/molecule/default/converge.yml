@@ -3,14 +3,16 @@
   hosts: all
   become: true
   tasks:
-    # First create the user for go installation
-    - name: Include os_configuration role for user creation
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.os_configuration
-      tags:
-        - users
+    - name: Create test user for role testing
+      ansible.builtin.user:
+        name: testdev
+        uid: 1001
+        groups: [sudo]
+        shell: /bin/bash
+        comment: "Test Developer User"
+        create_home: true
+        state: present
 
-    # Test Go role
     - name: Test go role
       ansible.builtin.include_role:
         name: wolskies.infrastructure.go

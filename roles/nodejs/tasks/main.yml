@@ -49,7 +49,12 @@
     NPM_CONFIG_PREFIX: "~/.npm-global"
     NODE_PATH: "~/.npm-global/lib/node_modules"
     NPM_CONFIG_UNSAFE_PERM: "true"
-    PATH: "{{ ansible_env.PATH }}{{ ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else '' }}"
+    PATH: >-
+      {{ ansible_env.PATH }}{{
+      ':' + '/usr/local/bin:/usr/bin' if ansible_os_family == 'Debian' else ''
+      }}{{
+      ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else ''
+      }}
   loop: "{{ node_packages }}"
   loop_control:
     loop_var: node_package
