@@ -48,3 +48,22 @@ Project guidance for Claude Code when working with the `wolskinet.infrastructure
 4. **CI** - identical to local molecule tests
 
 **Test Contract**: Individual role tests are authoritative. If role tests pass but integration fails → investigate missing role test coverage, not integration code.
+
+## Current Implementation Status (Sept 2025)
+
+**Individual role tests completed**: nodejs, rust, go, neovim, terminal_config
+**Still in integration**: os_configuration, manage_packages, manage_security_services, configure_user
+**CI pipeline**: 5 parallel role tests + test-integration + test-discovery + test-minimal
+
+## Environment Requirements
+
+**Ansible config**: `ANSIBLE_HASH_BEHAVIOUR=merge` required for variable merging
+**Collections**: Run `ansible-galaxy collection install -r requirements.yml` before testing
+**Local development**: Use `cd roles/{name} && molecule converge` for quick testing
+
+## Common Issues & Solutions
+
+**PATH problems**: Language roles install to user directories - ensure verification uses correct PATH
+**Container limits**: Use `skip-tags: terminal-config,hostname,docker-compose` for container tests
+**Fresh systems**: Always use `update_cache: true` for apt tasks
+**deb822_repository**: Requires `python3-debian` package prerequisite
