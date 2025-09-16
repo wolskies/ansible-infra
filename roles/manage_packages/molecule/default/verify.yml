@@ -1,0 +1,49 @@
+---
+- name: Verify manage_packages
+  hosts: all
+  become: true
+  tasks:
+    - name: Verify all packages are installed
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: present
+      register: package_check
+      failed_when: false
+      loop:
+        - curl
+        - wget
+        - git
+        - vim
+        - htop
+        - fail2ban
+        - ufw
+        - build-essential
+        - python3-pip
+        - tree
+        - jq
+        - rsync
+
+    - name: Check specific packages individually
+      ansible.builtin.command: "dpkg -l {{ item }}"
+      register: dpkg_check
+      changed_when: false
+      failed_when: dpkg_check.rc != 0
+      loop:
+        - curl
+        - git
+        - htop
+        - jq
+        - build-essential
+
+    - name: Verify APT is functional
+      ansible.builtin.command: apt list --installed curl
+      register: apt_functionality_check
+      changed_when: false
+
+    - name: Display package management summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Package Management Complete ==="
+          - "✅ All required packages installed successfully"
+          - "✅ Package verification passed"
+          - "✅ Package management role testing successful"

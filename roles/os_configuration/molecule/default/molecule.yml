@@ -1,0 +1,47 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-os-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
+  ansible_args:
+    - --skip-tags
+    - locale,hardening,hostname
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # OS configuration testing variables
+        domain_name: "test.example.com"
+        domain_timezone: "America/New_York"
+        domain_locale: "en_US.UTF-8"
+        domain_language: "en_US.UTF-8"
+        domain_ntp:
+          enabled: true
+          servers:
+            - 0.pool.ntp.org
+            - 1.pool.ntp.org
+    host_vars:
+      ubuntu-os-test:
+        host_hostname: "ubuntu-os-test"
+        host_update_hosts: false # Disabled for containers
+verifier:
+  name: ansible

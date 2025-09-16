@@ -1,0 +1,67 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-security-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # Security services testing variables
+        firewall:
+          enabled: false # Disabled in containers
+          prevent_ssh_lockout: true
+          package: "ufw"
+          stealth_mode: false
+          block_all: false
+          logging: false
+          rules:
+            - rule: allow
+              port: 22
+              proto: tcp
+            - rule: allow
+              port: 80
+              proto: tcp
+            - rule: allow
+              port: 443
+              proto: tcp
+
+        fail2ban:
+          enabled: false # Disabled in containers
+          sender: "root@localhost"
+          dest_email: ""
+          defaults:
+            bantime: 3600
+            findtime: 600
+            maxretry: 5
+          services:
+            - name: sshd
+              enabled: true
+              maxretry: 5
+              bantime: 3600
+              findtime: 600
+              logpath: /var/log/auth.log
+          ignoreips:
+            - "127.0.0.1/8"
+            - "::1"
+verifier:
+  name: ansible

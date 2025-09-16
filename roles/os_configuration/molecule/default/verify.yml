@@ -1,0 +1,42 @@
+---
+- name: Verify os_configuration
+  hosts: all
+  become: true
+  tasks:
+    - name: Verify timezone is set correctly
+      ansible.builtin.command: timedatectl show --property=Timezone
+      register: timezone_check
+      changed_when: false
+
+    - name: Assert timezone is correct
+      ansible.builtin.assert:
+        that:
+          - "'America/New_York' in timezone_check.stdout"
+        fail_msg: "Timezone not set correctly"
+        success_msg: "Timezone set correctly"
+
+    - name: Verify NTP configuration exists
+      ansible.builtin.stat:
+        path: /etc/systemd/timesyncd.conf
+      register: ntp_config_check
+
+    - name: Assert NTP configuration exists
+      ansible.builtin.assert:
+        that:
+          - ntp_config_check.stat.exists
+        fail_msg: "NTP configuration file not found"
+        success_msg: "NTP configuration exists"
+
+    - name: Verify locale is set
+      ansible.builtin.command: localectl status
+      register: locale_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display os_configuration summary
+      ansible.builtin.debug:
+        msg:
+          - "=== OS Configuration Complete ==="
+          - "✅ Timezone: {{ timezone_check.stdout }}"
+          - "✅ NTP Config: {{ 'exists' if ntp_config_check.stat.exists else 'missing' }}"
+          - "✅ OS Configuration role testing successful"

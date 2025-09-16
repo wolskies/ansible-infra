@@ -1,0 +1,21 @@
+---
+- name: Prepare container for testing
+  hosts: all
+  become: true
+  tasks:
+    - name: Install acl package for proper become support
+      ansible.builtin.apt:
+        name: acl
+        state: present
+        update_cache: true
+      when: ansible_os_family == 'Debian'
+
+    - name: Create test user for role testing
+      ansible.builtin.user:
+        name: testuser
+        uid: 1001
+        groups: [sudo]
+        shell: /bin/bash
+        comment: "Test Developer User"
+        create_home: true
+        state: present
