@@ -11,17 +11,26 @@
           - ansible_os_family is defined
         fail_msg: "System facts should be collected during discovery"
 
-    - name: Check package discovery worked
+    - name: Check package discovery worked (Debian/Ubuntu)
       ansible.builtin.command:
         cmd: dpkg -l
-      register: package_check
+      register: package_check_deb
       changed_when: false
+      when: ansible_os_family == 'Debian'
+
+    - name: Check package discovery worked (Arch Linux)
+      ansible.builtin.command:
+        cmd: pacman -Q
+      register: package_check_arch
+      changed_when: false
+      when: ansible_os_family == 'Archlinux'
 
     - name: Validate package discovery functionality
       ansible.builtin.assert:
         that:
-          - package_check.stdout_lines | length > 0
-        fail_msg: "Should be able to query installed packages"
+          - (ansible_os_family == 'Debian' and package_check_deb.stdout_lines | length > 0) or
+            (ansible_os_family == 'Archlinux' and package_check_arch.stdout_lines | length > 0)
+        fail_msg: "Should be able to query installed packages on {{ ansible_os_family }}"
 
     - name: Check user discovery worked
       ansible.builtin.command:

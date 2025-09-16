@@ -7,6 +7,7 @@
       host_vars_dir: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}"
       host_vars_file: "{{ (inventory_file | dirname) if inventory_file is defined else 'inventory' }}/host_vars/{{ inventory_hostname }}/vars.yml"
   delegate_to: localhost
+  become: false
 
 - name: Debug discovery paths
   ansible.builtin.debug:
@@ -15,6 +16,7 @@
       - "host_vars_dir: {{ discovery_paths.host_vars_dir }}"
       - "host_vars_file: {{ discovery_paths.host_vars_file }}"
   delegate_to: localhost
+  become: false
   when: discovery_debug | default(false)
 
 - name: Check if output directory exists
@@ -22,6 +24,7 @@
     path: "{{ discovery_paths.host_vars_dir }}"
   register: directory_stats
   delegate_to: localhost
+  become: false
 
 - name: Create output directory
   ansible.builtin.file:
@@ -30,6 +33,7 @@
     mode: "0755"
   when: not directory_stats.stat.exists
   delegate_to: localhost
+  become: false
 
 - name: Gather system facts
   ansible.builtin.setup:
