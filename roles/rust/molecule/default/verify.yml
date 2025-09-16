@@ -35,9 +35,7 @@
         success_msg: "cargo successfully installed"
 
     - name: Check if rust packages are available
-      ansible.builtin.command: sudo -u testdev which rg
-      environment:
-        PATH: "/home/testdev/.cargo/bin:{{ ansible_env.PATH }}"
+      ansible.builtin.command: sudo -u testdev bash -c 'PATH="/home/testdev/.cargo/bin:$PATH" which rg'
       register: rust_packages_check
       changed_when: false
       failed_when: false

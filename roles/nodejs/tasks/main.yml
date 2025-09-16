@@ -49,17 +49,32 @@
     NPM_CONFIG_PREFIX: "~/.npm-global"
     NODE_PATH: "~/.npm-global/lib/node_modules"
     NPM_CONFIG_UNSAFE_PERM: "true"
-    PATH: >-
-      {{ ansible_env.PATH }}{{
-      ':' + '/usr/local/bin:/usr/bin' if ansible_os_family == 'Debian' else ''
-      }}{{
-      ':' + '/opt/homebrew/bin:/usr/local/bin' if ansible_system == 'Darwin' else ''
-      }}
   loop: "{{ node_packages }}"
   loop_control:
     loop_var: node_package
   become: true
   become_user: "{{ node_user }}"
+  when: node_packages | length > 0
+  tags:
+    - nodejs
+    - user-packages
+
+- name: Get node_user home directory
+  ansible.builtin.user:
+    name: "{{ node_user }}"
+  register: node_user_info
+  when: node_packages | length > 0
+
+- name: Add ~/.npm-global/bin to user's PATH in ~/.profile
+  ansible.builtin.lineinfile:
+    path: "{{ node_user_info.home }}/.profile"
+    line: 'export PATH="$HOME/.npm-global/bin:$PATH"'
+    regexp: '^export PATH=.*\.npm-global/bin.*'
+    create: true
+    mode: "0644"
+    owner: "{{ node_user }}"
+    group: "{{ node_user }}"
+  become: true
   when: node_packages | length > 0
   tags:
     - nodejs
