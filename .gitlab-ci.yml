@@ -75,6 +75,15 @@ validate-all:
 
     - echo "✅ All validation checks completed"
 
+# Validate minimal configuration safety - ensures roles handle empty/missing config gracefully
+validate-minimal-config:
+  extends: .molecule_test_template
+  stage: validate
+  script:
+    - molecule test -s minimal
+    - echo "✅ Minimal configuration safety validation passed"
+  allow_failure: false # This MUST pass - roles should never crash on minimal config
+
 # Template for molecule test jobs
 .molecule_test_template:
   image: python:3.13-slim
@@ -148,12 +157,8 @@ test-discovery:
 # REMOVED: test-docker - role not ready for production
 # Docker compose functionality needs further development
 
-test-minimal:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - molecule test -s minimal
-    - echo "✅ Minimal configuration safety tests passed"
+# MOVED: test-minimal - moved to validate stage as validate-minimal-config
+# Minimal configuration safety is a validation concern, not a functional test
 
 # REMOVED: test-dotfiles - functionality consolidated into configure_user role
 # Dotfiles deployment is now handled as part of per-user configuration
