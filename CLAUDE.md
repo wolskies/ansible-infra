@@ -51,3 +51,13 @@ When working with molecule tests and CI:
 3. **Integration tests should NOT repeat unit-level testing** already covered by individual role tests
 
 **Migration approach**: Incremental - each time we fix a molecule issue, extract one more individual role test from integration, following this plan until complete.
+
+### Test Flow Hierarchy
+
+**Local Development Pipeline** (catches issues before CI):
+1. `validate-locally` with ansible-lint - syntax/best practices validation
+2. `molecule role test` (or `molecule converge` during development) - individual role functionality testing
+3. `pre-commit checks` - formatting, linting, custom validation hooks
+4. **CI Tests** - should be identical to local molecule tests (same containers, scenarios, verification)
+
+**Critical principle**: Individual role tests are the contract. If they pass locally and in CI, the role should work in integration. If integration fails anyway, investigate why the role test didn't catch the integration issue first - this indicates missing test coverage at the role level.
