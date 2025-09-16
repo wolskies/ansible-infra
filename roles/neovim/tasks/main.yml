@@ -9,30 +9,20 @@
       - neovim_user | length > 0
     fail_msg: "neovim role requires neovim_user variable"
 
-- name: Update package cache (Debian/Ubuntu)
+- name: Install neovim and dependencies (Ubuntu/Debian)
   ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
-  become: true
-  when: ansible_os_family == 'Debian'
-
-- name: Ensure git is available for plugin manager
-  ansible.builtin.package:
-    name: git
-    state: present
-  become: true
-
-- name: Install neovim (Ubuntu/Debian)
-  ansible.builtin.apt:
-    name: neovim
+    name:
+      - git
+      - neovim
     state: present
     update_cache: true
   become: true
   when: ansible_os_family == 'Debian'
 
-- name: Install neovim (Arch Linux)
+- name: Install neovim and dependencies (Arch Linux)
   ansible.builtin.package:
     name:
+      - git
       - neovim
       - lua-language-server
       - pyright
@@ -40,9 +30,10 @@
   become: true
   when: ansible_os_family == 'Archlinux'
 
-- name: Install neovim (macOS)
+- name: Install neovim and dependencies (macOS)
   community.general.homebrew:
     name:
+      - git
       - neovim
       - lua-language-server
       - pyright
