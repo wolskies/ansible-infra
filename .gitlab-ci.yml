@@ -194,6 +194,34 @@ test-role-terminal-config:
     - cd roles/terminal_config && molecule test
     - echo "✅ Terminal config role tests passed"
 
+test-role-os-configuration:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/os_configuration && molecule test
+    - echo "✅ OS configuration role tests passed"
+
+test-role-manage-packages:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/manage_packages && molecule test
+    - echo "✅ Package management role tests passed"
+
+test-role-manage-security-services:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/manage_security_services && molecule test
+    - echo "✅ Security services role tests passed"
+
+test-role-configure-user:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/configure_user && molecule test
+    - echo "✅ User configuration role tests passed"
+
 # Integration tests
 test-integration:
   extends: .molecule_test_template
