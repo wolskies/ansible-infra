@@ -21,8 +21,8 @@
     # =============================================================================
     # NODE.JS VERIFICATION
     # =============================================================================
-    - name: Check if npm is available for testdev
-      ansible.builtin.command: sudo -u testdev which npm
+    - name: Check if npm is available for testdev (with full PATH)
+      ansible.builtin.shell: sudo -u testdev bash -l -c 'which npm || command -v npm || find /usr -name npm 2>/dev/null | head -1'
       register: npm_check
       changed_when: false
       failed_when: false
@@ -31,7 +31,8 @@
       ansible.builtin.assert:
         that:
           - npm_check.rc == 0
-        fail_msg: "npm not found for testdev user"
+          - npm_check.stdout | length > 0
+        fail_msg: "npm not found for testdev user. Output: {{ npm_check.stdout }}"
         success_msg: "npm successfully installed"
 
     - name: Check npm global packages for testdev

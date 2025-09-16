@@ -3,7 +3,7 @@
   hosts: all
   become: true
   tasks:
-    - name: Create test user for role testing
+    - name: Create test user for role testing (Debian/Ubuntu)
       ansible.builtin.user:
         name: testdev
         uid: 1001
@@ -12,6 +12,18 @@
         comment: "Test Developer User"
         create_home: true
         state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Create test user for role testing (Arch Linux)
+      ansible.builtin.user:
+        name: testdev
+        uid: 1001
+        groups: [wheel]
+        shell: /bin/bash
+        comment: "Test Developer User"
+        create_home: true
+        state: present
+      when: ansible_os_family == 'Archlinux'
 
     - name: Test terminal_config role
       ansible.builtin.include_role:
