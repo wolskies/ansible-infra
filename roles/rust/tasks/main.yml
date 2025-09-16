@@ -85,3 +85,19 @@
   tags:
     - rust
     - user-packages
+
+- name: Add ~/.cargo/bin to user's PATH in ~/.profile
+  ansible.builtin.lineinfile:
+    path: "{{ rust_user_info.home }}/.profile"
+    line: 'export PATH="$HOME/.cargo/bin:$PATH"'
+    regexp: '^export PATH=.*\.cargo/bin.*'
+    create: true
+    mode: "0644"
+    owner: "{{ rust_user }}"
+    group: "{{ rust_user }}"
+  become: true
+  when:
+    - rust_packages | length > 0
+  tags:
+    - rust
+    - user-packages

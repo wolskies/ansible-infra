@@ -62,3 +62,24 @@
   tags:
     - go
     - user-packages
+
+- name: Get go_user home directory
+  ansible.builtin.user:
+    name: "{{ go_user }}"
+  register: go_user_info
+  when: go_packages | length > 0
+
+- name: Add ~/go/bin to user's PATH in ~/.profile
+  ansible.builtin.lineinfile:
+    path: "{{ go_user_info.home }}/.profile"
+    line: 'export PATH="$HOME/go/bin:$PATH"'
+    regexp: "^export PATH=.*go/bin.*"
+    create: true
+    mode: "0644"
+    owner: "{{ go_user }}"
+    group: "{{ go_user }}"
+  become: true
+  when: go_packages | length > 0
+  tags:
+    - go
+    - user-packages
