@@ -9,6 +9,13 @@
       - neovim_user | length > 0
     fail_msg: "neovim role requires neovim_user variable"
 
+- name: Update package cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+  when: ansible_os_family == 'Debian'
+
 - name: Ensure git is available for plugin manager
   ansible.builtin.package:
     name: git
