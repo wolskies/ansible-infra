@@ -1,0 +1,40 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-user-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # User configuration testing variables (single target user)
+        # Focus on cross-platform logic only - language packages tested individually
+        target_user:
+          name: testuser
+          shell: /bin/bash
+          terminal_entries: [] # Skip terminal config in containers
+          dotfiles:
+            enable: false
+            repo: ""
+            dest: ""
+verifier:
+  name: ansible

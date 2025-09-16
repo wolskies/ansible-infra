@@ -1,0 +1,61 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-packages-test
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/ansible-remote-tmp
+      local_tmp: /tmp/ansible-local-tmp
+      host_key_checking: false
+      stdout_callback: ansible.builtin.default
+      stdout_callback_format: yaml
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        molecule_test: true
+        # Package management testing variables
+        packages:
+          apt:
+            no_recommends: true
+            proxy: ""
+            unattended_upgrades:
+              enabled: false # Disabled for testing
+              email: ""
+              auto_reboot: false
+          present:
+            all:
+              Ubuntu:
+                - curl
+                - wget
+                - git
+                - vim
+                - htop
+                - fail2ban
+                - ufw
+                - build-essential
+                - python3-pip
+                - tree
+    host_vars:
+      ubuntu-packages-test:
+        # Host-specific packages
+        packages:
+          present:
+            host:
+              Ubuntu:
+                - jq
+                - rsync
+verifier:
+  name: ansible

@@ -1,0 +1,53 @@
+---
+- name: Verify configure_user
+  hosts: all
+  become: true
+  tasks:
+    - name: Verify test user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: testuser
+      register: testuser_check
+
+    - name: Assert test user was created
+      ansible.builtin.assert:
+        that:
+          - testuser_check.ansible_facts.getent_passwd.testuser is defined
+          - testuser_check.ansible_facts.getent_passwd.testuser[2] == "1001"
+        fail_msg: "Test user not created correctly"
+        success_msg: "Test user created successfully"
+
+    - name: Verify test user home directory exists
+      ansible.builtin.stat:
+        path: /home/testuser
+      register: home_dir_check
+
+    - name: Assert home directory exists
+      ansible.builtin.assert:
+        that:
+          - home_dir_check.stat.exists
+          - home_dir_check.stat.isdir
+        fail_msg: "Home directory not created"
+        success_msg: "Home directory created successfully"
+
+    - name: Verify user shell configuration
+      ansible.builtin.getent:
+        database: passwd
+        key: testuser
+      register: user_shell_check
+
+    - name: Assert user shell is configured correctly
+      ansible.builtin.assert:
+        that:
+          - user_shell_check.ansible_facts.getent_passwd.testuser[5] == "/bin/bash"
+        fail_msg: "User shell not configured correctly"
+        success_msg: "User shell configured successfully"
+
+    - name: Display configure_user summary
+      ansible.builtin.debug:
+        msg:
+          - "=== User Configuration Complete ==="
+          - "✅ Test user created with correct UID"
+          - "✅ Home directory created successfully"
+          - "✅ User shell configured: {{ user_shell_check.ansible_facts.getent_passwd.testuser[5] }}"
+          - "✅ Cross-platform user configuration testing successful"

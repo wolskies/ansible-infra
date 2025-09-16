@@ -1,0 +1,8 @@
+---
+- name: Test manage_security_services role
+  hosts: all
+  become: true
+  tasks:
+    - name: Test manage_security_services role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.manage_security_services

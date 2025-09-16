@@ -1,0 +1,11 @@
+---
+- name: Prepare container for testing
+  hosts: all
+  become: true
+  tasks:
+    - name: Install acl package for proper become support
+      ansible.builtin.apt:
+        name: acl
+        state: present
+        update_cache: true
+      when: ansible_os_family == 'Debian'

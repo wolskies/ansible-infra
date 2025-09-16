@@ -1,0 +1,8 @@
+---
+- name: Test configure_user role
+  hosts: all
+  become: true
+  tasks:
+    - name: Test configure_user role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.configure_user
