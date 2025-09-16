@@ -21,8 +21,8 @@
     # =============================================================================
     # NEOVIM VERIFICATION
     # =============================================================================
-    - name: Check if neovim is available for testdev
-      ansible.builtin.command: sudo -u testdev which nvim
+    - name: Check if neovim is available for testdev (with full PATH)
+      ansible.builtin.shell: sudo -u testdev bash -l -c 'which nvim || command -v nvim || find /usr -name nvim 2>/dev/null | head -1'
       register: nvim_check
       changed_when: false
       failed_when: false
@@ -31,7 +31,8 @@
       ansible.builtin.assert:
         that:
           - nvim_check.rc == 0
-        fail_msg: "neovim not found for testdev user"
+          - nvim_check.stdout | length > 0
+        fail_msg: "neovim not found for testdev user. Output: {{ nvim_check.stdout }}"
         success_msg: "neovim successfully installed"
 
     - name: Check neovim configuration exists

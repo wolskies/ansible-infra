@@ -25,9 +25,12 @@
     - rust
     - system-deps
 
-- name: Install rustup (Arch Linux)
+- name: Install rustup and build dependencies (Arch Linux)
   ansible.builtin.package:
-    name: rustup
+    name:
+      - rustup
+      - base-devel
+      - gcc
     state: present
   become: true
   when:
