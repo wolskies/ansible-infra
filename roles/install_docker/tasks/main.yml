@@ -39,6 +39,16 @@
   ansible.builtin.set_fact:
     nvidia_gpu_present: "{{ nvidia_gpu_check.rc == 0 if ansible_system == 'Linux' else false }}"
 
+- name: Install deb822_repository prerequisites (Ubuntu/Debian)
+  ansible.builtin.apt:
+    name: python3-debian
+    state: present
+    update_cache: true
+  when:
+    - nvidia_gpu_present
+    - ansible_os_family == 'Debian'
+  become: true
+
 - name: Add NVIDIA Container Toolkit repository (Ubuntu/Debian)
   ansible.builtin.deb822_repository:
     name: nvidia-container-toolkit

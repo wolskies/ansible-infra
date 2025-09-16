@@ -8,6 +8,7 @@
       - curl
       - gpg
       - apt-transport-https
+      - python3-debian
     state: present
     update_cache: true
   become: true
