@@ -2,8 +2,9 @@
 - name: Test discovery role
   hosts: all
   gather_facts: true
+  become: true
   tasks:
-    - name: Run discovery role
+    - name: Test discovery role
       ansible.builtin.include_role:
         name: wolskies.infrastructure.discovery
 
