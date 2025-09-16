@@ -23,7 +23,7 @@
         - jq
         - rsync
 
-    - name: Check specific packages individually
+    - name: Check specific packages individually (Debian/Ubuntu)
       ansible.builtin.command: "dpkg -l {{ item }}"
       register: dpkg_check
       changed_when: false
@@ -34,11 +34,32 @@
         - htop
         - jq
         - build-essential
+      when: ansible_os_family == 'Debian'
 
-    - name: Verify APT is functional
+    - name: Check specific packages individually (Arch Linux)
+      ansible.builtin.command: "pacman -Q {{ item }}"
+      register: pacman_check
+      changed_when: false
+      failed_when: pacman_check.rc != 0
+      loop:
+        - curl
+        - git
+        - htop
+        - jq
+        - wget
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Verify APT is functional (Debian/Ubuntu)
       ansible.builtin.command: apt list --installed curl
       register: apt_functionality_check
       changed_when: false
+      when: ansible_os_family == 'Debian'
+
+    - name: Verify pacman is functional (Arch Linux)
+      ansible.builtin.command: pacman -Q curl
+      register: pacman_functionality_check
+      changed_when: false
+      when: ansible_os_family == 'Archlinux'
 
     - name: Display package management summary
       ansible.builtin.debug:
