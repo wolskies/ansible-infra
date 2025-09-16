@@ -36,6 +36,8 @@
 
     - name: Check if rust packages are available
       ansible.builtin.command: sudo -u testdev which rg
+      environment:
+        PATH: "/home/testdev/.cargo/bin:{{ ansible_env.PATH }}"
       register: rust_packages_check
       changed_when: false
       failed_when: false
