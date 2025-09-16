@@ -42,11 +42,16 @@ Project guidance for Claude Code when working with the `wolskinet.infrastructure
 
 ### Development Test Flow
 
+**CRITICAL: NEVER push code that fails local molecule testing to CI**
+
 **Required sequence** (each phase should catch issues before the next):
 1. `ansible-lint` - syntax/standards validation
 2. `molecule converge` - role functionality testing during development
-3. `pre-commit` - formatting, linting, custom hooks
-4. **CI** - identical to local molecule tests
+3. `molecule test` - **MUST PASS** before any commit - full test suite including verification
+4. `pre-commit` - formatting, linting, custom hooks
+5. **CI** - should be identical to local molecule tests and pass if local passes
+
+**Rule**: If `molecule test` fails locally, it will fail in CI. Fix all local issues before committing.
 
 **Test Contract**: Individual role tests are authoritative. If role tests pass but integration fails → investigate missing role test coverage, not integration code.
 

@@ -35,7 +35,7 @@
         success_msg: "npm successfully installed"
 
     - name: Check npm global packages for testdev
-      ansible.builtin.command: sudo -u testdev npm list -g --depth=0
+      ansible.builtin.command: sudo -u testdev bash -c 'NPM_CONFIG_PREFIX="/home/testdev/.npm-global" npm list -g --depth=0'
       register: npm_packages
       changed_when: false
       failed_when: false
