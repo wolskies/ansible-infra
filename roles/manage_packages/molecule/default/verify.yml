@@ -46,4 +46,6 @@
           - "=== Package Management Complete ==="
           - "✅ All required packages installed successfully"
           - "✅ Package verification passed"
-          - "✅ Package management role testing successful"
+          - "✅ OS: {{ ansible_os_family }} ({{ ansible_distribution }})"
+          - "✅ Platform tested: {{ inventory_hostname }}"
+          - "✅ Cross-platform package management successful"
