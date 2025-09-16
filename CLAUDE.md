@@ -17,6 +17,7 @@ Project guidance for Claude Code when working with the `wolskinet.infrastructure
 
 **NEVER change production code to make tests pass without investigation first**
 **ALWAYS investigate if test failure indicates setup issue vs production bug**
+**NEVER add Claude attribution to git commits** - No "Generated with Claude Code" or "Co-Authored-By: Claude" lines
 
 ## Testing Strategy
 
