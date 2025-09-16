@@ -3,6 +3,7 @@
   community.general.pacman:
     update_cache: true
   become: true
+  changed_when: false
 
 - name: Remove packages via Pacman
   community.general.pacman:
