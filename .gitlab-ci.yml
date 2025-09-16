@@ -146,12 +146,12 @@ validate-minimal-config:
     - for i in {1..60}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - docker info
 
-# Essential individual tests
-test-discovery:
+# Individual role-level tests (run in parallel for faster feedback)
+test-role-discovery:
   extends: .molecule_test_template
   stage: test
   script:
-    - molecule test -s discovery
+    - cd roles/discovery && molecule test
     - echo "✅ Discovery role tests passed"
 
 # REMOVED: test-docker - role not ready for production
