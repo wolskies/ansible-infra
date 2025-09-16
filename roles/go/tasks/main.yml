@@ -12,8 +12,9 @@
 
 - name: Install Go (Debian/Ubuntu)
   ansible.builtin.apt:
-    name: golang-go
+    name: golang
     state: present
+    update_cache: true
   become: true
   when:
     - go_packages | length > 0
