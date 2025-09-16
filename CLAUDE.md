@@ -40,8 +40,8 @@ When working with molecule tests and CI:
 **Principle**: Every role gets a specific test. The complexity of the role determines the test type.
 
 **Target testing structure**:
-1. **Simple, standalone roles** → Individual role tests in `test-{role-name}` scenarios
-   - Examples: test-os-configuration, test-packages, test-security-services, test-language-toolchains
+1. **Simple, standalone roles** → Individual role tests in `roles/{role-name}/molecule/default/`
+   - Examples: roles/nodejs/molecule/default/, roles/rust/molecule/default/, roles/os_configuration/molecule/default/
    - Focus: Role-specific functionality, package installation, configuration validation
 
 2. **Complex roles that orchestrate other roles** → Integration tests in `test-integration`
