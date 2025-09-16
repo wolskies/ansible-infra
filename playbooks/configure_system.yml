@@ -15,6 +15,13 @@
     # INFRASTRUCTURE CONFIGURATION (system-level, requires sudo)
     # ---------------------------------------------------------------------
 
+    - name: Run system discovery
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.discovery
+      tags:
+        - discovery
+        - infrastructure
+
     - name: Configure operating system
       ansible.builtin.include_role:
         name: wolskies.infrastructure.os_configuration
@@ -34,6 +41,20 @@
         name: wolskies.infrastructure.manage_security_services
       tags:
         - security
+        - infrastructure
+
+    - name: Manage Flatpak packages
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.manage_flatpak
+      tags:
+        - flatpak
+        - infrastructure
+
+    - name: Manage Snap packages
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.manage_snap_packages
+      tags:
+        - snap
         - infrastructure
 
     # ---------------------------------------------------------------------

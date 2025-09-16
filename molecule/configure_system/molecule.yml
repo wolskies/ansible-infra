@@ -50,57 +50,74 @@ provisioner:
             - 0.pool.ntp.org
             - 1.pool.ntp.org
 
-        # System packages configuration
+        # System packages configuration - corrected structure
         packages:
-          apt:
-            no_recommends: true
-            proxy: ""
-            unattended_upgrades:
-              enabled: true
-              email: ""
-              auto_reboot: false
-          # Group-level packages all hosts get
-          all:
-            - curl
-            - wget
-            - git
-            - vim
-            - htop
-          # Security packages
-          security:
-            - fail2ban
-            - ufw
-          # Development packages
-          development:
-            - build-essential
-            - python3-pip
+          present:
+            all:
+              Ubuntu:
+                - curl
+                - wget
+                - git
+                - vim
+                - htop
+                - fail2ban
+                - ufw
+                - build-essential
+                - python3-pip
+              Debian:
+                - curl
+                - wget
+                - git
+                - vim
+                - htop
+                - fail2ban
+                - ufw
+                - build-essential
+                - python3-pip
 
-        # Security services configuration
-        security_services:
-          ufw:
-            enabled: false # Disabled in containers
-            rules:
-              - rule: allow
-                port: "22"
-                proto: tcp
-              - rule: allow
-                port: "80"
-                proto: tcp
-              - rule: allow
-                port: "443"
-                proto: tcp
-            default:
-              incoming: deny
-              outgoing: allow
-          fail2ban:
-            enabled: false # Disabled in containers
-            jails:
-              sshd:
-                enabled: true
-                port: ssh
-                logpath: /var/log/auth.log
-                maxretry: 3
-                bantime: 600
+        # Security services configuration - corrected to top-level structure
+        firewall:
+          enabled: false # Disabled in containers
+          prevent_ssh_lockout: true
+          package: "ufw"
+          rules:
+            - rule: allow
+              port: 22
+              proto: tcp
+            - rule: allow
+              port: 80
+              proto: tcp
+            - rule: allow
+              port: 443
+              proto: tcp
+
+        fail2ban:
+          enabled: false # Disabled in containers
+          sender: "root@localhost"
+          defaults:
+            bantime: 600
+            findtime: 600
+            maxretry: 3
+          services:
+            - name: sshd
+              enabled: true
+              logpath: /var/log/auth.log
+
+        # Package manager configuration
+        flatpak:
+          enabled: true
+          flathub: true
+          method: system
+          plugins:
+            gnome: false # Skip GUI plugins in containers
+            plasma: false
+          packages:
+            install:
+              - org.freedesktop.Platform//23.08
+            remove: []
+
+        snap:
+          disable_and_remove: true
 
         # User configuration - test full user lifecycle
         users:
@@ -149,16 +166,18 @@ provisioner:
         host_update_hosts: false # Disabled for containers
         # Host-specific packages
         packages:
-          host:
-            - ubuntu-specific-tool
-        # Host-specific security settings
-        security_services:
-          ufw:
-            enabled: false
-            rules:
-              - rule: allow
-                port: "8080"
-                proto: tcp
+          present:
+            host:
+              Ubuntu:
+                - jq
+                - tree
+        # Host-specific firewall settings
+        firewall:
+          enabled: false
+          rules:
+            - rule: allow
+              port: 8080
+              proto: tcp
         # Additional user for Ubuntu only
         users:
           - name: ubuntuuser
@@ -173,14 +192,15 @@ provisioner:
         host_update_hosts: false # Disabled for containers
         # Host-specific packages
         packages:
-          host:
-            - debian-specific-tool
-        # Different security config for Debian
-        security_services:
-          fail2ban:
-            enabled: false
-            jails:
-              sshd:
-                maxretry: 5 # Different from group default
+          present:
+            host:
+              Debian:
+                - rsync
+                - strace
+        # Different fail2ban config for Debian
+        fail2ban:
+          enabled: false
+          defaults:
+            maxretry: 5 # Different from group default
 verifier:
   name: ansible
