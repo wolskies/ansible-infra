@@ -5,7 +5,7 @@ Project guidance for Claude Code when working with the `wolskies.infrastructure`
 ## Key Principles
 
 **Target Users**: Moderately experienced - no excessive warnings or defensive programming
-**Supported OS**: Ubuntu 22+, Debian 12+, Arch Linux, macOS
+**Supported OS**: Ubuntu 22+, Arch Linux, macOS
 **Philosophy**: Use existing modules/roles over custom implementations
 
 - **Comments**: Only for non-standard implementations, not obvious functionality
@@ -78,12 +78,6 @@ vm_targets:
     os_family: "Debian"
   ubuntu2404:
     image: "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
-    os_family: "Debian"
-  debian12:
-    image: "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
-    os_family: "Debian"
-  debian13:
-    image: "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-generic-amd64.qcow2"
     os_family: "Debian"
   archlinux:
     image: "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2"
