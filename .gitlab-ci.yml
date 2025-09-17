@@ -16,8 +16,6 @@ variables:
   # Force Ansible to use /tmp for all temp operations
   ANSIBLE_REMOTE_TEMP: "/tmp/ansible-tmp"
   ANSIBLE_LOCAL_TEMP: "/tmp/ansible-tmp"
-  # DNS configuration for Docker registry access
-  FF_NETWORK_PER_BUILD: "true"
 
 # Global cache configuration
 cache:
@@ -98,8 +96,11 @@ validate-all:
     # Install system packages like we do locally
     - apt-get update -qq
     - apt-get install -y -qq ansible docker.io make dnsutils python3-pip
-    # Login to Docker Hub to avoid rate limiting
-    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin || echo "Docker Hub login failed (continuing anyway)"
+    # Wait for Docker daemon and login to avoid rate limiting
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..30}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
+    - echo "Logging into Docker Hub..."
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
     # Ensure collections directory exists for caching
     - mkdir -p /root/.ansible/collections
     # Install molecule and testing tools via pip (user install, no venv)
