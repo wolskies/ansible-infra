@@ -1,6 +1,6 @@
 # Molecule Testing Guide
 
-This guide covers local molecule testing for the wolskinet.infrastructure collection.
+This guide covers local molecule testing for the wolskies.infrastructure collection.
 
 ## Available Test Scenarios
 

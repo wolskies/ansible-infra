@@ -51,7 +51,7 @@ firewall:
 ```yaml
 - hosts: servers
   roles:
-    - wolskinet.infrastructure.configure_system
+    - wolskies.infrastructure.configure_system
   vars:
     domain_name: "company.com"
     domain_timezone: "America/New_York"
@@ -110,7 +110,7 @@ After system setup, configure user preferences:
   vars:
     target_user: "{{ item }}"
   include_role:
-    name: wolskinet.infrastructure.configure_user
+    name: wolskies.infrastructure.configure_user
   loop: "{{ users }}"
   loop_control:
     loop_var: item
@@ -170,13 +170,13 @@ Roles use `{{ ansible_distribution }}` and `{{ ansible_os_family }}` facts for O
 
 Required roles (all included in collection):
 
-- `wolskinet.infrastructure.os_configuration`
-- `wolskinet.infrastructure.manage_users`
-- `wolskinet.infrastructure.manage_packages`
-- `wolskinet.infrastructure.manage_security_services`
-- `wolskinet.infrastructure.manage_snap_packages`
-- `wolskinet.infrastructure.manage_flatpak`
-- `wolskinet.infrastructure.configure_user`
+- `wolskies.infrastructure.os_configuration`
+- `wolskies.infrastructure.manage_users`
+- `wolskies.infrastructure.manage_packages`
+- `wolskies.infrastructure.manage_security_services`
+- `wolskies.infrastructure.manage_snap_packages`
+- `wolskies.infrastructure.manage_flatpak`
+- `wolskies.infrastructure.configure_user`
 
 ## License
 

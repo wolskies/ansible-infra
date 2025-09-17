@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Project guidance for Claude Code when working with the `wolskinet.infrastructure` Ansible Collection.
+Project guidance for Claude Code when working with the `wolskies.infrastructure` Ansible Collection.
 
 ## Key Principles
 

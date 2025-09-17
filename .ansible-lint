@@ -85,13 +85,13 @@ mock_modules:
   - community.general.git_config
 
 mock_roles:
-  - wolskinet.infrastructure.configure_host
-  - wolskinet.infrastructure.manage_packages
+  - wolskies.infrastructure.configure_host
+  - wolskies.infrastructure.manage_packages
   # manage_users role removed - functionality moved to os_configuration
-  - wolskinet.infrastructure.manage_firewall
-  - wolskinet.infrastructure.discovery
-  - wolskinet.infrastructure.dotfiles
-  - wolskinet.infrastructure.manage_language_packages
+  - wolskies.infrastructure.manage_firewall
+  - wolskies.infrastructure.discovery
+  - wolskies.infrastructure.dotfiles
+  - wolskies.infrastructure.manage_language_packages
 
 # Offline mode - don't download schemas
 offline: true

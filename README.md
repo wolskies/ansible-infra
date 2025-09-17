@@ -1,4 +1,4 @@
-# Ansible Collection - wolskinet.infrastructure
+# Ansible Collection - wolskies.infrastructure
 
 Automates installation and maintenance tasks for multiple machines/operating systems.
 
@@ -102,8 +102,8 @@ firewall:
 - hosts: all
   become: true
   roles:
-    - wolskinet.infrastructure.configure_system
-    - wolskinet.infrastructure.configure_users
+    - wolskies.infrastructure.configure_system
+    - wolskies.infrastructure.configure_users
 ```
 
 ## Dependencies and Credits
@@ -318,7 +318,7 @@ Use `configure_system` to orchestrate all infrastructure roles:
 - hosts: all
   become: true
   roles:
-    - wolskinet.infrastructure.configure_system
+    - wolskies.infrastructure.configure_system
 ```
 
 ### Individual Roles
@@ -329,17 +329,17 @@ Each role can be used independently:
 - hosts: web_servers
   become: true
   roles:
-    - wolskinet.infrastructure.os_configuration
-    - wolskinet.infrastructure.manage_users
-    - wolskinet.infrastructure.manage_packages
-    - wolskinet.infrastructure.manage_security_services
+    - wolskies.infrastructure.os_configuration
+    - wolskies.infrastructure.manage_users
+    - wolskies.infrastructure.manage_packages
+    - wolskies.infrastructure.manage_security_services
 
 - hosts: all
   become: true
   tasks:
     - name: Configure users individually
       include_role:
-        name: wolskinet.infrastructure.configure_user
+        name: wolskies.infrastructure.configure_user
       vars:
         target_user: "{{ item }}"
       loop: "{{ users }}"

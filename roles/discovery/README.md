@@ -48,7 +48,7 @@ Automatically filters out noise to focus on user-installed software:
 - name: Discover infrastructure
   hosts: target_machines
   roles:
-    - wolskinet.infrastructure.discovery
+    - wolskies.infrastructure.discovery
 ```
 
 ### Custom Output Paths
@@ -60,7 +60,7 @@ Automatically filters out noise to focus on user-installed software:
       inventory_dir: "/path/to/my/inventory"
       playbooks_dir: "/path/to/my/playbooks"
   roles:
-    - wolskinet.infrastructure.discovery
+    - wolskies.infrastructure.discovery
 ```
 
 ### Selective Discovery with Tags

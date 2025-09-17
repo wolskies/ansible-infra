@@ -1,5 +1,5 @@
 ---
-# Enhanced pre-commit hooks for wolskinet.infrastructure collection
+# Enhanced pre-commit hooks for wolskies.infrastructure collection
 # Install with: pip install pre-commit && pre-commit install
 
 repos:
