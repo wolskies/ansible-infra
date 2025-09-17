@@ -22,7 +22,7 @@
     # GO VERIFICATION
     # =============================================================================
     - name: Check if go is available for testdev
-      ansible.builtin.command: sudo -u testdev bash -l -c 'which go'
+      ansible.builtin.command: sudo -u testdev bash -l -c 'command -v go'
       register: go_check
       changed_when: false
       failed_when: false
