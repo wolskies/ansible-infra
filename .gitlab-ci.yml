@@ -100,7 +100,7 @@ validate-all:
     - echo "Waiting for Docker daemon..."
     - for i in {1..30}; do docker info >/dev/null 2>&1 && break || (echo "Attempt $i failed, retrying..."; sleep 2); done
     - echo "Logging into Docker Hub..."
-    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin || echo "⚠️  Docker Hub login failed - proceeding with anonymous pulls (may hit rate limits)"
     # Ensure collections directory exists for caching
     - mkdir -p /root/.ansible/collections
     # Install molecule and testing tools via pip (user install, no venv)
