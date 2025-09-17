@@ -2,6 +2,11 @@
 
 Automates installation and maintenance tasks for multiple machines/operating systems.
 
+**Supported Operating Systems:**
+- Ubuntu 22.04+
+- Arch Linux
+- macOS (limited support)
+
 ## Included Roles
 
 - **configure_system**: meta-role that orchestrates system configuration, system-level package installation, and initial user configuration (user, password, ssh keys)

@@ -12,14 +12,16 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: debian-system-test
-    image: geerlingguy/docker-debian12-ansible:latest
+  - name: arch-system-test
+    image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: "/usr/lib/systemd/systemd"
+    env:
+      container: docker
 provisioner:
   name: ansible
   config_options:
@@ -64,16 +66,14 @@ provisioner:
                 - ufw
                 - build-essential
                 - python3-pip
-              Debian:
+              Archlinux:
                 - curl
                 - wget
                 - git
                 - vim
                 - htop
-                - fail2ban
-                - ufw
-                - build-essential
-                - python3-pip
+                - python-pip
+                - base-devel
 
         # Security services configuration - corrected to top-level structure
         firewall:
@@ -187,17 +187,17 @@ provisioner:
             comment: "Ubuntu-specific User"
             state: present
             create_home: true
-      debian-system-test:
-        host_hostname: "debian-full-test"
+      arch-system-test:
+        host_hostname: "arch-full-test"
         host_update_hosts: false # Disabled for containers
         # Host-specific packages
         packages:
           present:
             host:
-              Debian:
+              Archlinux:
                 - rsync
                 - strace
-        # Different fail2ban config for Debian
+        # Different fail2ban config for Arch
         fail2ban:
           enabled: false
           defaults:
