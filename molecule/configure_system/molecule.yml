@@ -22,6 +22,10 @@ platforms:
     command: "/usr/lib/systemd/systemd"
     env:
       container: docker
+    capabilities:
+      - SYS_ADMIN
+    ulimits:
+      - nofile:65535:65535
 provisioner:
   name: ansible
   config_options:
@@ -119,18 +123,18 @@ provisioner:
         snap:
           disable_and_remove: true
 
-        # User configuration - test full user lifecycle
+        # Users are created in prepare.yml with proper groups for each OS
+        # Here we define the user configurations for configure_user role
         users:
           - name: developer
             uid: 1001
-            groups: [sudo]
+            groups: [] # Set dynamically in prepare.yml
             shell: /bin/bash
             comment: "Developer User"
             state: present
             create_home: true
             ssh_keys:
               - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... developer@test"
-            # Language toolchain configuration
             nodejs:
               packages:
                 - typescript
@@ -150,13 +154,12 @@ provisioner:
               - kitty
           - name: sysadmin
             uid: 1002
-            groups: [sudo]
+            groups: [] # Set dynamically in prepare.yml
             shell: /bin/bash
             comment: "System Administrator"
             state: present
             create_home: true
             sudo_no_password: true
-            # Minimal language tools
             nodejs:
               packages:
                 - typescript
@@ -178,11 +181,11 @@ provisioner:
             - rule: allow
               port: 8080
               proto: tcp
-        # Additional user for Ubuntu only
+        # Ubuntu-specific user addition
         users:
           - name: ubuntuuser
             uid: 1003
-            groups: [sudo]
+            groups: [] # Set dynamically in prepare.yml
             shell: /bin/bash
             comment: "Ubuntu-specific User"
             state: present
@@ -202,5 +205,6 @@ provisioner:
           enabled: false
           defaults:
             maxretry: 5 # Different from group default
+        # Arch does not have additional users
 verifier:
   name: ansible
