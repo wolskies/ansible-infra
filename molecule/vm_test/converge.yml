@@ -5,7 +5,7 @@
   tasks:
     - name: Include os_configuration role
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.os_configuration
+        name: wolskies.infrastructure.os_configuration
 
 - name: Configure servers
   hosts: servers
@@ -13,7 +13,7 @@
   tasks:
     - name: Include manage_security_services role for servers
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.manage_security_services
+        name: wolskies.infrastructure.manage_security_services
       when:
         - firewall is defined
         - firewall.enabled | default(false)
@@ -24,6 +24,6 @@
   tasks:
     - name: Include configure_user role for workstations
       ansible.builtin.include_role:
-        name: wolskinet.infrastructure.configure_user
+        name: wolskies.infrastructure.configure_user
       when:
         - install_development_tools | default(false)

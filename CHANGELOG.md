@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial release of wolskinet.infrastructure collection
+- Initial release of wolskies.infrastructure collection
 - Core roles for infrastructure automation:
   - `configure_host` - System-level host configuration
   - `manage_packages` - Hierarchical package management

@@ -62,6 +62,9 @@ validate-all:
       else
         echo "✅ Using cached Ansible collections"
       fi
+    # Install current collection being tested
+    - echo "Installing current collection wolskies.infrastructure..."
+    - ansible-galaxy collection install . --force
 
     # Run pre-commit checks (includes yamllint, prettier, custom checks)
     - git config --global --add safe.directory $CI_PROJECT_DIR
@@ -133,8 +136,11 @@ validate-minimal-config:
       else
         echo "✅ Using cached Ansible collections"
       fi
+    # Install current collection being tested
+    - echo "Installing current collection wolskies.infrastructure..."
+    - ansible-galaxy collection install . --force
     - echo "=== Installed collections ==="
-    - ansible-galaxy collection list | grep -E "(community\.general|ansible\.posix|community\.docker)"
+    - ansible-galaxy collection list | grep -E "(community\.general|ansible\.posix|community\.docker|wolskies\.infrastructure)"
     - echo "=== Collection paths ==="
     - ansible --version | grep "collection location"
     # Debug DNS and network connectivity

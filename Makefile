@@ -150,7 +150,7 @@ collection-build: ## Build the Ansible collection
 
 .PHONY: collection-install
 collection-install: collection-build ## Build and install the collection locally
-	ansible-galaxy collection install wolskinet-infrastructure-*.tar.gz --force
+	ansible-galaxy collection install wolskies-infrastructure-*.tar.gz --force
 
 .PHONY: update-version
 update-version: ## Update version in galaxy.yml (usage: make update-version VERSION=1.2.3)
