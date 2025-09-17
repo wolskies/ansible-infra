@@ -15,13 +15,6 @@
     # INFRASTRUCTURE CONFIGURATION (system-level, requires sudo)
     # ---------------------------------------------------------------------
 
-    - name: Run system discovery
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.discovery
-      tags:
-        - discovery
-        - infrastructure
-
     - name: Configure operating system
       ansible.builtin.include_role:
         name: wolskies.infrastructure.os_configuration

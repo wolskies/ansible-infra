@@ -16,6 +16,8 @@ variables:
   # Force Ansible to use /tmp for all temp operations
   ANSIBLE_REMOTE_TEMP: "/tmp/ansible-tmp"
   ANSIBLE_LOCAL_TEMP: "/tmp/ansible-tmp"
+  # DNS configuration for Docker registry access
+  FF_NETWORK_PER_BUILD: "true"
 
 # Global cache configuration
 cache:

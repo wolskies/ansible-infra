@@ -3,9 +3,57 @@
   hosts: all
   become: true
   tasks:
-    - name: Install acl package for proper become support
+    - name: Install acl package for proper become support (Ubuntu)
       ansible.builtin.apt:
         name: acl
         state: present
         update_cache: true
       when: ansible_os_family == 'Debian'
+
+    - name: Install acl package for proper become support (Arch)
+      community.general.pacman:
+        name: acl
+        state: present
+        update_cache: true
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Fix ansible temp directory permissions for become_user
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0777"
+        owner: root
+        group: root
+      loop:
+        - /tmp/ansible-remote-tmp
+        - /tmp/ansible-tmp
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Create users with appropriate sudo group (Ubuntu)
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        groups: [sudo]
+        shell: "{{ item.shell | default('/bin/bash') }}"
+        comment: "{{ item.comment }}"
+        create_home: true
+        state: present
+      loop:
+        - { name: developer, uid: 1001, comment: "Developer User" }
+        - { name: sysadmin, uid: 1002, comment: "System Administrator" }
+        - { name: ubuntuuser, uid: 1003, comment: "Ubuntu-specific User" }
+      when: ansible_os_family == 'Debian'
+
+    - name: Create users with appropriate wheel group (Arch)
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        groups: [wheel]
+        shell: "{{ item.shell | default('/bin/bash') }}"
+        comment: "{{ item.comment }}"
+        create_home: true
+        state: present
+      loop:
+        - { name: developer, uid: 1001, comment: "Developer User" }
+        - { name: sysadmin, uid: 1002, comment: "System Administrator" }
+      when: ansible_os_family == 'Archlinux'
