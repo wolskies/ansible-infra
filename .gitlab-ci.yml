@@ -28,7 +28,7 @@ cache:
 # Comprehensive validation - combines all linting and syntax checks
 validate-all:
   stage: validate
-  image: python:3.13-slim
+  image: registry.wolskinet.com:5050/ansible/collections/infrastructure/validation:latest
   cache:
     key: "validation-$CI_COMMIT_REF_SLUG"
     paths:
@@ -37,10 +37,7 @@ validate-all:
       - /var/cache/apt/
       - /root/.cache/pre-commit/
   script:
-    # Install all required tools
-    - apt-get update -qq && apt-get install -y -qq ansible python3-pip git make
-    - pip install --break-system-packages pre-commit ansible-lint pyyaml
-    # Install collections with caching and retry for transient Galaxy failures
+    # Tools already pre-installed in custom image, just install collections
     - |
       if [ ! -f /root/.ansible/collections/.installed ]; then
         echo "Installing Ansible collections (not cached)..."
@@ -78,13 +75,13 @@ validate-all:
 
     - echo "✅ All validation checks completed"
 
-# Validate minimal configuration safety - ensures roles handle empty/missing config gracefully
-validate-minimal-config:
+# Test minimal configuration robustness - ensures roles handle empty/missing config gracefully
+test-minimal-robustness:
   extends: .molecule_test_template
-  stage: validate
+  stage: integration
   script:
     - molecule test -s minimal
-    - echo "✅ Minimal configuration safety validation passed"
+    - echo "✅ Minimal configuration robustness test passed"
   allow_failure: false # This MUST pass - roles should never crash on minimal config
 
 # Template for molecule test jobs
