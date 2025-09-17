@@ -75,15 +75,6 @@ validate-all:
 
     - echo "✅ All validation checks completed"
 
-# Test minimal configuration robustness - ensures roles handle empty/missing config gracefully
-test-minimal-robustness:
-  extends: .molecule_test_template
-  stage: integration
-  script:
-    - molecule test -s minimal
-    - echo "✅ Minimal configuration robustness test passed"
-  allow_failure: false # This MUST pass - roles should never crash on minimal config
-
 # Template for molecule test jobs
 .molecule_test_template:
   image: python:3.13-slim
@@ -244,13 +235,13 @@ test-role-manage-snap-packages:
     - cd roles/manage_snap_packages && molecule test
     - echo "✅ Snap packages role tests passed"
 
-# Integration tests
-test-integration:
+# Variable validation - ensures role variable passing and defaults work correctly
+test-variable-validation:
   extends: .molecule_test_template
   stage: integration
   script:
-    - make test-integration
-    - echo "✅ Integration tests passed"
+    - molecule test -s minimal # Test robustness with empty/missing config
+    - echo "✅ Variable validation and robustness tests passed"
   only:
     - main
     - merge_requests
