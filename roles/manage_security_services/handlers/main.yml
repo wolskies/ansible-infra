@@ -15,22 +15,8 @@
   become: true
   when: ansible_system == 'Linux'
 
-- name: reload ufw
-  block:
-    - name: Ensure SSH access before firewall reload (prevent lockout)
-      community.general.ufw:
-        rule: allow
-        port: "{{ current_ssh_port }}"
-        proto: tcp
-        comment: "SSH access (prevent lockout) - port {{ current_ssh_port }}"
-      become: true
-      when:
-        - firewall.prevent_ssh_lockout | default(true)
-        - current_ssh_port is defined
-
-    - name: Reload UFW firewall
-      community.general.ufw:
-        state: reloaded
-      become: true
+- name: Reload ufw
+  community.general.ufw:
+    state: reloaded
   become: true
   when: ansible_system == 'Linux'

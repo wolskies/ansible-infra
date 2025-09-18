@@ -230,8 +230,12 @@ firewall:
   stealth_mode: false
   block_all: false
   logging: false
-  rules: []
-  # Example:
+  rules:
+    - rule: allow
+      port: 22
+      proto: tcp
+      comment: "SSH access (prevent lockout)"
+  # Additional rules can be added:
   # rules:
   #   - rule: allow
   #     port: 22
