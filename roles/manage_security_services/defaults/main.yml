@@ -13,7 +13,11 @@ firewall:
   stealth_mode: false
   block_all: false
   logging: false
-  rules: []
+  rules:
+    - rule: allow
+      port: 22
+      proto: tcp
+      comment: "SSH access (prevent lockout)"
 
 fail2ban:
   enabled: false

@@ -1,0 +1,156 @@
+---
+# Validation Playbook for VM Testing
+# Compares discovery output against input configuration
+# Part of Phase III VM testing infrastructure
+
+- name: Validate VM Configuration via Discovery
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Load test scenario variables
+      ansible.builtin.include_vars:
+        file: "{{ test_scenario_file | default('../vm-test-infrastructure/phase1-local-linux/test-scenarios/confidence-test.yml') }}"
+      delegate_to: localhost
+      run_once: true
+      register: input_vars
+
+    - name: Store input configuration
+      ansible.builtin.set_fact:
+        expected_config: "{{ input_vars.ansible_facts }}"
+
+    - name: Run discovery role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.discovery
+
+    - name: Initialize validation results
+      ansible.builtin.set_fact:
+        validation_results:
+          hostname: {}
+          packages: {}
+          users: {}
+          services: {}
+          firewall: {}
+          languages: {}
+          failures: []
+
+    - name: Validate hostname configuration
+      ansible.builtin.set_fact:
+        validation_results: "{{ validation_results | combine({'hostname': {'expected': expected_config.host_hostname | default('not_set'), 'discovered': ansible_hostname, 'match': (expected_config.host_hostname | default('') == ansible_hostname)}}, recursive=True) }}"
+      when: expected_config.host_hostname is defined
+
+    - name: Validate user configuration
+      block:
+        - name: Get list of discovered user names
+          ansible.builtin.set_fact:
+            discovered_user_names: "{{ users | default([]) | map(attribute='name') | list }}"
+
+        - name: Check expected users were discovered
+          ansible.builtin.set_fact:
+            validation_results: "{{ validation_results | combine({'users': {item.name: (item.name in discovered_user_names)}}, recursive=True) }}"
+          loop: "{{ expected_config.users | default([]) }}"
+          when: expected_config.users is defined
+
+    - name: Validate package installation
+      block:
+        - name: Parse expected packages for this OS
+          ansible.builtin.set_fact:
+            expected_packages: "{{ expected_config.host_packages[ansible_distribution | lower] | default([]) }}"
+          when: expected_config.host_packages is defined
+
+        - name: Check each expected package was discovered
+          ansible.builtin.set_fact:
+            validation_results: "{{ validation_results | combine({'packages': {item: (item in discovery_packages_host | default([]))}}, recursive=True) }}"
+          loop: "{{ expected_packages }}"
+          when: expected_packages is defined
+
+    - name: Validate language environments
+      block:
+        - name: Check Node.js installation
+          ansible.builtin.command: which node
+          register: node_check
+          failed_when: false
+          changed_when: false
+          when: expected_config.dev_nodejs.install | default(false)
+
+        - name: Check Rust installation
+          ansible.builtin.command: which rustc
+          register: rust_check
+          failed_when: false
+          changed_when: false
+          when: expected_config.dev_rust.install | default(false)
+
+        - name: Check Go installation
+          ansible.builtin.command: which go
+          register: go_check
+          failed_when: false
+          changed_when: false
+          when: expected_config.dev_go.install | default(false)
+
+        - name: Record language validation results
+          ansible.builtin.set_fact:
+            validation_results: "{{ validation_results | combine({'languages': {
+              'nodejs': {'expected': expected_config.dev_nodejs.install | default(false), 'found': (node_check.rc | default(1) == 0)},
+              'rust': {'expected': expected_config.dev_rust.install | default(false), 'found': (rust_check.rc | default(1) == 0)},
+              'go': {'expected': expected_config.dev_go.install | default(false), 'found': (go_check.rc | default(1) == 0)}
+            }}, recursive=True) }}"
+
+    - name: Validate firewall configuration
+      block:
+        - name: Record firewall validation using discovery
+          ansible.builtin.set_fact:
+            validation_results: "{{ validation_results | combine({'firewall': {
+              'enabled': {'expected': expected_config.security_services.ufw.enabled | default(false),
+                         'found': discovery_firewall_enabled | default(false)}
+            }}, recursive=True) }}"
+          when: expected_config.security_services is defined
+
+    - name: Compile validation failures
+      ansible.builtin.set_fact:
+        validation_results: "{{ validation_results | combine({'failures': validation_failures}, recursive=True) }}"
+      vars:
+        validation_failures: >-
+          {%- set failures = [] -%}
+          {%- if validation_results.hostname.match is defined and not validation_results.hostname.match -%}
+            {%- set _ = failures.append('Hostname mismatch: expected ' ~ validation_results.hostname.expected ~ ' but found ' ~ validation_results.hostname.discovered) -%}
+          {%- endif -%}
+          {%- for user, exists in validation_results.users.items() -%}
+            {%- if not exists -%}
+              {%- set _ = failures.append('User ' ~ user ~ ' not found') -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- for package, installed in validation_results.packages.items() -%}
+            {%- if not installed -%}
+              {%- set _ = failures.append('Package ' ~ package ~ ' not installed') -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- for lang, status in validation_results.languages.items() -%}
+            {%- if status.expected and not status.found -%}
+              {%- set _ = failures.append('Language ' ~ lang ~ ' not installed') -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ failures }}
+
+    - name: Display validation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== VALIDATION SUMMARY for {{ ansible_hostname }} ==="
+          - "Hostname: {{ '✅ PASS' if (validation_results.hostname.match | default(true)) else '❌ FAIL' }}"
+          - "Users: {{ '✅ PASS' if (validation_results.users.values() | select('equalto', false) | list | length == 0) else '❌ FAIL' }}"
+          - "Packages: {{ '✅ PASS' if (validation_results.packages.values() | select('equalto', false) | list | length == 0) else '❌ FAIL' }}"
+          - "Languages: {{ '✅ PASS' if (validation_results.languages | json_query('*.expected') | select('equalto', true) | list | length == validation_results.languages | json_query('[?expected==`true`].found') | select('equalto', true) | list | length) else '❌ FAIL' }}"
+          - "Firewall: {{ '✅ PASS' if (validation_results.firewall.enabled.expected | default(false) == validation_results.firewall.enabled.found | default(false)) else '❌ FAIL' }}"
+          - ""
+          - "{{ 'Failures:' if validation_results.failures | length > 0 else 'All validation checks passed!' }}"
+          - "{{ validation_results.failures | join('\n') if validation_results.failures | length > 0 else '' }}"
+
+    - name: Save validation results to file
+      ansible.builtin.copy:
+        content: "{{ validation_results | to_nice_yaml }}"
+        dest: "/tmp/validation_results_{{ ansible_hostname }}.yml"
+      delegate_to: localhost
+
+    - name: Fail if validation errors found
+      ansible.builtin.fail:
+        msg: "Validation failed with {{ validation_results.failures | length }} error(s)"
+      when: validation_results.failures | length > 0
