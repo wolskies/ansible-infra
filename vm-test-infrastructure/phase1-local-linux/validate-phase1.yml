@@ -1,0 +1,144 @@
+---
+# Phase I Validation Playbook
+# Uses variables passed via --extra-vars to configure_system
+# Compares configured values against discovery output
+
+- name: Validate Phase I Configuration via Discovery
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Run discovery role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.discovery
+
+    - name: Initialize validation results
+      ansible.builtin.set_fact:
+        validation_results:
+          hostname: {}
+          users: {}
+          packages: {}
+          firewall: {}
+          languages: {}
+          failures: []
+
+    - name: Validate hostname configuration
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{ validation_results | combine({
+            'hostname': {
+              'expected': host_hostname | default(ansible_hostname),
+              'discovered': ansible_hostname,
+              'match': (host_hostname | default(ansible_hostname) == ansible_hostname)
+            }
+          }, recursive=True) }}
+
+    - name: Validate user configuration
+      block:
+        - name: Get list of discovered user names
+          ansible.builtin.set_fact:
+            discovered_user_names: "{{ discovery_users | default([]) | map(attribute='name') | list }}"
+
+        - name: Check expected users were discovered
+          ansible.builtin.set_fact:
+            validation_results: >-
+              {{ validation_results | combine({
+                'users': {item.name: (item.name in discovered_user_names)}
+              }, recursive=True) }}
+          loop: "{{ users | default([]) }}"
+          when: users is defined and item.state | default('present') == 'present'
+
+    - name: Validate firewall configuration
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{ validation_results | combine({
+            'firewall': {
+              'expected': firewall.enabled | default(false),
+              'discovered': discovery_firewall_enabled | default(false),
+              'match': (firewall.enabled | default(false) == discovery_firewall_enabled | default(false))
+            }
+          }, recursive=True) }}
+      when: firewall is defined
+
+    - name: Validate language environments
+      block:
+        - name: Check Node.js installation
+          ansible.builtin.command: which node
+          register: node_check
+          failed_when: false
+          changed_when: false
+          when: node_user is defined
+
+        - name: Check Rust installation
+          ansible.builtin.command: which rustc
+          register: rust_check
+          failed_when: false
+          changed_when: false
+          when: rust_user is defined
+
+        - name: Check Go installation
+          ansible.builtin.command: which go
+          register: go_check
+          failed_when: false
+          changed_when: false
+          when: go_user is defined
+
+        - name: Record language validation results
+          ansible.builtin.set_fact:
+            validation_results: >-
+              {{ validation_results | combine({
+                'languages': {
+                  'nodejs': {'expected': (node_user is defined), 'found': (node_check.rc | default(1) == 0)},
+                  'rust': {'expected': (rust_user is defined), 'found': (rust_check.rc | default(1) == 0)},
+                  'go': {'expected': (go_user is defined), 'found': (go_check.rc | default(1) == 0)}
+                }
+              }, recursive=True) }}
+
+    - name: Compile validation failures
+      ansible.builtin.set_fact:
+        validation_results: "{{ validation_results | combine({'failures': validation_failures}, recursive=True) }}"
+      vars:
+        validation_failures: >-
+          {%- set failures = [] -%}
+          {%- if validation_results.hostname.match is defined and not validation_results.hostname.match -%}
+            {%- set _ = failures.append('Hostname mismatch: expected ' ~ validation_results.hostname.expected ~ ' but found ' ~ validation_results.hostname.discovered) -%}
+          {%- endif -%}
+          {%- for user, exists in validation_results.users.items() -%}
+            {%- if not exists -%}
+              {%- set _ = failures.append('User ' ~ user ~ ' not found') -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if validation_results.firewall.match is defined and not validation_results.firewall.match -%}
+            {%- set _ = failures.append('Firewall mismatch: expected ' ~ validation_results.firewall.expected ~ ' but found ' ~ validation_results.firewall.discovered) -%}
+          {%- endif -%}
+          {%- for lang, status in validation_results.languages.items() -%}
+            {%- if status.expected and not status.found -%}
+              {%- set _ = failures.append('Language ' ~ lang ~ ' not installed') -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ failures }}
+
+    - name: Display validation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== VALIDATION SUMMARY for {{ ansible_hostname }} ==="
+          - "Hostname: {{ '✅ PASS' if (validation_results.hostname.match | default(true)) else '❌ FAIL' }}"
+          - "Users: {{ '✅ PASS' if (validation_results.users.values() | select('equalto', false) | list | length == 0) else '❌ FAIL' }}"
+          - >-
+            Languages: {{ '✅ PASS' if (validation_results.languages | json_query('*.expected') | select('equalto', true) | list | length ==
+            validation_results.languages | json_query('[?expected==`true`].found') | select('equalto', true) | list | length) else '❌ FAIL' }}
+          - "Firewall: {{ '✅ PASS' if (validation_results.firewall.match | default(true)) else '❌ FAIL' }}"
+          - ""
+          - "{{ 'Failures:' if validation_results.failures | length > 0 else 'All validation checks passed!' }}"
+          - "{{ validation_results.failures | join('\n') if validation_results.failures | length > 0 else '' }}"
+
+    - name: Save validation results to file
+      ansible.builtin.copy:
+        content: "{{ validation_results | to_nice_yaml }}"
+        dest: "/tmp/validation_results_{{ ansible_hostname }}.yml"
+      delegate_to: localhost
+
+    - name: Fail if validation errors found
+      ansible.builtin.fail:
+        msg: "Validation failed with {{ validation_results.failures | length }} error(s)"
+      when: validation_results.failures | length > 0

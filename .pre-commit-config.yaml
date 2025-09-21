@@ -23,7 +23,9 @@ repos:
         args: [--allow-multiple-documents]
         exclude: |
           (?x)^(
-            .*\.vault\.yml
+            .*\.vault\.yml|
+            docs/.*|
+            .*/terraform/.*
           )$
       - id: check-added-large-files
         args: ["--maxkb=1000"]
@@ -41,7 +43,9 @@ repos:
         args: ["--write", "--tab-width=2", "--print-width=100"]
         exclude: |
           (?x)^(
-            .*\.vault\.yml
+            .*\.vault\.yml|
+            docs/.*|
+            .*/terraform/.*
           )$
 
   # YAML linting - catch remaining issues after formatting
@@ -53,7 +57,9 @@ repos:
         exclude: |
           (?x)^(
             molecule/.*|
-            .*\.vault\.yml
+            .*\.vault\.yml|
+            docs/.*|
+            .*/terraform/.*
           )$
 
   # Ansible linting disabled in pre-commit due to dependency conflicts

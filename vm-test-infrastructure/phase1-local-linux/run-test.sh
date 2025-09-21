@@ -59,9 +59,10 @@ ansible-playbook -i inventory.ini \
 
 # Run validation
 echo "Step 6: Running validation playbook..."
+# Pass the same variables that configure_system received
 ansible-playbook -i inventory.ini \
-  "${PROJECT_ROOT}/playbooks/validate_vm_configuration.yml" \
-  --extra-vars "test_scenario_file=${SCRIPT_DIR}/test-scenarios/confidence-test.yml"
+  "${SCRIPT_DIR}/validate-phase1.yml" \
+  --extra-vars "@${SCRIPT_DIR}/test-scenarios/confidence-test.yml"
 
 echo ""
 echo "=== Phase I Testing Complete ==="
