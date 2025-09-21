@@ -89,20 +89,28 @@
 
         - name: Record language validation results
           ansible.builtin.set_fact:
-            validation_results: "{{ validation_results | combine({'languages': {
-              'nodejs': {'expected': expected_config.dev_nodejs.install | default(false), 'found': (node_check.rc | default(1) == 0)},
-              'rust': {'expected': expected_config.dev_rust.install | default(false), 'found': (rust_check.rc | default(1) == 0)},
-              'go': {'expected': expected_config.dev_go.install | default(false), 'found': (go_check.rc | default(1) == 0)}
-            }}, recursive=True) }}"
+            validation_results: >-
+              {{ validation_results | combine({
+                'languages': {
+                  'nodejs': {'expected': expected_config.dev_nodejs.install | default(false), 'found': (node_check.rc | default(1) == 0)},
+                  'rust': {'expected': expected_config.dev_rust.install | default(false), 'found': (rust_check.rc | default(1) == 0)},
+                  'go': {'expected': expected_config.dev_go.install | default(false), 'found': (go_check.rc | default(1) == 0)}
+                }
+              }, recursive=True) }}
 
     - name: Validate firewall configuration
       block:
         - name: Record firewall validation using discovery
           ansible.builtin.set_fact:
-            validation_results: "{{ validation_results | combine({'firewall': {
-              'enabled': {'expected': expected_config.security_services.ufw.enabled | default(false),
-                         'found': discovery_firewall_enabled | default(false)}
-            }}, recursive=True) }}"
+            validation_results: >-
+              {{ validation_results | combine({
+                'firewall': {
+                  'enabled': {
+                    'expected': expected_config.security_services.ufw.enabled | default(false),
+                    'found': discovery_firewall_enabled | default(false)
+                  }
+                }
+              }, recursive=True) }}
           when: expected_config.security_services is defined
 
     - name: Compile validation failures
