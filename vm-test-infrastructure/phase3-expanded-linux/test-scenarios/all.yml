@@ -1,0 +1,96 @@
+---
+# Domain-level configuration - applies to ALL systems
+# This represents organization-wide standards
+
+# Domain configuration
+domain_name: "testlab.local"
+host_update_hosts: true
+
+# Locale and timezone (can be overridden at host level)
+host_locale: en_US.UTF-8
+host_timezone: America/New_York
+
+# NTP configuration
+host_ntp:
+  enabled: true
+  servers:
+    - 0.pool.ntp.org
+    - 1.pool.ntp.org
+
+# Common users across all systems - testing shell and SSH key variations
+users:
+  - name: sysadmin
+    uid: 1001
+    comment: "System Administrator"
+    shell: /bin/bash
+    groups: [] # No manual admin groups - will be handled by future superuser feature
+    state: present
+    create_home: true
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAdminKeyForTesting sysadmin@testlab"
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... sysadmin-backup@testlab"
+
+  - name: deploy
+    uid: 1002
+    comment: "Deployment User"
+    shell: /bin/bash # Standard shell
+    groups: []
+    state: present
+    create_home: true
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDeploy deploy@ci"
+      - "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNo... deploy-ecdsa@ci" # Multiple key types
+
+# Base packages needed everywhere
+packages:
+  present:
+    all:
+      Archlinux:
+        - base-devel
+        - git
+        - curl
+        - wget
+        - vim
+        - htop
+        - jq
+        - tree
+        - rsync
+        - openssh
+      Debian:
+        - build-essential
+        - git
+        - curl
+        - wget
+        - vim
+        - htop
+        - jq
+        - tree
+        - rsync
+        - openssh-server
+        - python3-pip
+        - python3-venv
+      Ubuntu:
+        - build-essential
+        - git
+        - curl
+        - wget
+        - vim
+        - htop
+        - jq
+        - tree
+        - rsync
+        - openssh-server
+        - python3-pip
+        - python3-venv
+
+# System optimization
+optimizations:
+  tune_swappiness: true
+  swappiness: 10
+
+# Journal configuration
+journal:
+  configure: true
+  max_size: "500M"
+  max_retention: "30d"
+  compress: true

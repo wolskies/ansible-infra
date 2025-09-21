@@ -1,0 +1,106 @@
+---
+# Server group configuration
+# Production-focused systems with security hardening
+
+# Server-specific users - testing bash vs zsh and SSH key variations
+users:
+  - name: webadmin
+    uid: 3001
+    comment: "Web Administrator"
+    shell: /bin/zsh # Testing zsh on servers
+    groups: [] # Removed docker group - dependency order issue
+    state: present
+    create_home: true
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIWeb webadmin@server"
+
+  - name: dbadmin
+    uid: 3002
+    comment: "Database Administrator"
+    shell: /bin/bash # Standard bash shell
+    groups: [] # No special groups
+    state: present
+    create_home: true
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAAIDB dbadmin@server"
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB... dbadmin-legacy@server" # Testing RSA key
+
+# Firewall configuration - strict rules for servers
+firewall:
+  enabled: true
+  prevent_ssh_lockout: true
+  package: "ufw"
+  stealth_mode: false
+  block_all: false
+  logging: true
+  rules:
+    - rule: allow
+      port: 22
+      proto: tcp
+      comment: "SSH access"
+    - rule: allow
+      port: 80
+      proto: tcp
+      comment: "HTTP"
+    - rule: allow
+      port: 443
+      proto: tcp
+      comment: "HTTPS"
+    - rule: allow
+      port: 5432
+      proto: tcp
+      from_ip: 192.168.100.0/24
+      comment: "PostgreSQL from local network"
+
+# Fail2ban configuration
+fail2ban:
+  enabled: true
+  sender: "root@{{ domain_name }}"
+  dest_email: "admin@{{ domain_name }}"
+  defaults:
+    bantime: 3600
+    findtime: 600
+    maxretry: 3
+  services:
+    - name: sshd
+      enabled: true
+      maxretry: 3
+      bantime: 7200
+      findtime: 600
+      logpath: /var/log/auth.log
+  ignoreips:
+    - "127.0.0.1/8"
+    - "::1"
+    - "192.168.100.0/24"
+
+# Using distro Docker packages instead of official Docker repo for testing simplicity
+
+# Server packages
+packages:
+  present:
+    group:
+      Debian:
+        - nginx
+        - htop
+        - curl
+        - wget
+        - ufw
+        - fail2ban
+      Ubuntu:
+        - nginx
+        - htop
+        - curl
+        - wget
+        - ufw
+        - fail2ban
+
+# Security hardening
+host_security:
+  hardening_enabled: true
+  disable_ctrl_alt_del: false # Disabled due to Arch Linux cloud image conflict
+  remove_additional_root_users: false
+  enforce_password_aging: true
+  ssh_hardening_enabled: true
+  ssh_server_ports: ["22"]
+  ssh_listen_to: ["0.0.0.0"]
+  sftp_enabled: true

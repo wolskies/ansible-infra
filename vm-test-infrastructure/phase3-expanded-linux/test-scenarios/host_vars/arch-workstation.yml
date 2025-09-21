@@ -1,0 +1,15 @@
+---
+# Arch-specific workstation overrides
+
+# Arch uses different package names
+packages:
+  present:
+    host:
+      Archlinux:
+        - base-devel # Build tools
+        - obs-studio # Available in main repos
+        - git
+        - vim
+
+# Override timezone for testing
+host_timezone: Europe/London

@@ -1,0 +1,4 @@
+---
+# Placeholder file for validation playbook
+# Phase III uses group_vars/host_vars for hierarchical configuration
+# This file prevents validation from defaulting to Phase I config
