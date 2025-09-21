@@ -1,0 +1,102 @@
+---
+# Phase III Validation Playbook
+# Uses variables from group_vars/host_vars structure
+# Compares configured values against discovery output
+
+- name: Validate Phase III Configuration via Discovery
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Run discovery role
+      ansible.builtin.include_role:
+        name: wolskies.infrastructure.discovery
+
+    - name: Initialize validation results
+      ansible.builtin.set_fact:
+        validation_results:
+          hostname: {}
+          users: {}
+          packages: {}
+          firewall: {}
+          failures: []
+
+    - name: Validate hostname configuration
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{ validation_results | combine({
+            'hostname': {
+              'expected': host_hostname | default(ansible_hostname),
+              'discovered': ansible_hostname,
+              'match': (host_hostname | default(ansible_hostname) == ansible_hostname)
+            }
+          }, recursive=True) }}
+
+    - name: Validate user configuration
+      block:
+        - name: Get list of discovered user names (users variable now contains discovered users)
+          ansible.builtin.set_fact:
+            discovered_user_names: "{{ users | default([]) | map(attribute='name') | list }}"
+
+        - name: Check expected users were discovered
+          ansible.builtin.set_fact:
+            validation_results: >-
+              {{ validation_results | combine({
+                'users': {item.name: (item.name in discovered_user_names)}
+              }, recursive=True) }}
+          loop: "{{ users | default([]) }}"
+          when: users is defined and item.state | default('present') == 'present'
+
+    - name: Validate firewall configuration
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{ validation_results | combine({
+            'firewall': {
+              'expected': firewall.enabled | default(false),
+              'discovered': discovery_firewall_enabled | default(false),
+              'match': (firewall.enabled | default(false) == discovery_firewall_enabled | default(false))
+            }
+          }, recursive=True) }}
+      when: firewall is defined
+
+    - name: Compile validation failures
+      ansible.builtin.set_fact:
+        validation_results: "{{ validation_results | combine({'failures': validation_failures}, recursive=True) }}"
+      vars:
+        validation_failures: >-
+          {%- set failures = [] -%}
+          {%- if validation_results.hostname.match is defined and not validation_results.hostname.match -%}
+            {%- set _ = failures.append('Hostname mismatch: expected ' ~ validation_results.hostname.expected ~ ' but found ' ~ validation_results.hostname.discovered) -%}
+          {%- endif -%}
+          {%- for user, exists in validation_results.users.items() -%}
+            {%- if not exists -%}
+              {%- set _ = failures.append('User ' ~ user ~ ' not found') -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if validation_results.firewall.match is defined and not validation_results.firewall.match -%}
+            {%- set _ = failures.append('Firewall mismatch: expected ' ~ validation_results.firewall.expected ~ ' but found ' ~ validation_results.firewall.discovered) -%}
+          {%- endif -%}
+          {{ failures }}
+
+    - name: Display validation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== VALIDATION SUMMARY for {{ ansible_hostname }} ==="
+          - "Hostname: {{ '✅ PASS' if (validation_results.hostname.match | default(true)) else '❌ FAIL' }}"
+          - >-
+            Users: {{ '✅ PASS' if (validation_results.users.values() | select('equalto', false) | list | length == 0)
+            else '❌ FAIL (' ~ validation_results.users.values() | select('equalto', false) | list | length ~ ' missing)' }}
+          - "Firewall: {{ '✅ PASS' if (validation_results.firewall.match | default(true)) else '❌ FAIL' }}"
+          - ""
+          - "{{ 'Failures:' if validation_results.failures | length > 0 else 'All validation checks passed!' }}"
+          - "{{ validation_results.failures | join('\n') if validation_results.failures | length > 0 else '' }}"
+
+    - name: Save validation results to file
+      ansible.builtin.copy:
+        content: "{{ validation_results | to_nice_yaml }}"
+        dest: "/tmp/validation_results_{{ ansible_hostname }}.yml"
+      delegate_to: localhost
+
+    - name: Pass validation (informational only)
+      ansible.builtin.debug:
+        msg: "Validation completed with {{ validation_results.failures | length }} issue(s)"

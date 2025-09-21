@@ -1,0 +1,93 @@
+---
+# Workstation group configuration
+# Development-focused systems without firewall restrictions
+
+# Additional workstation users - testing bash vs zsh and SSH key combinations
+users:
+  - name: developer
+    uid: 2001
+    comment: "Developer Account"
+    shell: /bin/zsh # Testing zsh availability across versions
+    groups: [] # Removed docker group - dependency order issue
+    state: present
+    create_home: true
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDev developer@workstation"
+
+  - name: junior
+    uid: 2002
+    comment: "Junior Developer"
+    shell: /bin/bash # Standard bash shell
+    groups: [] # No special groups
+    state: present
+    create_home: true
+    ssh_keys: [] # Testing user without SSH keys
+
+# Development environments - all workstations get these
+node_user: developer
+node_packages:
+  - typescript
+  - eslint
+  - prettier
+  - "@angular/cli"
+  - "@vue/cli"
+node_version: "20"
+
+rust_user: developer
+rust_packages:
+  - ripgrep
+  - cargo-watch
+  - cargo-edit
+  - bat
+  - exa
+
+go_user: developer
+go_packages:
+  - github.com/charmbracelet/glow@latest
+  - github.com/junegunn/fzf@latest
+go_version: "1.21.5"
+
+# Terminal configuration for developers
+terminal_config:
+  install_terminfo: true
+  terminals:
+    - alacritty
+    - kitty
+    - wezterm
+
+# Workstation packages
+packages:
+  present:
+    group:
+      Archlinux:
+        - neovim
+        - tmux
+        - zsh
+        - firefox
+        - git
+        - curl
+        - wget
+      Debian:
+        - neovim
+        - tmux
+        - zsh
+        - firefox-esr
+        - git
+        - curl
+        - wget
+      Ubuntu:
+        - neovim
+        - tmux
+        - zsh
+        - firefox
+        - git
+        - curl
+        - wget
+
+# No firewall on workstations
+firewall:
+  enabled: false
+
+# Snap removal on Ubuntu workstations
+snap:
+  remove_completely: true

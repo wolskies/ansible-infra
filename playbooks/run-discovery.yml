@@ -15,4 +15,4 @@
   tasks:
     - name: Run infrastructure discovery
       ansible.builtin.include_role:
-        name: discovery
+        name: wolskies.infrastructure.discovery
