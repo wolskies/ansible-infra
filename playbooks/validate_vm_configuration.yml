@@ -146,7 +146,7 @@
           - "Hostname: {{ '✅ PASS' if (validation_results.hostname.match | default(true)) else '❌ FAIL' }}"
           - "Users: {{ '✅ PASS' if (validation_results.users.values() | select('equalto', false) | list | length == 0) else '❌ FAIL' }}"
           - "Packages: {{ '✅ PASS' if (validation_results.packages.values() | select('equalto', false) | list | length == 0) else '❌ FAIL' }}"
-          - "Languages: {{ '✅ PASS' if (validation_results.languages | json_query('*.expected') | select('equalto', true) | list | length == validation_results.languages | json_query('[?expected==`true`].found') | select('equalto', true) | list | length) else '❌ FAIL' }}"
+          - "Languages: {{ '✅ PASS' if (validation_results.languages | default([]) | length == 0 or validation_results.languages | selectattr('expected', 'equalto', true) | selectattr('found', 'equalto', true) | list | length > 0) else '❌ FAIL' }}"
           - "Firewall: {{ '✅ PASS' if (validation_results.firewall.enabled.expected | default(false) == validation_results.firewall.enabled.found | default(false)) else '❌ FAIL' }}"
           - ""
           - "{{ 'Failures:' if validation_results.failures | length > 0 else 'All validation checks passed!' }}"

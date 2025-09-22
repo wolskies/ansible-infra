@@ -131,7 +131,7 @@ Standard Ansible 2.15+ variable precedence rules apply to all collection variabl
 | `comment`          | string       | No       | `""`           | GECOS field description (e.g., "John Doe,,")                                   |
 | `password`         | string       | No       | none           | Password (plaintext or SHA-512 hash starting with $6$)                         |
 | `ssh_keys`         | list[string] | No       | `[]`           | SSH public key strings (full key content, one per list item)                   |
-| `sudo.nopasswd`    | boolean      | No       | `false`        | Allow passwordless sudo access within sudo configuration object               |
+| `sudo.nopasswd`    | boolean      | No       | `false`        | Allow passwordless sudo access within sudo configuration object                |
 | `state`            | enum         | No       | `"present"`    | User state ("present" or "absent")                                             |
 | `create_home`      | boolean      | No       | `true`         | Create home directory if it doesn't exist                                      |
 | `system`           | boolean      | No       | `false`        | System account (uid <1000, no home by default)                                 |
@@ -635,7 +635,7 @@ The `manage_flatpak` role handles flatpak package management and desktop integra
 
 #### 3.5.2 Variables
 
-This role uses collection-wide variables from section 2.2.1 (flatpak.*). No role-specific variables are defined.
+This role uses collection-wide variables from section 2.2.1 (flatpak.\*). No role-specific variables are defined.
 
 #### 3.5.3 Features and Functionality
 
@@ -683,37 +683,37 @@ This role configures a single user via the `target_user` variable. This is a sta
 
 **target_user Object Schema:**
 
-| Field              | Type         | Required | Default        | Description                                                                    |
-| ------------------ | ------------ | -------- | -------------- | ------------------------------------------------------------------------------ |
-| `name`             | string       | Yes      | -              | Username (alphanumeric + underscore/hyphen, max 32 chars)                      |
-| `uid`              | integer      | No       | auto           | User ID (1000-65533 for regular users, <1000 for system)                       |
-| `gid`              | integer      | No       | auto           | Primary group ID (matches uid by default)                                      |
-| `groups`           | list[string] | No       | `[]`           | Secondary group names (e.g., ["docker", "sudo", "developers"])                 |
-| `shell`            | string       | No       | system default | Login shell path (e.g., "/bin/bash", "/bin/zsh", "/bin/false")                 |
-| `home`             | string       | No       | `/home/{name}` | Home directory absolute path (e.g., "/home/username", "/var/lib/service")      |
-| `comment`          | string       | No       | `""`           | GECOS field description (e.g., "John Doe,,")                                   |
-| `password`         | string       | No       | none           | Password (plaintext or SHA-512 hash starting with $6$)                         |
-| `ssh_keys`         | list[string] | No       | `[]`           | SSH public key strings (full key content, one per list item)                   |
-| `sudo.nopasswd`    | boolean      | No       | `false`        | Allow passwordless sudo access within sudo configuration object               |
-| `state`            | enum         | No       | `"present"`    | User state ("present" or "absent")                                             |
-| `create_home`      | boolean      | No       | `true`         | Create home directory if it doesn't exist                                      |
-| `system`           | boolean      | No       | `false`        | System account (uid <1000, no home by default)                                 |
-| `git.user_name`    | string       | No       | none           | Git global user.name setting (full name, e.g., "John Doe")                     |
-| `git.user_email`   | string       | No       | none           | Git global user.email setting (email address, e.g., "john@example.com")        |
-| `git.editor`       | string       | No       | none           | Git global core.editor setting (editor command, e.g., "vim", "code --wait")    |
-| `nodejs.packages`  | list[string] | No       | `[]`           | npm package names to install globally (e.g., ["typescript", "@angular/cli"])   |
-| `rust.packages`    | list[string] | No       | `[]`           | Cargo package names to install (e.g., ["ripgrep", "fd-find"])                  |
-| `go.packages`      | list[string] | No       | `[]`           | Go package URLs to install (e.g., ["github.com/user/package@latest"])          |
-| `neovim.enabled`   | boolean      | No       | `false`        | Install and configure Neovim for this user                                     |
-| `terminal_entries` | list[object] | No       | `[]`           | Terminal emulator configuration entries (see schema below)                     |
-| `dotfiles.enable`  | boolean      | No       | `true`         | Enable dotfiles configuration                                                  |
-| `dotfiles.repo`    | string       | No       | none           | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles.git") |
-| `superuser`        | boolean      | No       | `false`        | Automatically assign platform-appropriate admin groups (sudo/wheel/admin)     |
-| `sudo`             | object       | No       | `{}`           | Custom sudo configuration (commands, nopasswd, runas)                         |
-| `macos.dock.*`     | object       | No       | `{}`           | macOS Dock preferences (tilesize, autohide, minimize_to_app, show_recents)    |
-| `macos.finder.*`   | object       | No       | `{}`           | macOS Finder preferences (show_extensions, show_hidden, show_pathbar, etc.)   |
-| `macos.screenshots.*` | object    | No       | `{}`           | macOS screenshot preferences (location, format)                               |
-| `macos.iterm2.*`   | object       | No       | `{}`           | macOS iTerm2 preferences (prompt_on_quit)                                     |
+| Field                 | Type         | Required | Default        | Description                                                                    |
+| --------------------- | ------------ | -------- | -------------- | ------------------------------------------------------------------------------ |
+| `name`                | string       | Yes      | -              | Username (alphanumeric + underscore/hyphen, max 32 chars)                      |
+| `uid`                 | integer      | No       | auto           | User ID (1000-65533 for regular users, <1000 for system)                       |
+| `gid`                 | integer      | No       | auto           | Primary group ID (matches uid by default)                                      |
+| `groups`              | list[string] | No       | `[]`           | Secondary group names (e.g., ["docker", "sudo", "developers"])                 |
+| `shell`               | string       | No       | system default | Login shell path (e.g., "/bin/bash", "/bin/zsh", "/bin/false")                 |
+| `home`                | string       | No       | `/home/{name}` | Home directory absolute path (e.g., "/home/username", "/var/lib/service")      |
+| `comment`             | string       | No       | `""`           | GECOS field description (e.g., "John Doe,,")                                   |
+| `password`            | string       | No       | none           | Password (plaintext or SHA-512 hash starting with $6$)                         |
+| `ssh_keys`            | list[string] | No       | `[]`           | SSH public key strings (full key content, one per list item)                   |
+| `sudo.nopasswd`       | boolean      | No       | `false`        | Allow passwordless sudo access within sudo configuration object                |
+| `state`               | enum         | No       | `"present"`    | User state ("present" or "absent")                                             |
+| `create_home`         | boolean      | No       | `true`         | Create home directory if it doesn't exist                                      |
+| `system`              | boolean      | No       | `false`        | System account (uid <1000, no home by default)                                 |
+| `git.user_name`       | string       | No       | none           | Git global user.name setting (full name, e.g., "John Doe")                     |
+| `git.user_email`      | string       | No       | none           | Git global user.email setting (email address, e.g., "john@example.com")        |
+| `git.editor`          | string       | No       | none           | Git global core.editor setting (editor command, e.g., "vim", "code --wait")    |
+| `nodejs.packages`     | list[string] | No       | `[]`           | npm package names to install globally (e.g., ["typescript", "@angular/cli"])   |
+| `rust.packages`       | list[string] | No       | `[]`           | Cargo package names to install (e.g., ["ripgrep", "fd-find"])                  |
+| `go.packages`         | list[string] | No       | `[]`           | Go package URLs to install (e.g., ["github.com/user/package@latest"])          |
+| `neovim.enabled`      | boolean      | No       | `false`        | Install and configure Neovim for this user                                     |
+| `terminal_entries`    | list[object] | No       | `[]`           | Terminal emulator configuration entries (see schema below)                     |
+| `dotfiles.enable`     | boolean      | No       | `true`         | Enable dotfiles configuration                                                  |
+| `dotfiles.repo`       | string       | No       | none           | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles.git") |
+| `superuser`           | boolean      | No       | `false`        | Automatically assign platform-appropriate admin groups (sudo/wheel/admin)      |
+| `sudo`                | object       | No       | `{}`           | Custom sudo configuration (commands, nopasswd, runas)                          |
+| `macos.dock.*`        | object       | No       | `{}`           | macOS Dock preferences (tilesize, autohide, minimize_to_app, show_recents)     |
+| `macos.finder.*`      | object       | No       | `{}`           | macOS Finder preferences (show_extensions, show_hidden, show_pathbar, etc.)    |
+| `macos.screenshots.*` | object       | No       | `{}`           | macOS screenshot preferences (location, format)                                |
+| `macos.iterm2.*`      | object       | No       | `{}`           | macOS iTerm2 preferences (prompt_on_quit)                                      |
 
 #### 3.6.3 Features and Functionality
 
@@ -833,9 +833,9 @@ The `nodejs` role handles Node.js installation and npm package management for in
 
 This role uses role-specific variables passed from calling roles (e.g., configure_user):
 
-| Variable       | Type         | Required | Default | Description                                                    |
-| -------------- | ------------ | -------- | ------- | -------------------------------------------------------------- |
-| `node_user`    | string       | Yes      | -       | Target username for Node.js installation                      |
+| Variable        | Type         | Required | Default | Description                                                                |
+| --------------- | ------------ | -------- | ------- | -------------------------------------------------------------------------- |
+| `node_user`     | string       | Yes      | -       | Target username for Node.js installation                                   |
 | `node_packages` | list[string] | No       | `[]`    | Global npm package names to install (e.g., ["typescript", "@angular/cli"]) |
 
 #### 3.7.3 Features and Functionality
@@ -862,8 +862,8 @@ The `rust` role handles Rust toolchain installation and cargo package management
 
 This role uses role-specific variables passed from calling roles (e.g., configure_user):
 
-| Variable        | Type         | Required | Default | Description                                                    |
-| --------------- | ------------ | -------- | ------- | -------------------------------------------------------------- |
+| Variable        | Type         | Required | Default | Description                                                   |
+| --------------- | ------------ | -------- | ------- | ------------------------------------------------------------- |
 | `rust_user`     | string       | Yes      | -       | Target username for Rust installation                         |
 | `rust_packages` | list[string] | No       | `[]`    | Cargo package names to install (e.g., ["ripgrep", "fd-find"]) |
 
@@ -891,9 +891,9 @@ The `go` role handles Go programming language installation and package managemen
 
 This role uses role-specific variables passed from calling roles (e.g., configure_user):
 
-| Variable      | Type         | Required | Default | Description                                                             |
-| ------------- | ------------ | -------- | ------- | ----------------------------------------------------------------------- |
-| `go_user`     | string       | Yes      | -       | Target username for Go installation                                     |
+| Variable      | Type         | Required | Default | Description                                                           |
+| ------------- | ------------ | -------- | ------- | --------------------------------------------------------------------- |
+| `go_user`     | string       | Yes      | -       | Target username for Go installation                                   |
 | `go_packages` | list[string] | No       | `[]`    | Go package URLs to install (e.g., ["github.com/user/package@latest"]) |
 
 #### 3.9.3 Features and Functionality
@@ -920,8 +920,8 @@ The `neovim` role handles Neovim installation and basic configuration for indivi
 
 This role uses role-specific variables passed from calling roles (e.g., configure_user):
 
-| Variable      | Type   | Required | Default | Description                           |
-| ------------- | ------ | -------- | ------- | ------------------------------------- |
+| Variable      | Type   | Required | Default | Description                             |
+| ------------- | ------ | -------- | ------- | --------------------------------------- |
 | `neovim_user` | string | Yes      | -       | Target username for Neovim installation |
 
 #### 3.10.3 Features and Functionality
@@ -948,18 +948,18 @@ The `terminal_config` role handles terminal emulator configuration for individua
 
 This role uses role-specific variables passed from calling roles (e.g., configure_user):
 
-| Variable           | Type         | Required | Default | Description                                                |
-| ------------------ | ------------ | -------- | ------- | ---------------------------------------------------------- |
-| `terminal_user`    | string       | Yes      | -       | Target username for terminal configuration                 |
-| `terminal_entries` | list[object] | Yes      | -       | Terminal configuration entries (see schema below)         |
+| Variable           | Type         | Required | Default | Description                                       |
+| ------------------ | ------------ | -------- | ------- | ------------------------------------------------- |
+| `terminal_user`    | string       | Yes      | -       | Target username for terminal configuration        |
+| `terminal_entries` | list[object] | Yes      | -       | Terminal configuration entries (see schema below) |
 
 **terminal_entries Object Schema:**
 
-| Field    | Type   | Required | Default | Description                                              |
-| -------- | ------ | -------- | ------- | -------------------------------------------------------- |
-| `type`   | string | Yes      | -       | Terminal emulator type ("gnome-terminal", "konsole", etc.) |
-| `key`    | string | Yes      | -       | Configuration key name                                   |
-| `value`  | string | Yes      | -       | Configuration value                                      |
+| Field   | Type   | Required | Default | Description                                                |
+| ------- | ------ | -------- | ------- | ---------------------------------------------------------- |
+| `type`  | string | Yes      | -       | Terminal emulator type ("gnome-terminal", "konsole", etc.) |
+| `key`   | string | Yes      | -       | Configuration key name                                     |
+| `value` | string | Yes      | -       | Configuration value                                        |
 
 #### 3.11.3 Features and Functionality
 

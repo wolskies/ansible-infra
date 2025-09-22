@@ -1,8 +1,8 @@
 version: 2
 ethernets:
   ens3:
-    addresses: [${vm_ip}/24]
-    gateway4: ${gateway_ip}
+    addresses: ["${vm_ip}/24"]
+    gateway4: "${gateway_ip}"
     nameservers:
       addresses: [8.8.8.8, 1.1.1.1]
     dhcp4: false
