@@ -102,50 +102,148 @@ host_vars:
 
 **Requirement**: The system SHALL be capable of updating the `/etc/hosts` file with hostname entries
 **Implementation**: Uses `ansible.builtin.lineinfile` to update `/etc/hosts` when `host_update_hosts` is true, format: `127.0.0.1 localhost {hostname}.{domain} {hostname}`
+**Production Code**: `roles/os_configuration/tasks/main.yml` - "Update /etc/hosts file" task
 
-**Positive Validation**:
+#### Validation Test Scenarios
+
+**Scenario 1: Positive Validation - All Conditions Met**
 ```yaml
 test_case: "Add hostname to /etc/hosts"
+platform: ubuntu-hosts-positive
 input:
   host_hostname: "testhost"
   domain_name: "example.com"
   host_update_hosts: true
-verify:
-  - command: "grep testhost /etc/hosts"
-    expected: "127.0.0.1\tlocalhost testhost.example.com testhost"
+expected_task_result:
+  - task_name: "Update /etc/hosts file"
+  - first_run: changed=true (line added)
+  - second_run: changed=false (idempotent)
+  - module: ansible.builtin.lineinfile
+  - no_failures: true
+file_verification:
   - file_contains: "/etc/hosts"
-    pattern: "127\\.0\\.0\\.1.*testhost\\.example\\.com.*testhost"
+    pattern: "127\\.0\\.0\\.1.*localhost.*testhost\\.example\\.com.*testhost"
+  - command: "grep testhost /etc/hosts"
+    expected: "127.0.0.1	localhost testhost.example.com testhost"
+success_criteria:
+  - "✅ First run: Task executes with changed=true"
+  - "✅ File contains correct entry format"
+  - "✅ Second run: Task executes with changed=false (idempotent)"
 ```
 
-**Negative Validation**:
+**Scenario 2: Negative Validation - host_update_hosts Disabled**
 ```yaml
 test_case: "Skip when host_update_hosts false"
+platform: ubuntu-hosts-disabled
 input:
   host_hostname: "testhost"
   domain_name: "example.com"
   host_update_hosts: false
-verify:
+expected_task_result:
+  - task_name: "Update /etc/hosts file"
+  - execution: skipped=true
+  - skip_reason: "host_update_hosts | default(false) evaluates to false"
+  - no_failures: true
+file_verification:
   - file_not_contains: "/etc/hosts"
     pattern: "testhost"
+success_criteria:
+  - "✅ Ansible task skipped due to when condition"
+  - "✅ No changes to /etc/hosts file"
+```
 
-test_case: "Skip when missing domain_name"
+**Scenario 3: Negative Validation - Missing domain_name**
+```yaml
+test_case: "Skip when domain_name missing"
+platform: ubuntu-hosts-no-domain
 input:
   host_hostname: "testhost"
   host_update_hosts: true
-verify:
-  - no_changes: true
+  # domain_name intentionally undefined
+expected_task_result:
+  - task_name: "Update /etc/hosts file"
+  - execution: skipped=true
+  - skip_reason: "domain_name is defined evaluates to false"
+  - no_failures: true
+file_verification:
   - file_not_contains: "/etc/hosts"
     pattern: "testhost"
+success_criteria:
+  - "✅ Ansible task skipped due to when condition"
+  - "✅ No changes to /etc/hosts file"
+```
 
-test_case: "Skip when missing host_hostname"
+**Scenario 4: Negative Validation - Missing host_hostname**
+```yaml
+test_case: "Skip when host_hostname missing"
+platform: ubuntu-hosts-no-hostname
 input:
   domain_name: "example.com"
   host_update_hosts: true
-verify:
+  # host_hostname intentionally undefined
+expected_task_result:
+  - task_name: "Update /etc/hosts file"
+  - execution: skipped=true
+  - skip_reason: "host_hostname is defined evaluates to false"
+  - no_failures: true
+file_verification:
   - no_changes: true
+success_criteria:
+  - "✅ Ansible task skipped due to when condition"
+  - "✅ No changes to /etc/hosts file"
 ```
 
-**Environment**: Both (Container + VM)
+#### Implementation Strategy
+
+**Testing Environment**: Molecule with Docker containers (sufficient for file operations and conditional logic validation)
+
+**Molecule Platform Configuration**:
+```yaml
+platforms:
+  - name: ubuntu-hosts-positive
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-hosts-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-hosts-no-domain
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-hosts-no-hostname
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+
+host_vars:
+  ubuntu-hosts-positive:
+    host_hostname: "testhost"
+    domain_name: "example.com"
+    host_update_hosts: true
+  ubuntu-hosts-disabled:
+    host_hostname: "testhost"
+    domain_name: "example.com"
+    host_update_hosts: false
+  ubuntu-hosts-no-domain:
+    host_hostname: "testhost"
+    host_update_hosts: true
+    # domain_name intentionally omitted
+  ubuntu-hosts-no-hostname:
+    domain_name: "example.com"
+    host_update_hosts: true
+    # host_hostname intentionally omitted
+```
+
+**Validation Approach**:
+- Full role execution with Ansible task execution metadata validation
+- Task execution behavior validation (skipped/changed/unchanged)
+- Idempotency testing via multiple role executions
+
+**Container Testing Success Criteria**:
+- Task execution behavior (skipped/changed/unchanged) validates conditional logic
+- File operations may fail in containers - focus on task execution metadata
+
+**VM Testing (Phase 3) Success Criteria**:
+- All container testing criteria PLUS
+- File content verification for positive cases
+- Actual `/etc/hosts` entry format validation
+- End-to-end functional testing
+
+**Environment**: Container (Primary - conditional logic) + CI Pipeline, VM (Complete validation in Phase 3)
 
 ---
 

@@ -54,6 +54,39 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
+  # REQ-OS-002: /etc/hosts update scenarios
+  - name: ubuntu-hosts-positive
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-hosts-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-hosts-no-domain
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-hosts-no-hostname
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -108,5 +141,26 @@ provisioner:
         host_update_hosts: false
         domain_timezone: "UTC"
         # host_hostname intentionally undefined - REQ-OS-001 negative test
+      # REQ-OS-002: /etc/hosts update test scenarios
+      ubuntu-hosts-positive:
+        host_hostname: "testhost" # REQ-OS-002 positive test
+        domain_name: "example.com"
+        host_update_hosts: true
+        domain_timezone: "UTC"
+      ubuntu-hosts-disabled:
+        host_hostname: "testhost" # REQ-OS-002 negative test - disabled
+        domain_name: "example.com"
+        host_update_hosts: false
+        domain_timezone: "UTC"
+      ubuntu-hosts-no-domain:
+        host_hostname: "testhost" # REQ-OS-002 negative test - missing domain
+        host_update_hosts: true
+        domain_timezone: "UTC"
+        # domain_name intentionally undefined
+      ubuntu-hosts-no-hostname:
+        domain_name: "example.com" # REQ-OS-002 negative test - missing hostname
+        host_update_hosts: true
+        domain_timezone: "UTC"
+        # host_hostname intentionally undefined
 verifier:
   name: ansible
