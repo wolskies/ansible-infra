@@ -297,9 +297,9 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 ###### 3.1.3.2.1 Security Hardening
 
-**REQ-OS-004**: The system SHALL be capable of applying OS security hardening on Linux systems
+**REQ-OS-004**: The system SHALL be capable of implementing OS security hardening configurations using `devsec.hardening.os_hardening` role
 
-**Implementation**: Uses `devsec.hardening.os_hardening` role with variables from `host_security.*` and `host_sysctl.parameters` when `host_security.hardening_enabled` is true.
+**Implementation**: Uses `ansible.builtin.include_role` to call `devsec.hardening.os_hardening` when security hardening is enabled
 
 **REQ-OS-005**: The system SHALL be capable of applying SSH security hardening on Linux systems
 

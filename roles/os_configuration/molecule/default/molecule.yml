@@ -87,6 +87,23 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
+  # REQ-OS-004: Security hardening role delegation scenarios
+  - name: ubuntu-security-enabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-security-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -162,5 +179,14 @@ provisioner:
         host_update_hosts: true
         domain_timezone: "UTC"
         # host_hostname intentionally undefined
+      # REQ-OS-004: Security hardening role delegation test scenarios
+      ubuntu-security-enabled:
+        host_security:
+          hardening_enabled: true # REQ-OS-004 positive test
+        domain_timezone: "UTC"
+      ubuntu-security-disabled:
+        host_security:
+          hardening_enabled: false # REQ-OS-004 negative test
+        domain_timezone: "UTC"
 verifier:
   name: ansible

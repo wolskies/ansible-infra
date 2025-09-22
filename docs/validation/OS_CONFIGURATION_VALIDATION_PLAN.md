@@ -333,6 +333,74 @@ host_vars:
 
 ---
 
+### REQ-OS-004: OS Security Hardening
+
+**Requirement**: The system SHALL be capable of implementing OS security hardening configurations using `devsec.hardening.os_hardening` role
+**Implementation**: Uses `ansible.builtin.include_role` to call `devsec.hardening.os_hardening` when security hardening is enabled
+**Production Code**: `roles/os_configuration/tasks/configure-Linux.yml` - "Apply OS security hardening (Linux)" task
+
+#### Validation Test Scenarios
+
+**Scenario 1: Positive Validation - Security Hardening Enabled**
+```yaml
+test_case: "Call devsec.hardening.os_hardening role when enabled"
+platform: ubuntu-security-enabled
+input:
+  host_security:
+    hardening_enabled: true
+expected_task_result:
+  - task_name: "Apply OS security hardening (Linux)"
+  - execution: included (not skipped)
+  - role_called: devsec.hardening.os_hardening
+  - no_failures: true
+success_criteria:
+  - "✅ devsec.hardening.os_hardening role inclusion executes when enabled"
+```
+
+**Scenario 2: Negative Validation - Security Hardening Disabled**
+```yaml
+test_case: "Skip devsec.hardening.os_hardening role when disabled"
+platform: ubuntu-security-disabled
+input:
+  host_security:
+    hardening_enabled: false
+expected_task_result:
+  - task_name: "Apply OS security hardening (Linux)"
+  - execution: skipped=true
+  - skip_reason: "host_security.hardening_enabled | default(true) evaluates to false"
+  - no_failures: true
+success_criteria:
+  - "✅ devsec.hardening.os_hardening role inclusion skipped when disabled"
+```
+
+#### Implementation Strategy
+
+**Testing Environment**: Molecule with Docker containers (sufficient for role delegation validation)
+
+**Molecule Platform Configuration**:
+```yaml
+platforms:
+  - name: ubuntu-security-enabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-security-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+
+host_vars:
+  ubuntu-security-enabled:
+    host_security:
+      hardening_enabled: true
+  ubuntu-security-disabled:
+    host_security:
+      hardening_enabled: false
+```
+
+**Validation Approach**: Task execution metadata validation for `devsec.hardening.os_hardening` role inclusion
+**Success Criteria**: Role inclusion behavior (skipped vs executed) - validates OUR conditional logic
+
+**Environment**: Container (Primary) + CI Pipeline
+
+---
+
 ## Linux-Specific Requirements (REQ-OS-004 to REQ-OS-021)
 
 ### REQ-OS-004: OS Security Hardening
