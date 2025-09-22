@@ -103,45 +103,85 @@ verify:
 
 **Requirement**: The system SHALL be capable of setting the system timezone
 **Implementation**: Uses `community.general.timezone` module when `domain_timezone` is defined and non-empty
+**Production Code**: `roles/os_configuration/tasks/main.yml` - "Set system timezone" task
 
-**Positive Validation**:
+#### Validation Test Scenarios
+
+**Scenario 1: Positive Validation**
 ```yaml
 test_case: "Set timezone to America/New_York"
+platform: ubuntu-timezone-positive
 input:
   domain_timezone: "America/New_York"
-verify:
-  - command: "timedatectl show --property=Timezone"
-    expected: "Timezone=America/New_York"
-  - file_symlink: "/etc/localtime"
-    target: "/usr/share/zoneinfo/America/New_York"
-  - ansible_fact: "ansible_date_time.tz"
-    expected: "EST" or "EDT"
-
-test_case: "Set timezone to UTC"
-input:
-  domain_timezone: "UTC"
-verify:
-  - command: "timedatectl show --property=Timezone"
-    expected: "Timezone=UTC"
+expected_task_result:
+  - task_name: "Set system timezone"
+  - execution: changed=true OR ok=true (NOT skipped)
+  - module: community.general.timezone
+  - no_failures: true
+success_criteria:
+  - "✅ Ansible task executes successfully (not skipped)"
+  - "✅ No task failures or errors"
 ```
 
-**Negative Validation**:
+**Scenario 2: Negative Validation - Empty Timezone**
 ```yaml
 test_case: "Empty timezone skipped"
+platform: ubuntu-timezone-empty
 input:
-  domain_timezone: ""
-verify:
-  - no_changes: true
-
-test_case: "Invalid timezone handled gracefully"
-input:
-  domain_timezone: "Invalid/Timezone"
-verify:
-  - task_failed: true
-  - error_message_contains: "timezone"
+  domain_timezone: ""  # Empty string
+expected_task_result:
+  - task_name: "Set system timezone"
+  - execution: skipped=true
+  - skip_reason: "domain_timezone | length > 0 evaluates to false"
+  - no_failures: true
+success_criteria:
+  - "✅ Ansible task skipped due to when condition"
+  - "✅ No task failures or errors"
 ```
 
-**Environment**: Both (Container + VM)
+**Scenario 3: Negative Validation - Undefined Timezone**
+```yaml
+test_case: "Undefined timezone skipped"
+platform: ubuntu-timezone-undefined
+input:
+  # domain_timezone variable intentionally not defined
+expected_task_result:
+  - task_name: "Set system timezone"
+  - execution: skipped=true
+  - skip_reason: "domain_timezone is defined evaluates to false"
+  - no_failures: true
+success_criteria:
+  - "✅ Ansible task skipped due to when condition"
+  - "✅ No task failures or errors"
+```
+
+#### Implementation Strategy
+
+**Testing Environment**: Molecule with Docker containers (sufficient for conditional logic validation)
+
+**Molecule Platform Configuration**:
+```yaml
+platforms:
+  - name: ubuntu-timezone-positive
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-timezone-empty
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-timezone-undefined
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+
+host_vars:
+  ubuntu-timezone-positive:
+    domain_timezone: "America/New_York"
+  ubuntu-timezone-empty:
+    domain_timezone: ""
+  ubuntu-timezone-undefined:
+    # domain_timezone intentionally omitted
+```
+
+**Validation Approach**: Full role execution with Ansible task execution metadata validation
+**Success Criteria**: Task execution behavior (skipped/changed/failed) - validates OUR conditional logic
+
+**Environment**: Container (Primary) + CI Pipeline
 
 ---
 

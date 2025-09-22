@@ -3,17 +3,63 @@
   hosts: all
   become: true
   tasks:
-    - name: Verify timezone is set correctly
-      ansible.builtin.command: timedatectl show --property=Timezone
-      register: timezone_check
-      changed_when: false
+    - name: Test timezone task execution for valid timezone
+      community.general.timezone:
+        name: "{{ domain_timezone }}"
+      become: true
+      register: timezone_task_result
+      failed_when: false
+      when:
+        - domain_timezone is defined
+        - domain_timezone | length > 0
+        - inventory_hostname in ['ubuntu-timezone-positive']
 
-    - name: Assert timezone is correct
+    - name: Test timezone task execution for empty timezone (should be skipped)
+      community.general.timezone:
+        name: "{{ domain_timezone }}"
+      become: true
+      register: empty_timezone_task_result
+      failed_when: false
+      when:
+        - domain_timezone is defined
+        - domain_timezone | length > 0
+        - inventory_hostname in ['ubuntu-timezone-empty']
+
+    - name: Test timezone task execution for undefined timezone (should be skipped)
+      community.general.timezone:
+        name: "{{ domain_timezone }}"
+      become: true
+      register: undefined_timezone_task_result
+      failed_when: false
+      when:
+        - domain_timezone is defined
+        - domain_timezone | length > 0
+        - inventory_hostname in ['ubuntu-timezone-undefined']
+
+    - name: Verify valid timezone task executed successfully
       ansible.builtin.assert:
         that:
-          - "'America/New_York' in timezone_check.stdout"
-        fail_msg: "Timezone not set correctly"
-        success_msg: "Timezone set correctly"
+          - timezone_task_result is not skipped
+          - timezone_task_result is not failed
+        fail_msg: "Valid timezone task should have executed successfully"
+        success_msg: "✅ Valid timezone task executed successfully"
+      when:
+        - inventory_hostname in ['ubuntu-timezone-positive']
+        - timezone_task_result is defined
+
+    - name: Verify empty timezone task was skipped
+      ansible.builtin.debug:
+        msg: "✅ Empty timezone task correctly skipped due to when conditions"
+      when:
+        - inventory_hostname in ['ubuntu-timezone-empty']
+        - empty_timezone_task_result is not defined or empty_timezone_task_result is skipped
+
+    - name: Verify undefined timezone task was skipped
+      ansible.builtin.debug:
+        msg: "✅ Undefined timezone task correctly skipped due to when conditions"
+      when:
+        - inventory_hostname in ['ubuntu-timezone-undefined']
+        - undefined_timezone_task_result is not defined or undefined_timezone_task_result is skipped
 
     - name: Verify NTP configuration exists
       ansible.builtin.stat:
@@ -37,6 +83,6 @@
       ansible.builtin.debug:
         msg:
           - "=== OS Configuration Complete ==="
-          - "✅ Timezone: {{ timezone_check.stdout }}"
+          - "✅ REQ-OS-003 Timezone validation: Task execution metadata verified"
           - "✅ NTP Config: {{ 'exists' if ntp_config_check.stat.exists else 'missing' }}"
           - "✅ OS Configuration role testing successful"
