@@ -4,6 +4,7 @@ dependency:
 driver:
   name: docker
 platforms:
+  # REQ-OS-003: Timezone configuration scenarios
   - name: ubuntu-timezone-positive
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -28,6 +29,31 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
+  # REQ-OS-001: Hostname configuration scenarios
+  - name: ubuntu-hostname-positive
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-hostname-empty
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-hostname-undefined
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -39,7 +65,7 @@ provisioner:
       stdout_callback_format: yaml
   ansible_args:
     - --skip-tags
-    - locale,hardening,hostname
+    - locale,hardening
   inventory:
     group_vars:
       all:
@@ -56,6 +82,7 @@ provisioner:
             - 0.pool.ntp.org
             - 1.pool.ntp.org
     host_vars:
+      # REQ-OS-003: Timezone configuration test scenarios
       ubuntu-timezone-positive:
         host_hostname: "ubuntu-timezone-positive"
         host_update_hosts: false
@@ -68,5 +95,18 @@ provisioner:
         host_hostname: "ubuntu-timezone-undefined"
         host_update_hosts: false
         # domain_timezone intentionally undefined - REQ-OS-003 negative test
+      # REQ-OS-001: Hostname configuration test scenarios
+      ubuntu-hostname-positive:
+        host_hostname: "test-hostname" # REQ-OS-001 positive test
+        host_update_hosts: false
+        domain_timezone: "UTC"
+      ubuntu-hostname-empty:
+        host_hostname: "" # REQ-OS-001 negative test - empty hostname
+        host_update_hosts: false
+        domain_timezone: "UTC"
+      ubuntu-hostname-undefined:
+        host_update_hosts: false
+        domain_timezone: "UTC"
+        # host_hostname intentionally undefined - REQ-OS-001 negative test
 verifier:
   name: ansible
