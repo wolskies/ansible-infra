@@ -46,6 +46,35 @@ Project guidance for Claude Code when working with the `wolskies.infrastructure`
 
 **CRITICAL: NEVER push code that fails local molecule testing to CI**
 
+## Git Commit Message Format
+
+**For requirement implementations:**
+```
+implement REQ-XX-NNN [requirement description]
+
+- Implementation details
+- Testing approach
+- Key technical decisions
+
+[Additional context or notes]
+```
+
+**Examples:**
+- `implement REQ-OS-001 hostname configuration validation`
+- `implement REQ-OS-002 /etc/hosts update validation`
+- `implement REQ-OS-003 timezone configuration validation`
+
+**Other commit types:**
+- Bug fixes: `fix REQ-XX-NNN [description]`
+- Test improvements: `test REQ-XX-NNN [description]`
+- Refactoring: `refactor [description]`
+
+**Benefits:**
+- **Traceability**: Easy to map commits to SRD requirements (`git log --grep="REQ-OS"`)
+- **History**: Clear implementation timeline and decision log
+- **Review**: Obvious scope and purpose for code review
+- **Documentation**: Commit messages form implementation audit trail
+
 **Required sequence** (each phase should catch issues before the next):
 1. `ansible-lint` - syntax/standards validation
 2. `molecule converge` - role functionality testing during development
