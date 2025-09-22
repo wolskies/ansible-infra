@@ -11,16 +11,17 @@
 ## Table of Contents
 
 1. [Test Strategy Overview](#1-test-strategy-overview)
-2. [Test Requirements](#2-test-requirements)
-3. [Test Coverage Matrix](#3-test-coverage-matrix)
-4. [Test Environment Requirements](#4-test-environment-requirements)
-5. [Test Execution](#5-test-execution)
+2. [Test Implementation](#2-test-implementation)
+3. [Test Environment](#3-test-environment)
+4. [Test Execution](#4-test-execution)
+5. [Quality Management](#5-quality-management)
+6. [Implementation Roadmap](#6-implementation-roadmap)
 
 ---
 
 ## Document Purpose
 
-This document defines the comprehensive test strategy, requirements, and coverage for the wolskies.infrastructure collection v1.2.0. It establishes the testing methodology to validate all requirements specified in the Software Requirements Document (SRD) v1.0.
+This document defines the test strategy, environment, and execution process for the wolskies.infrastructure collection v1.2.0. It establishes the testing methodology and implementation approach, with detailed requirement validation defined in the separate Requirement Validation Plan.
 
 ---
 
@@ -74,147 +75,269 @@ This document defines the comprehensive test strategy, requirements, and coverag
 
 ---
 
-## 2. Test Requirements
+## 2. Test Implementation
 
-### 2.1 Development Test Requirements
+### 2.1 Test Scenarios
 
-#### 2.1.1 Pre-commit Testing
+The collection uses four test scenario complexity levels to validate functionality progressively. Each scenario builds upon the previous level to ensure comprehensive coverage:
 
-**TEST-REQ-001**: All code changes SHALL pass local molecule testing before commit
+#### 2.1.1 Scenario Complexity Levels
 
-**Implementation**:
-- `molecule test` must pass for all modified roles
-- Pre-commit hooks must pass without errors
-- No test failures allowed in CI if local tests pass
+**Minimal Test (`minimal-test.yml`)**:
+```yaml
+# Validates core functionality with minimum configuration
+host_hostname: "test-minimal"
+domain_timezone: "UTC"
+users:
+  - name: testuser
+    state: present
+packages:
+  present:
+    all:
+      ubuntu: ["curl", "git"]
+      arch: ["curl", "git"]
+```
 
-**Validation Criteria**:
-- Zero molecule test failures
-- All pre-commit hooks pass
-- No syntax or linting errors
+**Confidence Test (`confidence-test.yml`)**:
+```yaml
+# Standard deployment validation
+host_hostname: "test-confidence"
+domain_timezone: "America/New_York"
+domain_locale: "en_US.UTF-8"
+host_update_hosts: true
 
-#### 2.1.2 Role-Specific Testing
+users:
+  - name: devuser
+    groups: ["users"]
+    shell: "/bin/bash"
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3... devuser@example"
+    git:
+      user_name: "Dev User"
+      user_email: "dev@example.com"
+    nodejs:
+      packages: ["npm"]
 
-**TEST-REQ-002**: Each role SHALL have comprehensive molecule tests validating all SRD requirements
+packages:
+  present:
+    all:
+      ubuntu: ["curl", "git", "vim", "htop", "build-essential"]
+      arch: ["curl", "git", "vim", "htop", "base-devel"]
 
-**Implementation**:
-- Test coverage for every REQ-{ROLE}-### requirement from SRD
-- Platform-specific testing where applicable
-- Variable validation and edge case testing
+firewall:
+  enabled: true
+  rules:
+    - port: 22
+      protocol: tcp
+      rule: allow
+```
 
-**Validation Criteria**:
-- All SRD requirements have corresponding test cases
-- Platform matrix coverage as defined in role scope
-- Variable boundary testing included
+**Comprehensive Test (`comprehensive-test.yml`)**:
+```yaml
+# Full feature and edge case validation
+host_hostname: "test-comprehensive"
+domain_timezone: "America/New_York"
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+host_update_hosts: true
 
-### 2.2 CI/CD Test Requirements
+users:
+  # Developer with all language toolchains
+  - name: devuser
+    uid: 1001
+    groups: ["users", "docker"]
+    shell: "/bin/bash"
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3... devuser@example"
+    superuser: true
+    sudo:
+      nopasswd: false
+    git:
+      user_name: "Dev User"
+      user_email: "dev@example.com"
+      editor: "vim"
+    nodejs:
+      packages: ["typescript", "@angular/cli", "npm"]
+    rust:
+      packages: ["ripgrep", "fd-find"]
+    go:
+      packages: ["github.com/junegunn/fzf@latest"]
+    neovim:
+      enabled: true
+    terminal_entries:
+      - type: "gnome-terminal"
+        key: "default-show-menubar"
+        value: "false"
 
-#### 2.2.1 Parallel Role Testing
+  # Power user with custom sudo
+  - name: poweruser
+    uid: 1002
+    shell: "/bin/zsh"
+    superuser: true
+    sudo:
+      nopasswd: true
+    ssh_keys:
+      - "ssh-rsa AAAAB3... poweruser@example"
+      - "ssh-ed25519 AAAAC3... poweruser@backup"
 
-**TEST-REQ-003**: CI SHALL execute individual role tests in parallel for efficiency
+  # Restricted user
+  - name: restricteduser
+    uid: 1003
+    shell: "/bin/sh"
+    groups: []
 
-**Implementation**:
-- 5 parallel role test jobs: nodejs, rust, go, neovim, terminal_config
-- Additional jobs: test-integration, test-discovery, test-minimal
-- Each job runs independently with isolated test environments
+  # Service account
+  - name: serviceacct
+    uid: 999
+    system: true
+    shell: "/bin/false"
+    home: "/var/lib/serviceacct"
+    create_home: false
 
-**Validation Criteria**:
-- All parallel jobs complete successfully
-- No resource conflicts between parallel tests
-- Total CI time under 15 minutes
+packages:
+  present:
+    all:
+      ubuntu: ["curl", "git", "vim", "htop", "build-essential", "python3-pip"]
+      arch: ["curl", "git", "vim", "htop", "base-devel", "python-pip"]
+    host:
+      ubuntu: ["docker.io", "postgresql", "nginx"]
+      arch: ["docker", "postgresql", "nginx"]
+  remove:
+    all:
+      ubuntu: ["nano", "snapd"]
+      arch: ["nano"]
 
-#### 2.2.2 Integration Testing
+firewall:
+  enabled: true
+  prevent_ssh_lockout: true
+  rules:
+    - port: 22
+      protocol: tcp
+      rule: allow
+      comment: "SSH access"
+    - port: 80
+      protocol: tcp
+      rule: allow
+      comment: "HTTP"
+    - port: 443
+      protocol: tcp
+      rule: allow
+      comment: "HTTPS"
+    - port: 5432
+      protocol: tcp
+      rule: allow
+      from_ip: "192.168.1.0/24"
+      comment: "PostgreSQL local"
 
-**TEST-REQ-004**: CI SHALL validate role interactions and dependencies
+host_security:
+  hardening_enabled: true
+  ssh_hardening_enabled: true
 
-**Implementation**:
-- `molecule/test-integration/` test suite
-- Cross-role dependency validation
-- End-to-end workflow testing
+host_sysctl:
+  parameters:
+    net.ipv4.ip_forward: 1
+    vm.swappiness: 10
+```
 
-**Validation Criteria**:
-- All role integration scenarios pass
-- Dependency resolution works correctly
-- Variable passing between roles validated
+#### 2.1.2 Edge Case Test Specifications
 
-### 2.3 VM Test Requirements
+**Edge Case Test (`edge-case-test.yml`)**:
+```yaml
+# Boundary conditions and error scenarios
+users:
+  # Maximum length username (32 chars)
+  - name: "this_is_a_very_long_username_32c"
+    state: present
 
-#### 2.3.1 Platform Matrix Testing
+  # Username with special characters
+  - name: "user-with-dash_and_underscore"
+    state: present
 
-**TEST-REQ-005**: VM testing SHALL validate all supported platforms from SRD REQ-INFRA-001
+  # User deletion test
+  - name: "deleteme"
+    state: absent
 
-**Implementation**:
-- Ubuntu 22.04 LTS testing
-- Ubuntu 24.04 LTS testing
-- Arch Linux testing
-- macOS testing (future)
+  # Duplicate UID test (should handle gracefully)
+  - name: "uid_conflict_1"
+    uid: 2001
+  - name: "uid_conflict_2"
+    uid: 2001  # Intentional conflict
 
-**Validation Criteria**:
-- All platforms execute successfully
-- Platform-specific requirements validated
-- Cross-platform compatibility confirmed
+  # Empty/invalid shell test
+  - name: "noshelluser"
+    shell: ""
 
-#### 2.3.2 Real-world Scenario Testing
+  # Large SSH key list
+  - name: "manykeys"
+    ssh_keys: # 10+ keys to test performance
+      - "ssh-rsa AAAAB3... key1"
+      - "ssh-rsa AAAAB3... key2"
+      # ... up to 10 keys
 
-**TEST-REQ-006**: VM testing SHALL validate realistic deployment scenarios
+packages:
+  present:
+    all:
+      ubuntu:
+        # Non-existent package (should handle gracefully)
+        - "this-package-does-not-exist-12345"
+        # Very long package list (100+ packages)
+        - "package1"
+        - "package2"
+        # ... up to 100 packages
 
-**Implementation**:
-- Fresh cloud image deployment
-- Multi-user configuration scenarios
-- Complex package and service management
-- Security hardening validation
+firewall:
+  rules:
+    # Overlapping rules
+    - port: 8080
+      rule: allow
+    - port: 8080
+      rule: deny  # Conflict
 
-**Validation Criteria**:
-- Cloud images configure successfully
-- All test users created and configured
-- Security policies properly applied
-- Services operational post-configuration
+    # Invalid port ranges
+    - port: 70000  # Out of range
+      rule: allow
+
+    # Complex CIDR notation
+    - port: 9000
+      from_ip: "10.0.0.0/8"
+```
+
+### 2.2 Requirement Validation Plan
+
+Detailed validation for each of the 89 SRD requirements is defined in the **Requirement Validation Plan** document. This comprehensive plan provides:
+
+- **Positive tests** - Verify requirements work as designed
+- **Negative tests** - Verify security filtering and error handling
+- **Exact verification commands** with expected outputs
+- **Platform-specific variations** for Ubuntu, Arch, and macOS
+- **Container vs VM testing** classifications
+
+The validation plan ensures every requirement has specific, actionable test cases with precise verification methods.
+
+**Key Validation Areas:**
+- User management and privilege escalation security (18 requirements)
+- Package management across platforms (15 requirements)
+- System configuration and hardening (28 requirements)
+- Security services and firewall management (12 requirements)
+- Development environment setup (10 requirements)
+- Platform-specific configurations (6 requirements)
+
+**Container Testing Limitations:**
+Some requirements cannot be tested in containers and require VM testing:
+- Hostname changes
+- NTP/time synchronization
+- Firewall rule application
+- System upgrades
+- Terminal emulator configuration
+- systemd service management
 
 ---
 
-## 3. Test Coverage Matrix
+## 3. Test Environment
 
-### 3.1 Role Test Coverage Requirements
+### 3.1 Development Environment
 
-| Role | Test Type | SRD Requirements | Platform Coverage | Status |
-|------|-----------|------------------|-------------------|--------|
-| os_configuration | Individual | REQ-OS-001 to REQ-OS-028 (28 req) | Ubuntu, Arch, macOS | ✅ Complete |
-| manage_security_services | Individual | REQ-SS-001 to REQ-SS-012 (12 req) | Ubuntu, Arch, macOS | ✅ Complete |
-| manage_packages | Individual | REQ-MP-001 to REQ-MP-015 (15 req) | Ubuntu, Arch, macOS | ✅ Complete |
-| manage_snap_packages | Individual | REQ-MSP-001 to REQ-MSP-003 (3 req) | Ubuntu only | ✅ Complete |
-| manage_flatpak | Individual | REQ-MF-001 to REQ-MF-005 (5 req) | Ubuntu, Arch | ✅ Complete |
-| configure_user | Individual | REQ-CU-001 to REQ-CU-018 (18 req) | Ubuntu, Arch, macOS | 🔄 In Progress |
-| nodejs | Individual | REQ-NODE-001 to REQ-NODE-002 (2 req) | Ubuntu, Arch, macOS | ✅ Complete |
-| rust | Individual | REQ-RUST-001 to REQ-RUST-002 (2 req) | Ubuntu, Arch, macOS | ✅ Complete |
-| go | Individual | REQ-GO-001 to REQ-GO-002 (2 req) | Ubuntu, Arch, macOS | ✅ Complete |
-| neovim | Individual | REQ-NEOVIM-001 to REQ-NEOVIM-002 (2 req) | Ubuntu, Arch, macOS | ✅ Complete |
-| terminal_config | Individual | REQ-TERMINAL-001 to REQ-TERMINAL-002 (2 req) | Ubuntu, Arch | ✅ Complete |
-
-**Total SRD Requirements to Test: 89**
-
-### 3.2 Integration Test Coverage
-
-| Integration Scenario | Requirements Covered | Platform | Status |
-|---------------------|---------------------|----------|--------|
-| System Configuration Workflow | os_configuration + manage_packages + manage_security_services | Ubuntu, Arch | ✅ Complete |
-| User Environment Setup | configure_user + dev environments (nodejs/rust/go/neovim) | Ubuntu, Arch, macOS | 🔄 Planned |
-| Package Management Combinations | manage_packages + manage_snap_packages + manage_flatpak | Ubuntu, Arch | ✅ Complete |
-| Discovery Validation | All roles + discovery role validation | Ubuntu, Arch | ✅ Complete |
-
-### 3.3 Container Test Limitations
-
-**Container Skip Tags (for roles with container limitations):**
-- `skip-tags: hostname` - Hostname changes not supported
-- `skip-tags: docker-compose` - Docker compose functionality
-- `skip-tags: terminal-config` - Terminal emulator configuration
-- `skip-tags: systemd` - Systemd service management
-
----
-
-## 4. Test Environment Requirements
-
-### 4.1 Development Environment
-
-**TEST-REQ-007**: Local development environment SHALL support full test execution
+**Local Testing Requirements**
 
 **Requirements**:
 - Ansible 2.17+ with molecule support
@@ -229,9 +352,9 @@ molecule converge  # Must work without errors
 molecule test     # Must pass completely
 ```
 
-### 4.2 CI Environment
+### 3.2 CI Environment
 
-**TEST-REQ-008**: CI environment SHALL provide isolated, reproducible test execution
+**CI Pipeline Requirements**
 
 **Requirements**:
 - Ubuntu latest runners with Docker support
@@ -254,9 +377,9 @@ strategy:
       - test-minimal
 ```
 
-### 4.3 VM Test Environment
+### 3.3 VM Test Environment
 
-**TEST-REQ-009**: VM testing SHALL provide realistic deployment environments
+**VM Infrastructure Requirements**
 
 **Infrastructure Requirements**:
 - OpenTofu/Terraform for IaC management
@@ -289,9 +412,9 @@ test_users:
 
 ---
 
-## 5. Test Execution
+## 4. Test Execution
 
-### 5.1 Local Development Workflow
+### 4.1 Local Development Workflow
 
 **Standard Development Testing**:
 ```bash
@@ -311,7 +434,7 @@ pre-commit run --all-files
 
 **Critical Rule**: `molecule test` failure = commit blocked
 
-### 5.2 CI Pipeline Stages
+### 4.2 CI Pipeline Stages
 
 **Stage 1: Parallel Role Testing**
 ```yaml
@@ -345,7 +468,7 @@ jobs:
         run: cd molecule/test-discovery && molecule test
 ```
 
-### 5.3 VM Test Procedures
+### 4.3 VM Test Procedures
 
 **Phase I: Infrastructure Provisioning**
 ```bash
@@ -380,7 +503,7 @@ ansible-playbook -i inventory.ini \
 - All firewall rules applied correctly
 - All security hardening measures active
 
-### 5.4 Test Data Management
+### 4.4 Test Data Management
 
 **Test Scenarios**:
 - `confidence-test.yml` - Basic functionality validation
@@ -393,9 +516,9 @@ ansible-playbook -i inventory.ini \
 - Test artifacts preserved for 7 days
 - Failed test logs captured and stored
 
-### 5.5 Performance and Quality Metrics
+## 5. Quality Management
 
-**TEST-REQ-010**: Test execution SHALL meet performance benchmarks
+### 5.1 Performance Metrics
 
 **Performance Targets**:
 - Individual role tests: < 5 minutes each
@@ -413,16 +536,264 @@ ansible-playbook -i inventory.ini \
 - Flaky test identification and resolution
 - Coverage gap analysis and remediation
 
+### 5.2 Failure Classification
+
+**Critical Failures (Block v1.2.0 Release)**:
+```yaml
+criteria:
+  - User account creation/deletion failures
+  - Package installation failures on supported platforms
+  - Security misconfigurations (firewall, sudo, SSH)
+  - Data loss scenarios
+  - Role execution failures
+action: MUST FIX before any release
+examples:
+  - "REQ-CU-001: User creation fails on Ubuntu"
+  - "REQ-MP-007: Core packages fail to install"
+  - "REQ-SS-001: Firewall rules not applied"
+```
+
+**Major Failures (Fix in Next Sprint)**:
+```yaml
+criteria:
+  - Platform-specific edge cases
+  - Non-essential service failures
+  - Performance degradation >10%
+  - Integration test failures (if role tests pass)
+action: Document in known issues, fix in v1.2.1
+examples:
+  - "REQ-OS-008: NTP sync fails on specific cloud provider"
+  - "REQ-CU-011: Terminal config fails for obscure terminal"
+  - "Integration test timeout on slow systems"
+```
+
+**Minor Failures (Document as Known Issues)**:
+```yaml
+criteria:
+  - Cosmetic issues
+  - Non-blocking warnings
+  - Performance degradation <10%
+  - Test-only issues (not affecting production)
+action: Document in release notes, fix when convenient
+examples:
+  - "Deprecation warnings from Ansible modules"
+  - "Test cleanup leaves temporary files"
+  - "Idempotency warning on second run"
+```
+
+### 5.3 Failure Deferral Process
+
+**Decision Tree for Test Failures**:
+```
+Test Failure Detected
+    ├── Is it reproducible?
+    │   ├── No → Mark as flaky, investigate infrastructure
+    │   └── Yes → Continue classification
+    │
+    ├── Does it affect production code?
+    │   ├── No → Minor (test-only issue)
+    │   └── Yes → Continue classification
+    │
+    ├── Does it break core functionality?
+    │   ├── Yes → Critical (must fix)
+    │   └── No → Continue classification
+    │
+    ├── Is it platform-specific?
+    │   ├── Yes, affects primary platform → Major
+    │   └── Yes, affects edge platform → Minor
+    │
+    └── Default → Major (investigate further)
+```
+
+**Deferral Documentation Requirements**:
+```yaml
+# Each deferred failure must have:
+failure_record:
+  id: "FAIL-2025-001"
+  requirement: "REQ-OS-028"
+  description: "Keyboard layout fails on macOS 14+"
+  classification: "major"
+  discovered: "2025-09-22"
+  environment: "macOS 14.5, Ansible 2.17"
+
+  reproduction_steps:
+    - "Set macos.keyboard.layout: 'dvorak'"
+    - "Run configure_user role"
+    - "Observe failure in osx_defaults module"
+
+  workaround: "Manually set keyboard layout post-deployment"
+
+  fix_plan:
+    target_version: "v1.2.1"
+    approach: "Update osx_defaults parameters for macOS 14"
+    assigned_to: "TBD"
+
+  impact_assessment:
+    users_affected: "~5% (macOS users with non-US keyboards)"
+    severity: "medium"
+    business_impact: "low"
+```
+
+### 5.4 Known Issues Tracking
+
+**Location**: `docs/KNOWN_ISSUES.md`
+
+**Format**:
+```markdown
+## Known Issues - v1.2.0
+
+### Critical Issues
+None - all critical issues resolved before release
+
+### Major Issues
+- **FAIL-2025-001**: macOS keyboard layout configuration
+  - Impact: macOS 14+ users
+  - Workaround: Manual configuration
+  - Fix target: v1.2.1
+
+### Minor Issues
+- **FAIL-2025-002**: Deprecation warning in community.general 7.x
+  - Impact: Log noise only
+  - Workaround: Suppress warnings
+  - Fix target: v1.3.0
+```
+
+### 5.5 Test Flakiness Management
+
+**Flaky Test Handling**:
+```yaml
+flaky_test_policy:
+  detection:
+    - Test passes/fails inconsistently
+    - No code changes between runs
+    threshold: "Fails >1 time in 10 runs"
+
+  response:
+    immediate:
+      - Add retry mechanism (max 3 attempts)
+      - Increase timeouts if timing-related
+      - Add wait conditions if race condition
+
+    investigation:
+      - Identify root cause (timing, resources, external deps)
+      - Document in test comments
+      - Track pattern across multiple tests
+
+    resolution:
+      - Fix root cause if possible
+      - Move to VM-only testing if container issue
+      - Defer to manual testing if unfixable
+```
+
 ---
 
-## Test Requirements Summary
+## 6. Implementation Roadmap
 
-**Total Test Requirements: 10**
-- Development testing: TEST-REQ-001, TEST-REQ-002
-- CI/CD testing: TEST-REQ-003, TEST-REQ-004
-- VM testing: TEST-REQ-005, TEST-REQ-006
-- Environment setup: TEST-REQ-007, TEST-REQ-008, TEST-REQ-009
-- Performance: TEST-REQ-010
+### 6.1 Phase 1: Foundation (Week 1-2) - CURRENT
+
+**Priority: Fix existing test gaps**
+
+| Task | SRD Requirements | Status | Blocker |
+|------|------------------|--------|---------|
+| Fix configure_user role tests | REQ-CU-001 to REQ-CU-013 | 🔄 In Progress | None |
+| Update os_configuration tests for new requirements | REQ-OS-001 to REQ-OS-008 | 🔄 Planned | None |
+| Add test scenario files | Test scenarios | 🔄 Planned | None |
+| Create verify.yml templates | All roles | 🔄 Planned | None |
+
+**Exit Criteria**:
+- All existing role tests pass with new SRD requirements
+- Test scenario files created and validated
+- CI pipeline green
+
+### 6.2 Phase 2: Coverage Expansion (Week 3-4)
+
+**Priority: Achieve 100% container-testable coverage**
+
+| Task | SRD Requirements | Dependencies |
+|------|------------------|--------------|
+| Add missing manage_packages tests | REQ-MP-001 to REQ-MP-012 | Phase 1 complete |
+| Add manage_security_services tests | REQ-SS-001 to REQ-SS-007 | Phase 1 complete |
+| Implement edge case scenarios | Test scenarios | Test scenarios ready |
+| Integration test updates | Integration testing | Role tests complete |
+
+**Exit Criteria**:
+- 100% coverage of container-testable requirements
+- Edge case scenarios implemented
+- Integration tests updated for new requirements
+
+### 6.3 Phase 3: VM Testing Infrastructure (Week 5-6)
+
+**Priority: Enable comprehensive real-world testing**
+
+| Task | Requirements | Dependencies |
+|------|--------------|--------------|
+| Setup OpenTofu/libvirt infrastructure | VM testing | Infrastructure access |
+| Create VM test playbooks | VM testing | Terraform ready |
+| Implement validation playbook | Discovery role | VM infrastructure |
+| Test all VM-only requirements | See Requirement Validation Plan | VMs operational |
+
+**Exit Criteria**:
+- VM infrastructure operational
+- All VM-only requirements tested
+- Validation against discovery working
+
+### 6.4 Phase 4: Platform Expansion (Week 7-8)
+
+**Priority: Complete platform matrix**
+
+| Task | Platform | Requirements | Status |
+|------|----------|--------------|--------|
+| Ubuntu 22.04 complete testing | Primary | All Ubuntu-specific | 🔄 Partial |
+| Ubuntu 24.04 testing | Primary | All Ubuntu-specific | ❌ Not started |
+| Arch Linux testing | Secondary | All Arch-specific | 🔄 Partial |
+| macOS testing (deferred) | Future | REQ-OS-009 to REQ-OS-028 | ⏸️ Deferred |
+
+**Exit Criteria**:
+- All primary platforms fully tested
+- Platform-specific issues documented
+- Known issues tracked for v1.2.1
+
+### 6.5 Phase 5: Release Preparation (Week 9-10)
+
+**Priority: Production readiness**
+
+| Task | Deliverable | Status |
+|------|-------------|--------|
+| Performance optimization | <15min CI pipeline | ❌ Not started |
+| Documentation updates | Updated README, CHANGELOG | ❌ Not started |
+| Known issues compilation | KNOWN_ISSUES.md | ❌ Not started |
+| Release testing | Full suite on all platforms | ❌ Not started |
+
+**Exit Criteria**:
+- All critical issues resolved
+- Performance targets met
+- Documentation complete
+- v1.2.0 tagged and released
+
+### 6.6 Implementation Dependencies
+
+```mermaid
+graph TD
+    A[Phase 1: Foundation] --> B[Phase 2: Coverage]
+    B --> C[Phase 3: VM Testing]
+    B --> D[Phase 4: Platform Testing]
+    C --> E[Phase 5: Release]
+    D --> E
+```
+
+### 6.7 Risk Mitigation
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| VM infrastructure delays | High | Start with cloud providers as backup |
+| macOS testing complexity | Medium | Defer to v1.3.0 if needed |
+| Test flakiness | High | Implement retry mechanism early |
+| CI performance | Medium | Parallelize aggressively |
+| configure_user complexity | High | Prioritize this role first |
+
+---
+
+## Summary
 
 **Coverage Targets**:
 - 89 SRD requirements validated through testing
@@ -432,10 +803,11 @@ ansible-playbook -i inventory.ini \
 
 **Success Criteria**:
 - All SRD requirements testable and tested
-- Zero tolerance for test failures in main branch
-- Complete platform matrix coverage
+- Zero tolerance for critical failures in main branch
+- Complete platform matrix coverage (minus macOS)
 - Automated CI/CD validation pipeline
+- Known issues documented and tracked
 
 ---
 
-*This document provides the definitive testing strategy for wolskies.infrastructure collection v1.2.0. All implementation and testing activities should align with these requirements.*
+*This document provides the testing strategy and implementation plan for wolskies.infrastructure collection v1.2.0. Detailed requirement validation is defined in the separate Requirement Validation Plan document.*

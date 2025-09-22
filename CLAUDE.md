@@ -2,16 +2,18 @@
 
 Project guidance for Claude Code when working with the `wolskies.infrastructure` Ansible Collection.
 
-## Key Principles
+## Software Design Documentation
+
+**Primary Reference**: Software design, requirements, and architecture are documented in `/docs/SOFTWARE_REQUIREMENTS_DOCUMENT.md`
+
+## Key Development Principles
 
 **Target Users**: Moderately experienced - no excessive warnings or defensive programming
-**Supported OS**: Ubuntu 22+, Arch Linux, macOS
 **Philosophy**: Use existing modules/roles over custom implementations
 
 - **Comments**: Only for non-standard implementations, not obvious functionality
 - **Module preference**: Use existing ansible.builtin/community.general over custom code
 - **Command usage**: `ansible.builtin.command` as last resort, `ansible.builtin.shell` requires explicit permission
-- **Repository management**: ALWAYS use `ansible.builtin.deb822_repository` (apt_repository is deprecated and will fail)
 
 ## Critical Rules
 
@@ -217,3 +219,38 @@ This approach provides **true end-to-end validation** on bare cloud images acros
 **Container limits**: Use `skip-tags: terminal-config,hostname,docker-compose` for container tests
 **Fresh systems**: Always use `update_cache: true` for apt tasks
 **deb822_repository**: Requires `python3-debian` package prerequisite
+
+## SRD and Requirements Best Practices
+
+### Writing Good Requirements
+1. **Numbered requirements must be testable** - If you can't test it, make it a standard/guideline
+2. **One requirement per number** - Don't combine multiple testable concepts
+3. **Separate requirements from implementation** - Requirements state capabilities ("SHALL be capable of..."), implementation documents technical approach
+4. **Eliminate redundancy** - Requirements that test the same thing should be consolidated
+5. **Use specific, definitive descriptions** - Include format examples, valid ranges, concrete values
+
+### Role Documentation Pattern
+For each feature in a role:
+- **REQ-XX-XXX**: State the capability requirement ("The system SHALL be capable of...")
+- **Implementation**: Document the technical approach (modules, variables, conditions)
+
+### Requirements vs Standards
+- **Requirements (REQ-XXX-NNN)**: Testable, verifiable, mandatory
+- **Standards**: Coding guidelines, best practices, implementation guidance
+
+### Variable Interface Documentation
+- **Consistent table format** throughout - don't mix tables and YAML schemas
+- **Complete schemas** for complex objects (users, packages, firewall rules, etc.)
+- **Definitive descriptions** with examples and constraints
+- **Master interface** covers ALL collection variables for interoperability
+
+### Lessons Learned
+- External dependencies are implementation details, not collection requirements
+- Idempotency and "tasks report changed only when changes occur" are the same testable concept
+- Variable naming conventions are standards, not requirements
+- Galaxy compliance should reference official documentation and allow documented exceptions
+- **Each feature gets its own section** - Don't group related but distinct functionality (timezone, locale, language each need separate sections)
+- **Specify Ansible modules in requirements** - "SHALL set hostname using ansible.builtin.hostname" is more testable than "SHALL set hostname"
+- **Delete guidance masquerading as requirements** - Role descriptions and multi-function summaries aren't testable
+- **Clean up legacy before release** - No need to document deprecated functionality in v1.2.0 SRD if not yet released
+- **Focus on outcomes AND implementation** - Requirements should specify both what should happen and which module to use
