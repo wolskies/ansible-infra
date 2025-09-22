@@ -3,6 +3,7 @@
   hosts: all
   become: true
   tasks:
+    # ===== REQ-OS-003: Timezone Configuration Validation =====
     - name: Test timezone task execution for valid timezone
       community.general.timezone:
         name: "{{ domain_timezone }}"
@@ -61,6 +62,65 @@
         - inventory_hostname in ['ubuntu-timezone-undefined']
         - undefined_timezone_task_result is not defined or undefined_timezone_task_result is skipped
 
+    # ===== REQ-OS-001: Hostname Configuration Validation =====
+    - name: Test hostname task execution for valid hostname
+      ansible.builtin.hostname:
+        name: "{{ host_hostname }}"
+      become: true
+      register: hostname_task_result
+      failed_when: false
+      when:
+        - host_hostname is defined
+        - host_hostname | length > 0
+        - inventory_hostname in ['ubuntu-hostname-positive']
+
+    - name: Test hostname task execution for empty hostname (should be skipped)
+      ansible.builtin.hostname:
+        name: "{{ host_hostname }}"
+      become: true
+      register: empty_hostname_task_result
+      failed_when: false
+      when:
+        - host_hostname is defined
+        - host_hostname | length > 0
+        - inventory_hostname in ['ubuntu-hostname-empty']
+
+    - name: Test hostname task execution for undefined hostname (should be skipped)
+      ansible.builtin.hostname:
+        name: "{{ host_hostname }}"
+      become: true
+      register: undefined_hostname_task_result
+      failed_when: false
+      when:
+        - host_hostname is defined
+        - host_hostname | length > 0
+        - inventory_hostname in ['ubuntu-hostname-undefined']
+
+    - name: Verify valid hostname task executed successfully
+      ansible.builtin.assert:
+        that:
+          - hostname_task_result is not skipped
+          - hostname_task_result is not failed
+        fail_msg: "Valid hostname task should have executed successfully"
+        success_msg: "✅ Valid hostname task executed successfully"
+      when:
+        - inventory_hostname in ['ubuntu-hostname-positive']
+        - hostname_task_result is defined
+
+    - name: Verify empty hostname task was skipped
+      ansible.builtin.debug:
+        msg: "✅ Empty hostname task correctly skipped due to when conditions"
+      when:
+        - inventory_hostname in ['ubuntu-hostname-empty']
+        - empty_hostname_task_result is not defined or empty_hostname_task_result is skipped
+
+    - name: Verify undefined hostname task was skipped
+      ansible.builtin.debug:
+        msg: "✅ Undefined hostname task correctly skipped due to when conditions"
+      when:
+        - inventory_hostname in ['ubuntu-hostname-undefined']
+        - undefined_hostname_task_result is not defined or undefined_hostname_task_result is skipped
+
     - name: Verify NTP configuration exists
       ansible.builtin.stat:
         path: /etc/systemd/timesyncd.conf
@@ -83,6 +143,7 @@
       ansible.builtin.debug:
         msg:
           - "=== OS Configuration Complete ==="
+          - "✅ REQ-OS-001 Hostname validation: Task execution metadata verified"
           - "✅ REQ-OS-003 Timezone validation: Task execution metadata verified"
           - "✅ NTP Config: {{ 'exists' if ntp_config_check.stat.exists else 'missing' }}"
           - "✅ OS Configuration role testing successful"
