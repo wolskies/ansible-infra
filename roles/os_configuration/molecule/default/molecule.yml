@@ -121,6 +121,56 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
+  # REQ-OS-006: System locale configuration scenarios
+  - name: ubuntu-locale-positive
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-locale-empty
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-locale-undefined
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  # REQ-OS-008: Basic time synchronization scenarios
+  - name: ubuntu-ntp-enabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-ntp-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-ntp-undefined
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -214,5 +264,32 @@ provisioner:
         host_security:
           ssh_hardening_enabled: false # REQ-OS-005 negative test
         domain_timezone: "UTC"
+      # REQ-OS-006: System locale configuration test scenarios
+      ubuntu-locale-positive:
+        domain_locale: "en_US.UTF-8" # REQ-OS-006 positive test
+        domain_timezone: "UTC"
+      ubuntu-locale-empty:
+        domain_locale: "" # REQ-OS-006 negative test - empty locale
+        domain_timezone: "UTC"
+      ubuntu-locale-undefined:
+        domain_timezone: "UTC"
+        # domain_locale intentionally undefined - REQ-OS-006 negative test
+      # REQ-OS-008: Basic time synchronization test scenarios
+      ubuntu-ntp-enabled:
+        domain_ntp:
+          enabled: true
+          servers:
+            - "0.pool.ntp.org"
+            - "1.pool.ntp.org"
+        domain_timezone: "UTC"
+      ubuntu-ntp-disabled:
+        domain_ntp:
+          enabled: false
+          servers:
+            - "pool.ntp.org"
+        domain_timezone: "UTC"
+      ubuntu-ntp-undefined:
+        domain_timezone: "UTC"
+        # domain_ntp intentionally undefined - REQ-OS-008 negative test
 verifier:
   name: ansible

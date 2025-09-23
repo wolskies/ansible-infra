@@ -69,12 +69,25 @@
 
 - name: Configure NTP time synchronization
   block:
-    - name: Check if systemd-timesyncd service exists
+    - name: Ensure systemd-timesyncd package is installed
+      ansible.builtin.package:
+        name: systemd-timesyncd
+        state: present
+      become: true
+
+    - name: Ensure systemd-timesyncd service is enabled and started
       ansible.builtin.systemd:
         name: systemd-timesyncd
-      register: timesyncd_service_check
+        enabled: true
+        state: started
       become: true
       failed_when: false
+      when: ansible_virtualization_type != "docker"
+
+    - name: Document systemd-timesyncd service limitation in containers
+      ansible.builtin.debug:
+        msg: "⚠️ systemd-timesyncd service management skipped in container - will be validated in VM testing"
+      when: ansible_virtualization_type == "docker"
 
     - name: Configure systemd-timesyncd
       ansible.builtin.template:
