@@ -4,8 +4,8 @@ dependency:
 driver:
   name: docker
 platforms:
-  # REQ-OS-003: Timezone configuration scenarios
-  - name: ubuntu-timezone-positive
+  # Consolidated test containers - comprehensive coverage with fewer resources
+  - name: ubuntu-full-positive
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -13,7 +13,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: ubuntu-timezone-empty
+  - name: ubuntu-partial-enabled
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -21,7 +21,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: ubuntu-timezone-undefined
+  - name: ubuntu-negative-empty
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -29,8 +29,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  # REQ-OS-001: Hostname configuration scenarios
-  - name: ubuntu-hostname-positive
+  - name: ubuntu-negative-undefined
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -38,157 +37,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: ubuntu-hostname-empty
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-hostname-undefined
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  # REQ-OS-002: /etc/hosts update scenarios
-  - name: ubuntu-hosts-positive
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-hosts-disabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-hosts-no-domain
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-hosts-no-hostname
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  # REQ-OS-004: Security hardening role delegation scenarios
-  - name: ubuntu-security-enabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-security-disabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  # REQ-OS-005: SSH hardening role delegation scenarios
-  - name: ubuntu-ssh-enabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-ssh-disabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  # REQ-OS-006: System locale configuration scenarios
-  - name: ubuntu-locale-positive
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-locale-empty
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-locale-undefined
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  # REQ-OS-008: Basic time synchronization scenarios
-  - name: ubuntu-ntp-enabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-ntp-disabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-ntp-undefined
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  # REQ-OS-009: Systemd journal configuration scenarios
-  - name: ubuntu-journal-enabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-journal-disabled
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-  - name: ubuntu-journal-undefined
+  - name: ubuntu-edge-cases
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -224,113 +73,124 @@ provisioner:
             - 0.pool.ntp.org
             - 1.pool.ntp.org
     host_vars:
-      # REQ-OS-003: Timezone configuration test scenarios
-      ubuntu-timezone-positive:
-        host_hostname: "ubuntu-timezone-positive"
-        host_update_hosts: false
-        domain_timezone: "America/New_York" # REQ-OS-003 positive test
-      ubuntu-timezone-empty:
-        host_hostname: "ubuntu-timezone-empty"
-        host_update_hosts: false
-        domain_timezone: "" # REQ-OS-003 negative test - empty timezone
-      ubuntu-timezone-undefined:
-        host_hostname: "ubuntu-timezone-undefined"
-        host_update_hosts: false
-        # domain_timezone intentionally undefined - REQ-OS-003 negative test
-      # REQ-OS-001: Hostname configuration test scenarios
-      ubuntu-hostname-positive:
-        host_hostname: "test-hostname" # REQ-OS-001 positive test
-        host_update_hosts: false
-        domain_timezone: "UTC"
-      ubuntu-hostname-empty:
-        host_hostname: "" # REQ-OS-001 negative test - empty hostname
-        host_update_hosts: false
-        domain_timezone: "UTC"
-      ubuntu-hostname-undefined:
-        host_update_hosts: false
-        domain_timezone: "UTC"
-        # host_hostname intentionally undefined - REQ-OS-001 negative test
-      # REQ-OS-002: /etc/hosts update test scenarios
-      ubuntu-hosts-positive:
-        host_hostname: "testhost" # REQ-OS-002 positive test
-        domain_name: "example.com"
+      # Consolidated test containers with comprehensive requirement coverage
+      ubuntu-full-positive:
+        # REQ-OS-001: Hostname configuration - positive test
+        host_hostname: "test-hostname-full"
         host_update_hosts: true
-        domain_timezone: "UTC"
-      ubuntu-hosts-disabled:
-        host_hostname: "testhost" # REQ-OS-002 negative test - disabled
-        domain_name: "example.com"
-        host_update_hosts: false
-        domain_timezone: "UTC"
-      ubuntu-hosts-no-domain:
-        host_hostname: "testhost" # REQ-OS-002 negative test - missing domain
-        host_update_hosts: true
-        domain_timezone: "UTC"
-        # domain_name intentionally undefined
-      ubuntu-hosts-no-hostname:
-        domain_name: "example.com" # REQ-OS-002 negative test - missing hostname
-        host_update_hosts: true
-        domain_timezone: "UTC"
-        # host_hostname intentionally undefined
-      # REQ-OS-004: Security hardening role delegation test scenarios
-      ubuntu-security-enabled:
+        # REQ-OS-002: /etc/hosts update - positive test
+        domain_name: "test.example.com"
+        # REQ-OS-003: Timezone configuration - positive test
+        domain_timezone: "America/New_York"
+        # REQ-OS-004: Security hardening - positive test
         host_security:
-          hardening_enabled: true # REQ-OS-004 positive test
-        domain_timezone: "UTC"
-      ubuntu-security-disabled:
-        host_security:
-          hardening_enabled: false # REQ-OS-004 negative test
-        domain_timezone: "UTC"
-      # REQ-OS-005: SSH hardening role delegation test scenarios
-      ubuntu-ssh-enabled:
-        host_security:
-          ssh_hardening_enabled: true # REQ-OS-005 positive test
-        domain_timezone: "UTC"
-      ubuntu-ssh-disabled:
-        host_security:
-          ssh_hardening_enabled: false # REQ-OS-005 negative test
-        domain_timezone: "UTC"
-      # REQ-OS-006: System locale configuration test scenarios
-      ubuntu-locale-positive:
-        domain_locale: "en_US.UTF-8" # REQ-OS-006 positive test
-        domain_timezone: "UTC"
-      ubuntu-locale-empty:
-        domain_locale: "" # REQ-OS-006 negative test - empty locale
-        domain_timezone: "UTC"
-      ubuntu-locale-undefined:
-        domain_timezone: "UTC"
-        # domain_locale intentionally undefined - REQ-OS-006 negative test
-      # REQ-OS-008: Basic time synchronization test scenarios
-      ubuntu-ntp-enabled:
+          hardening_enabled: true
+        # REQ-OS-005: SSH hardening - positive test (enabled in ubuntu-partial-enabled)
+        # REQ-OS-006: System locale - positive test
+        domain_locale: "en_US.UTF-8"
+        # REQ-OS-008: NTP synchronization - positive test
         domain_ntp:
           enabled: true
           servers:
             - "0.pool.ntp.org"
             - "1.pool.ntp.org"
-        domain_timezone: "UTC"
-      ubuntu-ntp-disabled:
-        domain_ntp:
-          enabled: false
-          servers:
-            - "pool.ntp.org"
-        domain_timezone: "UTC"
-      ubuntu-ntp-undefined:
-        domain_timezone: "UTC"
-        # domain_ntp intentionally undefined - REQ-OS-008 negative test
-      # REQ-OS-009: Systemd journal configuration test scenarios
-      ubuntu-journal-enabled:
+        # REQ-OS-009: Journal configuration - positive test
         journal:
           configure: true
           max_size: "100M"
           max_retention: "7d"
+      ubuntu-partial-enabled:
+        # REQ-OS-001: Hostname - positive test
+        host_hostname: "partial-test"
+        host_update_hosts: false
+        # REQ-OS-002: /etc/hosts - disabled test
+        domain_name: "example.com"
+        # REQ-OS-003: Timezone - positive test
         domain_timezone: "UTC"
-      ubuntu-journal-disabled:
+        # REQ-OS-004: Security hardening - disabled test
+        host_security:
+          hardening_enabled: false
+          # REQ-OS-005: SSH hardening - positive test
+          ssh_hardening_enabled: true
+        # REQ-OS-006: Locale - positive test
+        domain_locale: "en_US.UTF-8"
+        # REQ-OS-008: NTP - disabled test
+        domain_ntp:
+          enabled: false
+          servers:
+            - "pool.ntp.org"
+        # REQ-OS-009: Journal - disabled test
         journal:
           configure: false
-          max_size: "100M"
-          max_retention: "7d"
-        domain_timezone: "UTC"
-      ubuntu-journal-undefined:
-        domain_timezone: "UTC"
-        # journal intentionally undefined - REQ-OS-009 negative test
+          max_size: "50M"
+          max_retention: "3d"
+      ubuntu-negative-empty:
+        # REQ-OS-001: Hostname - empty value test
+        host_hostname: ""
+        host_update_hosts: false
+        # REQ-OS-002: /etc/hosts - no domain test
+        # domain_name intentionally undefined
+        # REQ-OS-003: Timezone - empty value test
+        domain_timezone: ""
+        # REQ-OS-004: Security hardening - disabled test
+        host_security:
+          hardening_enabled: false
+          # REQ-OS-005: SSH hardening - disabled test
+          ssh_hardening_enabled: false
+        # REQ-OS-006: Locale - empty value test
+        domain_locale: ""
+        # REQ-OS-008: NTP - enabled but functional test
+        domain_ntp:
+          enabled: true
+          servers:
+            - "2.pool.ntp.org"
+        # REQ-OS-009: Journal - enabled test
+        journal:
+          configure: true
+          max_size: "200M"
+          max_retention: "14d"
+      ubuntu-negative-undefined:
+        # REQ-OS-001: Hostname - undefined test
+        host_update_hosts: false
+        # host_hostname intentionally undefined
+        # REQ-OS-002: /etc/hosts - no hostname test
+        domain_name: "undefined.example.com"
+        # REQ-OS-003: Timezone - undefined test
+        # domain_timezone intentionally undefined
+        # REQ-OS-004 & REQ-OS-005: Security - default behavior test
+        # host_security intentionally undefined
+        # REQ-OS-006: Locale - undefined test
+        # domain_locale intentionally undefined
+        # REQ-OS-008: NTP - undefined test
+        # domain_ntp intentionally undefined
+        # REQ-OS-009: Journal - undefined test
+        # journal intentionally undefined
+      ubuntu-edge-cases:
+        # REQ-OS-001: Hostname - special characters test
+        host_hostname: "edge-test-123"
+        host_update_hosts: true
+        # REQ-OS-002: /etc/hosts - complex domain test
+        domain_name: "complex.multi.level.example.org"
+        # REQ-OS-003: Timezone - complex timezone test
+        domain_timezone: "Europe/Amsterdam"
+        # REQ-OS-004: Security - enabled with edge case
+        host_security:
+          hardening_enabled: true
+          # REQ-OS-005: SSH hardening - disabled edge case
+          ssh_hardening_enabled: false
+        # REQ-OS-006: Locale - alternative locale test
+        domain_locale: "de_DE.UTF-8"
+        # REQ-OS-008: NTP - multiple servers test
+        domain_ntp:
+          enabled: true
+          servers:
+            - "3.pool.ntp.org"
+            - "time.google.com"
+            - "time.cloudflare.com"
+        # REQ-OS-009: Journal - large values test
+        journal:
+          configure: true
+          max_size: "1G"
+          max_retention: "30d"
 verifier:
   name: ansible
