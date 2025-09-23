@@ -401,6 +401,32 @@ host_vars:
 
 ---
 
+## Scaling Strategy for Remaining Requirements
+
+**Current Implementation**: Individual requirement testing with dedicated scenarios
+- REQ-OS-001 to REQ-OS-004: 12 containers total (3+4+3+2 scenarios)
+- Pattern: Detailed scenario coverage for each requirement
+
+**Future Consolidation Plan**: Shared container strategy for remaining requirements
+- **Target**: 15-20 containers total for all 28 requirements (instead of ~84)
+- **Approach**: Group requirements by conditional logic patterns
+- **Shared Containers**:
+  ```yaml
+  ubuntu-full-positive:     # Multiple requirements enabled
+  ubuntu-security-disabled: # Security off, basic features on
+  ubuntu-minimal:          # Most features disabled
+  ubuntu-edge-cases:       # Complex variable combinations
+  ```
+
+**Implementation Strategy**:
+1. **Phase 1**: Continue individual requirement testing (REQ-OS-005+) to understand patterns
+2. **Phase 2**: Consolidate into shared containers once patterns are clear
+3. **Phase 3**: Document final shared container design in validation plan
+
+**Benefits**: Maintains thorough validation while scaling efficiently across the full role.
+
+---
+
 ## Linux-Specific Requirements (REQ-OS-004 to REQ-OS-021)
 
 ### REQ-OS-004: OS Security Hardening
@@ -439,34 +465,68 @@ verify:
 ### REQ-OS-005: SSH Security Hardening
 
 **Requirement**: The system SHALL be capable of applying SSH security hardening on Linux systems
-**Implementation**: Uses `devsec.hardening.ssh_hardening` role when `host_security.ssh_hardening_enabled` is true
+**Implementation**: Uses `ansible.builtin.include_role` to call `devsec.hardening.ssh_hardening` when SSH hardening is enabled
+**Production Code**: `roles/os_configuration/tasks/configure-Linux.yml` - "Apply SSH security hardening (Linux)" task
 
-**Positive Validation**:
+#### Validation Test Scenarios
+
+**Scenario 1: Positive Validation - SSH Hardening Enabled**
 ```yaml
-test_case: "Apply SSH hardening"
+test_case: "Call devsec.hardening.ssh_hardening role when enabled"
+platform: ubuntu-ssh-enabled
 input:
   host_security:
     ssh_hardening_enabled: true
-verify:
-  - role_executed: "devsec.hardening.ssh_hardening"
-  - file_contains: "/etc/ssh/sshd_config"
-    pattern: "PermitRootLogin no"
-  - file_contains: "/etc/ssh/sshd_config"
-    pattern: "PasswordAuthentication no"
+expected_task_result:
+  - task_name: "Apply SSH security hardening (Linux)"
+  - execution: included (not skipped)
+  - role_called: devsec.hardening.ssh_hardening
+  - no_failures: true
+success_criteria:
+  - "✅ devsec.hardening.ssh_hardening role inclusion executes when enabled"
 ```
 
-**Negative Validation**:
+**Scenario 2: Negative Validation - SSH Hardening Disabled**
 ```yaml
-test_case: "Skip when SSH hardening disabled"
+test_case: "Skip devsec.hardening.ssh_hardening role when disabled"
+platform: ubuntu-ssh-disabled
 input:
   host_security:
     ssh_hardening_enabled: false
-verify:
-  - role_not_executed: "devsec.hardening.ssh_hardening"
-  - no_changes: true
+expected_task_result:
+  - task_name: "Apply SSH security hardening (Linux)"
+  - execution: skipped=true
+  - skip_reason: "host_security.ssh_hardening_enabled | default(false) evaluates to false"
+  - no_failures: true
+success_criteria:
+  - "✅ devsec.hardening.ssh_hardening role inclusion skipped when disabled"
 ```
 
-**Environment**: VM Only (SSH service required)
+#### Implementation Strategy
+
+**Testing Environment**: Molecule with Docker containers (sufficient for role delegation validation)
+
+**Molecule Platform Configuration**:
+```yaml
+platforms:
+  - name: ubuntu-ssh-enabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-ssh-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+
+host_vars:
+  ubuntu-ssh-enabled:
+    host_security:
+      ssh_hardening_enabled: true
+  ubuntu-ssh-disabled:
+    host_security:
+      ssh_hardening_enabled: false
+```
+
+**Validation Approach**: Task execution metadata validation for `devsec.hardening.ssh_hardening` role inclusion
+**Success Criteria**: Role inclusion behavior (skipped vs executed) - validates OUR conditional logic
+
+**Environment**: Container (Primary) + CI Pipeline
 
 ---
 

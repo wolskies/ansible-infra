@@ -104,6 +104,23 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
+  # REQ-OS-005: SSH hardening role delegation scenarios
+  - name: ubuntu-ssh-enabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-ssh-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -187,6 +204,15 @@ provisioner:
       ubuntu-security-disabled:
         host_security:
           hardening_enabled: false # REQ-OS-004 negative test
+        domain_timezone: "UTC"
+      # REQ-OS-005: SSH hardening role delegation test scenarios
+      ubuntu-ssh-enabled:
+        host_security:
+          ssh_hardening_enabled: true # REQ-OS-005 positive test
+        domain_timezone: "UTC"
+      ubuntu-ssh-disabled:
+        host_security:
+          ssh_hardening_enabled: false # REQ-OS-005 negative test
         domain_timezone: "UTC"
 verifier:
   name: ansible
