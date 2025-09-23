@@ -41,29 +41,29 @@
   tags:
     - locale
 
-- name: Configure system LANG variable
-  ansible.builtin.lineinfile:
-    path: /etc/default/locale
-    regexp: "^LANG="
-    line: "LANG={{ domain_locale }}"
-    create: true
-  become: true
+- name: Check current system locale
+  ansible.builtin.command:
+    cmd: localectl status
+  register: current_locale_check
+  changed_when: false
+  failed_when: false
   when:
     - domain_locale is defined
     - domain_locale | length > 0
   tags:
     - locale
 
-- name: Configure system language
-  ansible.builtin.lineinfile:
-    path: /etc/default/locale
-    regexp: "^LANGUAGE="
-    line: "LANGUAGE={{ domain_language }}"
-    create: true
+- name: Set system locale using localectl
+  ansible.builtin.command:
+    cmd: localectl set-locale LANG="{{ domain_locale }}"
   become: true
+  register: localectl_result
+  changed_when: true
   when:
-    - domain_language is defined
-    - domain_language | length > 0
+    - domain_locale is defined
+    - domain_locale | length > 0
+    - current_locale_check is defined
+    - ('LANG=' + domain_locale) not in current_locale_check.stdout
   tags:
     - locale
 

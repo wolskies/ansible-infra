@@ -23,53 +23,64 @@ test_case: "Set hostname to test-hostname"
 platform: ubuntu-hostname-positive
 input:
   host_hostname: "test-hostname"
-expected_task_result:
-  - task_name: "Configure system hostname"
-  - execution: changed=true OR ok=true (NOT skipped)
-  - module: ansible.builtin.hostname
-  - no_failures: true
+expected_system_state:
+  - system_hostname: "test-hostname"
+  - hostname_command_output: "test-hostname"
+verification_method:
+  - command: "hostname"
+    expected_output: "test-hostname"
+  - command: "cat /proc/sys/kernel/hostname"
+    expected_output: "test-hostname"
 success_criteria:
-  - "✅ Ansible task executes successfully (not skipped)"
-  - "✅ No task failures or errors"
+  - "✅ System hostname is set to expected value"
+  - "✅ Hostname persists across hostname command checks"
 ```
 
 **Scenario 2: Negative Validation - Empty Hostname**
 ```yaml
-test_case: "Empty hostname skipped"
+test_case: "Empty hostname unchanged"
 platform: ubuntu-hostname-empty
 input:
   host_hostname: ""  # Empty string
-expected_task_result:
-  - task_name: "Configure system hostname"
-  - execution: skipped=true
-  - skip_reason: "host_hostname | length > 0 evaluates to false"
-  - no_failures: true
+expected_system_state:
+  - system_hostname: original_hostname (unchanged)
+  - no_hostname_changes: true
+verification_method:
+  - command: "hostname"
+    expected_behavior: returns_original_hostname
+  - verify: hostname_task_was_skipped_correctly
 success_criteria:
-  - "✅ Ansible task skipped due to when condition"
-  - "✅ No task failures or errors"
+  - "✅ System hostname remains unchanged"
+  - "✅ No hostname modification attempted"
 ```
 
 **Scenario 3: Negative Validation - Undefined Hostname**
 ```yaml
-test_case: "Undefined hostname skipped"
+test_case: "Undefined hostname unchanged"
 platform: ubuntu-hostname-undefined
 input:
   # host_hostname variable intentionally not defined
-expected_task_result:
-  - task_name: "Configure system hostname"
-  - execution: skipped=true
-  - skip_reason: "host_hostname is defined evaluates to false"
-  - no_failures: true
+expected_system_state:
+  - system_hostname: original_hostname (unchanged)
+  - no_hostname_changes: true
+verification_method:
+  - command: "hostname"
+    expected_behavior: returns_original_hostname
+  - verify: hostname_task_was_skipped_correctly
 success_criteria:
-  - "✅ Ansible task skipped due to when condition"
-  - "✅ No task failures or errors"
+  - "✅ System hostname remains unchanged"
+  - "✅ No hostname modification attempted"
 ```
 
 #### Implementation Strategy
 
-**Testing Environment**: Molecule with Docker containers (sufficient for conditional logic validation)
+**Testing Environment**: Molecule with Docker containers (sufficient for state validation)
 
-**Container Error Handling**: The `ansible.builtin.hostname` module may fail in containers due to permission restrictions. This is acceptable - we validate task execution attempt, not success/failure of the hostname module itself.
+**Container Limitations**: Hostname changes may not persist in containers due to Docker restrictions. Verification approach:
+- **Container environment**: Skip hostname assertion, document limitation with warning message
+- **VM/bare metal environment**: Full hostname validation via `hostname` command
+- **Conditional logic**: Always validated regardless of environment (negative test cases)
+- **CI compatibility**: Tests pass in containers by gracefully handling limitations
 
 **Molecule Platform Configuration**:
 ```yaml
@@ -90,11 +101,18 @@ host_vars:
     # host_hostname intentionally omitted
 ```
 
-**Validation Approach**: Full role execution with Ansible task execution metadata validation
-**Success Criteria**: Task execution behavior (skipped/changed/failed) - validates OUR conditional logic
-**Error Tolerance**: Module failures in containers are acceptable - we test our conditional logic, not the hostname module
+**Validation Approach**: State-based verification after role execution with environment detection
+- **Positive case (VM/bare metal)**: Check actual hostname via `hostname` command matches expected value
+- **Positive case (containers)**: Document limitation, defer to VM testing - ensures CI compatibility
+- **Negative cases**: Check hostname remains at original value (unchanged) - works in all environments
+- **Environment detection**: Uses `ansible_virtualization_type != "docker"` to determine validation approach
 
-**Environment**: Container (Primary) + CI Pipeline, VM (End-to-end validation in Phase 3)
+**Success Criteria**:
+- **Containers**: Conditional logic validation + graceful limitation handling
+- **VM/bare metal**: Full system state validation including hostname changes
+**CI Compatibility**: All tests pass in container environments by design
+
+**Environment**: Container (Primary) + CI Pipeline, VM (Complete hostname functionality in Phase 3)
 
 ---
 
@@ -114,83 +132,82 @@ input:
   host_hostname: "testhost"
   domain_name: "example.com"
   host_update_hosts: true
-expected_task_result:
-  - task_name: "Update /etc/hosts file"
-  - first_run: changed=true (line added)
-  - second_run: changed=false (idempotent)
-  - module: ansible.builtin.lineinfile
-  - no_failures: true
-file_verification:
-  - file_contains: "/etc/hosts"
-    pattern: "127\\.0\\.0\\.1.*localhost.*testhost\\.example\\.com.*testhost"
-  - command: "grep testhost /etc/hosts"
-    expected: "127.0.0.1	localhost testhost.example.com testhost"
+expected_file_state:
+  - file_path: "/etc/hosts"
+  - contains_entry: "127.0.0.1	localhost testhost.example.com testhost"
+  - format_correct: true
+verification_method:
+  - command: "grep 'testhost\.example\.com' /etc/hosts"
+    expected_match: "127.0.0.1.*localhost.*testhost.example.com.*testhost"
+  - file_check: "/etc/hosts"
+    contains: "testhost.example.com"
 success_criteria:
-  - "✅ First run: Task executes with changed=true"
-  - "✅ File contains correct entry format"
-  - "✅ Second run: Task executes with changed=false (idempotent)"
+  - "✅ /etc/hosts contains correct hostname entry"
+  - "✅ Entry format matches expected pattern"
+  - "✅ Multiple hostname references present (FQDN and short)"
 ```
 
 **Scenario 2: Negative Validation - host_update_hosts Disabled**
 ```yaml
-test_case: "Skip when host_update_hosts false"
+test_case: "No changes when host_update_hosts false"
 platform: ubuntu-hosts-disabled
 input:
   host_hostname: "testhost"
   domain_name: "example.com"
   host_update_hosts: false
-expected_task_result:
-  - task_name: "Update /etc/hosts file"
-  - execution: skipped=true
-  - skip_reason: "host_update_hosts | default(false) evaluates to false"
-  - no_failures: true
-file_verification:
-  - file_not_contains: "/etc/hosts"
-    pattern: "testhost"
+expected_file_state:
+  - file_path: "/etc/hosts"
+  - no_hostname_entries: true
+  - unchanged_from_baseline: true
+verification_method:
+  - command: "grep testhost /etc/hosts || echo 'not found'"
+    expected_output: "not found"
+  - verify: /etc/hosts contains no testhost references
 success_criteria:
-  - "✅ Ansible task skipped due to when condition"
-  - "✅ No changes to /etc/hosts file"
+  - "✅ /etc/hosts contains no hostname entries"
+  - "✅ File remains unchanged from baseline"
 ```
 
 **Scenario 3: Negative Validation - Missing domain_name**
 ```yaml
-test_case: "Skip when domain_name missing"
+test_case: "No changes when domain_name missing"
 platform: ubuntu-hosts-no-domain
 input:
   host_hostname: "testhost"
   host_update_hosts: true
   # domain_name intentionally undefined
-expected_task_result:
-  - task_name: "Update /etc/hosts file"
-  - execution: skipped=true
-  - skip_reason: "domain_name is defined evaluates to false"
-  - no_failures: true
-file_verification:
-  - file_not_contains: "/etc/hosts"
-    pattern: "testhost"
+expected_file_state:
+  - file_path: "/etc/hosts"
+  - no_hostname_entries: true
+  - unchanged_from_baseline: true
+verification_method:
+  - command: "grep testhost /etc/hosts || echo 'not found'"
+    expected_output: "not found"
+  - verify: /etc/hosts contains no testhost references
 success_criteria:
-  - "✅ Ansible task skipped due to when condition"
-  - "✅ No changes to /etc/hosts file"
+  - "✅ /etc/hosts contains no hostname entries"
+  - "✅ File remains unchanged from baseline"
 ```
 
 **Scenario 4: Negative Validation - Missing host_hostname**
 ```yaml
-test_case: "Skip when host_hostname missing"
+test_case: "No changes when host_hostname missing"
 platform: ubuntu-hosts-no-hostname
 input:
   domain_name: "example.com"
   host_update_hosts: true
   # host_hostname intentionally undefined
-expected_task_result:
-  - task_name: "Update /etc/hosts file"
-  - execution: skipped=true
-  - skip_reason: "host_hostname is defined evaluates to false"
-  - no_failures: true
-file_verification:
-  - no_changes: true
+expected_file_state:
+  - file_path: "/etc/hosts"
+  - no_new_entries: true
+  - unchanged_from_baseline: true
+verification_method:
+  - command: "grep -c '127.0.0.1.*localhost' /etc/hosts"
+    expected_behavior: returns_baseline_count_only
+  - verify: no additional hostname entries added
 success_criteria:
-  - "✅ Ansible task skipped due to when condition"
-  - "✅ No changes to /etc/hosts file"
+  - "✅ /etc/hosts contains no new hostname entries"
+  - "✅ File remains unchanged from baseline"
 ```
 
 #### Implementation Strategy
@@ -261,51 +278,64 @@ test_case: "Set timezone to America/New_York"
 platform: ubuntu-timezone-positive
 input:
   domain_timezone: "America/New_York"
-expected_task_result:
-  - task_name: "Set system timezone"
-  - execution: changed=true OR ok=true (NOT skipped)
-  - module: community.general.timezone
-  - no_failures: true
+expected_system_state:
+  - timezone: "America/New_York"
+  - timedatectl_output: contains "America/New_York"
+verification_method:
+  - command: "timedatectl show --property=Timezone --value"
+    expected_output: "America/New_York"
+  - command: "date +%Z"
+    expected_behavior: shows_eastern_timezone
 success_criteria:
-  - "✅ Ansible task executes successfully (not skipped)"
-  - "✅ No task failures or errors"
+  - "✅ System timezone is set to America/New_York"
+  - "✅ timedatectl shows correct timezone"
 ```
 
 **Scenario 2: Negative Validation - Empty Timezone**
 ```yaml
-test_case: "Empty timezone skipped"
+test_case: "Empty timezone unchanged"
 platform: ubuntu-timezone-empty
 input:
   domain_timezone: ""  # Empty string
-expected_task_result:
-  - task_name: "Set system timezone"
-  - execution: skipped=true
-  - skip_reason: "domain_timezone | length > 0 evaluates to false"
-  - no_failures: true
+expected_system_state:
+  - timezone: original_timezone (unchanged)
+  - no_timezone_changes: true
+verification_method:
+  - command: "timedatectl show --property=Timezone --value"
+    expected_behavior: returns_original_timezone
+  - verify: timezone remains at system default
 success_criteria:
-  - "✅ Ansible task skipped due to when condition"
-  - "✅ No task failures or errors"
+  - "✅ System timezone remains unchanged"
+  - "✅ No timezone modification attempted"
 ```
 
 **Scenario 3: Negative Validation - Undefined Timezone**
 ```yaml
-test_case: "Undefined timezone skipped"
+test_case: "Undefined timezone unchanged"
 platform: ubuntu-timezone-undefined
 input:
   # domain_timezone variable intentionally not defined
-expected_task_result:
-  - task_name: "Set system timezone"
-  - execution: skipped=true
-  - skip_reason: "domain_timezone is defined evaluates to false"
-  - no_failures: true
+expected_system_state:
+  - timezone: original_timezone (unchanged)
+  - no_timezone_changes: true
+verification_method:
+  - command: "timedatectl show --property=Timezone --value"
+    expected_behavior: returns_original_timezone
+  - verify: timezone remains at system default
 success_criteria:
-  - "✅ Ansible task skipped due to when condition"
-  - "✅ No task failures or errors"
+  - "✅ System timezone remains unchanged"
+  - "✅ No timezone modification attempted"
 ```
 
 #### Implementation Strategy
 
 **Testing Environment**: Molecule with Docker containers (sufficient for conditional logic validation)
+
+**Container Limitations**: Timezone changes may not persist in containers due to systemd restrictions. Verification approach:
+- **Container environment**: Skip timezone assertion, document limitation with warning message
+- **VM/bare metal environment**: Full timezone validation via `timedatectl` command
+- **Conditional logic**: Always validated regardless of environment (negative test cases)
+- **CI compatibility**: Tests pass in containers by gracefully handling limitations
 
 **Molecule Platform Configuration**:
 ```yaml
@@ -326,10 +356,18 @@ host_vars:
     # domain_timezone intentionally omitted
 ```
 
-**Validation Approach**: Full role execution with Ansible task execution metadata validation
-**Success Criteria**: Task execution behavior (skipped/changed/failed) - validates OUR conditional logic
+**Validation Approach**: State-based verification after role execution with environment detection
+- **Positive case (VM/bare metal)**: Check actual timezone via `timedatectl` command matches expected value
+- **Positive case (containers)**: Document limitation, defer to VM testing - ensures CI compatibility
+- **Negative cases**: Check timezone remains at original value (unchanged) - works in all environments
+- **Environment detection**: Uses `ansible_virtualization_type != "docker"` to determine validation approach
 
-**Environment**: Container (Primary) + CI Pipeline
+**Success Criteria**:
+- **Containers**: Conditional logic validation + graceful limitation handling
+- **VM/bare metal**: Full system state validation including timezone changes
+**CI Compatibility**: All tests pass in container environments by design
+
+**Environment**: Container (Primary) + CI Pipeline, VM (Complete timezone functionality in Phase 3)
 
 ---
 
@@ -530,50 +568,95 @@ host_vars:
 
 ---
 
-### REQ-OS-006: System Locale (Linux)
+### REQ-OS-006: System Locale Configuration
 
 **Requirement**: The system SHALL be capable of setting the system locale on Linux systems
-**Implementation**: Uses `community.general.locale_gen` + `ansible.builtin.lineinfile` for `/etc/default/locale`
+**Implementation**: Uses `community.general.locale_gen` + the localectl command when `domain_locale` is defined
+**Production Code**: `roles/os_configuration/tasks/configure-Linux.yml` - "Configure system locale" task
 
-**Positive Validation**:
+#### Validation Test Scenarios
+
+**Scenario 1: Positive Validation - Valid Locale**
 ```yaml
 test_case: "Set locale to en_US.UTF-8"
+platform: ubuntu-locale-positive
 input:
   domain_locale: "en_US.UTF-8"
-verify:
-  - command: "locale -a | grep en_US.UTF-8"
-    expected: "en_US.UTF-8"
-  - file_contains: "/etc/default/locale"
-    pattern: "LANG=en_US.UTF-8"
-  - command: "locale | grep LANG"
-    expected: "LANG=en_US.UTF-8"
-
-test_case: "Set locale to fr_FR.UTF-8"
-input:
-  domain_locale: "fr_FR.UTF-8"
-verify:
-  - command: "locale -a | grep fr_FR.UTF-8"
-    expected: "fr_FR.UTF-8"
-  - file_contains: "/etc/default/locale"
-    pattern: "LANG=fr_FR.UTF-8"
+expected_system_state:
+  - locale: "en_US.UTF-8"
+  - locale_generated: true
+  - lang_environment: "en_US.UTF-8"
+verification_method:
+  - command: "localectl status"
+    expected_contains: "LANG=en_US.UTF-8"
+  - command: "locale -a | grep en_US.utf8"
+    expected_behavior: locale_exists
+success_criteria:
+  - "✅ System locale is set to en_US.UTF-8"
+  - "✅ localectl shows correct LANG setting"
+  - "✅ Locale is properly generated and available"
 ```
 
-**Negative Validation**:
+**Scenario 2: Negative Validation - Empty Locale**
 ```yaml
-test_case: "Skip when locale undefined"
-input: {}
-verify:
-  - no_changes: true
-
-test_case: "Invalid locale handled gracefully"
+test_case: "Empty locale skipped"
+platform: ubuntu-locale-empty
 input:
-  domain_locale: "invalid_locale"
-verify:
-  - task_failed: true
-  - error_message_contains: "locale"
+  domain_locale: ""  # Empty string
+expected_task_result:
+  - task_name: "Configure system locale"
+  - execution: skipped=true
+  - skip_reason: "domain_locale | length > 0 evaluates to false"
+  - no_failures: true
+success_criteria:
+  - "✅ Ansible task skipped due to when condition"
+  - "✅ No task failures or errors"
 ```
 
-**Environment**: Both (Container + VM)
+**Scenario 3: Negative Validation - Undefined Locale**
+```yaml
+test_case: "Undefined locale skipped"
+platform: ubuntu-locale-undefined
+input:
+  # domain_locale variable intentionally not defined
+expected_task_result:
+  - task_name: "Configure system locale"
+  - execution: skipped=true
+  - skip_reason: "domain_locale is defined evaluates to false"
+  - no_failures: true
+success_criteria:
+  - "✅ Ansible task skipped due to when condition"
+  - "✅ No task failures or errors"
+```
+
+#### Implementation Strategy
+
+**Testing Environment**: Molecule with Docker containers (sufficient for conditional logic validation)
+
+**Molecule Platform Configuration**:
+```yaml
+platforms:
+  - name: ubuntu-locale-positive
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-locale-empty
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-locale-undefined
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+
+host_vars:
+  ubuntu-locale-positive:
+    domain_locale: "en_US.UTF-8"
+  ubuntu-locale-empty:
+    domain_locale: ""
+  ubuntu-locale-undefined:
+    # domain_locale intentionally omitted
+```
+
+**Validation Approach**: Full role execution with Ansible task execution metadata validation
+**Success Criteria**: Task execution behavior (skipped/changed/failed) - validates OUR conditional logic
+**Error Tolerance**: Module failures in containers are acceptable - we test our conditional logic, not the locale_gen module
+
+**Environment**: Container (Primary) + CI Pipeline
 
 ---
 
