@@ -171,6 +171,31 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
+  # REQ-OS-009: Systemd journal configuration scenarios
+  - name: ubuntu-journal-enabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-journal-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-journal-undefined
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -291,5 +316,21 @@ provisioner:
       ubuntu-ntp-undefined:
         domain_timezone: "UTC"
         # domain_ntp intentionally undefined - REQ-OS-008 negative test
+      # REQ-OS-009: Systemd journal configuration test scenarios
+      ubuntu-journal-enabled:
+        journal:
+          configure: true
+          max_size: "100M"
+          max_retention: "7d"
+        domain_timezone: "UTC"
+      ubuntu-journal-disabled:
+        journal:
+          configure: false
+          max_size: "100M"
+          max_retention: "7d"
+        domain_timezone: "UTC"
+      ubuntu-journal-undefined:
+        domain_timezone: "UTC"
+        # journal intentionally undefined - REQ-OS-009 negative test
 verifier:
   name: ansible
