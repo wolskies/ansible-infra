@@ -16,14 +16,6 @@
   when: ansible_virtualization_type | default('') != 'docker'
   failed_when: false
 
-- name: restart rsyslog
-  ansible.builtin.systemd:
-    name: rsyslog
-    state: restarted
-  become: true
-  when: ansible_virtualization_type | default('') != 'docker'
-  failed_when: false
-
 - name: restart cfprefsd
   ansible.builtin.command: killall cfprefsd
   become: true
