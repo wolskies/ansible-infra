@@ -253,6 +253,56 @@
       when:
         - inventory_hostname in ['ubuntu-ntp-disabled', 'ubuntu-ntp-undefined']
 
+    # ===== REQ-OS-009: Systemd Journal Configuration Validation =====
+    - name: Check if systemd journald.conf.d directory exists
+      ansible.builtin.stat:
+        path: /etc/systemd/journald.conf.d
+      register: journald_dir_stat
+
+    - name: Check if journal configuration file exists
+      ansible.builtin.stat:
+        path: /etc/systemd/journald.conf.d/00-ansible-managed.conf
+      register: journald_config_stat
+
+    - name: Check journal configuration content
+      ansible.builtin.command: grep "^SystemMaxUse=100M" /etc/systemd/journald.conf.d/00-ansible-managed.conf
+      register: journald_maxuse_check
+      changed_when: false
+      failed_when: false
+      when: journald_config_stat.stat.exists
+
+    - name: Check journal retention configuration
+      ansible.builtin.command: grep "^MaxRetentionSec=7d" /etc/systemd/journald.conf.d/00-ansible-managed.conf
+      register: journald_retention_check
+      changed_when: false
+      failed_when: false
+      when: journald_config_stat.stat.exists
+
+    - name: Verify journal configuration applied correctly (positive case)
+      ansible.builtin.assert:
+        that:
+          - journald_dir_stat.stat.exists
+          - journald_dir_stat.stat.mode == "0755"
+          - journald_config_stat.stat.exists
+          - journald_config_stat.stat.mode == "0644"
+          - journald_maxuse_check.rc == 0
+          - journald_retention_check.rc == 0
+        fail_msg: "Journal configuration not applied correctly"
+        success_msg: "✅ REQ-OS-009: Journal configuration correctly applied with specified settings"
+      when:
+        - inventory_hostname in ['ubuntu-journal-enabled']
+        - journal is defined
+        - journal.configure | default(false)
+
+    - name: Verify journal configuration disabled correctly (negative cases)
+      ansible.builtin.assert:
+        that:
+          - not journald_config_stat.stat.exists
+        fail_msg: "Unexpected journal configuration file found"
+        success_msg: "✅ REQ-OS-009: Journal configuration correctly skipped - conditional logic working"
+      when:
+        - inventory_hostname in ['ubuntu-journal-disabled', 'ubuntu-journal-undefined']
+
     # ===== Summary =====
     - name: Display os_configuration verification summary
       ansible.builtin.debug:
@@ -265,5 +315,6 @@
           - "✅ REQ-OS-005: SSH hardening conditional logic validated"
           - "✅ REQ-OS-006: Locale validation completed (container limitations handled)"
           - "✅ REQ-OS-008: Time synchronization validation completed (container limitations handled)"
+          - "✅ REQ-OS-009: Journal configuration validation completed"
           - "✅ All requirements verified using state-based validation"
           - "⚠️ Full functionality validation deferred to VM testing (Phase 3) where applicable"
