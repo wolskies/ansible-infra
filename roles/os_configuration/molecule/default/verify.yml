@@ -10,23 +10,23 @@
       changed_when: false
       failed_when: false
 
-    - name: Verify hostname is set correctly (positive case - VM/bare metal)
+    - name: Verify hostname is set correctly (positive cases - VM/bare metal)
       ansible.builtin.assert:
         that:
-          - current_hostname.stdout == "test-hostname"
-        fail_msg: "Expected hostname 'test-hostname', got '{{ current_hostname.stdout }}'"
-        success_msg: "✅ REQ-OS-001: Hostname correctly set to test-hostname"
+          - current_hostname.stdout == host_hostname
+        fail_msg: "Expected hostname '{{ host_hostname }}', got '{{ current_hostname.stdout }}'"
+        success_msg: "✅ REQ-OS-001: Hostname correctly set to {{ host_hostname }}"
       when:
-        - inventory_hostname in ['ubuntu-hostname-positive']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-partial-enabled', 'ubuntu-edge-cases']
         - host_hostname is defined
         - host_hostname | length > 0
         - ansible_virtualization_type != "docker"
 
-    - name: Document hostname limitation in containers (positive case)
+    - name: Document hostname limitation in containers (positive cases)
       ansible.builtin.debug:
         msg: "⚠️ REQ-OS-001: Hostname validation skipped in container - will be validated in VM testing (Phase 3)"
       when:
-        - inventory_hostname in ['ubuntu-hostname-positive']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-partial-enabled', 'ubuntu-edge-cases']
         - host_hostname is defined
         - host_hostname | length > 0
         - ansible_virtualization_type == "docker"
@@ -35,17 +35,17 @@
       ansible.builtin.debug:
         msg: "✅ REQ-OS-001: Hostname unchanged ({{ current_hostname.stdout }}) - conditional logic working"
       when:
-        - inventory_hostname in ['ubuntu-hostname-empty', 'ubuntu-hostname-undefined']
+        - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined']
 
     # ===== REQ-OS-002: /etc/hosts Update Validation =====
     - name: Check /etc/hosts for hostname entries
-      ansible.builtin.command: grep -c "{{ host_hostname | default('testhost') }}" /etc/hosts
+      ansible.builtin.command: grep -c "{{ host_hostname }}" /etc/hosts
       register: hosts_entry_check
       changed_when: false
       failed_when: false
-      when: host_hostname is defined
+      when: host_hostname is defined and host_hostname | length > 0
 
-    - name: Verify /etc/hosts contains hostname entry (positive case - VM/bare metal)
+    - name: Verify /etc/hosts contains hostname entry (positive cases - VM/bare metal)
       ansible.builtin.assert:
         that:
           - hosts_entry_check.rc == 0
@@ -53,7 +53,7 @@
         fail_msg: "Expected hostname entry in /etc/hosts, but not found"
         success_msg: "✅ REQ-OS-002: /etc/hosts contains correct hostname entry"
       when:
-        - inventory_hostname in ['ubuntu-hosts-positive']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-edge-cases']
         - host_update_hosts | default(false)
         - host_hostname is defined
         - host_hostname | length > 0
@@ -61,11 +61,11 @@
         - domain_name | length > 0
         - ansible_virtualization_type != "docker"
 
-    - name: Document /etc/hosts limitation in containers (positive case)
+    - name: Document /etc/hosts limitation in containers (positive cases)
       ansible.builtin.debug:
         msg: "⚠️ REQ-OS-002: /etc/hosts validation skipped in container - will be validated in VM testing (Phase 3)"
       when:
-        - inventory_hostname in ['ubuntu-hosts-positive']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-edge-cases']
         - host_update_hosts | default(false)
         - host_hostname is defined
         - host_hostname | length > 0
@@ -73,21 +73,27 @@
         - domain_name | length > 0
         - ansible_virtualization_type == "docker"
 
-    - name: Verify /etc/hosts contains no hostname entries (negative cases - when hostname defined)
+    - name: Verify /etc/hosts contains no hostname entries (disabled case)
       ansible.builtin.assert:
         that:
           - hosts_entry_check.rc != 0 or hosts_entry_check.stdout | int == 0
         fail_msg: "Unexpected hostname entry found in /etc/hosts"
         success_msg: "✅ REQ-OS-002: /etc/hosts correctly unchanged - conditional logic working"
       when:
-        - inventory_hostname in ['ubuntu-hosts-disabled', 'ubuntu-hosts-no-domain']
+        - inventory_hostname in ['ubuntu-partial-enabled']
         - hosts_entry_check is defined
+
+    - name: Verify /etc/hosts unchanged when hostname empty (negative case)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-002: /etc/hosts correctly unchanged - hostname empty, no changes possible"
+      when:
+        - inventory_hostname in ['ubuntu-negative-empty']
 
     - name: Verify /etc/hosts unchanged when hostname undefined (negative case)
       ansible.builtin.debug:
         msg: "✅ REQ-OS-002: /etc/hosts correctly unchanged - hostname undefined, no changes possible"
       when:
-        - inventory_hostname in ['ubuntu-hosts-no-hostname']
+        - inventory_hostname in ['ubuntu-negative-undefined']
 
     # ===== REQ-OS-003: Timezone Configuration Validation =====
     - name: Get current system timezone
@@ -96,23 +102,23 @@
       changed_when: false
       failed_when: false
 
-    - name: Verify timezone is set correctly (positive case - VM/bare metal)
+    - name: Verify timezone is set correctly (positive cases - VM/bare metal)
       ansible.builtin.assert:
         that:
-          - current_timezone.stdout == "America/New_York"
-        fail_msg: "Expected timezone 'America/New_York', got '{{ current_timezone.stdout }}'"
-        success_msg: "✅ REQ-OS-003: Timezone correctly set to America/New_York"
+          - current_timezone.stdout == domain_timezone
+        fail_msg: "Expected timezone '{{ domain_timezone }}', got '{{ current_timezone.stdout }}'"
+        success_msg: "✅ REQ-OS-003: Timezone correctly set to {{ domain_timezone }}"
       when:
-        - inventory_hostname in ['ubuntu-timezone-positive']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-partial-enabled', 'ubuntu-edge-cases']
         - domain_timezone is defined
         - domain_timezone | length > 0
         - ansible_virtualization_type != "docker"
 
-    - name: Document timezone limitation in containers (positive case)
+    - name: Document timezone limitation in containers (positive cases)
       ansible.builtin.debug:
         msg: "⚠️ REQ-OS-003: Timezone validation skipped in container - will be validated in VM testing (Phase 3)"
       when:
-        - inventory_hostname in ['ubuntu-timezone-positive']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-partial-enabled', 'ubuntu-edge-cases']
         - domain_timezone is defined
         - domain_timezone | length > 0
         - ansible_virtualization_type == "docker"
@@ -121,41 +127,59 @@
       ansible.builtin.debug:
         msg: "✅ REQ-OS-003: Timezone unchanged ({{ current_timezone.stdout }}) - conditional logic working"
       when:
-        - inventory_hostname in ['ubuntu-timezone-empty', 'ubuntu-timezone-undefined']
+        - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined']
 
     # ===== REQ-OS-004: Security Hardening Role Delegation Validation =====
     # Note: In containers, we can't fully validate devsec.hardening.os_hardening effects
     # This validates that the role inclusion conditional logic works correctly
-    - name: Verify security hardening conditional logic (enabled case)
+    - name: Verify security hardening conditional logic (enabled cases)
       ansible.builtin.debug:
         msg: "✅ REQ-OS-004: Security hardening enabled - role should execute"
       when:
-        - inventory_hostname in ['ubuntu-security-enabled']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-edge-cases']
+        - host_security is defined
         - host_security.hardening_enabled | default(true)
 
-    - name: Verify security hardening conditional logic (disabled case)
+    - name: Verify security hardening conditional logic (disabled cases)
       ansible.builtin.debug:
         msg: "✅ REQ-OS-004: Security hardening disabled - role should be skipped"
       when:
-        - inventory_hostname in ['ubuntu-security-disabled']
+        - inventory_hostname in ['ubuntu-partial-enabled', 'ubuntu-negative-empty']
+        - host_security is defined
         - not (host_security.hardening_enabled | default(true))
+
+    - name: Verify security hardening conditional logic (undefined case)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-004: Security hardening uses default (enabled) - undefined host_security"
+      when:
+        - inventory_hostname in ['ubuntu-negative-undefined']
+        - host_security is not defined
 
     # ===== REQ-OS-005: SSH Hardening Role Delegation Validation =====
     # Note: In containers, we can't fully validate devsec.hardening.ssh_hardening effects
     # This validates that the role inclusion conditional logic works correctly
-    - name: Verify SSH hardening conditional logic (enabled case)
+    - name: Verify SSH hardening conditional logic (enabled cases)
       ansible.builtin.debug:
         msg: "✅ REQ-OS-005: SSH hardening enabled - role should execute"
       when:
-        - inventory_hostname in ['ubuntu-ssh-enabled']
+        - inventory_hostname in ['ubuntu-partial-enabled']
+        - host_security is defined
         - host_security.ssh_hardening_enabled | default(false)
 
-    - name: Verify SSH hardening conditional logic (disabled case)
+    - name: Verify SSH hardening conditional logic (disabled cases)
       ansible.builtin.debug:
         msg: "✅ REQ-OS-005: SSH hardening disabled - role should be skipped"
       when:
-        - inventory_hostname in ['ubuntu-ssh-disabled']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
+        - host_security is defined
         - not (host_security.ssh_hardening_enabled | default(false))
+
+    - name: Verify SSH hardening conditional logic (undefined case)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-005: SSH hardening uses default (disabled) - undefined host_security"
+      when:
+        - inventory_hostname in ['ubuntu-negative-undefined']
+        - host_security is not defined
 
     # ===== REQ-OS-006: System Locale Configuration Validation =====
     - name: Get current system locale
@@ -164,23 +188,23 @@
       changed_when: false
       failed_when: false
 
-    - name: Verify locale is set correctly (positive case - VM/bare metal)
+    - name: Verify locale is set correctly (positive cases - VM/bare metal)
       ansible.builtin.assert:
         that:
-          - "'LANG=en_US.UTF-8' in current_locale.stdout"
-        fail_msg: "Expected locale LANG=en_US.UTF-8 in localectl output, got: {{ current_locale.stdout }}"
-        success_msg: "✅ REQ-OS-006: Locale correctly set to en_US.UTF-8"
+          - ("'LANG=" + domain_locale + "' in current_locale.stdout")
+        fail_msg: "Expected locale LANG={{ domain_locale }} in localectl output, got: {{ current_locale.stdout }}"
+        success_msg: "✅ REQ-OS-006: Locale correctly set to {{ domain_locale }}"
       when:
-        - inventory_hostname in ['ubuntu-locale-positive']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-partial-enabled', 'ubuntu-edge-cases']
         - domain_locale is defined
         - domain_locale | length > 0
         - ansible_virtualization_type != "docker"
 
-    - name: Document locale limitation in containers (positive case)
+    - name: Document locale limitation in containers (positive cases)
       ansible.builtin.debug:
         msg: "⚠️ REQ-OS-006: Locale validation skipped in container - will be validated in VM testing (Phase 3)"
       when:
-        - inventory_hostname in ['ubuntu-locale-positive']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-partial-enabled', 'ubuntu-edge-cases']
         - domain_locale is defined
         - domain_locale | length > 0
         - ansible_virtualization_type == "docker"
@@ -189,7 +213,7 @@
       ansible.builtin.debug:
         msg: "✅ REQ-OS-006: Locale unchanged - conditional logic working"
       when:
-        - inventory_hostname in ['ubuntu-locale-empty', 'ubuntu-locale-undefined']
+        - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined']
 
     # ===== REQ-OS-008: Basic Time Synchronization Validation =====
     - name: Check if systemd-timesyncd package is available
@@ -215,43 +239,45 @@
         path: /etc/systemd/timesyncd.conf
       register: timesyncd_config_stat
 
-    - name: Check timesyncd configuration content
+    - name: Check timesyncd configuration content for enabled cases
       ansible.builtin.command: grep "^NTP=" /etc/systemd/timesyncd.conf
       register: timesyncd_config_check
       changed_when: false
       failed_when: false
-      when: timesyncd_config_stat.stat.exists
+      when:
+        - timesyncd_config_stat.stat.exists
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
 
-    - name: Verify time synchronization configured correctly (positive case - VM/bare metal)
+    - name: Verify time synchronization configured correctly (enabled cases - VM/bare metal)
       ansible.builtin.assert:
         that:
           - timesyncd_status_check.rc == 0
           - timesyncd_enabled_check.stdout == "enabled"
           - timesyncd_active_check.stdout == "active"
           - timesyncd_config_stat.stat.exists
-          - timesyncd_config_check.stdout == "NTP=0.pool.ntp.org 1.pool.ntp.org"
+          - timesyncd_config_check.stdout == ("NTP=" + (domain_ntp.servers | join(' ')))
         fail_msg: "Time synchronization not configured correctly"
         success_msg: "✅ REQ-OS-008: Time synchronization correctly configured with specified servers"
       when:
-        - inventory_hostname in ['ubuntu-ntp-enabled']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
         - domain_ntp is defined
         - domain_ntp.enabled | default(false)
         - ansible_virtualization_type != "docker"
 
-    - name: Document time sync limitation in containers (positive case)
+    - name: Document time sync limitation in containers (enabled cases)
       ansible.builtin.debug:
         msg: "⚠️ REQ-OS-008: Time sync validation skipped in container - will be validated in VM testing (Phase 3)"
       when:
-        - inventory_hostname in ['ubuntu-ntp-enabled']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
         - domain_ntp is defined
         - domain_ntp.enabled | default(false)
         - ansible_virtualization_type == "docker"
 
-    - name: Verify time synchronization disabled correctly (negative cases)
+    - name: Verify time synchronization disabled correctly (disabled/undefined cases)
       ansible.builtin.debug:
         msg: "✅ REQ-OS-008: Time sync disabled or undefined - conditional logic working"
       when:
-        - inventory_hostname in ['ubuntu-ntp-disabled', 'ubuntu-ntp-undefined']
+        - inventory_hostname in ['ubuntu-partial-enabled', 'ubuntu-negative-undefined']
 
     # ===== REQ-OS-009: Systemd Journal Configuration Validation =====
     - name: Check if systemd journald.conf.d directory exists
@@ -264,21 +290,25 @@
         path: /etc/systemd/journald.conf.d/00-ansible-managed.conf
       register: journald_config_stat
 
-    - name: Check journal configuration content
-      ansible.builtin.command: grep "^SystemMaxUse=100M" /etc/systemd/journald.conf.d/00-ansible-managed.conf
+    - name: Check journal max size configuration
+      ansible.builtin.command: grep "^SystemMaxUse={{ journal.max_size }}" /etc/systemd/journald.conf.d/00-ansible-managed.conf
       register: journald_maxuse_check
       changed_when: false
       failed_when: false
-      when: journald_config_stat.stat.exists
+      when:
+        - journald_config_stat.stat.exists
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
 
     - name: Check journal retention configuration
-      ansible.builtin.command: grep "^MaxRetentionSec=7d" /etc/systemd/journald.conf.d/00-ansible-managed.conf
+      ansible.builtin.command: grep "^MaxRetentionSec={{ journal.max_retention }}" /etc/systemd/journald.conf.d/00-ansible-managed.conf
       register: journald_retention_check
       changed_when: false
       failed_when: false
-      when: journald_config_stat.stat.exists
+      when:
+        - journald_config_stat.stat.exists
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
 
-    - name: Verify journal configuration applied correctly (positive case)
+    - name: Verify journal configuration applied correctly (enabled cases)
       ansible.builtin.assert:
         that:
           - journald_dir_stat.stat.exists
@@ -290,24 +320,24 @@
         fail_msg: "Journal configuration not applied correctly"
         success_msg: "✅ REQ-OS-009: Journal configuration correctly applied with specified settings"
       when:
-        - inventory_hostname in ['ubuntu-journal-enabled']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
         - journal is defined
         - journal.configure | default(false)
 
-    - name: Verify journal configuration disabled correctly (negative cases)
+    - name: Verify journal configuration disabled correctly (disabled/undefined cases)
       ansible.builtin.assert:
         that:
           - not journald_config_stat.stat.exists
         fail_msg: "Unexpected journal configuration file found"
         success_msg: "✅ REQ-OS-009: Journal configuration correctly skipped - conditional logic working"
       when:
-        - inventory_hostname in ['ubuntu-journal-disabled', 'ubuntu-journal-undefined']
+        - inventory_hostname in ['ubuntu-partial-enabled', 'ubuntu-negative-undefined']
 
     # ===== Summary =====
     - name: Display os_configuration verification summary
       ansible.builtin.debug:
         msg:
-          - "=== OS Configuration Verification Complete ==="
+          - "=== OS Configuration Verification Complete ({{ inventory_hostname }}) ==="
           - "✅ REQ-OS-001: Hostname validation completed (container limitations handled)"
           - "✅ REQ-OS-002: /etc/hosts validation completed (container limitations handled)"
           - "✅ REQ-OS-003: Timezone validation completed (container limitations handled)"
@@ -317,4 +347,5 @@
           - "✅ REQ-OS-008: Time synchronization validation completed (container limitations handled)"
           - "✅ REQ-OS-009: Journal configuration validation completed"
           - "✅ All requirements verified using state-based validation"
+          - "✅ Consolidated container testing: 5 containers covering 9 requirements"
           - "⚠️ Full functionality validation deferred to VM testing (Phase 3) where applicable"
