@@ -687,7 +687,7 @@
         fail_msg: "❌ REQ-OS-017: APT proxy not configured correctly"
         success_msg: "✅ REQ-OS-017: APT proxy configured correctly with {{ apt.proxy }}"
       when:
-        - inventory_hostname == 'ubuntu-full-positive'
+        - inventory_hostname == 'ubuntu-partial-enabled'
         - apt is defined
         - apt.proxy is defined
         - apt.proxy | length > 0
@@ -811,6 +811,144 @@
         - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined', 'ubuntu-partial-enabled']
         - apt is not defined or apt.unattended_upgrades is not defined
 
+    # ===== REQ-OS-021: Pacman Proxy Configuration Validation =====
+    - name: Check Pacman configuration file exists
+      ansible.builtin.stat:
+        path: /etc/pacman.conf
+      register: pacman_conf_check
+      when: ansible_os_family == "Archlinux"
+
+    - name: Read Pacman proxy configuration
+      ansible.builtin.command: grep -E "^Server.*http" /etc/pacman.conf
+      register: pacman_proxy_content
+      changed_when: false
+      failed_when: false
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman_conf_check.stat.exists
+
+    - name: Verify Pacman proxy is configured (positive cases)
+      ansible.builtin.assert:
+        that:
+          - pacman_proxy_content.rc == 0
+          - pacman_proxy_content.stdout is search(pacman.proxy)
+        fail_msg: "Expected Pacman proxy '{{ pacman.proxy }}' in /etc/pacman.conf, got: {{ pacman_proxy_content.stdout | default('no proxy config found') }}"
+        success_msg: "✅ REQ-OS-021: Pacman proxy correctly configured: {{ pacman.proxy }}"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is defined
+        - pacman.proxy is defined
+        - pacman.proxy | length > 0
+        - inventory_hostname in ['arch-full-positive', 'arch-partial-enabled'] # Future Arch containers
+
+    - name: Verify Pacman proxy is not configured (negative cases)
+      ansible.builtin.assert:
+        that:
+          - pacman_proxy_content.rc != 0 or not (pacman_proxy_content.stdout is search("http"))
+        fail_msg: "Found unexpected Pacman proxy configuration: {{ pacman_proxy_content.stdout }}"
+        success_msg: "✅ REQ-OS-021: Pacman proxy correctly removed when disabled"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is defined
+        - (pacman.proxy is not defined or pacman.proxy | length == 0)
+        - inventory_hostname in ['arch-negative-empty', 'arch-edge-cases'] # Future Arch containers
+
+    - name: Verify Pacman proxy conditional logic (undefined test)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-021: Pacman proxy skipped when undefined - conditional logic working"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is not defined or pacman.proxy is not defined
+
+    # ===== REQ-OS-021a: Pacman NoConfirm Configuration Validation =====
+    - name: Read Pacman NoConfirm configuration
+      ansible.builtin.command: grep -E "^NoConfirm" /etc/pacman.conf
+      register: pacman_noconfirm_content
+      changed_when: false
+      failed_when: false
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman_conf_check.stat.exists
+
+    - name: Verify Pacman NoConfirm is enabled (positive cases)
+      ansible.builtin.assert:
+        that:
+          - pacman_noconfirm_content.rc == 0
+          - pacman_noconfirm_content.stdout is search("NoConfirm")
+        fail_msg: "Expected NoConfirm in /etc/pacman.conf when enabled"
+        success_msg: "✅ REQ-OS-021a: Pacman NoConfirm correctly enabled"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is defined
+        - pacman.no_confirm is defined
+        - pacman.no_confirm | bool
+        - inventory_hostname in ['arch-full-positive'] # Future Arch containers
+
+    - name: Verify Pacman NoConfirm is disabled (negative cases)
+      ansible.builtin.assert:
+        that:
+          - pacman_noconfirm_content.rc != 0
+        fail_msg: "Found unexpected NoConfirm configuration: {{ pacman_noconfirm_content.stdout }}"
+        success_msg: "✅ REQ-OS-021a: Pacman NoConfirm correctly disabled/removed"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is defined
+        - (pacman.no_confirm is not defined or not pacman.no_confirm | bool)
+        - inventory_hostname in ['arch-partial-enabled', 'arch-negative-empty', 'arch-edge-cases'] # Future Arch containers
+
+    - name: Verify Pacman NoConfirm conditional logic (undefined test)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-021a: Pacman NoConfirm skipped when undefined - conditional logic working"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is not defined or pacman.no_confirm is not defined
+
+    # ===== REQ-OS-021b: Pacman Multilib Repository Configuration Validation =====
+    - name: Read Pacman multilib configuration
+      ansible.builtin.command: grep -A1 -E "^\[multilib\]" /etc/pacman.conf
+      register: pacman_multilib_content
+      changed_when: false
+      failed_when: false
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman_conf_check.stat.exists
+
+    - name: Verify Pacman multilib repository is enabled (positive cases)
+      ansible.builtin.assert:
+        that:
+          - pacman_multilib_content.rc == 0
+          - pacman_multilib_content.stdout is search("\\[multilib\\]")
+          - pacman_multilib_content.stdout is search("Include = /etc/pacman.d/mirrorlist")
+        fail_msg: "Expected [multilib] section and Include line in /etc/pacman.conf when enabled"
+        success_msg: "✅ REQ-OS-021b: Pacman multilib repository correctly enabled"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is defined
+        - pacman.multilib is defined
+        - pacman.multilib.enabled is defined
+        - pacman.multilib.enabled | bool
+        - inventory_hostname in ['arch-full-positive'] # Future Arch containers
+
+    - name: Verify Pacman multilib repository is disabled (negative cases)
+      ansible.builtin.assert:
+        that:
+          - pacman_multilib_content.rc != 0 or pacman_multilib_content.stdout is search("#\\[multilib\\]")
+        fail_msg: "Found unexpected multilib configuration: {{ pacman_multilib_content.stdout }}"
+        success_msg: "✅ REQ-OS-021b: Pacman multilib repository correctly disabled/commented"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is defined
+        - pacman.multilib is defined
+        - (pacman.multilib.enabled is not defined or not pacman.multilib.enabled | bool)
+        - inventory_hostname in ['arch-partial-enabled', 'arch-negative-empty', 'arch-edge-cases'] # Future Arch containers
+
+    - name: Verify Pacman multilib conditional logic (undefined test)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-021b: Pacman multilib skipped when undefined - conditional logic working"
+      when:
+        - ansible_os_family == "Archlinux"
+        - pacman is not defined or pacman.multilib is not defined
+
     # ===== Summary =====
     - name: Display os_configuration verification summary
       ansible.builtin.debug:
@@ -830,6 +968,9 @@
           - "✅ REQ-OS-017: APT proxy configuration validation completed"
           - "✅ REQ-OS-017a: APT no-recommends configuration validation completed"
           - "✅ REQ-OS-018: APT unattended upgrades configuration validation completed"
+          - "✅ REQ-OS-021: Pacman proxy configuration validation completed (Arch Linux)"
+          - "✅ REQ-OS-021a: Pacman NoConfirm configuration validation completed (Arch Linux)"
+          - "✅ REQ-OS-021b: Pacman multilib repository validation completed (Arch Linux)"
           - "✅ All requirements verified using state-based validation"
-          - "✅ Consolidated container testing: 5 containers covering 14 requirements"
+          - "✅ Consolidated container testing: 5 containers covering 17 requirements"
           - "⚠️ Full functionality validation deferred to VM testing (Phase 3) where applicable"

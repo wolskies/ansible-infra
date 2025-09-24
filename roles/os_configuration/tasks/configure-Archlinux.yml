@@ -1,47 +1,117 @@
----
-- name: Configure Pacman behavior
-  block:
-    - name: Configure pacman to skip confirms
-      ansible.builtin.lineinfile:
-        path: /etc/pacman.conf
-        regexp: "^#?NoConfirm"
-        line: "NoConfirm"
-        state: present
-      become: true
-      when:
-        - pacman.no_confirms | default(false)
+# REQ-OS-021: Pacman Proxy Configuration
+- name: Configure Pacman proxy
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^#?Server.*/$repo/os/$arch"
+    insertafter: "^\\[options\\]"
+    line: "Server = {{ pacman.proxy }}/$repo/os/$arch"
+    state: present
+  become: true
+  when:
+    - pacman.proxy is defined
+    - pacman.proxy | length > 0
+  tags:
+    - pacman
+    - packages
 
-    - name: Configure multilib repository
-      ansible.builtin.lineinfile:
-        path: /etc/pacman.conf
-        regexp: "^#?\\[multilib\\]"
-        line: "[multilib]"
-        state: present
-      become: true
-      when:
-        - pacman.multilib | default(false)
+- name: Remove Pacman proxy configuration when disabled
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^Server.*/$repo/os/$arch"
+    state: absent
+  become: true
+  when:
+    - pacman.proxy is not defined or pacman.proxy | length == 0
+  tags:
+    - pacman
+    - packages
 
-    - name: Enable multilib repository Include line
-      ansible.builtin.lineinfile:
-        path: /etc/pacman.conf
-        regexp: "^#?Include = /etc/pacman.d/mirrorlist"
-        line: "Include = /etc/pacman.d/mirrorlist"
-        insertafter: "^\\[multilib\\]"
-        state: present
-      become: true
-      when:
-        - pacman.multilib | default(false)
+# REQ-OS-021a: Pacman NoConfirm Configuration
+- name: Configure Pacman NoConfirm
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^#?NoConfirm"
+    line: "NoConfirm"
+    state: present
+  become: true
+  when:
+    - pacman.no_confirm is defined
+    - pacman.no_confirm | bool
+  tags:
+    - pacman
+    - packages
 
-    - name: Configure pacman proxy
-      ansible.builtin.lineinfile:
-        path: /etc/pacman.conf
-        regexp: "^#?Server.*{{ pacman.proxy | regex_escape }}"
-        insertafter: '^\\[.*\\]'
-        line: "Server = {{ pacman.proxy }}/$repo/os/$arch"
-        state: present
-      become: true
-      when:
-        - pacman.proxy | default('') | length > 0
+- name: Remove Pacman NoConfirm configuration when disabled
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^NoConfirm"
+    state: absent
+  become: true
+  when:
+    - pacman.no_confirm is not defined or not pacman.no_confirm | bool
+  tags:
+    - pacman
+    - packages
+
+# REQ-OS-021b: Pacman Multilib Repository Configuration
+- name: Configure Pacman multilib repository
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^#?\\[multilib\\]"
+    line: "[multilib]"
+    state: present
+  become: true
+  when:
+    - pacman.multilib is defined
+    - pacman.multilib.enabled is defined
+    - pacman.multilib.enabled | bool
+  tags:
+    - pacman
+    - packages
+
+- name: Configure Pacman multilib Include line
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^#?Include = /etc/pacman.d/mirrorlist"
+    line: "Include = /etc/pacman.d/mirrorlist"
+    insertafter: "^\\[multilib\\]"
+    state: present
+  become: true
+  when:
+    - pacman.multilib is defined
+    - pacman.multilib.enabled is defined
+    - pacman.multilib.enabled | bool
+  tags:
+    - pacman
+    - packages
+
+- name: Disable Pacman multilib repository when disabled
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^\\[multilib\\]"
+    line: "#[multilib]"
+    state: present
+  become: true
+  when:
+    - pacman.multilib is defined
+    - pacman.multilib.enabled is defined
+    - not pacman.multilib.enabled | bool
+  tags:
+    - pacman
+    - packages
+
+- name: Disable Pacman multilib Include line when disabled
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "^Include = /etc/pacman.d/mirrorlist"
+    line: "#Include = /etc/pacman.d/mirrorlist"
+    insertafter: "^#\\[multilib\\]"
+    state: present
+  become: true
+  when:
+    - pacman.multilib is defined
+    - pacman.multilib.enabled is defined
+    - not pacman.multilib.enabled | bool
   tags:
     - pacman
     - packages
