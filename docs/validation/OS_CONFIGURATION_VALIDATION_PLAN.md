@@ -1,9 +1,11 @@
 # os_configuration Role Validation Plan
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Role:** os_configuration
 **Total Requirements:** 28 (REQ-OS-001 through REQ-OS-028)
-**Last Updated:** September 22, 2025
+**Last Updated:** September 23, 2025
+
+**Reference**: See TRD for general molecule testing methodology and best practices.
 
 ---
 
@@ -15,61 +17,86 @@
 **Implementation**: Uses `ansible.builtin.hostname` module when `host_hostname` is defined and non-empty
 **Production Code**: `roles/os_configuration/tasks/main.yml` - "Configure system hostname" task
 
+#### State Validation Specifications
+
+**Initial State**: Container hostname is typically the container ID (e.g., "ubuntu-hostname-positive")
+**Target State**: System hostname should match `host_hostname` variable when defined and non-empty
+
 #### Validation Test Scenarios
 
 **Scenario 1: Positive Validation**
+
 ```yaml
 test_case: "Set hostname to test-hostname"
 platform: ubuntu-hostname-positive
-input:
+input_variables:
   host_hostname: "test-hostname"
-expected_system_state:
-  - system_hostname: "test-hostname"
-  - hostname_command_output: "test-hostname"
-verification_method:
+initial_state:
+  hostname_before: "ubuntu-hostname-positive" # Container ID
+expected_final_state:
+  hostname_after: "test-hostname"
+verification_commands:
   - command: "hostname"
     expected_output: "test-hostname"
-  - command: "cat /proc/sys/kernel/hostname"
-    expected_output: "test-hostname"
+    environment: "VM/bare metal only (container limitation)"
+validation_logic:
+  positive_case:
+    - host_hostname is defined ✓
+    - host_hostname | length > 0 ✓
+    - Task should execute
+  container_behavior:
+    - Skip assertion due to Docker limitations
+    - Display warning: "⚠️ REQ-OS-001: Hostname validation skipped in container"
 success_criteria:
-  - "✅ System hostname is set to expected value"
-  - "✅ Hostname persists across hostname command checks"
+  - "✅ VM/bare metal: hostname command returns 'test-hostname'"
+  - "✅ Container: Conditional logic validated, limitation documented"
 ```
 
 **Scenario 2: Negative Validation - Empty Hostname**
+
 ```yaml
 test_case: "Empty hostname unchanged"
 platform: ubuntu-hostname-empty
-input:
-  host_hostname: ""  # Empty string
-expected_system_state:
-  - system_hostname: original_hostname (unchanged)
-  - no_hostname_changes: true
-verification_method:
+input_variables:
+  host_hostname: "" # Empty string
+initial_state:
+  hostname_before: "ubuntu-hostname-empty" # Container ID
+expected_final_state:
+  hostname_after: "ubuntu-hostname-empty" # Unchanged
+verification_commands:
   - command: "hostname"
-    expected_behavior: returns_original_hostname
-  - verify: hostname_task_was_skipped_correctly
+    expected_output: "ubuntu-hostname-empty" # Original container name
+validation_logic:
+  negative_case:
+    - host_hostname is defined ✓
+    - host_hostname | length > 0 ✗ (empty string)
+    - Task should be skipped
 success_criteria:
-  - "✅ System hostname remains unchanged"
-  - "✅ No hostname modification attempted"
+  - "✅ hostname command returns original value (unchanged)"
+  - "✅ Conditional logic working: empty string triggers skip"
 ```
 
 **Scenario 3: Negative Validation - Undefined Hostname**
+
 ```yaml
 test_case: "Undefined hostname unchanged"
 platform: ubuntu-hostname-undefined
-input:
+input_variables:
   # host_hostname variable intentionally not defined
-expected_system_state:
-  - system_hostname: original_hostname (unchanged)
-  - no_hostname_changes: true
-verification_method:
+initial_state:
+  hostname_before: "ubuntu-hostname-undefined" # Container ID
+expected_final_state:
+  hostname_after: "ubuntu-hostname-undefined" # Unchanged
+verification_commands:
   - command: "hostname"
-    expected_behavior: returns_original_hostname
-  - verify: hostname_task_was_skipped_correctly
+    expected_output: "ubuntu-hostname-undefined" # Original container name
+validation_logic:
+  negative_case:
+    - host_hostname is defined ✗ (undefined)
+    - Task should be skipped
 success_criteria:
-  - "✅ System hostname remains unchanged"
-  - "✅ No hostname modification attempted"
+  - "✅ hostname command returns original value (unchanged)"
+  - "✅ Conditional logic working: undefined variable triggers skip"
 ```
 
 #### Implementation Strategy
@@ -77,12 +104,14 @@ success_criteria:
 **Testing Environment**: Molecule with Docker containers (sufficient for state validation)
 
 **Container Limitations**: Hostname changes may not persist in containers due to Docker restrictions. Verification approach:
+
 - **Container environment**: Skip hostname assertion, document limitation with warning message
 - **VM/bare metal environment**: Full hostname validation via `hostname` command
 - **Conditional logic**: Always validated regardless of environment (negative test cases)
 - **CI compatibility**: Tests pass in containers by gracefully handling limitations
 
 **Molecule Platform Configuration**:
+
 ```yaml
 platforms:
   - name: ubuntu-hostname-positive
@@ -102,15 +131,17 @@ host_vars:
 ```
 
 **Validation Approach**: State-based verification after role execution with environment detection
+
 - **Positive case (VM/bare metal)**: Check actual hostname via `hostname` command matches expected value
 - **Positive case (containers)**: Document limitation, defer to VM testing - ensures CI compatibility
 - **Negative cases**: Check hostname remains at original value (unchanged) - works in all environments
 - **Environment detection**: Uses `ansible_virtualization_type != "docker"` to determine validation approach
 
 **Success Criteria**:
+
 - **Containers**: Conditional logic validation + graceful limitation handling
 - **VM/bare metal**: Full system state validation including hostname changes
-**CI Compatibility**: All tests pass in container environments by design
+  **CI Compatibility**: All tests pass in container environments by design
 
 **Environment**: Container (Primary) + CI Pipeline, VM (Complete hostname functionality in Phase 3)
 
@@ -122,9 +153,15 @@ host_vars:
 **Implementation**: Uses `ansible.builtin.lineinfile` to update `/etc/hosts` when `host_update_hosts` is true, format: `127.0.0.1 localhost {hostname}.{domain} {hostname}`
 **Production Code**: `roles/os_configuration/tasks/main.yml` - "Update /etc/hosts file" task
 
+#### State Validation Specifications
+
+**Initial State**: Basic `/etc/hosts` with standard localhost entries
+**Target State**: `/etc/hosts` should contain additional line `127.0.0.1 localhost {hostname}.{domain} {hostname}` when all conditions met
+
 #### Validation Test Scenarios
 
 **Scenario 1: Positive Validation - All Conditions Met**
+
 ```yaml
 test_case: "Add hostname to /etc/hosts"
 platform: ubuntu-hosts-positive
@@ -148,6 +185,7 @@ success_criteria:
 ```
 
 **Scenario 2: Negative Validation - host_update_hosts Disabled**
+
 ```yaml
 test_case: "No changes when host_update_hosts false"
 platform: ubuntu-hosts-disabled
@@ -169,6 +207,7 @@ success_criteria:
 ```
 
 **Scenario 3: Negative Validation - Missing domain_name**
+
 ```yaml
 test_case: "No changes when domain_name missing"
 platform: ubuntu-hosts-no-domain
@@ -190,6 +229,7 @@ success_criteria:
 ```
 
 **Scenario 4: Negative Validation - Missing host_hostname**
+
 ```yaml
 test_case: "No changes when host_hostname missing"
 platform: ubuntu-hosts-no-hostname
@@ -215,6 +255,7 @@ success_criteria:
 **Testing Environment**: Molecule with Docker containers (sufficient for file operations and conditional logic validation)
 
 **Molecule Platform Configuration**:
+
 ```yaml
 platforms:
   - name: ubuntu-hosts-positive
@@ -246,15 +287,18 @@ host_vars:
 ```
 
 **Validation Approach**:
+
 - Full role execution with Ansible task execution metadata validation
 - Task execution behavior validation (skipped/changed/unchanged)
 - Idempotency testing via multiple role executions
 
 **Container Testing Success Criteria**:
+
 - Task execution behavior (skipped/changed/unchanged) validates conditional logic
 - File operations may fail in containers - focus on task execution metadata
 
 **VM Testing (Phase 3) Success Criteria**:
+
 - All container testing criteria PLUS
 - File content verification for positive cases
 - Actual `/etc/hosts` entry format validation
@@ -270,9 +314,15 @@ host_vars:
 **Implementation**: Uses `community.general.timezone` module when `domain_timezone` is defined and non-empty
 **Production Code**: `roles/os_configuration/tasks/main.yml` - "Set system timezone" task
 
+#### State Validation Specifications
+
+**Initial State**: Container default timezone (typically `Etc/UTC` or `America/New_York`)
+**Target State**: System timezone should match `domain_timezone` variable when defined and non-empty
+
 #### Validation Test Scenarios
 
 **Scenario 1: Positive Validation**
+
 ```yaml
 test_case: "Set timezone to America/New_York"
 platform: ubuntu-timezone-positive
@@ -292,11 +342,12 @@ success_criteria:
 ```
 
 **Scenario 2: Negative Validation - Empty Timezone**
+
 ```yaml
 test_case: "Empty timezone unchanged"
 platform: ubuntu-timezone-empty
 input:
-  domain_timezone: ""  # Empty string
+  domain_timezone: "" # Empty string
 expected_system_state:
   - timezone: original_timezone (unchanged)
   - no_timezone_changes: true
@@ -310,6 +361,7 @@ success_criteria:
 ```
 
 **Scenario 3: Negative Validation - Undefined Timezone**
+
 ```yaml
 test_case: "Undefined timezone unchanged"
 platform: ubuntu-timezone-undefined
@@ -332,12 +384,14 @@ success_criteria:
 **Testing Environment**: Molecule with Docker containers (sufficient for conditional logic validation)
 
 **Container Limitations**: Timezone changes may not persist in containers due to systemd restrictions. Verification approach:
+
 - **Container environment**: Skip timezone assertion, document limitation with warning message
 - **VM/bare metal environment**: Full timezone validation via `timedatectl` command
 - **Conditional logic**: Always validated regardless of environment (negative test cases)
 - **CI compatibility**: Tests pass in containers by gracefully handling limitations
 
 **Molecule Platform Configuration**:
+
 ```yaml
 platforms:
   - name: ubuntu-timezone-positive
@@ -357,15 +411,17 @@ host_vars:
 ```
 
 **Validation Approach**: State-based verification after role execution with environment detection
+
 - **Positive case (VM/bare metal)**: Check actual timezone via `timedatectl` command matches expected value
 - **Positive case (containers)**: Document limitation, defer to VM testing - ensures CI compatibility
 - **Negative cases**: Check timezone remains at original value (unchanged) - works in all environments
 - **Environment detection**: Uses `ansible_virtualization_type != "docker"` to determine validation approach
 
 **Success Criteria**:
+
 - **Containers**: Conditional logic validation + graceful limitation handling
 - **VM/bare metal**: Full system state validation including timezone changes
-**CI Compatibility**: All tests pass in container environments by design
+  **CI Compatibility**: All tests pass in container environments by design
 
 **Environment**: Container (Primary) + CI Pipeline, VM (Complete timezone functionality in Phase 3)
 
@@ -380,6 +436,7 @@ host_vars:
 #### Validation Test Scenarios
 
 **Scenario 1: Positive Validation - Security Hardening Enabled**
+
 ```yaml
 test_case: "Call devsec.hardening.os_hardening role when enabled"
 platform: ubuntu-security-enabled
@@ -396,6 +453,7 @@ success_criteria:
 ```
 
 **Scenario 2: Negative Validation - Security Hardening Disabled**
+
 ```yaml
 test_case: "Skip devsec.hardening.os_hardening role when disabled"
 platform: ubuntu-security-disabled
@@ -416,6 +474,7 @@ success_criteria:
 **Testing Environment**: Molecule with Docker containers (sufficient for role delegation validation)
 
 **Molecule Platform Configuration**:
+
 ```yaml
 platforms:
   - name: ubuntu-security-enabled
@@ -442,21 +501,24 @@ host_vars:
 ## Scaling Strategy for Remaining Requirements
 
 **Current Implementation**: Individual requirement testing with dedicated scenarios
+
 - REQ-OS-001 to REQ-OS-004: 12 containers total (3+4+3+2 scenarios)
 - Pattern: Detailed scenario coverage for each requirement
 
 **Future Consolidation Plan**: Shared container strategy for remaining requirements
+
 - **Target**: 15-20 containers total for all 28 requirements (instead of ~84)
 - **Approach**: Group requirements by conditional logic patterns
 - **Shared Containers**:
   ```yaml
-  ubuntu-full-positive:     # Multiple requirements enabled
+  ubuntu-full-positive: # Multiple requirements enabled
   ubuntu-security-disabled: # Security off, basic features on
-  ubuntu-minimal:          # Most features disabled
-  ubuntu-edge-cases:       # Complex variable combinations
+  ubuntu-minimal: # Most features disabled
+  ubuntu-edge-cases: # Complex variable combinations
   ```
 
 **Implementation Strategy**:
+
 1. **Phase 1**: Continue individual requirement testing (REQ-OS-005+) to understand patterns
 2. **Phase 2**: Consolidate into shared containers once patterns are clear
 3. **Phase 3**: Document final shared container design in validation plan
@@ -473,6 +535,7 @@ host_vars:
 **Implementation**: Uses `devsec.hardening.os_hardening` role when `host_security.hardening_enabled` is true
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Apply OS hardening"
 input:
@@ -486,6 +549,7 @@ verify:
 ```
 
 **Negative Validation**:
+
 ```yaml
 test_case: "Skip when hardening disabled"
 input:
@@ -509,6 +573,7 @@ verify:
 #### Validation Test Scenarios
 
 **Scenario 1: Positive Validation - SSH Hardening Enabled**
+
 ```yaml
 test_case: "Call devsec.hardening.ssh_hardening role when enabled"
 platform: ubuntu-ssh-enabled
@@ -525,6 +590,7 @@ success_criteria:
 ```
 
 **Scenario 2: Negative Validation - SSH Hardening Disabled**
+
 ```yaml
 test_case: "Skip devsec.hardening.ssh_hardening role when disabled"
 platform: ubuntu-ssh-disabled
@@ -545,6 +611,7 @@ success_criteria:
 **Testing Environment**: Molecule with Docker containers (sufficient for role delegation validation)
 
 **Molecule Platform Configuration**:
+
 ```yaml
 platforms:
   - name: ubuntu-ssh-enabled
@@ -571,12 +638,18 @@ host_vars:
 ### REQ-OS-006: System Locale Configuration
 
 **Requirement**: The system SHALL be capable of setting the system locale on Linux systems
-**Implementation**: Uses `community.general.locale_gen` + the localectl command when `domain_locale` is defined
-**Production Code**: `roles/os_configuration/tasks/configure-Linux.yml` - "Configure system locale" task
+**Implementation**: Uses `community.general.locale_gen` + `localectl set-locale` command when `domain_locale` is defined
+**Production Code**: `roles/os_configuration/tasks/configure-Linux.yml` - "Configure system locale", "Check current system locale", "Set system locale using localectl" tasks
+
+#### State Validation Specifications
+
+**Initial State**: Container default locale (typically `C.UTF-8` or system default)
+**Target State**: System locale should be generated via `locale_gen` and set via `localectl` to match `domain_locale` variable
 
 #### Validation Test Scenarios
 
 **Scenario 1: Positive Validation - Valid Locale**
+
 ```yaml
 test_case: "Set locale to en_US.UTF-8"
 platform: ubuntu-locale-positive
@@ -598,11 +671,12 @@ success_criteria:
 ```
 
 **Scenario 2: Negative Validation - Empty Locale**
+
 ```yaml
 test_case: "Empty locale skipped"
 platform: ubuntu-locale-empty
 input:
-  domain_locale: ""  # Empty string
+  domain_locale: "" # Empty string
 expected_task_result:
   - task_name: "Configure system locale"
   - execution: skipped=true
@@ -614,6 +688,7 @@ success_criteria:
 ```
 
 **Scenario 3: Negative Validation - Undefined Locale**
+
 ```yaml
 test_case: "Undefined locale skipped"
 platform: ubuntu-locale-undefined
@@ -634,6 +709,7 @@ success_criteria:
 **Testing Environment**: Molecule with Docker containers (sufficient for conditional logic validation)
 
 **Molecule Platform Configuration**:
+
 ```yaml
 platforms:
   - name: ubuntu-locale-positive
@@ -666,6 +742,7 @@ host_vars:
 **Implementation**: Uses `ansible.builtin.lineinfile` for LANGUAGE in `/etc/default/locale`
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Set language to en_US.UTF-8"
 input:
@@ -678,6 +755,7 @@ verify:
 ```
 
 **Negative Validation**:
+
 ```yaml
 test_case: "Skip when language undefined"
 input: {}
@@ -689,122 +767,308 @@ verify:
 
 ---
 
-### REQ-OS-008: NTP Time Synchronization (Linux)
+### REQ-OS-008: Basic Time Synchronization (Linux)
 
-**Requirement**: The system SHALL be capable of configuring NTP time synchronization on Linux systems
-**Implementation**: Uses `ansible.builtin.template` for `/etc/systemd/timesyncd.conf` when `domain_ntp.enabled` is true
+**Requirement**: The system SHALL be capable of configuring basic time synchronization on Linux systems
+**Implementation**: Uses systemd-timesyncd for client-side time synchronization via SNTP. Steps: 1) `ansible.builtin.package` ensures systemd-timesyncd is installed, 2) `ansible.builtin.systemd` ensures service is enabled, 3) `ansible.builtin.template` configures `/etc/systemd/timesyncd.conf` when `domain_ntp.enabled` is true
+**Production Code**: `roles/os_configuration/tasks/configure-Linux.yml` - "Configure NTP time synchronization" task block
 
-**Positive Validation**:
+#### State Validation Specifications
+
+**Initial State**: systemd-timesyncd may or may not be installed/enabled; default or no configuration file
+**Target State**:
+
+- systemd-timesyncd package installed
+- systemd-timesyncd service enabled and running
+- `/etc/systemd/timesyncd.conf` configured with specified NTP servers when `domain_ntp.enabled` is true
+
+#### Validation Test Scenarios
+
+**Scenario 1: Positive Validation - Time Sync Enabled with Servers**
+
 ```yaml
-test_case: "Configure NTP with multiple servers"
-input:
+test_case: "Configure time synchronization with multiple servers"
+platform: ubuntu-ntp-enabled
+input_variables:
   domain_ntp:
     enabled: true
     servers:
-      - "pool.ntp.org"
-      - "time.google.com"
-verify:
-  - file_exists: "/etc/systemd/timesyncd.conf"
-  - file_contains: "/etc/systemd/timesyncd.conf"
-    pattern: "NTP=pool.ntp.org time.google.com"
-  - service_enabled: "systemd-timesyncd"
+      - "0.pool.ntp.org"
+      - "1.pool.ntp.org"
+initial_state:
+  package: "systemd-timesyncd may not be installed"
+  service: "systemd-timesyncd may not be enabled"
+  config_file: "/etc/systemd/timesyncd.conf - default or missing"
+expected_final_state:
+  package: "systemd-timesyncd installed"
+  service: "systemd-timesyncd enabled and running"
+  config_file: "/etc/systemd/timesyncd.conf with NTP servers configured"
+  file_content: "NTP=0.pool.ntp.org 1.pool.ntp.org"
+verification_commands:
+  - command: "dpkg -l | grep systemd-timesyncd || systemctl status systemd-timesyncd"
+    expected_result: "package_installed_or_service_available"
+  - command: "systemctl is-enabled systemd-timesyncd"
+    expected_result: "enabled"
+  - command: "systemctl is-active systemd-timesyncd"
+    expected_result: "active"
+  - command: "test -f /etc/systemd/timesyncd.conf"
+    expected_result: "file exists"
+  - command: "grep '^NTP=' /etc/systemd/timesyncd.conf"
+    expected_output: "NTP=0.pool.ntp.org 1.pool.ntp.org"
+validation_logic:
+  positive_case:
+    - domain_ntp is defined ✓
+    - domain_ntp.enabled is true ✓
+    - domain_ntp.servers is defined ✓
+    - All three tasks should execute (package, service, template)
+success_criteria:
+  - "✅ systemd-timesyncd package is installed"
+  - "✅ systemd-timesyncd service is enabled and running"
+  - "✅ /etc/systemd/timesyncd.conf exists"
+  - "✅ File contains correct NTP server configuration"
+  - "✅ Template properly applied with server list"
 ```
 
-**Negative Validation**:
+**Scenario 2: Negative Validation - Time Sync Disabled**
+
 ```yaml
 test_case: "Skip when NTP disabled"
-input:
+platform: ubuntu-ntp-disabled
+input_variables:
   domain_ntp:
     enabled: false
-verify:
-  - no_changes: true
-
-test_case: "Skip when NTP undefined"
-input: {}
-verify:
-  - no_changes: true
+    servers:
+      - "pool.ntp.org"
+initial_state:
+  config_file: "default or missing"
+expected_final_state:
+  config_file: "unchanged from initial state"
+verification_commands:
+  - command: "test -f /etc/systemd/timesyncd.conf && echo 'exists' || echo 'not exists'"
+    expected_behavior: "file state unchanged from baseline"
+validation_logic:
+  negative_case:
+    - domain_ntp is defined ✓
+    - domain_ntp.enabled is false ✗
+    - Task should be skipped
+success_criteria:
+  - "✅ No changes to /etc/systemd/timesyncd.conf"
+  - "✅ Conditional logic working: enabled=false triggers skip"
 ```
 
-**Environment**: VM Only (systemd service required)
+**Scenario 3: Negative Validation - NTP Undefined**
+
+```yaml
+test_case: "Skip when NTP undefined"
+platform: ubuntu-ntp-undefined
+input_variables:
+  # domain_ntp not defined
+initial_state:
+  config_file: "default or missing"
+expected_final_state:
+  config_file: "unchanged from initial state"
+verification_commands:
+  - command: "test -f /etc/systemd/timesyncd.conf && echo 'exists' || echo 'not exists'"
+    expected_behavior: "file state unchanged from baseline"
+validation_logic:
+  negative_case:
+    - domain_ntp is not defined ✗
+    - Task should be skipped
+success_criteria:
+  - "✅ No changes to /etc/systemd/timesyncd.conf"
+  - "✅ Conditional logic working: undefined variable triggers skip"
+```
+
+#### Implementation Strategy
+
+**Testing Environment**: Molecule with Docker containers
+**Container Limitations**: systemd-timesyncd service may not start in containers, but file configuration can be validated
+**Validation Approach**: Focus on file creation and content validation rather than service state
+
+**Environment**: Container (file validation) + VM (full service validation in Phase 3)
 
 ---
 
-### REQ-OS-009: Systemd Journal Configuration
+### REQ-OS-009: Systemd Journal Configuration (Linux)
 
 **Requirement**: The system SHALL be capable of configuring systemd journal settings on Linux systems
 **Implementation**: Uses `ansible.builtin.template` for `/etc/systemd/journald.conf.d/00-ansible-managed.conf` when `journal.configure` is true
+**Production Code**: `roles/os_configuration/tasks/configure-Linux.yml` - "Configure systemd journal" task block
 
-**Positive Validation**:
+#### State Validation Specifications
+
+**Initial State**: No journal configuration file or default systemd-journald settings
+**Target State**:
+- `/etc/systemd/journald.conf.d/` directory exists with proper permissions
+- `/etc/systemd/journald.conf.d/00-ansible-managed.conf` configured with specified journal settings when `journal.configure` is true
+
+#### Validation Test Scenarios
+
+**Scenario 1: Positive Validation - Journal Configuration Enabled**
 ```yaml
-test_case: "Configure journal settings"
-input:
+test_case: "Configure systemd journal settings"
+platform: ubuntu-journal-enabled
+input_variables:
   journal:
     configure: true
-    max_use: "100M"
-    max_files: 5
-verify:
-  - file_exists: "/etc/systemd/journald.conf.d/00-ansible-managed.conf"
-  - file_contains: "/etc/systemd/journald.conf.d/00-ansible-managed.conf"
-    pattern: "SystemMaxUse=100M"
-  - file_contains: "/etc/systemd/journald.conf.d/00-ansible-managed.conf"
-    pattern: "SystemMaxFiles=5"
+    max_size: "100M"
+    max_retention: "7d"
+initial_state:
+  directory: "/etc/systemd/journald.conf.d may not exist"
+  config_file: "/etc/systemd/journald.conf.d/00-ansible-managed.conf missing"
+expected_final_state:
+  directory: "/etc/systemd/journald.conf.d exists with mode 0755"
+  config_file: "/etc/systemd/journald.conf.d/00-ansible-managed.conf exists with mode 0644"
+  file_content_contains:
+    - "SystemMaxUse=100M"
+    - "RuntimeMaxUse=100M"
+    - "MaxRetentionSec=7d"
+    - "Storage=persistent"
+    - "Compress=yes"
+verification_commands:
+  - command: "test -d /etc/systemd/journald.conf.d"
+    expected_result: "directory exists"
+  - command: "test -f /etc/systemd/journald.conf.d/00-ansible-managed.conf"
+    expected_result: "file exists"
+  - command: "grep '^SystemMaxUse=100M' /etc/systemd/journald.conf.d/00-ansible-managed.conf"
+    expected_output: "SystemMaxUse=100M"
+  - command: "grep '^MaxRetentionSec=7d' /etc/systemd/journald.conf.d/00-ansible-managed.conf"
+    expected_output: "MaxRetentionSec=7d"
+validation_logic:
+  positive_case:
+    - journal is defined ✓
+    - journal.configure is true ✓
+    - ansible_service_mgr == "systemd" ✓
+    - All tasks should execute (directory, template)
+success_criteria:
+  - "✅ /etc/systemd/journald.conf.d directory exists with correct permissions"
+  - "✅ Journal configuration file exists with correct content"
+  - "✅ Template properly applied with specified settings"
 ```
 
-**Negative Validation**:
+**Scenario 2: Negative Validation - Journal Configuration Disabled**
 ```yaml
-test_case: "Skip when journal configure disabled"
-input:
+test_case: "Skip when journal configuration disabled"
+platform: ubuntu-journal-disabled
+input_variables:
   journal:
     configure: false
-verify:
-  - no_changes: true
+    max_size: "100M"
+    max_retention: "7d"
+initial_state:
+  directory: "may or may not exist"
+  config_file: "should remain unchanged"
+expected_final_state:
+  no_changes: true
+verification_commands:
+  - command: "test -f /etc/systemd/journald.conf.d/00-ansible-managed.conf"
+    expected_result: "file_not_found"
+validation_logic:
+  negative_case:
+    - journal is defined ✓
+    - journal.configure is false ✗
+    - Task should be skipped
+success_criteria:
+  - "✅ No changes to journal configuration"
+  - "✅ Conditional logic working: configure=false triggers skip"
+```
+
+**Scenario 3: Negative Validation - Journal Undefined**
+```yaml
+test_case: "Skip when journal undefined"
+platform: ubuntu-journal-undefined
+input_variables:
+  # journal not defined
+initial_state:
+  directory: "may or may not exist"
+  config_file: "should remain unchanged"
+expected_final_state:
+  no_changes: true
+verification_commands:
+  - command: "test -f /etc/systemd/journald.conf.d/00-ansible-managed.conf"
+    expected_result: "file_not_found"
+validation_logic:
+  negative_case:
+    - journal is defined ✗
+    - Task should be skipped
+success_criteria:
+  - "✅ No changes to journal configuration"
+  - "✅ Conditional logic working: undefined variable triggers skip"
+```
+
+#### Implementation Strategy
+
+**Testing Environment**: Molecule with Docker containers (sufficient for file operations and conditional logic validation)
+
+**Container Limitations**: Journal configuration files can be created and verified in containers. Service restart validation deferred to VM testing.
+
+**Molecule Platform Configuration**:
+```yaml
+platforms:
+  - name: ubuntu-journal-enabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-journal-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: ubuntu-journal-undefined
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+
+host_vars:
+  ubuntu-journal-enabled:
+    journal:
+      configure: true
+      max_size: "100M"
+      max_retention: "7d"
+  ubuntu-journal-disabled:
+    journal:
+      configure: false
+      max_size: "100M"
+      max_retention: "7d"
+  ubuntu-journal-undefined:
+    # journal intentionally omitted
+```
+
+**Validation Approach**: State-based verification after role execution
+
+- **Positive case**: Check actual file existence, permissions, and content matches template output
+- **Negative cases**: Check no configuration files are created - works in all environments
+- **Container testing**: Focus on file operations and conditional logic validation
+- **VM testing (Phase 3)**: Add service restart verification and journal functionality testing
+
+**Success Criteria**:
+
+- **Containers**: File operations + conditional logic validation
+- **VM/bare metal**: Full system configuration including service restart functionality
+- **CI Compatibility**: All tests pass in container environments by design
+
+**Environment**: Container (Primary) + CI Pipeline, VM (Complete service integration in Phase 3)
 ```
 
 **Environment**: VM Only (systemd required)
 
 ---
 
-### REQ-OS-010: Rsyslog Remote Logging
+### REQ-OS-010: DELETED
 
-**Requirement**: The system SHALL be capable of configuring rsyslog for remote logging on Linux systems
-**Implementation**: Uses `ansible.builtin.lineinfile` to configure rsyslog remote host when `rsyslog.enabled` is true
-
-**Positive Validation**:
-```yaml
-test_case: "Configure remote rsyslog"
-input:
-  rsyslog:
-    enabled: true
-    remote_host: "log.example.com"
-    port: 514
-verify:
-  - file_contains: "/etc/rsyslog.conf"
-    pattern: "*.* @@log.example.com:514"
-  - service_restarted: "rsyslog"
-```
-
-**Negative Validation**:
-```yaml
-test_case: "Skip when rsyslog disabled"
-input:
-  rsyslog:
-    enabled: false
-verify:
-  - no_changes: true
-```
+**Remote logging capabilities moved to dedicated logging role (future work)**
 
 **Environment**: VM Only (rsyslog service required)
 
 ---
 
-### REQ-OS-011: Enable System Services
+### REQ-OS-011: Systemd Unit Control
 
-**Requirement**: The system SHALL be capable of enabling system services on Linux systems
-**Implementation**: Uses `ansible.builtin.systemd` for enable/start operations. Loop variable: `item` (from `host_services.enable`)
+**Requirement**: The system SHALL be capable of controlling systemd units (services, timers, and so on) on Linux systems
+**Implementation**: Uses `ansible.builtin.systemd_service` to manage systemd units with three operations:
+- Enable/start: When `host_services.enable` is defined (enabled: true, state: started)
+- Disable/stop: When `host_services.disable` is defined (enabled: false, state: stopped)
+- Mask/stop: When `host_services.mask` is defined (masked: true, state: stopped)
+Loop variable: `item` (from respective `host_services.*` arrays).
 
-**Positive Validation**:
+#### Validation Test Scenarios
+
+**Scenario 1: Enable Services**
 ```yaml
-test_case: "Enable multiple services"
+test_case: "Enable and start multiple services"
 input:
   host_services:
     enable:
@@ -817,37 +1081,9 @@ verify:
   - service_running: "postgresql"
 ```
 
-**Negative Validation**:
+**Scenario 2: Disable Services**
 ```yaml
-test_case: "Skip when no services to enable"
-input:
-  host_services:
-    enable: []
-verify:
-  - no_changes: true
-
-test_case: "Handle non-existent service gracefully"
-input:
-  host_services:
-    enable:
-      - "non-existent-service"
-verify:
-  - task_failed: true
-  - error_message_contains: "service"
-```
-
-**Environment**: VM Only (systemd required)
-
----
-
-### REQ-OS-012: Disable System Services
-
-**Requirement**: The system SHALL be capable of disabling system services on Linux systems
-**Implementation**: Uses `ansible.builtin.systemd` for disable/stop operations. Loop variable: `item` (from `host_services.disable`)
-
-**Positive Validation**:
-```yaml
-test_case: "Disable multiple services"
+test_case: "Disable and stop multiple services"
 input:
   host_services:
     disable:
@@ -860,18 +1096,9 @@ verify:
   - service_stopped: "sendmail"
 ```
 
-**Environment**: VM Only (systemd required)
-
----
-
-### REQ-OS-013: Mask System Services
-
-**Requirement**: The system SHALL be capable of masking system services on Linux systems
-**Implementation**: Uses `ansible.builtin.systemd` for mask/stop operations. Loop variable: `item` (from `host_services.mask`)
-
-**Positive Validation**:
+**Scenario 3: Mask Services**
 ```yaml
-test_case: "Mask multiple services"
+test_case: "Mask and stop multiple services"
 input:
   host_services:
     mask:
@@ -884,58 +1111,245 @@ verify:
   - service_stopped: "rsh"
 ```
 
+**Scenario 4: Mixed Operations**
+```yaml
+test_case: "Combined enable/disable/mask operations"
+input:
+  host_services:
+    enable: ["nginx"]
+    disable: ["apache2"]
+    mask: ["telnet"]
+verify:
+  - service_enabled: "nginx"
+  - service_running: "nginx"
+  - service_disabled: "apache2"
+  - service_stopped: "apache2"
+  - service_masked: "telnet"
+  - service_stopped: "telnet"
+```
+
+**Negative Validation**:
+```yaml
+test_case: "Skip when no services defined"
+input:
+  host_services:
+    enable: []
+    disable: []
+    mask: []
+verify:
+  - no_changes: true
+
+test_case: "Handle non-existent service gracefully"
+input:
+  host_services:
+    enable: ["non-existent-service"]
+verify:
+  - task_continues: true  # failed_when: false
+```
+
+#### State Validation Specifications
+
+**Initial State**: Services may be in various states (enabled/disabled, running/stopped, masked/unmasked)
+**Target State**: Services should reach expected state based on `host_services.*` configuration
+**Verification Commands**:
+- `systemctl is-enabled <service>` - Check enablement state
+- `systemctl is-active <service>` - Check running state
+- `systemctl is-masked <service>` - Check mask state
+
+#### Implementation Strategy
+
+**Testing Environment**: VM Only (systemd operations require actual systemd)
+
+**Container Limitations**: systemd service operations cannot be reliably tested in containers due to:
+- Limited systemd functionality in Docker containers
+- Missing service files for test services
+- Container isolation preventing proper systemd interaction
+
+**Validation Approach**:
+- **VM environment**: Full systemd service state validation
+- **Container environment**: Skip systemd tests, document limitation
+- **Conditional logic**: Test variable handling and task execution logic
+
 **Environment**: VM Only (systemd required)
+
+**REQ-OS-012**: DELETED - Consolidated into REQ-OS-011 (systemd unit control)
+
+**REQ-OS-013**: DELETED - Consolidated into REQ-OS-011 (systemd unit control)
 
 ---
 
-### REQ-OS-014: Load Kernel Modules
+### REQ-OS-014: Kernel Module Management
 
-**Requirement**: The system SHALL be capable of loading kernel modules at boot on Linux systems
-**Implementation**: Uses `ansible.builtin.lineinfile` for `/etc/modules-load.d/{module}.conf` files. Loop variable: `item` (from `host_modules.load`)
+**Requirement**: The system SHALL be capable of managing kernel modules on Linux systems
+**Implementation**: Uses `community.general.modprobe` to manage kernel modules with operations:
+- Load modules: When `host_modules.load` is defined (state: present, persistent: present)
+- Blacklist modules: When `host_modules.blacklist` is defined (state: absent, persistent: absent)
+Loop variable: `item` (from respective `host_modules.*` arrays).
 
-**Positive Validation**:
+#### State Validation Specifications
+
+**Initial State**: No specific modules loaded/blacklisted; clean module configuration
+**Target State**: Modules should be loaded/blacklisted with persistent configuration as specified by `host_modules.*` variables
+**Verification Commands**:
+- `lsmod | grep <module>` - Check if module is currently loaded
+- `modprobe <module>` - Test if module can be loaded (should fail for blacklisted)
+- Check persistence files created by `community.general.modprobe` with `persistent: present/absent`
+
+#### Validation Test Scenarios
+
+**Scenario 1: Load Kernel Modules (state: present, persistent: present)**
 ```yaml
-test_case: "Load kernel modules at boot"
-input:
+test_case: "Load and persist kernel modules via modprobe"
+input_variables:
   host_modules:
     load:
       - "br_netfilter"
       - "overlay"
-verify:
-  - file_exists: "/etc/modules-load.d/br_netfilter.conf"
-  - file_contains: "/etc/modules-load.d/br_netfilter.conf"
-    pattern: "br_netfilter"
-  - file_exists: "/etc/modules-load.d/overlay.conf"
-  - file_contains: "/etc/modules-load.d/overlay.conf"
-    pattern: "overlay"
+initial_state:
+  modules: "br_netfilter and overlay not necessarily loaded"
+  persistence_files: "may not exist"
+expected_final_state:
+  modules: "br_netfilter and overlay loaded in kernel"
+  persistence_files: "created by community.general.modprobe for boot loading"
+verification_commands:
+  - command: "lsmod | grep br_netfilter"
+    expected_result: "module found in lsmod output"
+  - command: "lsmod | grep overlay"
+    expected_result: "module found in lsmod output"
+  - command: "test -f /etc/modules-load.d/br_netfilter.conf"
+    expected_result: "persistence file exists"
+  - command: "test -f /etc/modules-load.d/overlay.conf"
+    expected_result: "persistence file exists"
+validation_logic:
+  positive_case:
+    - host_modules is defined ✓
+    - host_modules.load is defined ✓
+    - host_modules.load | length > 0 ✓
+    - Task should execute with state: present, persistent: present
+success_criteria:
+  - "✅ Modules immediately loaded in kernel (lsmod verification)"
+  - "✅ Persistence files created for boot-time loading"
 ```
 
-**Environment**: VM Only (module loading required)
-
----
-
-### REQ-OS-015: Blacklist Kernel Modules
-
-**Requirement**: The system SHALL be capable of blacklisting kernel modules on Linux systems
-**Implementation**: Uses `ansible.builtin.lineinfile` for `/etc/modprobe.d/blacklist-ansible-managed.conf`. Loop variable: `item` (from `host_modules.blacklist`)
-
-**Positive Validation**:
+**Scenario 2: Blacklist Kernel Modules (state: absent, persistent: absent)**
 ```yaml
-test_case: "Blacklist kernel modules"
-input:
+test_case: "Blacklist and prevent kernel modules via modprobe"
+input_variables:
   host_modules:
     blacklist:
       - "pcspkr"
       - "snd_pcsp"
-verify:
-  - file_exists: "/etc/modprobe.d/blacklist-ansible-managed.conf"
-  - file_contains: "/etc/modprobe.d/blacklist-ansible-managed.conf"
-    pattern: "blacklist pcspkr"
-  - file_contains: "/etc/modprobe.d/blacklist-ansible-managed.conf"
-    pattern: "blacklist snd_pcsp"
+initial_state:
+  modules: "may or may not be loaded"
+  blacklist_files: "may not exist"
+expected_final_state:
+  modules: "unloaded and prevented from loading"
+  blacklist_files: "created by community.general.modprobe for persistent prevention"
+verification_commands:
+  - command: "modprobe pcspkr 2>&1"
+    expected_result: "error indicating module is blacklisted"
+  - command: "modprobe snd_pcsp 2>&1"
+    expected_result: "error indicating module is blacklisted"
+  - command: "test -f /etc/modprobe.d/pcspkr.conf"
+    expected_result: "blacklist file exists"
+  - command: "grep 'blacklist pcspkr' /etc/modprobe.d/pcspkr.conf"
+    expected_result: "blacklist entry found"
+validation_logic:
+  positive_case:
+    - host_modules is defined ✓
+    - host_modules.blacklist is defined ✓
+    - host_modules.blacklist | length > 0 ✓
+    - Task should execute with state: absent, persistent: absent
+success_criteria:
+  - "✅ Modules cannot be loaded (modprobe fails)"
+  - "✅ Persistence files created for boot-time prevention"
 ```
 
-**Environment**: VM Only (modprobe required)
+**Scenario 3: Mixed Module Operations**
+```yaml
+test_case: "Combined load and blacklist operations"
+input_variables:
+  host_modules:
+    load: ["br_netfilter"]
+    blacklist: ["pcspkr"]
+verification_commands:
+  - command: "lsmod | grep br_netfilter"
+    expected_result: "module loaded"
+  - command: "modprobe pcspkr 2>&1"
+    expected_result: "blacklisted error"
+  - command: "test -f /etc/modules-load.d/br_netfilter.conf"
+    expected_result: "load persistence file exists"
+  - command: "test -f /etc/modprobe.d/pcspkr.conf"
+    expected_result: "blacklist persistence file exists"
+success_criteria:
+  - "✅ Load and blacklist operations both work correctly"
+  - "✅ Both types of persistence files created"
+```
+
+**Scenario 4: Negative Validation - Empty Arrays**
+```yaml
+test_case: "Skip when no modules defined"
+input_variables:
+  host_modules:
+    load: []
+    blacklist: []
+validation_logic:
+  negative_case:
+    - host_modules is defined ✓
+    - host_modules.load | length == 0 ✗
+    - host_modules.blacklist | length == 0 ✗
+    - Tasks should be skipped
+success_criteria:
+  - "✅ No module operations attempted"
+  - "✅ Conditional logic working correctly"
+```
+
+**Scenario 5: Negative Validation - Undefined Variable**
+```yaml
+test_case: "Skip when host_modules undefined"
+input_variables:
+  # host_modules intentionally not defined
+validation_logic:
+  negative_case:
+    - host_modules is defined ✗
+    - Tasks should be skipped
+success_criteria:
+  - "✅ No module operations attempted"
+  - "✅ Conditional logic working correctly"
+```
+
+**Scenario 6: Edge Case - Non-existent Module**
+```yaml
+test_case: "Handle non-existent module gracefully"
+input_variables:
+  host_modules:
+    load: ["non-existent-module"]
+validation_logic:
+  edge_case:
+    - Uses failed_when: false for graceful handling
+    - Should not fail entire playbook
+success_criteria:
+  - "✅ Task continues despite module not existing"
+  - "✅ Graceful error handling"
+```
+
+#### Implementation Strategy
+
+**Testing Environment**: VM Only (kernel module operations require actual kernel access)
+
+**Container Limitations**: Kernel module operations cannot be reliably tested in containers due to:
+- Limited kernel access in Docker containers
+- Missing kernel modules in container kernels
+- Container isolation preventing modprobe operations
+
+**Validation Approach**:
+- **VM environment**: Full kernel module state validation via lsmod, modprobe, and file checks
+- **Container environment**: Skip module tests, document limitation
+- **Conditional logic**: Test variable handling and task execution logic
+
+**Environment**: VM Only (kernel module operations required)
+
+**REQ-OS-015**: DELETED - Consolidated into REQ-OS-014 (kernel module management)
 
 ---
 
@@ -945,6 +1359,7 @@ verify:
 **Implementation**: Uses `ansible.builtin.copy` to deploy rules to `/etc/udev/rules.d/`. Loop variable: `item` (from `host_udev.rules`)
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Deploy custom udev rules"
 input:
@@ -968,6 +1383,7 @@ verify:
 **Implementation**: Uses `ansible.builtin.copy` for `/etc/apt/apt.conf.d/` files
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Configure APT no-recommends"
 input:
@@ -993,6 +1409,7 @@ verify:
 **Implementation**: Uses `ansible.builtin.template` for `/etc/apt/apt.conf.d/50unattended-upgrades`
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Configure unattended upgrades"
 input:
@@ -1004,9 +1421,9 @@ input:
 verify:
   - file_exists: "/etc/apt/apt.conf.d/50unattended-upgrades"
   - file_contains: "/etc/apt/apt.conf.d/50unattended-upgrades"
-    pattern: "Automatic-Reboot \"true\""
+    pattern: 'Automatic-Reboot "true"'
   - file_contains: "/etc/apt/apt.conf.d/50unattended-upgrades"
-    pattern: "Automatic-Reboot-Time \"02:00\""
+    pattern: 'Automatic-Reboot-Time "02:00"'
 ```
 
 **Environment**: Container + VM (Debian/Ubuntu only)
@@ -1019,6 +1436,7 @@ verify:
 **Implementation**: Uses `wolskies.infrastructure.manage_snap_packages` role to purge snapd
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Purge snapd completely"
 input:
@@ -1042,6 +1460,7 @@ verify:
 **Implementation**: Uses `ansible.builtin.unarchive` to download and install fonts. Loop variable: `font_item`
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Install Nerd Fonts"
 input:
@@ -1067,6 +1486,7 @@ verify:
 **Implementation**: Uses `ansible.builtin.lineinfile` to modify `/etc/pacman.conf`
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Configure Pacman with multilib and proxy"
 input:
@@ -1095,6 +1515,7 @@ verify:
 **Implementation**: Uses `community.general.osx_defaults` with NSGlobalDomain/AppleLocale
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Set macOS locale to en_US"
 input:
@@ -1117,6 +1538,7 @@ verify:
 **Implementation**: Uses `community.general.osx_defaults` with NSGlobalDomain/AppleLanguages
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Set macOS language to English"
 input:
@@ -1137,6 +1559,7 @@ verify:
 **Implementation**: Uses `ansible.builtin.command` with `systemsetup` utility
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Configure NTP on macOS"
 input:
@@ -1160,6 +1583,7 @@ verify:
 **Implementation**: Uses `community.general.osx_defaults` for `/Library/Preferences/com.apple.SoftwareUpdate`
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Enable automatic updates"
 input:
@@ -1187,6 +1611,7 @@ verify:
 **Implementation**: Uses `ansible.builtin.command` with `spctl` utility
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Enable Gatekeeper"
 input:
@@ -1208,6 +1633,7 @@ verify:
 **Implementation**: Uses `community.general.osx_defaults` with NSGlobalDomain
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Configure system preferences"
 input:
@@ -1234,6 +1660,7 @@ verify:
 **Implementation**: Uses `community.general.osx_defaults` for `com.apple.NetworkBrowser`
 
 **Positive Validation**:
+
 ```yaml
 test_case: "Enable AirDrop over Ethernet"
 input:
@@ -1253,6 +1680,7 @@ verify:
 ## Test Environment Summary
 
 ### Container-Testable Requirements (15 total)
+
 - REQ-OS-002: /etc/hosts update
 - REQ-OS-003: Timezone configuration
 - REQ-OS-004: OS security hardening
@@ -1265,20 +1693,19 @@ verify:
 - REQ-OS-021: Pacman configuration (Arch Linux)
 
 ### VM-Required Requirements (13 total)
+
 - REQ-OS-001: Hostname configuration
 - REQ-OS-005: SSH hardening
 - REQ-OS-008: NTP time synchronization (Linux)
 - REQ-OS-009: Systemd journal configuration
 - REQ-OS-010: Rsyslog remote logging
-- REQ-OS-011: Enable system services
-- REQ-OS-012: Disable system services
-- REQ-OS-013: Mask system services
-- REQ-OS-014: Load kernel modules
-- REQ-OS-015: Blacklist kernel modules
+- REQ-OS-011: Systemd unit control (enable/disable/mask services)
+- REQ-OS-014: Kernel module management (load/blacklist modules)
 - REQ-OS-016: Custom udev rules
 - REQ-OS-022 to REQ-OS-028: macOS requirements (7 total)
 
 ### Platform-Specific Requirements
+
 - **Cross-platform**: REQ-OS-001 to REQ-OS-003 (3 requirements)
 - **Linux-specific**: REQ-OS-004 to REQ-OS-021 (18 requirements)
 - **Debian/Ubuntu-specific**: REQ-OS-017 to REQ-OS-020 (4 requirements)
@@ -1288,6 +1715,7 @@ verify:
 ---
 
 **Implementation Priority**:
+
 1. **Phase 1**: Container-testable requirements (quick feedback)
 2. **Phase 2**: Linux VM requirements (core functionality)
 3. **Phase 3**: macOS requirements (platform expansion)

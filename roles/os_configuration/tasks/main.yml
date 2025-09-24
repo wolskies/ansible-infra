@@ -6,10 +6,10 @@
   when:
     - host_hostname is defined
     - host_hostname | length > 0
-  failed_when: false # Allow failures in containers - VM testing validates actual functionality
   tags:
     - hostname
     - os-configuration
+    - no-container
 
 - name: Set system timezone
   community.general.timezone:
@@ -36,7 +36,10 @@
     - host_hostname | length > 0
     - domain_name is defined
     - domain_name | length > 0
-  failed_when: false # Allow failures in containers - focus on testing conditional logic
+  tags:
+    - hostname
+    - os-configuration
+    - no-container
 
 - name: Include OS-specific configuration
   ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml

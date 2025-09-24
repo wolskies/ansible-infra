@@ -81,13 +81,10 @@
         enabled: true
         state: started
       become: true
-      failed_when: false
-      when: ansible_virtualization_type != "docker"
-
-    - name: Document systemd-timesyncd service limitation in containers
-      ansible.builtin.debug:
-        msg: "⚠️ systemd-timesyncd service management skipped in container - will be validated in VM testing"
-      when: ansible_virtualization_type == "docker"
+      tags:
+        - ntp
+        - time
+        - no-container
 
     - name: Configure systemd-timesyncd
       ansible.builtin.template:
@@ -137,7 +134,7 @@
 - name: System optimizations
   block:
     - name: Enable system services
-      ansible.builtin.systemd:
+      ansible.builtin.systemd_service:
         name: "{{ item }}"
         enabled: true
         state: started
@@ -149,7 +146,7 @@
         - host_services.enable | default([]) | length > 0
 
     - name: Disable unnecessary services
-      ansible.builtin.systemd:
+      ansible.builtin.systemd_service:
         name: "{{ item }}"
         enabled: false
         state: stopped
@@ -161,7 +158,7 @@
         - host_services.disable | default([]) | length > 0
 
     - name: Mask services
-      ansible.builtin.systemd:
+      ansible.builtin.systemd_service:
         name: "{{ item }}"
         masked: true
         state: stopped
@@ -175,12 +172,11 @@
     - optimization
     - services
 
-- name: Load kernel modules at boot
-  ansible.builtin.lineinfile:
-    path: "/etc/modules-load.d/{{ item }}.conf"
-    line: "{{ item }}"
-    create: true
-    mode: "0644"
+- name: Load kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+    persistent: present
   loop: "{{ host_modules.load | default([]) }}"
   become: true
   when:
@@ -189,13 +185,13 @@
   tags:
     - modules
     - kernel
+    - no-container
 
 - name: Blacklist kernel modules
-  ansible.builtin.lineinfile:
-    path: /etc/modprobe.d/blacklist-ansible-managed.conf
-    line: "blacklist {{ item }}"
-    create: true
-    mode: "0644"
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: absent
+    persistent: absent
   loop: "{{ host_modules.blacklist | default([]) }}"
   become: true
   when:
@@ -204,6 +200,7 @@
   tags:
     - modules
     - kernel
+    - no-container
 
 - name: Configure udev rules
   block:

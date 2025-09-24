@@ -297,9 +297,9 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 ###### 3.1.3.2.1 Security Hardening
 
-**REQ-OS-004**: The system SHALL be capable of implementing OS security hardening configurations using `devsec.hardening.os_hardening` role
+**REQ-OS-004**: The system SHALL be capable of applying OS security hardening on Linux systems
 
-**Implementation**: Uses `ansible.builtin.include_role` to call `devsec.hardening.os_hardening` when security hardening is enabled
+**Implementation**: Uses `devsec.hardening.os_hardening` role with variables from `host_security.*` and `host_sysctl.parameters` when `host_security.hardening_enabled` is true.
 
 **REQ-OS-005**: The system SHALL be capable of applying SSH security hardening on Linux systems
 
@@ -309,17 +309,17 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **REQ-OS-006**: The system SHALL be capable of setting the system locale on Linux systems
 
-**Implementation**: Uses `community.general.locale_gen` + `ansible.builtin.lineinfile` for `/etc/default/locale` when `domain_locale` is defined.
+**Implementation**: Uses `community.general.locale_gen` + the localectl command when `domain_locale` is defined.
 
-**REQ-OS-007**: The system SHALL be capable of setting the system language on Linux systems
-
-**Implementation**: Uses `ansible.builtin.lineinfile` for LANGUAGE in `/etc/default/locale` when `domain_language` is defined.
+**REQ-OS-007**: DELETED - Merged into REQ-OS-006 (locale and language are part of same locale configuration)
 
 ###### 3.1.3.2.3 NTP Time Synchronization
 
-**REQ-OS-008**: The system SHALL be capable of configuring NTP time synchronization on Linux systems
+**REQ-OS-008**: The system SHALL be capable of configuring basic time synchronization on Linux systems
 
-**Implementation**: Uses `ansible.builtin.template` for `/etc/systemd/timesyncd.conf` when `domain_ntp.enabled` is true. Loop variable name: `ntp_server`.
+**Implementation**: Uses systemd-timesyncd for client-side time synchronization via SNTP. Steps: 1) `ansible.builtin.package` ensures systemd-timesyncd is installed, 2) `ansible.builtin.systemd` ensures service is enabled, 3) `ansible.builtin.template` configures `/etc/systemd/timesyncd.conf` when `domain_ntp.enabled` is true. Loop variable name: `ntp_server`.
+
+**Note**: This implements basic SNTP client functionality only. Full NTP server/client capabilities require a dedicated NTP role (future work).
 
 ###### 3.1.3.2.4 Journal and Logging Configuration
 
@@ -327,33 +327,34 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **Implementation**: Uses `ansible.builtin.template` for `/etc/systemd/journald.conf.d/00-ansible-managed.conf` when `journal.configure` is true.
 
-**REQ-OS-010**: The system SHALL be capable of configuring rsyslog for remote logging on Linux systems
-
-**Implementation**: Uses `ansible.builtin.lineinfile` to configure rsyslog remote host when `rsyslog.enabled` is true.
+**REQ-OS-010**: DELETED - Remote logging capabilities moved to dedicated logging role (future work)
 
 ###### 3.1.3.2.5 Service Management
 
-**REQ-OS-011**: The system SHALL be capable of enabling system services on Linux systems
+**REQ-OS-011**: The system SHALL be capable of controlling systemd units (services, timers, and so on) on Linux systems
 
-**Implementation**: Uses `ansible.builtin.systemd` for enable/start operations. Loop variable name: `item` (from `host_services.enable`).
+**Implementation**: Uses `ansible.builtin.systemd_service` to manage systemd units with three operations:
 
-**REQ-OS-012**: The system SHALL be capable of disabling system services on Linux systems
+- Enable/start: When `host_services.enable` is defined (enabled: true, state: started)
+- Disable/stop: When `host_services.disable` is defined (enabled: false, state: stopped)
+- Mask/stop: When `host_services.mask` is defined (masked: true, state: stopped)
+  Loop variable name: `item` (from respective `host_services.*` arrays).
 
-**Implementation**: Uses `ansible.builtin.systemd` for disable/stop operations. Loop variable name: `item` (from `host_services.disable`).
+**REQ-OS-012**: DELETED - Consolidated into REQ-OS-011 (systemd unit control)
 
-**REQ-OS-013**: The system SHALL be capable of masking system services on Linux systems
-
-**Implementation**: Uses `ansible.builtin.systemd` for mask/stop operations. Loop variable name: `item` (from `host_services.mask`).
+**REQ-OS-013**: DELETED - Consolidated into REQ-OS-011 (systemd unit control)
 
 ###### 3.1.3.2.6 Kernel Module Management
 
-**REQ-OS-014**: The system SHALL be capable of loading kernel modules at boot on Linux systems
+**REQ-OS-014**: The system SHALL be capable of managing kernel modules on Linux systems
 
-**Implementation**: Uses `ansible.builtin.lineinfile` for `/etc/modules-load.d/{module}.conf` files. Loop variable name: `item` (from `host_modules.load`).
+**Implementation**: Uses `community.general.modprobe` to manage kernel modules with operations:
 
-**REQ-OS-015**: The system SHALL be capable of blacklisting kernel modules on Linux systems
+- Load modules: When `host_modules.load` is defined (state: present, persistent: present)
+- Blacklist modules: When `host_modules.blacklist` is defined (state: absent, persistent: absent)
+  Loop variable name: `item` (from respective `host_modules.*` arrays).
 
-**Implementation**: Uses `ansible.builtin.lineinfile` for `/etc/modprobe.d/blacklist-ansible-managed.conf`. Loop variable name: `item` (from `host_modules.blacklist`).
+**REQ-OS-015**: DELETED - Consolidated into REQ-OS-014 (kernel module management)
 
 ###### 3.1.3.2.7 Hardware Configuration
 
@@ -1026,31 +1027,13 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 
 ## 5. Future Requirements
 
-### 5.1 v1.2.0 Target Requirements
-
-#### 5.1.1 User Management Refactor
-
-- Move all user management from `os_configuration` to `configure_user`
-- Implement execution order: os_config → packages → users
-- Add superuser privilege management with platform detection
-
-#### 5.1.2 Repository Management Enhancement
-
-- Implement external APT repository management with GPG key handling
-- Support for Docker CE, NodeJS, PostgreSQL, Kubernetes, HashiCorp repositories
-- Proper error handling and recovery for repository failures
-
-#### 5.1.3 Enhanced Testing
-
-- Comprehensive edge case coverage for all roles
-- VM testing matrix across all supported platforms
-- Automated validation and regression testing
-
 ### 5.2 Long-term Requirements
 
 #### 5.2.1 Platform Expansion
 
-- Windows support evaluation
+- Move services enable/disable to package management
+- Configuration of NTP server
+- Configuration of Remote logging (rsyslog)
 - Additional Linux distributions (RHEL, CentOS Stream, Fedora)
 - Container platform support (Docker, Podman configuration)
 
