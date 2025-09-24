@@ -3,42 +3,48 @@
 
 [DEFAULT]
 # Ban hosts for default time:
-bantime = {{ fail2ban.defaults.bantime }}
+bantime = {{ fail2ban.bantime | default('10m') }}
 
 # Override /etc/fail2ban/jail.d/00-firewalld.conf:
 banaction = iptables-multiport
 
 # Default failure detection settings
-findtime = {{ fail2ban.defaults.findtime }}
-maxretry = {{ fail2ban.defaults.maxretry }}
+findtime = {{ fail2ban.findtime | default('10m') }}
+maxretry = {{ fail2ban.maxretry | default(5) }}
 
 # Ignore local IPs
-ignoreip = {{ fail2ban.ignoreips | join(' ') }}
+ignoreip = {{ fail2ban.ignoreips | default([]) | join(' ') }}
 
 # Email settings (disabled by default)
 #mta = sendmail
 #action = %(action_)s
-{% if fail2ban.dest_email != "" %}
+{% if fail2ban.dest_email is defined and fail2ban.dest_email != "" %}
 #destemail = {{ fail2ban.dest_email }}
 {% endif %}
 
-{% for service in fail2ban.services %}
-{% if service.enabled %}
-[{{ service.name }}]
+{% for jail in fail2ban.jails | default([]) %}
+{% if jail.enabled | default(false) %}
+[{{ jail.name }}]
 enabled = true
-maxretry = {{ service.maxretry | default(fail2ban.defaults.maxretry) }}
-{% if service.bantime is defined %}
-bantime = {{ service.bantime }}
+maxretry = {{ jail.maxretry | default(fail2ban.maxretry | default(5)) }}
+{% if jail.bantime is defined %}
+bantime = {{ jail.bantime }}
 {% else %}
-bantime = {{ fail2ban.defaults.bantime }}
+bantime = {{ fail2ban.bantime | default('10m') }}
 {% endif %}
-{% if service.findtime is defined %}
-findtime = {{ service.findtime }}
+{% if jail.findtime is defined %}
+findtime = {{ jail.findtime }}
 {% else %}
-findtime = {{ fail2ban.defaults.findtime }}
+findtime = {{ fail2ban.findtime | default('10m') }}
 {% endif %}
-{% if service.logpath is defined %}
-logpath = {{ service.logpath }}
+{% if jail.logpath is defined %}
+logpath = {{ jail.logpath }}
+{% endif %}
+{% if jail.port is defined %}
+port = {{ jail.port }}
+{% endif %}
+{% if jail.filter is defined %}
+filter = {{ jail.filter }}
 {% endif %}
 {% endif %}
 

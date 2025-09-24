@@ -4,7 +4,8 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: ubuntu-security-test
+  # Consolidated test containers - comprehensive coverage with fewer resources
+  - name: ubuntu-firewall-full
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -12,20 +13,38 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: arch-security-test
-    image: carlodepieri/docker-archlinux-ansible:latest
+  - name: ubuntu-firewall-partial
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/usr/lib/systemd/systemd"
-    env:
-      container: docker
-    capabilities:
-      - SYS_ADMIN
-    ulimits:
-      - nofile:65535:65535
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-fail2ban-only
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-security-disabled
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-edge-cases
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -40,42 +59,86 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
-        # Security services testing variables
+    host_vars:
+      # REQ-SS-001 through REQ-SS-007: Complete firewall + fail2ban testing
+      ubuntu-firewall-full:
         firewall:
-          enabled: false # Disabled in containers
+          enabled: true
           prevent_ssh_lockout: true
-          package: "ufw"
-          stealth_mode: false
-          block_all: false
-          logging: false
           rules:
             - rule: allow
               port: 22
-              proto: tcp
+              protocol: tcp
+              comment: "SSH access"
             - rule: allow
               port: 80
-              proto: tcp
+              protocol: tcp
+              comment: "HTTP"
             - rule: allow
               port: 443
-              proto: tcp
-
+              protocol: tcp
+              comment: "HTTPS"
+            - rule: deny
+              source: "10.0.0.0/8"
+              comment: "Block private network"
         fail2ban:
-          enabled: false # Disabled in containers
-          sender: "root@localhost"
-          dest_email: ""
-          defaults:
-            bantime: 3600
-            findtime: 600
-            maxretry: 5
-          services:
+          enabled: true
+          bantime: "10m"
+          findtime: "10m"
+          maxretry: 5
+          jails:
             - name: sshd
               enabled: true
-              maxretry: 5
-              bantime: 3600
-              findtime: 600
+              port: ssh
               logpath: /var/log/auth.log
-          ignoreips:
-            - "127.0.0.1/8"
-            - "::1"
+              maxretry: 3
+
+      # REQ-SS-001 through REQ-SS-004: Firewall only, fail2ban disabled
+      ubuntu-firewall-partial:
+        firewall:
+          enabled: true
+          prevent_ssh_lockout: true
+          rules:
+            - rule: allow
+              port: 22
+              protocol: tcp
+              comment: "SSH only"
+        fail2ban:
+          enabled: false
+
+      # REQ-SS-005 through REQ-SS-007: Fail2ban only, firewall disabled
+      ubuntu-fail2ban-only:
+        firewall:
+          enabled: false
+        fail2ban:
+          enabled: true
+          bantime: "1h"
+          findtime: "30m"
+          maxretry: 10
+          jails:
+            - name: sshd
+              enabled: true
+              port: ssh
+              logpath: /var/log/auth.log
+
+      # Negative testing: All security services disabled
+      ubuntu-security-disabled:
+        firewall:
+          enabled: false
+        fail2ban:
+          enabled: false
+
+      # Edge cases and error handling
+      ubuntu-edge-cases:
+        firewall:
+          enabled: true
+          prevent_ssh_lockout: false # Test SSH lockout prevention disabled
+          rules: [] # Empty rules array
+        fail2ban:
+          enabled: true
+          bantime: "1d"
+          findtime: "1h"
+          maxretry: 2
+          jails: [] # Empty jails array
 verifier:
   name: ansible
