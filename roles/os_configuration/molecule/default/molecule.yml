@@ -56,7 +56,7 @@ provisioner:
       stdout_callback_format: yaml
   ansible_args:
     - --skip-tags
-    - locale,hardening
+    - no-container
   inventory:
     group_vars:
       all:
@@ -99,6 +99,23 @@ provisioner:
           configure: true
           max_size: "100M"
           max_retention: "7d"
+        # REQ-OS-011: Systemd unit control - mixed operations test
+        host_services:
+          enable:
+            - "rsyslog"
+            - "auditd"
+          disable:
+            - "debug-shell"
+          mask:
+            - "snapd"
+        # REQ-OS-014: Kernel module management - mixed operations test
+        host_modules:
+          load:
+            - "br_netfilter"
+            - "overlay"
+          blacklist:
+            - "pcspkr"
+            - "snd_pcsp"
       ubuntu-partial-enabled:
         # REQ-OS-001: Hostname - positive test
         host_hostname: "partial-test"
@@ -124,6 +141,14 @@ provisioner:
           configure: false
           max_size: "50M"
           max_retention: "3d"
+        # REQ-OS-011: Systemd unit control - enable only test
+        host_services:
+          enable:
+            - "rsyslog"
+        # REQ-OS-014: Kernel module management - load only test
+        host_modules:
+          load:
+            - "br_netfilter"
       ubuntu-negative-empty:
         # REQ-OS-001: Hostname - empty value test
         host_hostname: ""
@@ -149,6 +174,16 @@ provisioner:
           configure: true
           max_size: "200M"
           max_retention: "14d"
+        # REQ-OS-011: Systemd unit control - disable/mask test
+        host_services:
+          disable:
+            - "debug-shell"
+          mask:
+            - "snapd"
+        # REQ-OS-014: Kernel module management - blacklist only test
+        host_modules:
+          blacklist:
+            - "pcspkr"
       ubuntu-negative-undefined:
         # REQ-OS-001: Hostname - undefined test
         host_update_hosts: false
@@ -165,6 +200,10 @@ provisioner:
         # domain_ntp intentionally undefined
         # REQ-OS-009: Journal - undefined test
         # journal intentionally undefined
+        # REQ-OS-011: Systemd unit control - undefined test
+        # host_services intentionally undefined
+        # REQ-OS-014: Kernel module management - undefined test
+        # host_modules intentionally undefined
       ubuntu-edge-cases:
         # REQ-OS-001: Hostname - special characters test
         host_hostname: "edge-test-123"
@@ -192,5 +231,14 @@ provisioner:
           configure: true
           max_size: "1G"
           max_retention: "30d"
+        # REQ-OS-011: Systemd unit control - empty arrays test
+        host_services:
+          enable: []
+          disable: []
+          mask: []
+        # REQ-OS-014: Kernel module management - empty arrays test
+        host_modules:
+          load: []
+          blacklist: []
 verifier:
   name: ansible
