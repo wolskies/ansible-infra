@@ -8,7 +8,6 @@
     - host_hostname | length > 0
   tags:
     - hostname
-    - os-configuration
     - no-container
 
 - name: Set system timezone
@@ -20,7 +19,6 @@
     - domain_timezone | length > 0
   tags:
     - timezone
-    - os-configuration
 
 - name: Update /etc/hosts file
   ansible.builtin.lineinfile:
@@ -38,10 +36,8 @@
     - domain_name | length > 0
   tags:
     - hostname
-    - os-configuration
     - no-container
 
 - name: Include OS-specific configuration
   ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
-  tags:
-    - os-configuration
+  tags: []

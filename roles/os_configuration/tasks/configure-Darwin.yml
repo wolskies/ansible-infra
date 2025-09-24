@@ -25,8 +25,6 @@
       notify: restart cfprefsd
   tags:
     - locale
-    - language
-    - Darwin
 
 - name: Configure Darwin NTP time synchronization
   block:
@@ -66,8 +64,6 @@
         - not (domain_ntp.enabled | default(false))
   tags:
     - ntp
-    - time
-    - Darwin
 
 - name: Configure Darwin automatic updates
   community.general.osx_defaults:
@@ -83,9 +79,7 @@
   become: true
   notify: restart cfprefsd
   tags:
-    - Darwin
     - updates
-    - system
 
 - name: Configure macOS Gatekeeper
   ansible.builtin.command:
@@ -94,9 +88,7 @@
   register: gatekeeper_result
   changed_when: gatekeeper_result.rc == 0
   tags:
-    - Darwin
     - security
-    - gatekeeper
 
 - name: Configure macOS system preferences
   community.general.osx_defaults:
@@ -122,8 +114,6 @@
   when:
     - item.value is defined
   tags:
-    - Darwin
-    - system
     - preferences
 
 - name: Configure AirDrop over Ethernet
@@ -135,6 +125,4 @@
   become: true
   notify: restart cfprefsd
   tags:
-    - Darwin
     - network
-    - airdrop
