@@ -135,10 +135,12 @@
   block:
     - name: Enable system services
       ansible.builtin.systemd_service:
-        name: "{{ item }}"
+        name: "{{ service_item }}"
         enabled: true
         state: started
       loop: "{{ host_services.enable | default([]) }}"
+      loop_control:
+        loop_var: service_item
       become: true
       failed_when: false
       when:
@@ -147,10 +149,12 @@
 
     - name: Disable unnecessary services
       ansible.builtin.systemd_service:
-        name: "{{ item }}"
+        name: "{{ service_item }}"
         enabled: false
         state: stopped
       loop: "{{ host_services.disable | default([]) }}"
+      loop_control:
+        loop_var: service_item
       become: true
       failed_when: false
       when:
@@ -159,10 +163,12 @@
 
     - name: Mask services
       ansible.builtin.systemd_service:
-        name: "{{ item }}"
+        name: "{{ service_item }}"
         masked: true
         state: stopped
       loop: "{{ host_services.mask | default([]) }}"
+      loop_control:
+        loop_var: service_item
       become: true
       failed_when: false
       when:
@@ -174,10 +180,12 @@
 
 - name: Load kernel modules
   community.general.modprobe:
-    name: "{{ item }}"
+    name: "{{ module_item }}"
     state: present
     persistent: present
   loop: "{{ host_modules.load | default([]) }}"
+  loop_control:
+    loop_var: module_item
   become: true
   when:
     - host_modules is defined
@@ -189,10 +197,12 @@
 
 - name: Blacklist kernel modules
   community.general.modprobe:
-    name: "{{ item }}"
+    name: "{{ module_item }}"
     state: absent
     persistent: absent
   loop: "{{ host_modules.blacklist | default([]) }}"
+  loop_control:
+    loop_var: module_item
   become: true
   when:
     - host_modules is defined
@@ -215,23 +225,27 @@
 
     - name: Deploy udev rules
       ansible.builtin.copy:
-        dest: "/etc/udev/rules.d/{{ item.priority | default(99) }}-{{ item.name }}.rules"
-        content: "{{ item.content }}"
+        dest: "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
+        content: "{{ udev_rule.content }}"
         owner: root
         group: root
         mode: "0644"
       become: true
       loop: "{{ host_udev.rules }}"
-      when: item.state | default('present') == 'present'
+      loop_control:
+        loop_var: udev_rule
+      when: udev_rule.state | default('present') == 'present'
       notify: reload udev
 
     - name: Remove udev rules
       ansible.builtin.file:
-        path: "/etc/udev/rules.d/{{ item.priority | default(99) }}-{{ item.name }}.rules"
+        path: "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
         state: absent
       become: true
       loop: "{{ host_udev.rules }}"
-      when: item.state | default('present') == 'absent'
+      loop_control:
+        loop_var: udev_rule
+      when: udev_rule.state | default('present') == 'absent'
       notify: reload udev
   when:
     - host_udev.rules is defined

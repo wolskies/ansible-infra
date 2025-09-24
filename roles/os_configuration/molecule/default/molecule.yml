@@ -116,6 +116,17 @@ provisioner:
           blacklist:
             - "pcspkr"
             - "snd_pcsp"
+        # REQ-OS-016: Custom udev rules - positive test
+        host_udev:
+          rules:
+            - name: "test-usb-device"
+              priority: 50
+              content: 'SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666"'
+              state: present
+            - name: "test-network-device"
+              priority: 60
+              content: 'SUBSYSTEM=="net", ACTION=="add", ATTRS{address}=="aa:bb:cc:dd:ee:ff", NAME="testnet0"'
+              state: present
       ubuntu-partial-enabled:
         # REQ-OS-001: Hostname - positive test
         host_hostname: "partial-test"
@@ -240,5 +251,12 @@ provisioner:
         host_modules:
           load: []
           blacklist: []
+        # REQ-OS-016: Custom udev rules - rule removal test
+        host_udev:
+          rules:
+            - name: "test-remove-rule"
+              priority: 70
+              content: 'SUBSYSTEM=="block", ACTION=="add", MODE="0644"'
+              state: absent
 verifier:
   name: ansible
