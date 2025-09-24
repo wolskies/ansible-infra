@@ -11,9 +11,32 @@
     - snap
     - cleanup
 
+- name: Install unattended-upgrades package
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+    update_cache: true
+  become: true
+  when:
+    - apt.unattended_upgrades.enabled | default(false)
+  tags:
+    - packages
+    - updates
+    - security
+
 - name: Configure APT unattended upgrades
-  ansible.builtin.template:
-    src: 50unattended-upgrades.j2
+  ansible.builtin.copy:
+    content: |
+      // Minimal unattended upgrades configuration - security updates only
+      // Managed by os_configuration role
+      Unattended-Upgrade::Allowed-Origins {
+          "${distro_id}:${distro_codename}-security";
+          "${distro_id}ESMApps:${distro_codename}-apps-security";
+          "${distro_id}ESM:${distro_codename}-infra-security";
+      };
+      Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+      Unattended-Upgrade::MinimalSteps "true";
+      Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
     dest: /etc/apt/apt.conf.d/50unattended-upgrades
     owner: root
     group: root
@@ -25,33 +48,68 @@
     - updates
     - security
 
-- name: Configure APT behavior
-  block:
-    - name: Configure APT to not install recommends
-      ansible.builtin.copy:
-        content: |
-          APT::Install-Recommends "false";
-          APT::Install-Suggests "false";
-        dest: /etc/apt/apt.conf.d/99-no-recommends
-        owner: root
-        group: root
-        mode: "0644"
-      become: true
-      when:
-        - apt.no_recommends | default(false)
+- name: Remove APT unattended upgrades configuration when disabled
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    state: absent
+  become: true
+  when:
+    - not (apt.unattended_upgrades.enabled | default(false))
+  tags:
+    - updates
+    - security
 
-    - name: Configure APT proxy
-      ansible.builtin.copy:
-        content: |
-          Acquire::http::Proxy "{{ apt.proxy }}";
-          Acquire::https::Proxy "{{ apt.proxy }}";
-        dest: /etc/apt/apt.conf.d/99-proxy
-        owner: root
-        group: root
-        mode: "0644"
-      become: true
-      when:
-        - apt.proxy | default('') | length > 0
+- name: Configure APT to not install recommends
+  ansible.builtin.copy:
+    content: |
+      APT::Install-Recommends "false";
+      APT::Install-Suggests "false";
+    dest: /etc/apt/apt.conf.d/99-no-recommends
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when:
+    - apt.no_recommends | default(false)
+  tags:
+    - apt
+    - packages
+
+- name: Remove APT no-recommends configuration when disabled
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/99-no-recommends
+    state: absent
+  become: true
+  when:
+    - not (apt.no_recommends | default(false))
+  tags:
+    - apt
+    - packages
+
+- name: Configure APT proxy
+  ansible.builtin.copy:
+    content: |
+      Acquire::http::Proxy "{{ apt.proxy }}";
+      Acquire::https::Proxy "{{ apt.proxy }}";
+    dest: /etc/apt/apt.conf.d/99-proxy
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when:
+    - apt.proxy is defined
+    - apt.proxy | length > 0
+  tags:
+    - apt
+    - packages
+
+- name: Remove APT proxy configuration when disabled
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/99-proxy
+    state: absent
+  become: true
+  when:
+    - apt.proxy is not defined or apt.proxy | length == 0
   tags:
     - apt
     - packages
