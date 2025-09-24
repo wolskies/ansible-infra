@@ -8,18 +8,17 @@
   tags:
     - firewall
 
-- name: Ensure firewall package is present
+- name: Ensure UFW firewall package is present
   ansible.builtin.package:
-    name: "{{ firewall.package }}"
+    name: ufw
     state: present
   become: true
   when:
     - firewall.enabled | default(false)
-    - firewall.package | default('ufw') != "unknown"
   tags:
     - firewall
 
-- name: Ensure firewall rules are applied
+- name: Configure firewall rules
   community.general.ufw:
     rule: "{{ item.rule }}"
     port: "{{ item.port | default(omit) }}"
@@ -35,12 +34,10 @@
     comment: "{{ item.comment | default(omit) }}"
     route: "{{ item.route | default(omit) }}"
     log: "{{ item.log | default(omit) }}"
-  loop: "{{ firewall.rules }}"
+  loop: "{{ firewall.rules | default([]) }}"
   become: true
   when:
     - firewall.enabled | default(false)
-    - firewall.rules | default([]) | length > 0
-  notify: Reload ufw
   tags:
     - firewall
     - firewall-rules
