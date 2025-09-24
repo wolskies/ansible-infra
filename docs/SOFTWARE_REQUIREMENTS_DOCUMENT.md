@@ -107,46 +107,46 @@ This ensures predictable behavior and prevents accumulation of stale configurati
 
 #### 2.2.1 Collection-Wide Variable Interface
 
-| Variable                              | Type                      | Default         | Description                                                                                              |
-| ------------------------------------- | ------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
-| `domain_name`                         | string                    | `""`            | Organization domain name (RFC 1035 format, e.g., "example.com")                                          |
-| `domain_timezone`                     | string                    | `""`            | System timezone (IANA format, e.g., "America/New_York", "Europe/London")                                 |
-| `domain_locale`                       | string                    | `"en_US.UTF-8"` | System locale (format: language_COUNTRY.encoding, e.g., "en_US.UTF-8", "fr_FR.UTF-8")                    |
-| `domain_language`                     | string                    | `"en_US.UTF-8"` | System language (locale format, e.g., "en_US.UTF-8", "de_DE.UTF-8")                                      |
-| `host_hostname`                       | string                    | `""`            | System hostname (RFC 1123 format, alphanumeric + hyphens, max 253 chars)                                 |
-| `host_update_hosts`                   | boolean                   | `true`          | Update /etc/hosts with hostname entry                                                                    |
-| `users`                               | list[object]              | `[]`            | User account definitions (see schema below)                                                              |
-| `packages`                            | object                    | `{}`            | Package management definitions (see schema below)                                                        |
-| `host_services.enable`                | list[string]              | `[]`            | Systemd service names to enable (e.g., ["nginx", "postgresql"])                                          |
-| `host_services.disable`               | list[string]              | `[]`            | Systemd service names to disable (e.g., ["apache2", "sendmail"])                                         |
-| `host_services.mask`                  | list[string]              | `[]`            | Systemd service names to mask (e.g., ["snapd", "telnet"])                                                |
-| `host_modules.load`                   | list[string]              | `[]`            | Kernel modules to load persistently (e.g., ["br_netfilter", "overlay"])                                  |
-| `host_modules.blacklist`              | list[string]              | `[]`            | Kernel modules to blacklist (e.g., ["pcspkr", "snd_pcsp"])                                               |
-| `host_udev.rules`                     | list[object]              | `[]`            | Custom udev rules definitions (see schema below)                                                         |
-| `host_sysctl.parameters`              | dict[string, string\|int] | `{}`            | Kernel parameter definitions (see schema below)                                                          |
-| `domain_ntp.enabled`                  | boolean                   | `false`         | Enable NTP time synchronization configuration                                                            |
-| `domain_ntp.servers`                  | list[string]              | `[]`            | NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])                                     |
-| `firewall.enabled`                    | boolean                   | `false`         | Enable firewall rule management                                                                          |
-| `firewall.prevent_ssh_lockout`        | boolean                   | `true`          | Automatically allow SSH during firewall configuration                                                    |
-| `firewall.package`                    | string                    | `"ufw"`         | Firewall management tool ("ufw", "firewalld", "iptables")                                                |
-| `firewall.rules`                      | list[object]              | `[]`            | Firewall rule definitions (see schema below)                                                             |
-| `host_security.hardening_enabled`     | boolean                   | `false`         | Enable devsec.hardening security baseline                                                                |
-| `host_security.ssh_hardening_enabled` | boolean                   | `false`         | Enable SSH-specific security hardening                                                                   |
-| `apt.proxy`                           | string                    | `""`            | APT proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://user:pass@proxy.company.com:8080") |
-| `apt.no_recommends`                   | boolean                   | `false`         | Disable APT automatic installation of recommended and suggested packages                                 |
-| `apt.unattended_upgrades.enabled`     | boolean                   | `false`         | Enable APT unattended security upgrades on Debian/Ubuntu systems                                         |
-| `snap.remove_completely`              | boolean                   | `false`         | Completely remove snapd system from Debian/Ubuntu systems (manage_snap_packages role)                    |
-| `pacman.proxy`                        | string                    | `""`            | Pacman proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://proxy.example.com:3128")        |
-| `pacman.no_confirm`                   | boolean                   | `false`         | Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)                         |
-| `pacman.multilib.enabled`             | boolean                   | `false`         | Enable Pacman multilib repository for 32-bit packages on Arch Linux systems                              |
-| `macosx.updates.auto_check`            | boolean                   | `true`          | Enable automatic checking for macOS software updates                                                     |
-| `macosx.updates.auto_download`         | boolean                   | `true`          | Enable automatic downloading of macOS software updates                                                   |
-| `macosx.gatekeeper.enabled`            | boolean                   | `true`          | Enable macOS Gatekeeper security feature (prevents unsigned application execution)                        |
-| `macosx.system_preferences.natural_scroll` | boolean              | `true`          | Enable natural scroll direction (reverse scrolling) on macOS                                             |
-| `macosx.system_preferences.measurement_units` | string            | `"Inches"`      | System measurement units ("Inches", "Centimeters")                                                       |
-| `macosx.system_preferences.use_metric` | boolean                   | `false`         | Use metric system for measurements and temperatures                                                       |
-| `macosx.system_preferences.show_all_extensions` | boolean         | `false`         | Show all file extensions in Finder                                                                       |
-| `macosx.airdrop.ethernet_enabled`      | boolean                   | `false`         | Enable AirDrop over Ethernet interfaces (BrowseAllInterfaces setting)                                    |
+| Variable                                        | Type                      | Default         | Description                                                                                              |
+| ----------------------------------------------- | ------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
+| `domain_name`                                   | string                    | `""`            | Organization domain name (RFC 1035 format, e.g., "example.com")                                          |
+| `domain_timezone`                               | string                    | `""`            | System timezone (IANA format, e.g., "America/New_York", "Europe/London")                                 |
+| `domain_locale`                                 | string                    | `"en_US.UTF-8"` | System locale (format: language_COUNTRY.encoding, e.g., "en_US.UTF-8", "fr_FR.UTF-8")                    |
+| `domain_language`                               | string                    | `"en_US.UTF-8"` | System language (locale format, e.g., "en_US.UTF-8", "de_DE.UTF-8")                                      |
+| `host_hostname`                                 | string                    | `""`            | System hostname (RFC 1123 format, alphanumeric + hyphens, max 253 chars)                                 |
+| `host_update_hosts`                             | boolean                   | `true`          | Update /etc/hosts with hostname entry                                                                    |
+| `users`                                         | list[object]              | `[]`            | User account definitions (see schema below)                                                              |
+| `packages`                                      | object                    | `{}`            | Package management definitions (see schema below)                                                        |
+| `host_services.enable`                          | list[string]              | `[]`            | Systemd service names to enable (e.g., ["nginx", "postgresql"])                                          |
+| `host_services.disable`                         | list[string]              | `[]`            | Systemd service names to disable (e.g., ["apache2", "sendmail"])                                         |
+| `host_services.mask`                            | list[string]              | `[]`            | Systemd service names to mask (e.g., ["snapd", "telnet"])                                                |
+| `host_modules.load`                             | list[string]              | `[]`            | Kernel modules to load persistently (e.g., ["br_netfilter", "overlay"])                                  |
+| `host_modules.blacklist`                        | list[string]              | `[]`            | Kernel modules to blacklist (e.g., ["pcspkr", "snd_pcsp"])                                               |
+| `host_udev.rules`                               | list[object]              | `[]`            | Custom udev rules definitions (see schema below)                                                         |
+| `host_sysctl.parameters`                        | dict[string, string\|int] | `{}`            | Kernel parameter definitions (see schema below)                                                          |
+| `domain_ntp.enabled`                            | boolean                   | `false`         | Enable NTP time synchronization configuration                                                            |
+| `domain_ntp.servers`                            | list[string]              | `[]`            | NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])                                     |
+| `firewall.enabled`                              | boolean                   | `false`         | Enable firewall rule management                                                                          |
+| `firewall.prevent_ssh_lockout`                  | boolean                   | `true`          | Automatically allow SSH during firewall configuration                                                    |
+| `firewall.package`                              | string                    | `"ufw"`         | Firewall management tool ("ufw", "firewalld", "iptables")                                                |
+| `firewall.rules`                                | list[object]              | `[]`            | Firewall rule definitions (see schema below)                                                             |
+| `host_security.hardening_enabled`               | boolean                   | `false`         | Enable devsec.hardening security baseline                                                                |
+| `host_security.ssh_hardening_enabled`           | boolean                   | `false`         | Enable SSH-specific security hardening                                                                   |
+| `apt.proxy`                                     | string                    | `""`            | APT proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://user:pass@proxy.company.com:8080") |
+| `apt.no_recommends`                             | boolean                   | `false`         | Disable APT automatic installation of recommended and suggested packages                                 |
+| `apt.unattended_upgrades.enabled`               | boolean                   | `false`         | Enable APT unattended security upgrades on Debian/Ubuntu systems                                         |
+| `snap.remove_completely`                        | boolean                   | `false`         | Completely remove snapd system from Debian/Ubuntu systems (manage_snap_packages role)                    |
+| `pacman.proxy`                                  | string                    | `""`            | Pacman proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://proxy.example.com:3128")        |
+| `pacman.no_confirm`                             | boolean                   | `false`         | Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)                         |
+| `pacman.multilib.enabled`                       | boolean                   | `false`         | Enable Pacman multilib repository for 32-bit packages on Arch Linux systems                              |
+| `macosx.updates.auto_check`                     | boolean                   | `true`          | Enable automatic checking for macOS software updates                                                     |
+| `macosx.updates.auto_download`                  | boolean                   | `true`          | Enable automatic downloading of macOS software updates                                                   |
+| `macosx.gatekeeper.enabled`                     | boolean                   | `true`          | Enable macOS Gatekeeper security feature (prevents unsigned application execution)                       |
+| `macosx.system_preferences.natural_scroll`      | boolean                   | `true`          | Enable natural scroll direction (reverse scrolling) on macOS                                             |
+| `macosx.system_preferences.measurement_units`   | string                    | `"Inches"`      | System measurement units ("Inches", "Centimeters")                                                       |
+| `macosx.system_preferences.use_metric`          | boolean                   | `false`         | Use metric system for measurements and temperatures                                                      |
+| `macosx.system_preferences.show_all_extensions` | boolean                   | `false`         | Show all file extensions in Finder                                                                       |
+| `macosx.airdrop.ethernet_enabled`               | boolean                   | `false`         | Enable AirDrop over Ethernet interfaces (BrowseAllInterfaces setting)                                    |
 
 **Users Object Schema:**
 
@@ -253,7 +253,8 @@ The collection should prioritize module usage in this order:
 
 **REQ-INFRA-005**: When `ansible.builtin.command` or `ansible.builtin.shell` are used, the task SHALL include:
 
-- A comment explaining why a module cannot be used
+- A comment explaining why the command was chosen over an existing module, if a module is available.
+- If the command involves complex logic or multiple step commands, it needs to have a descriptive comment explaining what the intended function is.
 - Proper error handling with `failed_when` or `ignore_errors`
 - Idempotency checks with `changed_when` or `creates`/`removes`
 
@@ -284,7 +285,7 @@ Use current modules and address deprecation warnings when possible.
 - Safety (e.g., preventing data loss or system damage)
 - Clarity (e.g., providing meaningful error messages for invalid configurations)
 
-**REQ-INFRA-009**: Tasks SHALL fail with descriptive error messages when encountering unrecoverable conditions
+**REQ-INFRA-009**: Tasks SHALL fail with descriptive error messages when encountering unrecoverable conditions and a determination is made that ansible's builtin error handling is not sufficient.
 
 #### 2.4.2 Security Requirements
 
@@ -331,6 +332,7 @@ Tasks that require capabilities unavailable in containers (hostname changes, sys
 **Solution**: Use `skip-tags` to completely bypass management of specific configuration areas, leaving existing system state untouched.
 
 **Available Feature Tags**:
+
 - `hostname` - System hostname and /etc/hosts management
 - `timezone` - System timezone configuration
 - `locale` - System locale/language settings
@@ -347,12 +349,14 @@ Tasks that require capabilities unavailable in containers (hostname changes, sys
 - `network` - Network-related configurations (macOS AirDrop, etc.)
 
 **Usage Examples**:
+
 - `skip-tags: apt` - Don't manage APT configuration, preserve existing proxy/settings
 - `skip-tags: services,modules` - Leave systemd services and kernel modules alone
 - `skip-tags: security` - Skip security hardening on legacy/special-purpose systems
 - `skip-tags: hostname,timezone` - Preserve existing hostname and timezone settings
 
 **Benefits**:
+
 - **Operational Safety**: Prevents accidental removal of critical existing configurations
 - **Gradual Adoption**: Allows incremental deployment of configuration management
 - **Special Cases**: Accommodates systems with non-standard configurations that shouldn't be managed
