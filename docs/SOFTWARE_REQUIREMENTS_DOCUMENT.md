@@ -92,31 +92,53 @@ Standard Ansible 2.15+ variable precedence rules apply to all collection variabl
 - **Role-specific variables**: No prefix, scoped to role context (e.g., `users`, `packages`)
 - **Boolean variables**: Use `true`/`false`, never `yes`/`no` or `1`/`0`
 
+**Standards - State-Based Configuration**
+
+All collection variables follow state-based management principles:
+
+- **Variable defined/non-empty**: Feature is configured/enabled, configuration files are created/updated
+- **Variable undefined/empty**: Feature is removed/disabled, configuration files are removed completely
+- **No additive-only behavior**: Variables control the complete desired state, not incremental changes
+- **Clean state management**: Toggling variables between defined/undefined provides clean on/off control
+
+This ensures predictable behavior and prevents accumulation of stale configuration files.
+
 **REQ-INFRA-002**: Any role using collection variables SHALL respect the defined schema to ensure interoperability.
 
 #### 2.2.1 Collection-Wide Variable Interface
 
-| Variable                              | Type                      | Default         | Description                                                                           |
-| ------------------------------------- | ------------------------- | --------------- | ------------------------------------------------------------------------------------- |
-| `domain_name`                         | string                    | `""`            | Organization domain name (RFC 1035 format, e.g., "example.com")                       |
-| `domain_timezone`                     | string                    | `""`            | System timezone (IANA format, e.g., "America/New_York", "Europe/London")              |
-| `domain_locale`                       | string                    | `"en_US.UTF-8"` | System locale (format: language_COUNTRY.encoding, e.g., "en_US.UTF-8", "fr_FR.UTF-8") |
-| `domain_language`                     | string                    | `"en_US.UTF-8"` | System language (locale format, e.g., "en_US.UTF-8", "de_DE.UTF-8")                   |
-| `host_hostname`                       | string                    | `""`            | System hostname (RFC 1123 format, alphanumeric + hyphens, max 253 chars)              |
-| `host_update_hosts`                   | boolean                   | `true`          | Update /etc/hosts with hostname entry                                                 |
-| `users`                               | list[object]              | `[]`            | User account definitions (see schema below)                                           |
-| `packages`                            | object                    | `{}`            | Package management definitions (see schema below)                                     |
-| `host_services.enable`                | list[string]              | `[]`            | Systemd service names to enable (e.g., ["nginx", "postgresql"])                       |
-| `host_services.disable`               | list[string]              | `[]`            | Systemd service names to disable (e.g., ["apache2", "sendmail"])                      |
-| `host_sysctl.parameters`              | dict[string, string\|int] | `{}`            | Kernel parameter definitions (see schema below)                                       |
-| `domain_ntp.enabled`                  | boolean                   | `false`         | Enable NTP time synchronization configuration                                         |
-| `domain_ntp.servers`                  | list[string]              | `[]`            | NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])                  |
-| `firewall.enabled`                    | boolean                   | `false`         | Enable firewall rule management                                                       |
-| `firewall.prevent_ssh_lockout`        | boolean                   | `true`          | Automatically allow SSH during firewall configuration                                 |
-| `firewall.package`                    | string                    | `"ufw"`         | Firewall management tool ("ufw", "firewalld", "iptables")                             |
-| `firewall.rules`                      | list[object]              | `[]`            | Firewall rule definitions (see schema below)                                          |
-| `host_security.hardening_enabled`     | boolean                   | `false`         | Enable devsec.hardening security baseline                                             |
-| `host_security.ssh_hardening_enabled` | boolean                   | `false`         | Enable SSH-specific security hardening                                                |
+| Variable                              | Type                      | Default         | Description                                                                                              |
+| ------------------------------------- | ------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
+| `domain_name`                         | string                    | `""`            | Organization domain name (RFC 1035 format, e.g., "example.com")                                          |
+| `domain_timezone`                     | string                    | `""`            | System timezone (IANA format, e.g., "America/New_York", "Europe/London")                                 |
+| `domain_locale`                       | string                    | `"en_US.UTF-8"` | System locale (format: language_COUNTRY.encoding, e.g., "en_US.UTF-8", "fr_FR.UTF-8")                    |
+| `domain_language`                     | string                    | `"en_US.UTF-8"` | System language (locale format, e.g., "en_US.UTF-8", "de_DE.UTF-8")                                      |
+| `host_hostname`                       | string                    | `""`            | System hostname (RFC 1123 format, alphanumeric + hyphens, max 253 chars)                                 |
+| `host_update_hosts`                   | boolean                   | `true`          | Update /etc/hosts with hostname entry                                                                    |
+| `users`                               | list[object]              | `[]`            | User account definitions (see schema below)                                                              |
+| `packages`                            | object                    | `{}`            | Package management definitions (see schema below)                                                        |
+| `host_services.enable`                | list[string]              | `[]`            | Systemd service names to enable (e.g., ["nginx", "postgresql"])                                          |
+| `host_services.disable`               | list[string]              | `[]`            | Systemd service names to disable (e.g., ["apache2", "sendmail"])                                         |
+| `host_services.mask`                  | list[string]              | `[]`            | Systemd service names to mask (e.g., ["snapd", "telnet"])                                                |
+| `host_modules.load`                   | list[string]              | `[]`            | Kernel modules to load persistently (e.g., ["br_netfilter", "overlay"])                                  |
+| `host_modules.blacklist`              | list[string]              | `[]`            | Kernel modules to blacklist (e.g., ["pcspkr", "snd_pcsp"])                                               |
+| `host_udev.rules`                     | list[object]              | `[]`            | Custom udev rules definitions (see schema below)                                                         |
+| `host_sysctl.parameters`              | dict[string, string\|int] | `{}`            | Kernel parameter definitions (see schema below)                                                          |
+| `domain_ntp.enabled`                  | boolean                   | `false`         | Enable NTP time synchronization configuration                                                            |
+| `domain_ntp.servers`                  | list[string]              | `[]`            | NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])                                     |
+| `firewall.enabled`                    | boolean                   | `false`         | Enable firewall rule management                                                                          |
+| `firewall.prevent_ssh_lockout`        | boolean                   | `true`          | Automatically allow SSH during firewall configuration                                                    |
+| `firewall.package`                    | string                    | `"ufw"`         | Firewall management tool ("ufw", "firewalld", "iptables")                                                |
+| `firewall.rules`                      | list[object]              | `[]`            | Firewall rule definitions (see schema below)                                                             |
+| `host_security.hardening_enabled`     | boolean                   | `false`         | Enable devsec.hardening security baseline                                                                |
+| `host_security.ssh_hardening_enabled` | boolean                   | `false`         | Enable SSH-specific security hardening                                                                   |
+| `apt.proxy`                           | string                    | `""`            | APT proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://user:pass@proxy.company.com:8080") |
+| `apt.no_recommends`                   | boolean                   | `false`         | Disable APT automatic installation of recommended and suggested packages                                 |
+| `apt.unattended_upgrades.enabled`     | boolean                   | `false`         | Enable APT unattended security upgrades on Debian/Ubuntu systems                                         |
+| `snap.remove_completely`              | boolean                   | `false`         | Completely remove snapd system from Debian/Ubuntu systems (manage_snap_packages role)                    |
+| `pacman.proxy`                        | string                    | `""`            | Pacman proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://proxy.example.com:3128")        |
+| `pacman.no_confirm`                   | boolean                   | `false`         | Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)                         |
+| `pacman.multilib.enabled`             | boolean                   | `false`         | Enable Pacman multilib repository for 32-bit packages on Arch Linux systems                              |
 
 **Users Object Schema:**
 
@@ -170,6 +192,15 @@ _OS_Family values: Debian, Archlinux, Darwin_
 | `source`      | string          | No       | `"any"`   | Source IP/CIDR (e.g., "192.168.1.0/24", "any") |
 | `destination` | string          | No       | `"any"`   | Destination IP/CIDR                            |
 | `comment`     | string          | No       | `""`      | Rule description                               |
+
+**Udev Rules Object Schema:**
+
+| Field      | Type    | Required | Default     | Description                                                |
+| ---------- | ------- | -------- | ----------- | ---------------------------------------------------------- |
+| `name`     | string  | Yes      | -           | Rule identifier (alphanumeric + hyphens, used in filename) |
+| `content`  | string  | Yes      | -           | Udev rule content (e.g., 'SUBSYSTEM=="usb", MODE="0666"')  |
+| `priority` | integer | No       | `99`        | Rule priority (10-99, lower executes first)                |
+| `state`    | string  | No       | `"present"` | Rule state ("present" to deploy, "absent" to remove)       |
 
 **Sysctl Parameters Schema:**
 
@@ -267,7 +298,7 @@ Use current modules and address deprecation warnings when possible.
 
 #### 3.1.1 Role Description
 
-The `os_configuration` role handles fundamental operating system configuration.
+The `os_configuration` role handles fundamental operating system configuration. In general, these are simple, safe configuration changes to make to a system. Features or functions requiring more complex or finer-grained configuration will be separated into their own role.
 
 #### 3.1.2 Variables
 
@@ -338,7 +369,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 - Enable/start: When `host_services.enable` is defined (enabled: true, state: started)
 - Disable/stop: When `host_services.disable` is defined (enabled: false, state: stopped)
 - Mask/stop: When `host_services.mask` is defined (masked: true, state: stopped)
-  Loop variable name: `item` (from respective `host_services.*` arrays).
+  Loop variable name: `service_item` (from respective `host_services.*` arrays).
 
 **REQ-OS-012**: DELETED - Consolidated into REQ-OS-011 (systemd unit control)
 
@@ -352,7 +383,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 - Load modules: When `host_modules.load` is defined (state: present, persistent: present)
 - Blacklist modules: When `host_modules.blacklist` is defined (state: absent, persistent: absent)
-  Loop variable name: `item` (from respective `host_modules.*` arrays).
+  Loop variable name: `module_item` (from respective `host_modules.*` arrays).
 
 **REQ-OS-015**: DELETED - Consolidated into REQ-OS-014 (kernel module management)
 
@@ -360,31 +391,77 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **REQ-OS-016**: The system SHALL be capable of deploying custom udev rules on Linux systems
 
-**Implementation**: Uses `ansible.builtin.copy` to deploy rules to `/etc/udev/rules.d/`. Loop variable name: `item` (from `host_udev.rules`).
+**Implementation**:
+
+- Uses `ansible.builtin.file` to ensure `/etc/udev/rules.d/` directory exists with mode 0755
+- Uses `ansible.builtin.copy` to deploy rules to `/etc/udev/rules.d/{priority}-{name}.rules` when `item.state` is 'present' (default)
+- Uses `ansible.builtin.file` with `state: absent` to remove rules when `item.state` is 'absent'
+- Triggers handler to reload udev via `udevadm control --reload-rules && udevadm trigger`
+- Loop variable name: `udev_rule` (from `host_udev.rules`)
+- Rule format: `name` (rule identifier), `content` (rule text), `priority` (default 99), `state` (present/absent)
 
 ###### 3.1.3.2.8 Debian/Ubuntu Specific Configuration
 
-**REQ-OS-017**: The system SHALL be capable of configuring APT behavior on Debian/Ubuntu systems
+**REQ-OS-017**: The system SHALL be capable of configuring APT proxy on Debian/Ubuntu systems
 
-**Implementation**: Uses `ansible.builtin.copy` for `/etc/apt/apt.conf.d/` files (no-recommends, proxy).
+**Implementation**:
+
+- Uses `ansible.builtin.copy` to create `/etc/apt/apt.conf.d/99-proxy` when `apt.proxy` is defined
+- Uses `ansible.builtin.file` with `state: absent` to remove proxy config when `apt.proxy` is undefined/empty
+- Content template sets both `Acquire::http::Proxy` and `Acquire::https::Proxy` to same URL
+- Expected `apt.proxy` format: `http[s]://[user:pass@]host:port`
+- Follows state-based configuration: defined = configured, undefined = removed
+
+**REQ-OS-017a**: The system SHALL be capable of disabling APT recommends on Debian/Ubuntu systems
+
+**Implementation**:
+
+- Uses `ansible.builtin.copy` to create `/etc/apt/apt.conf.d/99-no-recommends` when `apt.no_recommends` is true
+- Uses `ansible.builtin.file` with `state: absent` to remove config when `apt.no_recommends` is false/undefined
+- Content disables both `APT::Install-Recommends` and `APT::Install-Suggests`
+- Follows state-based configuration: true = disabled, false/undefined = enabled
 
 **REQ-OS-018**: The system SHALL be capable of configuring APT unattended upgrades on Debian/Ubuntu systems
 
-**Implementation**: Uses `ansible.builtin.template` for `/etc/apt/apt.conf.d/50unattended-upgrades`.
+**Implementation**:
 
-**REQ-OS-019**: The system SHALL be capable of purging snapd on Debian/Ubuntu systems
-
-**Implementation**: Uses `wolskies.infrastructure.manage_snap_packages` role to purge snapd.
-
-**REQ-OS-020**: The system SHALL be capable of installing Nerd Fonts on Debian/Ubuntu systems
-
-**Implementation**: Uses `ansible.builtin.unarchive` to download and install fonts. Loop variable name: `font_item`.
+- Uses `ansible.builtin.apt` to ensure `unattended-upgrades` package is installed when `apt.unattended_upgrades.enabled` is true
+- Uses `ansible.builtin.copy` to create `/etc/apt/apt.conf.d/50unattended-upgrades` when `apt.unattended_upgrades.enabled` is true
+- Uses `ansible.builtin.file` with `state: absent` to remove config when `apt.unattended_upgrades.enabled` is false/undefined
+- Package removal is left to package management roles (manage_packages)
+- Content enables security updates only with basic error recovery (minimal, safe configuration)
+- **Interface Contract**: File priority `50` reserved for os_configuration role's basic unattended-upgrades toggle
+- **Future Role Integration**: Dedicated unattended-upgrades role should:
+  - Use priority `20` or lower (e.g., `20-unattended-upgrades`) to override this basic configuration
+  - Or remove this `50` file entirely and manage complete configuration independently
+- Follows state-based configuration: true = enabled, false/undefined = disabled
 
 ###### 3.1.3.2.9 Arch Linux Specific Configuration
 
-**REQ-OS-021**: The system SHALL be capable of configuring Pacman behavior on Arch Linux systems
+**REQ-OS-021**: The system SHALL be capable of configuring Pacman proxy on Arch Linux systems
 
-**Implementation**: Uses `ansible.builtin.lineinfile` to modify `/etc/pacman.conf` for NoConfirm, multilib repository, and proxy settings.
+**Implementation**:
+
+- Uses `ansible.builtin.lineinfile` to add/modify `Server = $repo/$arch` under `[options]` section when `pacman.proxy` is defined
+- Uses `ansible.builtin.lineinfile` to remove proxy configuration when `pacman.proxy` is undefined/empty
+- Expected `pacman.proxy` format: `http[s]://[user:pass@]host:port`
+- Follows state-based configuration: defined = configured, undefined = removed
+
+**REQ-OS-021a**: The system SHALL be capable of configuring Pacman NoConfirm on Arch Linux systems
+
+**Implementation**:
+
+- Uses `ansible.builtin.lineinfile` to add/modify `NoConfirm` under `[options]` section when `pacman.no_confirm` is true
+- Uses `ansible.builtin.lineinfile` to remove/comment NoConfirm setting when `pacman.no_confirm` is false/undefined
+- Follows state-based configuration: true = enabled, false/undefined = disabled
+
+**REQ-OS-021b**: The system SHALL be capable of configuring Pacman multilib repository on Arch Linux systems
+
+**Implementation**:
+
+- Uses `ansible.builtin.lineinfile` to uncomment `[multilib]` section and `Include = /etc/pacman.d/mirrorlist` when `pacman.multilib.enabled` is true
+- Uses `ansible.builtin.lineinfile` to comment out multilib section when `pacman.multilib.enabled` is false/undefined
+- Follows state-based configuration: true = enabled, false/undefined = disabled
 
 ##### 3.1.3.3 macOS System Configuration
 
@@ -1022,6 +1099,8 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 - Firewall/iptables kernel modules may be missing in cloud images
 - AUR package support requires special handling
 - Rolling release model requires flexible version handling
+- **Testing Status**: REQ-OS-021/021a/021b tests written but awaiting Arch Linux container implementation
+- **Required Containers**: arch-full-positive, arch-partial-enabled, arch-negative-empty, arch-edge-cases for complete Pacman testing
 
 ---
 
@@ -1032,7 +1111,9 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 #### 5.2.1 Platform Expansion
 
 - Move services enable/disable to package management
+- Nerd Fonts functionality moved to configure_user role or dedicated role (removed from os_configuration due to role boundary violation - fonts are user preferences, not system configuration, and implementation was platform-specific stopgap)
 - Configuration of NTP server
+
 - Configuration of Remote logging (rsyslog)
 - Additional Linux distributions (RHEL, CentOS Stream, Fedora)
 - Container platform support (Docker, Podman configuration)
