@@ -127,6 +127,14 @@ provisioner:
               priority: 60
               content: 'SUBSYSTEM=="net", ACTION=="add", ATTRS{address}=="aa:bb:cc:dd:ee:ff", NAME="testnet0"'
               state: present
+        # REQ-OS-017: APT proxy - positive test
+        apt:
+          proxy: "http://testuser:testpass@proxy.example.com:8080"
+          # REQ-OS-017a: APT no-recommends - positive test
+          no_recommends: true
+          # REQ-OS-018: APT unattended upgrades - positive test
+          unattended_upgrades:
+            enabled: true
       ubuntu-partial-enabled:
         # REQ-OS-001: Hostname - positive test
         host_hostname: "partial-test"
@@ -258,5 +266,11 @@ provisioner:
               priority: 70
               content: 'SUBSYSTEM=="block", ACTION=="add", MODE="0644"'
               state: absent
+        # REQ-OS-017/017a/018: APT - state removal test (false/disabled)
+        apt:
+          proxy: "" # Empty string should remove proxy
+          no_recommends: false # Should remove no-recommends config
+          unattended_upgrades:
+            enabled: false # Should remove unattended upgrades config
 verifier:
   name: ansible

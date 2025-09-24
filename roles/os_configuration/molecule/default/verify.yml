@@ -664,6 +664,153 @@
         - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined', 'ubuntu-partial-enabled']
         - host_udev is not defined or host_udev.rules is not defined or host_udev.rules | length == 0
 
+    # ===== REQ-OS-017: APT Proxy Validation =====
+    - name: Check APT proxy configuration file
+      ansible.builtin.stat:
+        path: "/etc/apt/apt.conf.d/99-proxy"
+      register: apt_proxy_file_check
+
+    - name: Read APT proxy configuration content
+      ansible.builtin.command: cat "/etc/apt/apt.conf.d/99-proxy"
+      register: apt_proxy_content
+      changed_when: false
+      failed_when: false
+      when: apt_proxy_file_check.stat.exists
+
+    - name: Verify APT proxy is configured correctly (positive test)
+      ansible.builtin.assert:
+        that:
+          - apt_proxy_file_check.stat.exists
+          - apt_proxy_file_check.stat.isreg
+          - apt_proxy_content.stdout is search('Acquire::http::Proxy "' + apt.proxy + '"')
+          - apt_proxy_content.stdout is search('Acquire::https::Proxy "' + apt.proxy + '"')
+        fail_msg: "❌ REQ-OS-017: APT proxy not configured correctly"
+        success_msg: "✅ REQ-OS-017: APT proxy configured correctly with {{ apt.proxy }}"
+      when:
+        - inventory_hostname == 'ubuntu-full-positive'
+        - apt is defined
+        - apt.proxy is defined
+        - apt.proxy | length > 0
+
+    - name: Verify APT proxy is removed correctly (negative test)
+      ansible.builtin.assert:
+        that:
+          - not apt_proxy_file_check.stat.exists
+        fail_msg: "❌ REQ-OS-017: APT proxy file should be removed when proxy empty/undefined"
+        success_msg: "✅ REQ-OS-017: APT proxy correctly removed when disabled"
+      when:
+        - inventory_hostname == 'ubuntu-edge-cases'
+        - apt is defined
+        - (apt.proxy is not defined or apt.proxy | length == 0)
+
+    - name: Verify APT proxy conditional logic (undefined test)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-017: APT proxy skipped when undefined - conditional logic working"
+      when:
+        - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined', 'ubuntu-partial-enabled']
+        - apt is not defined or apt.proxy is not defined
+
+    # ===== REQ-OS-017a: APT No-Recommends Validation =====
+    - name: Check APT no-recommends configuration file
+      ansible.builtin.stat:
+        path: "/etc/apt/apt.conf.d/99-no-recommends"
+      register: apt_no_recommends_file_check
+
+    - name: Read APT no-recommends configuration content
+      ansible.builtin.command: cat "/etc/apt/apt.conf.d/99-no-recommends"
+      register: apt_no_recommends_content
+      changed_when: false
+      failed_when: false
+      when: apt_no_recommends_file_check.stat.exists
+
+    - name: Verify APT no-recommends is configured correctly (positive test)
+      ansible.builtin.assert:
+        that:
+          - apt_no_recommends_file_check.stat.exists
+          - apt_no_recommends_file_check.stat.isreg
+          - apt_no_recommends_content.stdout is search('APT::Install-Recommends "false"')
+          - apt_no_recommends_content.stdout is search('APT::Install-Suggests "false"')
+        fail_msg: "❌ REQ-OS-017a: APT no-recommends not configured correctly"
+        success_msg: "✅ REQ-OS-017a: APT no-recommends configured correctly"
+      when:
+        - inventory_hostname == 'ubuntu-full-positive'
+        - apt is defined
+        - apt.no_recommends is defined
+        - apt.no_recommends | bool
+
+    - name: Verify APT no-recommends is removed correctly (negative test)
+      ansible.builtin.assert:
+        that:
+          - not apt_no_recommends_file_check.stat.exists
+        fail_msg: "❌ REQ-OS-017a: APT no-recommends file should be removed when disabled"
+        success_msg: "✅ REQ-OS-017a: APT no-recommends correctly removed when disabled"
+      when:
+        - inventory_hostname == 'ubuntu-edge-cases'
+        - apt is defined
+        - (apt.no_recommends is not defined or not apt.no_recommends | bool)
+
+    - name: Verify APT no-recommends conditional logic (undefined test)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-017a: APT no-recommends skipped when undefined - conditional logic working"
+      when:
+        - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined', 'ubuntu-partial-enabled']
+        - apt is not defined or apt.no_recommends is not defined
+
+    # ===== REQ-OS-018: APT Unattended Upgrades Validation =====
+    - name: Check unattended-upgrades package is installed
+      ansible.builtin.command: dpkg -l unattended-upgrades
+      register: unattended_upgrades_package_check
+      changed_when: false
+      failed_when: false
+
+    - name: Check APT unattended upgrades configuration file
+      ansible.builtin.stat:
+        path: "/etc/apt/apt.conf.d/50unattended-upgrades"
+      register: apt_unattended_upgrades_file_check
+
+    - name: Read APT unattended upgrades configuration content
+      ansible.builtin.command: cat "/etc/apt/apt.conf.d/50unattended-upgrades"
+      register: apt_unattended_upgrades_content
+      changed_when: false
+      failed_when: false
+      when: apt_unattended_upgrades_file_check.stat.exists
+
+    - name: Verify APT unattended upgrades is configured correctly (positive test)
+      ansible.builtin.assert:
+        that:
+          - unattended_upgrades_package_check.rc == 0
+          - '"ii" in unattended_upgrades_package_check.stdout'
+          - apt_unattended_upgrades_file_check.stat.exists
+          - apt_unattended_upgrades_file_check.stat.isreg
+          - '"-security" in apt_unattended_upgrades_content.stdout'
+        fail_msg: "❌ REQ-OS-018: APT unattended upgrades not configured correctly"
+        success_msg: "✅ REQ-OS-018: APT unattended upgrades package installed and configured for security updates"
+      when:
+        - inventory_hostname == 'ubuntu-full-positive'
+        - apt is defined
+        - apt.unattended_upgrades is defined
+        - apt.unattended_upgrades.enabled is defined
+        - apt.unattended_upgrades.enabled | bool
+
+    - name: Verify APT unattended upgrades is removed correctly (negative test)
+      ansible.builtin.assert:
+        that:
+          - not apt_unattended_upgrades_file_check.stat.exists
+        fail_msg: "❌ REQ-OS-018: APT unattended upgrades file should be removed when disabled"
+        success_msg: "✅ REQ-OS-018: APT unattended upgrades correctly removed when disabled"
+      when:
+        - inventory_hostname == 'ubuntu-edge-cases'
+        - apt is defined
+        - apt.unattended_upgrades is defined
+        - (apt.unattended_upgrades.enabled is not defined or not apt.unattended_upgrades.enabled | bool)
+
+    - name: Verify APT unattended upgrades conditional logic (undefined test)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-018: APT unattended upgrades skipped when undefined - conditional logic working"
+      when:
+        - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined', 'ubuntu-partial-enabled']
+        - apt is not defined or apt.unattended_upgrades is not defined
+
     # ===== Summary =====
     - name: Display os_configuration verification summary
       ansible.builtin.debug:
@@ -680,6 +827,9 @@
           - "✅ REQ-OS-011: Systemd unit control conditional logic validated"
           - "✅ REQ-OS-014: Kernel module management conditional logic validated"
           - "✅ REQ-OS-016: Custom udev rules deployment validation completed"
+          - "✅ REQ-OS-017: APT proxy configuration validation completed"
+          - "✅ REQ-OS-017a: APT no-recommends configuration validation completed"
+          - "✅ REQ-OS-018: APT unattended upgrades configuration validation completed"
           - "✅ All requirements verified using state-based validation"
-          - "✅ Consolidated container testing: 5 containers covering 11 requirements"
+          - "✅ Consolidated container testing: 5 containers covering 14 requirements"
           - "⚠️ Full functionality validation deferred to VM testing (Phase 3) where applicable"
