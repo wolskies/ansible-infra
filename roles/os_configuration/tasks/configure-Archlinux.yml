@@ -12,7 +12,6 @@
     - pacman.proxy | length > 0
   tags:
     - pacman
-    - packages
 
 - name: Remove Pacman proxy configuration when disabled
   ansible.builtin.lineinfile:
@@ -24,7 +23,6 @@
     - pacman.proxy is not defined or pacman.proxy | length == 0
   tags:
     - pacman
-    - packages
 
 # REQ-OS-021a: Pacman NoConfirm Configuration
 - name: Configure Pacman NoConfirm
@@ -39,7 +37,6 @@
     - pacman.no_confirm | bool
   tags:
     - pacman
-    - packages
 
 - name: Remove Pacman NoConfirm configuration when disabled
   ansible.builtin.lineinfile:
@@ -51,7 +48,6 @@
     - pacman.no_confirm is not defined or not pacman.no_confirm | bool
   tags:
     - pacman
-    - packages
 
 # REQ-OS-021b: Pacman Multilib Repository Configuration
 - name: Configure Pacman multilib repository
@@ -67,7 +63,6 @@
     - pacman.multilib.enabled | bool
   tags:
     - pacman
-    - packages
 
 - name: Configure Pacman multilib Include line
   ansible.builtin.lineinfile:
@@ -83,7 +78,6 @@
     - pacman.multilib.enabled | bool
   tags:
     - pacman
-    - packages
 
 - name: Disable Pacman multilib repository when disabled
   ansible.builtin.lineinfile:
@@ -98,7 +92,6 @@
     - not pacman.multilib.enabled | bool
   tags:
     - pacman
-    - packages
 
 - name: Disable Pacman multilib Include line when disabled
   ansible.builtin.lineinfile:
@@ -114,4 +107,3 @@
     - not pacman.multilib.enabled | bool
   tags:
     - pacman
-    - packages

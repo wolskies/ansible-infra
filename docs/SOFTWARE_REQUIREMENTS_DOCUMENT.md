@@ -139,6 +139,14 @@ This ensures predictable behavior and prevents accumulation of stale configurati
 | `pacman.proxy`                        | string                    | `""`            | Pacman proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://proxy.example.com:3128")        |
 | `pacman.no_confirm`                   | boolean                   | `false`         | Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)                         |
 | `pacman.multilib.enabled`             | boolean                   | `false`         | Enable Pacman multilib repository for 32-bit packages on Arch Linux systems                              |
+| `macosx.updates.auto_check`            | boolean                   | `true`          | Enable automatic checking for macOS software updates                                                     |
+| `macosx.updates.auto_download`         | boolean                   | `true`          | Enable automatic downloading of macOS software updates                                                   |
+| `macosx.gatekeeper.enabled`            | boolean                   | `true`          | Enable macOS Gatekeeper security feature (prevents unsigned application execution)                        |
+| `macosx.system_preferences.natural_scroll` | boolean              | `true`          | Enable natural scroll direction (reverse scrolling) on macOS                                             |
+| `macosx.system_preferences.measurement_units` | string            | `"Inches"`      | System measurement units ("Inches", "Centimeters")                                                       |
+| `macosx.system_preferences.use_metric` | boolean                   | `false`         | Use metric system for measurements and temperatures                                                       |
+| `macosx.system_preferences.show_all_extensions` | boolean         | `false`         | Show all file extensions in Finder                                                                       |
+| `macosx.airdrop.ethernet_enabled`      | boolean                   | `false`         | Enable AirDrop over Ethernet interfaces (BrowseAllInterfaces setting)                                    |
 
 **Users Object Schema:**
 
@@ -304,11 +312,59 @@ The `os_configuration` role handles fundamental operating system configuration. 
 
 This role uses collection-wide variables from section 2.2.1. No role-specific variables are defined.
 
-#### 3.1.3 Features and Functionality
+#### 3.1.3 Tag Strategy
 
-##### 3.1.3.1 Cross-Platform System Configuration
+The `os_configuration` role implements a rationalized tag strategy supporting two primary use cases:
 
-###### 3.1.3.1.1 Hostname Configuration
+##### 3.1.3.1 Container Limitations
+
+**Tag**: `no-container`
+
+Tasks that require capabilities unavailable in containers (hostname changes, systemd services, kernel modules, etc.) are tagged with `no-container`. Use `skip-tags: no-container` when running in containerized environments.
+
+**Example**: `ansible-playbook playbook.yml --skip-tags no-container`
+
+##### 3.1.4.2 Feature Opt-Out via State-Based Configuration
+
+**Concept**: The role follows state-based configuration principles where undefined variables result in removal of configuration files. However, operational reality requires the ability to preserve existing system configurations.
+
+**Solution**: Use `skip-tags` to completely bypass management of specific configuration areas, leaving existing system state untouched.
+
+**Available Feature Tags**:
+- `hostname` - System hostname and /etc/hosts management
+- `timezone` - System timezone configuration
+- `locale` - System locale/language settings
+- `ntp` - Network time synchronization
+- `apt` - APT proxy, no-recommends, and unattended-upgrades (Debian/Ubuntu)
+- `pacman` - Pacman proxy, no-confirm, and multilib repository (Arch Linux)
+- `services` - Systemd service enable/disable/mask operations
+- `modules` - Kernel module loading and blacklisting
+- `journal` - Systemd journal configuration
+- `udev` - Custom udev rules deployment
+- `security` - Security hardening via devsec roles
+- `updates` - Automatic software update configuration (macOS)
+- `preferences` - System preference configuration (macOS)
+- `network` - Network-related configurations (macOS AirDrop, etc.)
+
+**Usage Examples**:
+- `skip-tags: apt` - Don't manage APT configuration, preserve existing proxy/settings
+- `skip-tags: services,modules` - Leave systemd services and kernel modules alone
+- `skip-tags: security` - Skip security hardening on legacy/special-purpose systems
+- `skip-tags: hostname,timezone` - Preserve existing hostname and timezone settings
+
+**Benefits**:
+- **Operational Safety**: Prevents accidental removal of critical existing configurations
+- **Gradual Adoption**: Allows incremental deployment of configuration management
+- **Special Cases**: Accommodates systems with non-standard configurations that shouldn't be managed
+- **Clean State Management**: When tags aren't skipped, provides predictable state-based behavior
+
+This approach resolves the tension between clean state-based configuration (defined = configured, undefined = removed) and operational requirements to preserve existing system configurations.
+
+#### 3.1.4 Features and Functionality
+
+##### 3.1.4.1 Cross-Platform System Configuration
+
+###### 3.1.4.1.1 Hostname Configuration
 
 **REQ-OS-001**: The system SHALL be capable of setting the system hostname
 
@@ -318,15 +374,15 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **Implementation**: Uses `ansible.builtin.lineinfile` to update `/etc/hosts` when `host_update_hosts` is true, format: `127.0.0.1 localhost {hostname}.{domain} {hostname}`. Requires both `host_hostname` and `domain_name` to be defined.
 
-###### 3.1.3.1.2 Timezone Configuration
+###### 3.1.4.1.2 Timezone Configuration
 
 **REQ-OS-003**: The system SHALL be capable of setting the system timezone
 
 **Implementation**: Uses `community.general.timezone` module when `domain_timezone` is defined and non-empty.
 
-##### 3.1.3.2 Linux System Configuration
+##### 3.1.4.2 Linux System Configuration
 
-###### 3.1.3.2.1 Security Hardening
+###### 3.1.4.2.1 Security Hardening
 
 **REQ-OS-004**: The system SHALL be capable of applying OS security hardening on Linux systems
 
@@ -336,7 +392,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **Implementation**: Uses `devsec.hardening.ssh_hardening` role when `host_security.ssh_hardening_enabled` is true.
 
-###### 3.1.3.2.2 Locale and Language Configuration
+###### 3.1.4.2.2 Locale and Language Configuration
 
 **REQ-OS-006**: The system SHALL be capable of setting the system locale on Linux systems
 
@@ -344,7 +400,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **REQ-OS-007**: DELETED - Merged into REQ-OS-006 (locale and language are part of same locale configuration)
 
-###### 3.1.3.2.3 NTP Time Synchronization
+###### 3.1.4.2.3 NTP Time Synchronization
 
 **REQ-OS-008**: The system SHALL be capable of configuring basic time synchronization on Linux systems
 
@@ -352,7 +408,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **Note**: This implements basic SNTP client functionality only. Full NTP server/client capabilities require a dedicated NTP role (future work).
 
-###### 3.1.3.2.4 Journal and Logging Configuration
+###### 3.1.4.2.4 Journal and Logging Configuration
 
 **REQ-OS-009**: The system SHALL be capable of configuring systemd journal settings on Linux systems
 
@@ -360,7 +416,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **REQ-OS-010**: DELETED - Remote logging capabilities moved to dedicated logging role (future work)
 
-###### 3.1.3.2.5 Service Management
+###### 3.1.4.2.5 Service Management
 
 **REQ-OS-011**: The system SHALL be capable of controlling systemd units (services, timers, and so on) on Linux systems
 
@@ -375,7 +431,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **REQ-OS-013**: DELETED - Consolidated into REQ-OS-011 (systemd unit control)
 
-###### 3.1.3.2.6 Kernel Module Management
+###### 3.1.4.2.6 Kernel Module Management
 
 **REQ-OS-014**: The system SHALL be capable of managing kernel modules on Linux systems
 
@@ -387,7 +443,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **REQ-OS-015**: DELETED - Consolidated into REQ-OS-014 (kernel module management)
 
-###### 3.1.3.2.7 Hardware Configuration
+###### 3.1.4.2.7 Hardware Configuration
 
 **REQ-OS-016**: The system SHALL be capable of deploying custom udev rules on Linux systems
 
@@ -400,7 +456,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 - Loop variable name: `udev_rule` (from `host_udev.rules`)
 - Rule format: `name` (rule identifier), `content` (rule text), `priority` (default 99), `state` (present/absent)
 
-###### 3.1.3.2.8 Debian/Ubuntu Specific Configuration
+###### 3.1.4.2.8 Debian/Ubuntu Specific Configuration
 
 **REQ-OS-017**: The system SHALL be capable of configuring APT proxy on Debian/Ubuntu systems
 
@@ -436,7 +492,7 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
   - Or remove this `50` file entirely and manage complete configuration independently
 - Follows state-based configuration: true = enabled, false/undefined = disabled
 
-###### 3.1.3.2.9 Arch Linux Specific Configuration
+###### 3.1.4.2.9 Arch Linux Specific Configuration
 
 **REQ-OS-021**: The system SHALL be capable of configuring Pacman proxy on Arch Linux systems
 
@@ -463,9 +519,9 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 - Uses `ansible.builtin.lineinfile` to comment out multilib section when `pacman.multilib.enabled` is false/undefined
 - Follows state-based configuration: true = enabled, false/undefined = disabled
 
-##### 3.1.3.3 macOS System Configuration
+##### 3.1.4.3 macOS System Configuration
 
-###### 3.1.3.3.1 Locale and Language Configuration
+###### 3.1.4.3.1 Locale and Language Configuration
 
 **REQ-OS-022**: The system SHALL be capable of setting the system locale on macOS systems
 
@@ -475,35 +531,35 @@ This role uses collection-wide variables from section 2.2.1. No role-specific va
 
 **Implementation**: Uses `community.general.osx_defaults` with NSGlobalDomain/AppleLanguages when `domain_language` is defined.
 
-###### 3.1.3.3.2 NTP Time Synchronization
+###### 3.1.4.3.2 NTP Time Synchronization
 
 **REQ-OS-024**: The system SHALL be capable of configuring NTP time synchronization on macOS systems
 
-**Implementation**: Uses `ansible.builtin.command` with `systemsetup` utility when `domain_ntp.enabled` is true.
+**Implementation**: Uses `ansible.builtin.command` with `systemsetup` utility for state-based NTP configuration. Enables network time synchronization with `systemsetup -setusingnetworktime on` and configures the first server from `domain_ntp.servers` when `domain_ntp.enabled` is true. Disables network time synchronization with `systemsetup -setusingnetworktime off` when `domain_ntp.enabled` is false.
 
-###### 3.1.3.3.3 Software Updates
+###### 3.1.4.3.3 Software Updates
 
 **REQ-OS-025**: The system SHALL be capable of configuring macOS automatic updates
 
-**Implementation**: Uses `community.general.osx_defaults` for `/Library/Preferences/com.apple.SoftwareUpdate`. Loop variable name: `item`.
+**Implementation**: Uses `community.general.osx_defaults` for `/Library/Preferences/com.apple.SoftwareUpdate` domain to configure `AutomaticCheckEnabled` (controlled by `macosx.updates.auto_check`) and `AutomaticDownload` (controlled by `macosx.updates.auto_download`) settings.
 
-###### 3.1.3.3.4 Security Configuration
+###### 3.1.4.3.4 Security Configuration
 
 **REQ-OS-026**: The system SHALL be capable of configuring macOS Gatekeeper security
 
-**Implementation**: Uses `ansible.builtin.command` with `spctl` utility when `macosx.gatekeeper.enabled` is defined.
+**Implementation**: Uses `ansible.builtin.command` with `spctl --master-enable` when `macosx.gatekeeper.enabled` is true, or `spctl --master-disable` when `macosx.gatekeeper.enabled` is false.
 
-###### 3.1.3.3.5 System Preferences
+###### 3.1.4.3.5 System Preferences
 
 **REQ-OS-027**: The system SHALL be capable of configuring macOS system preferences
 
-**Implementation**: Uses `community.general.osx_defaults` with NSGlobalDomain. Loop variable name: `item`.
+**Implementation**: Uses `community.general.osx_defaults` with NSGlobalDomain to configure: scroll direction (`com.apple.swipescrolldirection` controlled by `macosx.system_preferences.natural_scroll`), measurement units (`AppleMeasurementUnits` and `AppleMetricUnits` controlled by `macosx.system_preferences.measurement_units` and `macosx.system_preferences.use_metric`), and file extension visibility (`AppleShowAllExtensions` controlled by `macosx.system_preferences.show_all_extensions`).
 
-###### 3.1.3.3.6 Network Configuration
+###### 3.1.4.3.6 Network Configuration
 
 **REQ-OS-028**: The system SHALL be capable of configuring AirDrop over Ethernet
 
-**Implementation**: Uses `community.general.osx_defaults` for `com.apple.NetworkBrowser` when `macosx.airdrop.ethernet_enabled` is defined.
+**Implementation**: Uses `community.general.osx_defaults` for `com.apple.NetworkBrowser` domain to configure `BrowseAllInterfaces` setting (controlled by `macosx.airdrop.ethernet_enabled`), enabling AirDrop functionality over wired Ethernet connections.
 
 ---
 

@@ -12,7 +12,6 @@
   when: host_security.hardening_enabled | default(true)
   tags:
     - security
-    - hardening
 
 - name: Apply SSH security hardening (Linux)
   ansible.builtin.include_role:
@@ -27,8 +26,6 @@
   when: host_security.ssh_hardening_enabled | default(false)
   tags:
     - security
-    - ssh
-    - hardening
 
 - name: Configure system locale
   community.general.locale_gen:
@@ -83,7 +80,6 @@
       become: true
       tags:
         - ntp
-        - time
         - no-container
 
     - name: Configure systemd-timesyncd
@@ -101,7 +97,6 @@
     - domain_ntp.enabled | default(false)
   tags:
     - ntp
-    - time
 
 - name: Configure systemd journal
   block:
@@ -129,7 +124,6 @@
     - ansible_service_mgr == "systemd"
   tags:
     - journal
-    - logging
 
 - name: System optimizations
   block:
@@ -175,7 +169,6 @@
         - host_services is defined
         - host_services.mask | default([]) | length > 0
   tags:
-    - optimization
     - services
 
 - name: Load kernel modules
@@ -192,7 +185,6 @@
     - host_modules.load | default([]) | length > 0
   tags:
     - modules
-    - kernel
     - no-container
 
 - name: Blacklist kernel modules
@@ -209,7 +201,6 @@
     - host_modules.blacklist | default([]) | length > 0
   tags:
     - modules
-    - kernel
     - no-container
 
 - name: Configure udev rules
@@ -252,10 +243,7 @@
     - host_udev.rules | length > 0
   tags:
     - udev
-    - hardware
 
 - name: Include os-family-specific configuration
   ansible.builtin.include_tasks: configure-{{ ansible_os_family }}.yml
-  tags:
-    - os-configuration
-    - distribution-specific
+  tags: []
