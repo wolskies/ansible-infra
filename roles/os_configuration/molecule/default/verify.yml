@@ -580,6 +580,90 @@
         - host_modules.load | default([]) | length == 0
         - host_modules.blacklist | default([]) | length == 0
 
+    # ===== REQ-OS-016: Custom udev rules Validation =====
+    - name: Check deployed udev rules files
+      ansible.builtin.stat:
+        path: "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
+      loop: "{{ host_udev.rules | default([]) }}"
+      loop_control:
+        loop_var: udev_rule
+      register: udev_rules_check
+      when:
+        - host_udev is defined
+        - host_udev.rules is defined
+        - udev_rule.state | default('present') == 'present'
+
+    - name: Verify udev rules content
+      ansible.builtin.command: cat "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
+      loop: "{{ host_udev.rules | default([]) }}"
+      loop_control:
+        loop_var: udev_rule
+      register: udev_rules_content
+      changed_when: false
+      failed_when: false
+      when:
+        - host_udev is defined
+        - host_udev.rules is defined
+        - udev_rule.state | default('present') == 'present'
+
+    - name: Verify udev rules are deployed correctly (positive test)
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+        fail_msg: "❌ REQ-OS-016: udev rule file not found: {{ item.invocation.module_args.path }}"
+        success_msg: "✅ REQ-OS-016: udev rule deployed: {{ item.invocation.module_args.path }}"
+      loop: "{{ udev_rules_check.results | default([]) }}"
+      when:
+        - inventory_hostname == 'ubuntu-full-positive'
+        - host_udev is defined
+        - item.skipped is not defined
+
+    - name: Verify udev rules content matches specification
+      ansible.builtin.assert:
+        that:
+          - item.stdout == host_udev.rules[loop_index].content
+        fail_msg: "❌ REQ-OS-016: udev rule content mismatch in {{ host_udev.rules[loop_index].name }}"
+        success_msg: "✅ REQ-OS-016: udev rule content correct for {{ host_udev.rules[loop_index].name }}"
+      loop: "{{ udev_rules_content.results | default([]) }}"
+      loop_control:
+        index_var: loop_index
+      when:
+        - inventory_hostname == 'ubuntu-full-positive'
+        - host_udev is defined
+        - item.skipped is not defined
+
+    - name: Check removed udev rules are absent
+      ansible.builtin.stat:
+        path: "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
+      loop: "{{ host_udev.rules | default([]) }}"
+      loop_control:
+        loop_var: udev_rule
+      register: udev_removed_rules_check
+      when:
+        - host_udev is defined
+        - host_udev.rules is defined
+        - udev_rule.state | default('present') == 'absent'
+
+    - name: Verify udev rules are removed correctly (removal test)
+      ansible.builtin.assert:
+        that:
+          - not item.stat.exists
+        fail_msg: "❌ REQ-OS-016: udev rule should be absent: {{ item.invocation.module_args.path }}"
+        success_msg: "✅ REQ-OS-016: udev rule correctly removed: {{ item.invocation.module_args.path }}"
+      loop: "{{ udev_removed_rules_check.results | default([]) }}"
+      when:
+        - inventory_hostname == 'ubuntu-edge-cases'
+        - host_udev is defined
+        - item.skipped is not defined
+
+    - name: Verify udev rules conditional logic (undefined test)
+      ansible.builtin.debug:
+        msg: "✅ REQ-OS-016: udev rules skipped when host_udev undefined - conditional logic working"
+      when:
+        - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined', 'ubuntu-partial-enabled']
+        - host_udev is not defined or host_udev.rules is not defined or host_udev.rules | length == 0
+
     # ===== Summary =====
     - name: Display os_configuration verification summary
       ansible.builtin.debug:
@@ -595,6 +679,7 @@
           - "✅ REQ-OS-009: Journal configuration validation completed"
           - "✅ REQ-OS-011: Systemd unit control conditional logic validated"
           - "✅ REQ-OS-014: Kernel module management conditional logic validated"
+          - "✅ REQ-OS-016: Custom udev rules deployment validation completed"
           - "✅ All requirements verified using state-based validation"
-          - "✅ Consolidated container testing: 5 containers covering 10 requirements"
+          - "✅ Consolidated container testing: 5 containers covering 11 requirements"
           - "⚠️ Full functionality validation deferred to VM testing (Phase 3) where applicable"
