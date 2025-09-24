@@ -33,15 +33,7 @@
   tags:
     - apt
 
-- name: Remove APT unattended upgrades configuration when disabled
-  ansible.builtin.file:
-    path: /etc/apt/apt.conf.d/50unattended-upgrades
-    state: absent
-  become: true
-  when:
-    - not (apt.unattended_upgrades.enabled | default(false))
-  tags:
-    - apt
+# Removed state-based behavior - only configure when requested
 
 - name: Configure APT to not install recommends
   ansible.builtin.copy:
@@ -58,15 +50,7 @@
   tags:
     - apt
 
-- name: Remove APT no-recommends configuration when disabled
-  ansible.builtin.file:
-    path: /etc/apt/apt.conf.d/99-no-recommends
-    state: absent
-  become: true
-  when:
-    - not (apt.no_recommends | default(false))
-  tags:
-    - apt
+# Removed state-based behavior - only configure when requested
 
 - name: Configure APT proxy
   ansible.builtin.copy:
@@ -83,13 +67,4 @@
     - apt.proxy | length > 0
   tags:
     - apt
-
-- name: Remove APT proxy configuration when disabled
-  ansible.builtin.file:
-    path: /etc/apt/apt.conf.d/99-proxy
-    state: absent
-  become: true
-  when:
-    - apt.proxy is not defined or apt.proxy | length == 0
-  tags:
-    - apt
+# Removed state-based behavior - only configure when requested

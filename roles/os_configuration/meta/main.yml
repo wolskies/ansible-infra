@@ -1,6 +1,7 @@
 ---
 galaxy_info:
   role_name: os_configuration
+  namespace: wolskies
   author: wolskies.infrastructure
   description: OS configuration after fresh install (timezone, locale, firewall setup, repositories)
   company: wolskinet
