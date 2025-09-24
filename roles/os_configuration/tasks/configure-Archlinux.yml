@@ -13,16 +13,7 @@
   tags:
     - pacman
 
-- name: Remove Pacman proxy configuration when disabled
-  ansible.builtin.lineinfile:
-    path: /etc/pacman.conf
-    regexp: "^Server.*/$repo/os/$arch"
-    state: absent
-  become: true
-  when:
-    - pacman.proxy is not defined or pacman.proxy | length == 0
-  tags:
-    - pacman
+# Removed state-based behavior - only configure when requested
 
 # REQ-OS-021a: Pacman NoConfirm Configuration
 - name: Configure Pacman NoConfirm
@@ -38,16 +29,7 @@
   tags:
     - pacman
 
-- name: Remove Pacman NoConfirm configuration when disabled
-  ansible.builtin.lineinfile:
-    path: /etc/pacman.conf
-    regexp: "^NoConfirm"
-    state: absent
-  become: true
-  when:
-    - pacman.no_confirm is not defined or not pacman.no_confirm | bool
-  tags:
-    - pacman
+# Removed state-based behavior - only configure when requested
 
 # REQ-OS-021b: Pacman Multilib Repository Configuration
 - name: Configure Pacman multilib repository
@@ -78,32 +60,4 @@
     - pacman.multilib.enabled | bool
   tags:
     - pacman
-
-- name: Disable Pacman multilib repository when disabled
-  ansible.builtin.lineinfile:
-    path: /etc/pacman.conf
-    regexp: "^\\[multilib\\]"
-    line: "#[multilib]"
-    state: present
-  become: true
-  when:
-    - pacman.multilib is defined
-    - pacman.multilib.enabled is defined
-    - not pacman.multilib.enabled | bool
-  tags:
-    - pacman
-
-- name: Disable Pacman multilib Include line when disabled
-  ansible.builtin.lineinfile:
-    path: /etc/pacman.conf
-    regexp: "^Include = /etc/pacman.d/mirrorlist"
-    line: "#Include = /etc/pacman.d/mirrorlist"
-    insertafter: "^#\\[multilib\\]"
-    state: present
-  become: true
-  when:
-    - pacman.multilib is defined
-    - pacman.multilib.enabled is defined
-    - not pacman.multilib.enabled | bool
-  tags:
-    - pacman
+# Removed state-based behavior - only configure when requested
