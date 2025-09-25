@@ -405,6 +405,20 @@ Detailed validation for each of the 89 SRD requirements is defined in the **Requ
 
 The validation plan ensures every requirement has specific, actionable test cases with precise verification methods.
 
+**CRITICAL PROCESS REQUIREMENT**: Every validation plan MUST include CI configuration considerations:
+
+- **New Role Implementation**: Must add corresponding `test-role-{name}` job to `.gitlab-ci.yml`
+- **Container Compatibility**: Must identify and tag container-incompatible tasks with `no-container`
+- **CI Configuration Updates**: Must include `-- --skip-tags no-container` parameter when needed
+- **Integration Impact**: Must consider effects on parallel testing and cross-role dependencies
+
+**Validation Plan Development Process**:
+1. **Design Requirements Testing**: Create comprehensive test scenarios for all role requirements
+2. **Container Compatibility Assessment**: Identify tasks that cannot run in CI containers
+3. **CI Configuration Planning**: Plan necessary `.gitlab-ci.yml` updates
+4. **Implementation**: Implement role with tests and CI integration
+5. **Validation**: Verify both local and CI testing work correctly
+
 **Key Validation Areas:**
 - User management and privilege escalation security (18 requirements)
 - Package management across platforms (15 requirements)
@@ -559,7 +573,155 @@ jobs:
         run: cd molecule/test-discovery && molecule test
 ```
 
-### 4.3 VM Test Procedures
+### 4.3 CI Environment Considerations
+
+#### 4.3.1 Container Limitations and Tag Strategy
+
+**Container Environment Constraints**:
+CI tests run in Docker containers with significant limitations that require special handling:
+
+- **Root User**: All tasks run as root by default in CI containers
+- **No Systemd Init**: Limited systemd functionality in containerized environment
+- **Missing Hardware**: No access to hardware-specific features
+- **Network Isolation**: Limited external network access
+- **Privilege Limitations**: Cannot modify certain system settings
+
+**Solution**: Use `no-container` tag strategy for incompatible tasks.
+
+**Implementation Pattern**:
+```yaml
+# Tasks that cannot run in containers
+- name: Configure hardware-specific feature
+  some_module:
+    setting: value
+  tags:
+    - no-container
+
+# AUR building (requires non-root user)
+- name: Bootstrap AUR helper
+  kewlfft.aur.aur:
+    name: paru
+    state: present
+  become: false
+  tags:
+    - no-container
+    - aur
+```
+
+**CI Configuration Requirements**:
+```yaml
+# .gitlab-ci.yml - Role tests with container limitations
+test-role-manage-packages:
+  script:
+    - cd roles/manage_packages && molecule test -- --skip-tags no-container
+
+test-role-os-configuration:
+  script:
+    - cd roles/os_configuration && molecule test -- --skip-tags no-container
+```
+
+#### 4.3.2 CI Pipeline Architecture
+
+**Current GitLab CI Implementation** (`.gitlab-ci.yml`):
+
+**Stage 1: Validation**
+```yaml
+validate-all:
+  stage: validate
+  script:
+    - ansible-lint                    # Standards validation
+    - make syntax-check               # Playbook syntax
+    - pre-commit run --all-files      # Code formatting
+```
+
+**Stage 2: Parallel Role Testing**
+```yaml
+test-role-{role-name}:
+  extends: .molecule_test_template
+  stage: test
+  script:
+    - cd roles/{role-name} && molecule test [-- --skip-tags no-container]
+```
+
+**Stage 3: Integration Testing**
+```yaml
+test-variable-validation:
+  stage: integration
+  script:
+    - molecule test -s minimal
+```
+
+**Stage 4: Build & Publish**
+```yaml
+collection-build:
+  stage: build
+  script:
+    - make collection-build
+    - ls -la *.tar.gz
+```
+
+#### 4.3.3 Validation Plan CI Requirements
+
+**CRITICAL REQUIREMENT**: All validation plans MUST include CI configuration updates when:
+
+1. **New Roles Added**: Update `.gitlab-ci.yml` to include `test-role-{name}` job
+2. **Container-Incompatible Tasks**: Add `-- --skip-tags no-container` parameter
+3. **Special Dependencies**: Document in template's `before_script`
+4. **Test Duration Changes**: Update timeout settings if needed
+
+**Validation Plan Checklist**:
+```yaml
+ci_considerations:
+  new_role_added:
+    - [ ] Add test-role-{name} job to .gitlab-ci.yml
+    - [ ] Determine if --skip-tags no-container needed
+    - [ ] Test CI job locally with container environment
+
+  container_limitations:
+    - [ ] Identify tasks incompatible with containers
+    - [ ] Add no-container tags to incompatible tasks
+    - [ ] Update CI job with --skip-tags parameter
+    - [ ] Verify role tests pass in container environment
+
+  integration_impacts:
+    - [ ] Consider cross-role dependencies in CI
+    - [ ] Update integration test scenarios if needed
+    - [ ] Verify parallel execution compatibility
+```
+
+**Example CI Update Process**:
+```bash
+# 1. Test role locally with container limitations
+cd roles/new_role
+molecule test -- --skip-tags no-container
+
+# 2. Update .gitlab-ci.yml
+# Add test-role-new-role job with appropriate skip-tags
+
+# 3. Commit with CI changes
+git add .gitlab-ci.yml roles/new_role/
+git commit -m "implement new_role with CI integration"
+```
+
+#### 4.3.4 CI Troubleshooting
+
+**Common CI Failures and Solutions**:
+
+| Error Pattern | Root Cause | Solution |
+|---------------|------------|----------|
+| `Running makepkg as root is not allowed` | AUR tasks running as root | Add `--skip-tags no-container` |
+| `Permission denied` for systemd | Container lacks systemd init | Add `no-container` tag to systemd tasks |
+| `Cannot modify /etc/hostname` | Container filesystem limitations | Add `no-container` tag to hostname tasks |
+| Docker connection failures | Network/timing issues | Implement retry logic in `.gitlab-ci.yml` |
+| Collection install failures | Galaxy API rate limiting | Use caching and retry mechanisms |
+
+**Performance Optimization**:
+- **Parallel Execution**: Role tests run simultaneously for faster feedback
+- **Caching Strategy**: Collections, pip packages, and APT cache preserved between runs
+- **Docker Layer Optimization**: Custom images reduce setup time
+- **Selective Testing**: Skip non-critical tags in CI, full validation in VM tests
+
+### 4.4 VM Test Procedures
 
 **Phase I: Infrastructure Provisioning**
 ```bash
