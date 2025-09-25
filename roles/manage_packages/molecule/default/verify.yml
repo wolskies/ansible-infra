@@ -28,13 +28,15 @@
         success_msg: "✅ REQ-MP-001: Group-level packages correctly processed"
       when: inventory_hostname == 'ubuntu-packages-layered'
 
-    - name: REQ-MP-001 - Verify host-level override behavior
+    - name: REQ-MP-001 - Verify host-level additive behavior
       ansible.builtin.assert:
         that:
           - "'htop' in ansible_facts.packages" # From host level
-          - "'curl' not in ansible_facts.packages" # Host overrides all level
+          - "'curl' in ansible_facts.packages" # From all level (additive combining)
+          - "'git' in ansible_facts.packages" # From all level (additive combining)
+          - "'nginx' in ansible_facts.packages" # From group level (additive combining)
         fail_msg: "❌ REQ-MP-001: Host-level package combining not working"
-        success_msg: "✅ REQ-MP-001: Host-level packages correctly override lower levels"
+        success_msg: "✅ REQ-MP-001: Host-level packages correctly combine with lower levels"
       when: inventory_hostname == 'ubuntu-packages-layered'
 
     # ===== REQ-MP-002: APT Repository Combining Across Inventory Levels =====
@@ -230,7 +232,7 @@
           - "- All-level packages: Processed from manage_packages_all"
           - "- Group-level packages: Processed from manage_packages_group"
           - "- Host-level packages: Processed from manage_packages_host"
-          - "- Override behavior: Host level correctly overrides lower levels"
+          - "- Additive behavior: Host level correctly combines with lower levels"
           - ""
           - "✅ REQ-MP-002: Repository combining across inventory levels validated"
           - "- All-level repositories: Processed from apt_repositories_all"
