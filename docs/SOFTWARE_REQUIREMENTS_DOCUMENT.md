@@ -784,19 +784,47 @@ This role uses collection-wide variables from section 2.2.1 (packages._, apt._, 
 
 **Note**: With `ANSIBLE_HASH_BEHAVIOUR=merge` enabled, package and repository definitions are automatically merged across inventory precedence levels, eliminating the need for manual merging logic.
 
-#### 3.3.3 Features and Functionality
+#### 3.3.3 Tag Strategy
 
-##### 3.3.3.1 Cross-Platform Package Management
+The `manage_packages` role implements a tag strategy following the pattern established in `os_configuration` and `manage_security_services`:
 
-###### 3.3.3.1.1 Package Merging and Organization
+##### 3.3.3.1 Container Limitations
+
+**Tag**: `no-container`
+
+Tasks that require capabilities unavailable in containers (AUR building as non-root user) are tagged with `no-container`. Use `skip-tags: no-container` when running in containerized environments.
+
+**Example**: `ansible-playbook playbook.yml --skip-tags no-container`
+
+##### 3.3.3.2 Feature Opt-Out via Tags
+
+**Available Feature Tags**:
+
+- `packages` - Package installation and removal operations
+- `repositories` - Repository management (APT repositories, Homebrew taps, etc.)
+- `upgrades` - System package upgrades (APT, Pacman)
+- `aur` - AUR (Arch User Repository) package management with paru
+
+**Usage Examples**:
+
+- `skip-tags: repositories` - Don't manage repositories, preserve existing sources
+- `skip-tags: upgrades` - Skip system package upgrades
+- `skip-tags: aur` - Use only official repositories, skip AUR operations
+- `skip-tags: packages` - Skip package installation/removal, manage only repositories
+
+#### 3.3.4 Features and Functionality
+
+##### 3.3.4.1 Cross-Platform Package Management
+
+###### 3.3.4.1.1 Package Merging and Organization
 
 **REQ-MP-001** (DELETED): ~~The system SHALL merge packages defined at the global ("all") level with packages defined at the group level and packages defined at the host level~~
 
 **Rationale**: With `ANSIBLE_HASH_BEHAVIOUR=merge` enabled collection-wide, package lists are automatically merged across inventory precedence levels. Manual merging logic is no longer required.
 
-##### 3.3.3.2 Debian/Ubuntu Package Management
+##### 3.3.4.2 Debian/Ubuntu Package Management
 
-###### 3.3.3.2.1 APT Repository Management
+###### 3.3.4.2.1 APT Repository Management
 
 **REQ-MP-002** (DELETED): ~~The system SHALL merge APT repositories defined at the global ("all") level with repositories defined at the group level and repositories defined at the host level~~
 
@@ -816,7 +844,7 @@ This role uses collection-wide variables from section 2.2.1 (packages._, apt._, 
 
 **Rationale**: This requirement is an implementation detail of REQ-MP-003 repository management, not a separate functional requirement.
 
-###### 3.3.3.2.2 APT Package Management
+###### 3.3.4.2.2 APT Package Management
 
 **REQ-MP-005** (DELETED): ~~The system SHALL update the APT cache before attempting to install packages~~
 
@@ -834,9 +862,9 @@ MP
 
 **Implementation**: Uses `ansible.builtin.apt` with configurable upgrade type when `apt.system_upgrade.enable` is true.
 
-##### 3.3.3.3 Arch Linux Package Management
+##### 3.3.4.3 Arch Linux Package Management
 
-###### 3.3.3.3.1 Pacman Package Management
+###### 3.3.4.3.1 Pacman Package Management
 
 **REQ-MP-009** (DELETED): ~~The system SHALL be capable of updating Pacman package cache~~
 
@@ -858,7 +886,7 @@ MP
 
 **Implementation**: When `pacman.enable_aur` is false, uses `community.general.pacman` for official repository packages only. When `pacman.enable_aur` is true, uses AUR helper for all package management (see REQ-MP-013).
 
-###### 3.3.3.3.2 AUR Package Management
+###### 3.3.4.3.2 AUR Package Management
 
 **REQ-MP-013**: The system SHALL be capable of managing AUR packages when enabled
 
@@ -866,9 +894,9 @@ MP
 
 **Note**: AUR package management requires passwordless sudo access to `/usr/bin/pacman` for the ansible_user (who acts as the AUR builder) to enable automated package installation and dependency resolution. The ansible_user's home directory is used for AUR package building. This is limited to the pacman binary only, not full system access.
 
-##### 3.3.3.4 macOS Package Management
+##### 3.3.4.4 macOS Package Management
 
-###### 3.3.3.4.1 Homebrew Package Management
+###### 3.3.4.4.1 Homebrew Package Management
 
 **REQ-MP-014**: The system SHALL be capable of managing Homebrew packages and casks
 

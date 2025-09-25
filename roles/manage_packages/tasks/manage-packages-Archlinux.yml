@@ -4,6 +4,8 @@
     update_cache: false
     upgrade: true
   become: true
+  tags:
+    - upgrades
 
 # Branch based on AUR enablement
 - name: Manage packages (AUR disabled - pacman only)
@@ -41,7 +43,9 @@
         state: present
         use: auto # Will bootstrap using available method
       become: false # Run as ansible_user, not root
-      tags: [no-container]
+      tags:
+        - no-container
+        - aur
 
     - name: Manage packages via kewlfft.aur module using paru for ALL packages
       kewlfft.aur.aur:
@@ -50,7 +54,9 @@
         use: paru # Use paru for both official and AUR packages
       loop: "{{ manage_packages[ansible_os_family] | default([]) }}"
       become: false # Run as ansible_user, not root
-      tags: [no-container]
+      tags:
+        - no-container
+        - aur
   when:
     - manage_packages[ansible_os_family] | default([]) | length > 0
     - pacman.enable_aur | default(false)

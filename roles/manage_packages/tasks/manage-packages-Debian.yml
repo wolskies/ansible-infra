@@ -52,6 +52,8 @@
     - apt.repositories is defined
     - apt.repositories[ansible_distribution] is defined
     - apt.repositories[ansible_distribution] | length > 0
+  tags:
+    - repositories
 
 - name: Force APT cache update after repository changes
   ansible.builtin.apt:
@@ -61,6 +63,8 @@
   when:
     - repositories_changed is defined
     - repositories_changed.changed | default(false)
+  tags:
+    - repositories
 
 - name: Manage packages via APT
   ansible.builtin.apt:
@@ -71,6 +75,8 @@
   loop: "{{ manage_packages[ansible_os_family] | default([]) }}"
   become: true
   when: manage_packages[ansible_os_family] | default([]) | length > 0
+  tags:
+    - packages
 
 - name: Upgrade all APT packages
   ansible.builtin.apt:
@@ -79,6 +85,8 @@
   when:
     - apt.system_upgrade is defined
     - apt.system_upgrade.enable | default(false)
+  tags:
+    - upgrades
 
 - name: Gather package facts (Debian family)
   ansible.builtin.package_facts:
