@@ -203,6 +203,7 @@ firewall:
 | `apt.no_recommends`                             | boolean                   | `false`         | Disable APT automatic installation of recommended and suggested packages                                 |
 | `apt.unattended_upgrades.enabled`               | boolean                   | `false`         | Enable APT unattended security upgrades on Debian/Ubuntu systems                                         |
 | `snap.remove_completely`                        | boolean                   | `false`         | Completely remove snapd system from Debian/Ubuntu systems (manage_snap_packages role)                    |
+| `snap_packages`                                 | list[object]              | `[]`            | Snap package definitions (see schema below)                                                              |
 | `pacman.proxy`                                  | string                    | `""`            | Pacman proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://proxy.example.com:3128")        |
 | `pacman.no_confirm`                             | boolean                   | `false`         | Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)                         |
 | `pacman.multilib.enabled`                       | boolean                   | `false`         | Enable Pacman multilib repository for 32-bit packages on Arch Linux systems                              |
@@ -284,6 +285,31 @@ manage_packages:
 ```
 
 **Note**: Package lists are automatically merged across inventory precedence levels using `ANSIBLE_HASH_BEHAVIOUR=merge`. Different inventory scopes (all/group_vars/host_vars) contribute packages additively to the final package list for each OS family.
+
+**Snap Package Schema:**
+
+| Field            | Type   | Default   | Description                                                              |
+| ---------------- | ------ | --------- | ------------------------------------------------------------------------ |
+| `snap_packages`  | list[dict] | `[]`  | Snap package specifications with name and optional state/options         |
+| `snap_packages[].name` | string | -     | Snap package name (e.g., "code", "firefox", "discord")                  |
+| `snap_packages[].state` | string | "present" | Package state ("present", "absent", "enabled", "disabled")            |
+| `snap_packages[].classic` | boolean | `false` | Install with classic confinement (--classic)                          |
+| `snap_packages[].channel` | string | none  | Install from specific channel (e.g., "latest/edge", "stable")           |
+
+**Example**:
+
+```yaml
+snap_packages:
+  - name: code
+    state: present
+    classic: true
+  - name: firefox
+    # state defaults to present
+  - name: old-app
+    state: absent
+  - name: discord
+    channel: latest/edge
+```
 
 **APT Repository Object Schema:**
 
@@ -910,33 +936,55 @@ MP
 
 #### 3.4.1 Role Description
 
-The `manage_snap_packages` role manages both snapd and snapd packages on Debian/Ubuntu systems.
+The `manage_snap_packages` role manages both snapd system and snap packages on Debian/Ubuntu systems.
 
 #### 3.4.2 Variables
 
-This role uses collection-wide variables from section 2.2.1 (snap.\*). No role-specific variables are defined.
+This role uses collection-wide variables from section 2.2.1 (snap.* and snap_packages). No role-specific variables are defined.
 
-#### 3.4.3 Features and Functionality
+#### 3.4.3 Tag Strategy
 
-##### 3.4.3.1 Snap System Removal
+The `manage_snap_packages` role implements a tag strategy following the pattern established in other collection roles:
 
-###### 3.4.3.1.1 Complete Snap System Disabling
+##### 3.4.3.1 Container Limitations
+
+**Tag**: `no-container`
+
+Tasks that require capabilities unavailable in containers are tagged with `no-container`. However, this role currently has no such limitations as snap operations can be tested in containers.
+
+##### 3.4.3.2 Feature Opt-Out via Tags
+
+**Available Feature Tags**:
+
+- `snap-packages` - All snap package management operations (install, remove, system removal)
+
+**Usage Examples**:
+
+- `skip-tags: snap-packages` - Skip all snap package management operations
+
+**Note**: This role uses a single comprehensive tag as snap operations are typically all-or-nothing (either managing snaps or completely removing the snap system).
+
+#### 3.4.4 Features and Functionality
+
+##### 3.4.4.1 Snap System Removal
+
+###### 3.4.4.1.1 Complete Snap System Disabling
 
 **REQ-MSP-001**: The system SHALL be capable of completely removing the snap package system from Debian/Ubuntu systems
 
-**Implementation**: Uses `ansible.builtin.command` to list and remove all installed snap packages (except core packages which are removed last), `ansible.builtin.systemd` to stop and disable snapd services, `ansible.builtin.apt` to purge snapd packages, `ansible.builtin.file` to remove snap directories, and `ansible.builtin.lineinfile` to remove snap from PATH. Loop variable names: `snap_line` (package removal), `snapd_service` (service management), `snap_dir` (directory cleanup).
+**Implementation**: When `snap.remove_completely` is true, uses `ansible.builtin.command` to list and remove all installed snap packages (except core packages which are removed last), `ansible.builtin.systemd` to stop and disable snapd services, `ansible.builtin.apt` to purge snapd packages, `ansible.builtin.file` to remove snap directories, and `ansible.builtin.lineinfile` to remove snap from PATH. Loop variable names: `snap_line` (package removal), `snapd_service` (service management), `snap_dir` (directory cleanup).
 
 **REQ-MSP-002**: The system SHALL prevent snap packages from being reinstalled after removal
 
-**Implementation**: Uses `ansible.builtin.copy` to create `/etc/apt/preferences.d/no-snap` with Pin-Priority: -10 to prevent snapd and gnome-software-plugin-snap from being installed.
+**Implementation**: When `snap.remove_completely` is true, uses `ansible.builtin.copy` to create `/etc/apt/preferences.d/no-snap` with Pin-Priority: -10 to prevent snapd and gnome-software-plugin-snap from being installed.
 
-##### 3.4.3.2 Snap Package Management
+##### 3.4.4.2 Snap Package Management
 
-###### 3.4.3.2.1 Snap Package Installation and Removal
+###### 3.4.4.2.1 Snap Package Installation and Removal
 
 **REQ-MSP-003**: The system SHALL be capable of managing individual snap packages when snap system is enabled
 
-**Implementation**: Ensures snapd is installed via `ansible.builtin.apt`, starts services via `ansible.builtin.systemd`, waits for system readiness via `ansible.builtin.command`, then uses `community.general.snap` for package installation and removal. Loop variable names: `snapd_service` (service management), `snap_package` (package operations).
+**Implementation**: When `snap.remove_completely` is false and `snap_packages` contains one or more packages, ensures snapd is installed via `ansible.builtin.apt`, starts services via `ansible.builtin.systemd`, waits for system readiness via `ansible.builtin.command`, then uses `community.general.snap` for package management with support for state (present/absent), classic confinement, and channel specification. Loop variable names: `snapd_service` (service management), `snap_package` (package operations from `snap_packages` list).
 
 ### 3.5 manage_flatpak
 

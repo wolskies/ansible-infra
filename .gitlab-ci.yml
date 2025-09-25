@@ -207,7 +207,7 @@ test-role-manage-packages:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/manage_packages && molecule test
+    - cd roles/manage_packages && molecule test -- --skip-tags no-container
     - echo "✅ Package management role tests passed"
 
 test-role-manage-security-services:

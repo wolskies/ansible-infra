@@ -27,7 +27,7 @@
 - name: Remove core snap packages (last)
   ansible.builtin.command: "snap remove core core18 core20 core22 snapd"
   become: true
-  when: snap.disable_and_remove
+  when: snap.remove_completely
   failed_when: false
   tags:
     - snap-packages

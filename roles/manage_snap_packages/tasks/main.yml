@@ -5,7 +5,7 @@
   ansible.builtin.include_tasks: disable-snap.yml
   when:
     - ansible_os_family == "Debian"
-    - snap.disable_and_remove | default(false)
+    - snap.remove_completely | default(false)
   tags:
     - snap-packages
 
@@ -13,9 +13,7 @@
   ansible.builtin.include_tasks: manage-packages.yml
   when:
     - ansible_os_family == "Debian"
-    - not (snap.disable_and_remove | default(false))
-    - >-
-      (snap.packages.install | default([]) | length > 0) or
-      (snap.packages.remove | default([]) | length > 0)
+    - not (snap.remove_completely | default(false))
+    - snap_packages | default([]) | length > 0
   tags:
     - snap-packages

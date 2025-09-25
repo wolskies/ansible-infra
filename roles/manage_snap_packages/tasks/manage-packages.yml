@@ -29,38 +29,20 @@
       changed_when: false
       failed_when: false
 
-  when: >
-    (snap.packages.install | length > 0) or
-    (snap.packages.remove | length > 0)
+  when: snap_packages | default([]) | length > 0
   tags:
     - snap-packages
 
-- name: Remove snap packages
+- name: Manage snap packages
   community.general.snap:
-    name: "{{ snap_package }}"
-    state: absent
-  loop: "{{ snap.packages.remove }}"
+    name: "{{ snap_package.name }}"
+    state: "{{ snap_package.state | default('present') }}"
+    classic: "{{ snap_package.classic | default(false) }}"
+    channel: "{{ snap_package.channel | default(omit) }}"
+  loop: "{{ snap_packages | default([]) }}"
   loop_control:
     loop_var: snap_package
   become: true
-  when:
-    - snap is defined
-    - snap.packages is defined
-    - snap.packages.remove | length > 0
-  tags:
-    - snap-packages
-
-- name: Install snap packages
-  community.general.snap:
-    name: "{{ snap_package }}"
-    state: present
-  loop: "{{ snap.packages.install }}"
-  loop_control:
-    loop_var: snap_package
-  become: true
-  when:
-    - snap is defined
-    - snap.packages is defined
-    - snap.packages.install | length > 0
+  when: snap_packages | default([]) | length > 0
   tags:
     - snap-packages

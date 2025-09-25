@@ -4,7 +4,31 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: ubuntu-snap-test
+  - name: ubuntu-snap-removal-full
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-snap-packages-basic
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-snap-packages-advanced
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-snap-no-action
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -22,12 +46,47 @@ provisioner:
       stdout_callback: ansible.builtin.default
       stdout_callback_format: yaml
   inventory:
-    group_vars:
-      all:
+    host_vars:
+      ubuntu-snap-removal-full:
         ansible_user: root
         molecule_test: true
-        # Snap configuration for testing (disable and remove snap)
+        # REQ-MSP-001 & REQ-MSP-002: Complete snap system removal
         snap:
-          disable_and_remove: true
+          remove_completely: true
+      ubuntu-snap-packages-basic:
+        ansible_user: root
+        molecule_test: true
+        # REQ-MSP-003: Basic snap package management
+        snap:
+          remove_completely: false
+        snap_packages:
+          - name: hello-world
+            state: present
+          - name: test-nonexistent-package
+            state: absent
+      ubuntu-snap-packages-advanced:
+        ansible_user: root
+        molecule_test: true
+        # REQ-MSP-003: Advanced snap package features
+        snap:
+          remove_completely: false
+        snap_packages:
+          - name: hello-world
+            state: present
+          - name: code
+            state: present
+            classic: true
+          - name: discord
+            state: present
+            channel: latest/stable
+          - name: unwanted-package
+            state: absent
+      ubuntu-snap-no-action:
+        ansible_user: root
+        molecule_test: true
+        # No action scenario: snap.remove_completely false, no packages
+        snap:
+          remove_completely: false
+        snap_packages: []
 verifier:
   name: ansible

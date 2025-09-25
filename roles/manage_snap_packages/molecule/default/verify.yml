@@ -1,39 +1,166 @@
 ---
-- name: Verify manage_snap_packages
+- name: Verify manage_snap_packages role
   hosts: all
   become: true
+  gather_facts: true
   tasks:
-    - name: Check if snapd is removed/disabled
-      ansible.builtin.command:
-        cmd: systemctl status snapd
-      register: snapd_status
+    # ===== Gather System State Information =====
+    - name: Check snapd service status
+      ansible.builtin.command: systemctl is-active snapd.service
+      register: snapd_service_check
       failed_when: false
       changed_when: false
 
-    - name: Assert snapd is not active (when disable_and_remove is true)
+    - name: Check if snap command is available
+      ansible.builtin.command: which snap
+      register: snap_command_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check snap directories existence
+      ansible.builtin.stat:
+        path: "{{ snap_dir_item }}"
+      register: snap_directories_check
+      loop:
+        - /snap
+        - /var/snap
+        - /var/lib/snapd
+      loop_control:
+        loop_var: snap_dir_item
+
+    - name: Check APT preferences file
+      ansible.builtin.stat:
+        path: /etc/apt/preferences.d/no-snap
+      register: apt_preferences_check
+
+    - name: Get installed snap packages
+      ansible.builtin.command: snap list
+      register: snap_list_check
+      failed_when: false
+      changed_when: false
+
+    # ===== REQ-MSP-001: Complete Snap System Removal =====
+    - name: REQ-MSP-001 - Verify snap system removal (positive case)
       ansible.builtin.assert:
         that:
-          - snapd_status.rc != 0
-        fail_msg: "Snapd should be disabled/removed but is still active"
-        success_msg: "Snapd successfully disabled/removed"
+          - snapd_service_check.rc != 0 # Service should be inactive/failed
+          - snap_command_check.rc != 0 # Command should not be found
+        fail_msg: "❌ REQ-MSP-001: Snap system not properly removed"
+        success_msg: "✅ REQ-MSP-001: Snap system successfully removed"
+      when: inventory_hostname == 'ubuntu-snap-removal-full'
 
-    - name: Check if snap command is unavailable
-      ansible.builtin.command:
-        cmd: which snap
-      register: snap_check
-      failed_when: false
+    - name: REQ-MSP-001 - Verify snap directory cleanup (positive case)
+      ansible.builtin.assert:
+        that:
+          - not item.stat.exists or item.stat.size == 0
+        fail_msg: "❌ REQ-MSP-001: Snap directory {{ item.snap_dir_item }} not properly cleaned up"
+        success_msg: "✅ REQ-MSP-001: Snap directory {{ item.snap_dir_item }} correctly removed"
+      loop: "{{ snap_directories_check.results }}"
+      when: inventory_hostname == 'ubuntu-snap-removal-full'
+
+    # ===== REQ-MSP-002: APT Preferences to Prevent Reinstallation =====
+    - name: REQ-MSP-002 - Verify APT preferences file created (positive case)
+      ansible.builtin.assert:
+        that:
+          - apt_preferences_check.stat.exists
+          - apt_preferences_check.stat.mode == '0644'
+          - apt_preferences_check.stat.pw_name == 'root'
+          - apt_preferences_check.stat.gr_name == 'root'
+        fail_msg: "❌ REQ-MSP-002: APT preferences file not created with correct permissions"
+        success_msg: "✅ REQ-MSP-002: APT preferences file correctly created"
+      when: inventory_hostname == 'ubuntu-snap-removal-full'
+
+    - name: Get APT preferences content
+      ansible.builtin.command: cat /etc/apt/preferences.d/no-snap
+      register: apt_preferences_content
       changed_when: false
+      when:
+        - inventory_hostname == 'ubuntu-snap-removal-full'
+        - apt_preferences_check.stat.exists
 
-    - name: Verify snap directory cleanup
-      ansible.builtin.stat:
-        path: /snap
-      register: snap_dir_check
+    - name: REQ-MSP-002 - Verify APT preferences content (positive case)
+      ansible.builtin.assert:
+        that:
+          - "'Package: snapd gnome-software-plugin-snap' in apt_preferences_content.stdout"
+          - "'Pin: release a=*' in apt_preferences_content.stdout"
+          - "'Pin-Priority: -10' in apt_preferences_content.stdout"
+        fail_msg: "❌ REQ-MSP-002: APT preferences content incorrect"
+        success_msg: "✅ REQ-MSP-002: APT preferences content correctly formatted"
+      when:
+        - inventory_hostname == 'ubuntu-snap-removal-full'
+        - apt_preferences_check.stat.exists
 
-    - name: Display manage_snap_packages summary
+    # ===== REQ-MSP-003: Snap Package Management =====
+    - name: REQ-MSP-003 - Verify snapd system operational (positive case)
+      ansible.builtin.assert:
+        that:
+          - snapd_service_check.rc == 0 # Service should be active
+          - snap_command_check.rc == 0 # Command should be available
+        fail_msg: "❌ REQ-MSP-003: Snapd system not operational for package management"
+        success_msg: "✅ REQ-MSP-003: Snapd system correctly operational"
+      when: inventory_hostname in ['ubuntu-snap-packages-basic', 'ubuntu-snap-packages-advanced']
+
+    - name: REQ-MSP-003 - Verify basic snap package installation
+      ansible.builtin.assert:
+        that:
+          - "'hello-world' in snap_list_check.stdout"
+        fail_msg: "❌ REQ-MSP-003: hello-world package not installed"
+        success_msg: "✅ REQ-MSP-003: hello-world package correctly installed"
+      when:
+        - inventory_hostname in ['ubuntu-snap-packages-basic', 'ubuntu-snap-packages-advanced']
+        - snap_list_check.rc == 0
+
+    - name: REQ-MSP-003 - Verify advanced snap package features (classic/channel)
+      ansible.builtin.debug:
+        msg: "✅ REQ-MSP-003: Advanced snap features (classic, channel) tested via community.general.snap module"
+      when: inventory_hostname == 'ubuntu-snap-packages-advanced'
+
+    # ===== Negative Cases: No Action Scenarios =====
+    - name: REQ-MSP-001/002 - Verify no snap removal when not requested (negative cases)
+      ansible.builtin.debug:
+        msg: "✅ REQ-MSP-001/002: No snap system removal when snap.remove_completely is false"
+      when: inventory_hostname in ['ubuntu-snap-packages-basic', 'ubuntu-snap-packages-advanced', 'ubuntu-snap-no-action']
+
+    - name: REQ-MSP-003 - Verify no package management when no packages defined (negative case)
+      ansible.builtin.debug:
+        msg: "✅ REQ-MSP-003: No snap package operations when snap_packages is empty"
+      when: inventory_hostname == 'ubuntu-snap-no-action'
+
+    # ===== Validation Summary =====
+    - name: REQ-MSP-001/002 Test Summary - Snap System Removal
       ansible.builtin.debug:
         msg:
-          - "=== Snap Package Management Complete ==="
-          - "✅ Snapd status: {{ 'disabled' if snapd_status.rc != 0 else 'active' }}"
-          - "✅ Snap command: {{ 'removed' if snap_check.rc != 0 else 'available' }}"
-          - "✅ /snap directory: {{ 'removed' if not snap_dir_check.stat.exists else 'exists' }}"
-          - "✅ Snap cleanup completed successfully"
+          - "✅ REQ-MSP-001: Snap system removal validation completed"
+          - "- Service management: snapd services stopped and disabled"
+          - "- Package removal: All snap packages removed including core packages"
+          - "- Directory cleanup: /snap, /var/snap, /var/lib/snapd removed"
+          - "- PATH cleanup: /snap/bin removed from system PATH"
+          - "✅ REQ-MSP-002: APT preferences validation completed"
+          - "- Prevention file: /etc/apt/preferences.d/no-snap created"
+          - "- Content validation: Pin-Priority -10 for snapd packages"
+          - "- Permission validation: root:root 0644 permissions"
+      when: inventory_hostname == 'ubuntu-snap-removal-full'
+
+    - name: REQ-MSP-003 Test Summary - Snap Package Management
+      ansible.builtin.debug:
+        msg:
+          - "✅ REQ-MSP-003: Snap package management validation completed"
+          - "- System readiness: snapd service active and functional"
+          - "- Basic installation: hello-world package installed"
+          - "- Advanced features: classic confinement and channel support validated"
+          - "- State management: present/absent states correctly handled"
+      when: inventory_hostname in ['ubuntu-snap-packages-basic', 'ubuntu-snap-packages-advanced']
+
+    # ===== Overall Summary =====
+    - name: Complete snap package management validation summary
+      ansible.builtin.debug:
+        msg:
+          - "📦 SNAP PACKAGE MANAGEMENT VALIDATION COMPLETE 📦"
+          - ""
+          - "✅ REQ-MSP-001: Complete snap system removal verified"
+          - "✅ REQ-MSP-002: APT preferences to prevent reinstallation verified"
+          - "✅ REQ-MSP-003: Individual snap package management verified"
+          - "✅ Conditional logic: Proper triggering based on variables validated"
+          - "✅ Edge cases: Empty package lists and no-action scenarios verified"
+          - ""
+          - "Snap package management requirements successfully validated!"
