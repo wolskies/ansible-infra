@@ -133,7 +133,7 @@ provisioner:
         manage_packages_host:
           Debian:
             - name: htop # From host level (available in default repos)
-            - name: curl # Host overrides all level
+            - name: nano # Host adds another package (different from all level)
               state: absent
         apt_repositories_group:
           Ubuntu: []

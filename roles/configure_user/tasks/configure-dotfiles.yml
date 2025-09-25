@@ -1,6 +1,18 @@
 ---
 # Deploy dotfiles for target_user using stow
 
+# Configure git safe directory if using file:// protocol (test environments)
+- name: Configure git safe directory for local repositories
+  community.general.git_config:
+    name: safe.directory
+    value: "{{ target_user.dotfiles.repository | regex_replace('^file://', '') }}/.git"
+    scope: global
+  become: true
+  become_user: "{{ target_user.name }}"
+  when:
+    - target_user.dotfiles.repository is defined
+    - target_user.dotfiles.repository is match('^file://')
+
 - name: Clone dotfiles repository for {{ target_user.name }}
   ansible.builtin.git:
     repo: "{{ target_user.dotfiles.repository }}"
