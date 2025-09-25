@@ -28,12 +28,20 @@
         validate: "visudo -cf %s"
       become: true
 
+    - name: Ensure base-devel group is installed (required for AUR building)
+      community.general.pacman:
+        name: base-devel
+        state: present
+        update_cache: true
+      become: true
+
     - name: Bootstrap AUR helper (paru) if needed
       kewlfft.aur.aur:
         name: paru
         state: present
         use: auto # Will bootstrap using available method
       become: false # Run as ansible_user, not root
+      tags: [no-container]
 
     - name: Manage packages via kewlfft.aur module using paru for ALL packages
       kewlfft.aur.aur:
@@ -42,6 +50,7 @@
         use: paru # Use paru for both official and AUR packages
       loop: "{{ manage_packages[ansible_os_family] | default([]) }}"
       become: false # Run as ansible_user, not root
+      tags: [no-container]
   when:
     - manage_packages[ansible_os_family] | default([]) | length > 0
     - pacman.enable_aur | default(false)
