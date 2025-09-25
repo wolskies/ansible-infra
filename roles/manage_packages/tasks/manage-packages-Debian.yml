@@ -1,20 +1,11 @@
 ---
-- name: Merge APT repositories from all sources
-  ansible.builtin.set_fact:
-    merged_apt_repositories: >-
-      {{
-        (apt.repositories.all[ansible_distribution] | default([])) +
-        (apt.repositories.group[ansible_distribution] | default([])) +
-        (apt.repositories.host[ansible_distribution] | default([]))
-        | unique | list
-      }}
 - name: Manage APT repositories
   block:
     - name: Ensure old apt keys are not present in trusted.gpg.d
       ansible.builtin.file:
         path: "/etc/apt/trusted.gpg.d/{{ item.name }}.asc"
         state: absent
-      loop: "{{ merged_apt_repositories }}"
+      loop: "{{ apt.repositories[ansible_distribution] | default([]) }}"
       become: true
 
     - name: Ensure old apt source lists are not present in sources.list.d
@@ -23,7 +14,7 @@
         state: absent
       loop: >-
         {%- set files = [] -%}
-        {%- for repo in merged_apt_repositories -%}
+        {%- for repo in apt.repositories[ansible_distribution] | default([]) -%}
           {%- set _ = files.append(repo.name + '.list') -%}
           {%- set _ = files.append(repo.name | replace('_', '-') + '.list') -%}
           {%- set _ = files.append('download_' + repo.name | replace('.', '_') + '.list') -%}
@@ -54,12 +45,13 @@
         components: "{{ item.components | default(['main']) }}"
         signed_by: "{{ item.signed_by | default(omit) }}"
         state: "{{ item.state | default('present') }}"
-      loop: "{{ merged_apt_repositories }}"
+      loop: "{{ apt.repositories[ansible_distribution] | default([]) }}"
       become: true
       register: repositories_changed
   when:
-    - merged_apt_repositories is defined
-    - merged_apt_repositories | length > 0
+    - apt.repositories is defined
+    - apt.repositories[ansible_distribution] is defined
+    - apt.repositories[ansible_distribution] | length > 0
 
 - name: Force APT cache update after repository changes
   ansible.builtin.apt:
@@ -70,25 +62,15 @@
     - repositories_changed is defined
     - repositories_changed.changed | default(false)
 
-- name: Update APT cache before package operations
+- name: Manage packages via APT
   ansible.builtin.apt:
+    name: "{{ item.name }}"
+    state: "{{ item.state | default('present') }}"
     update_cache: true
-    cache_valid_time: 600 # 10 minutes instead of 1 hour
+    cache_valid_time: 3600
+  loop: "{{ manage_packages[ansible_os_family] | default([]) }}"
   become: true
-
-- name: Remove packages via APT
-  ansible.builtin.apt:
-    name: "{{ merged_packages_remove }}"
-    state: absent
-  become: true
-  when: merged_packages_remove | length > 0
-
-- name: Install packages via APT
-  ansible.builtin.apt:
-    name: "{{ merged_packages_install }}"
-    state: present
-  become: true
-  when: merged_packages_install | length > 0
+  when: manage_packages[ansible_os_family] | default([]) | length > 0
 
 - name: Upgrade all APT packages
   ansible.builtin.apt:

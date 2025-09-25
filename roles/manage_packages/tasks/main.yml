@@ -1,21 +1,4 @@
 ---
-- name: Merge packages from all sources
-  ansible.builtin.set_fact:
-    merged_packages_install: >-
-      {{
-        (packages.present.all[ansible_distribution] | default([])) +
-        (packages.present.group[ansible_distribution] | default([])) +
-        (packages.present.host[ansible_distribution] | default([]))
-        | unique | list
-      }}
-    merged_packages_remove: >-
-      {{
-        (packages.remove.all[ansible_distribution] | default([])) +
-        (packages.remove.group[ansible_distribution] | default([])) +
-        (packages.remove.host[ansible_distribution] | default([]))
-        | unique | list
-      }}
-
 - name: Manage packages by OS family
   ansible.builtin.include_tasks: "manage-packages-{{ ansible_os_family }}.yml"
   tags: packages
