@@ -76,7 +76,7 @@ provisioner:
           - name: code
             state: present
             classic: true
-          - name: discord
+          - name: jq
             state: present
             channel: latest/stable
           - name: unwanted-package

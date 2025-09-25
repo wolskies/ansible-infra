@@ -4,7 +4,7 @@ dependency:
 driver:
   name: docker
 platforms:
-  # Comprehensive test scenarios following validation plan
+  # 7-container test scenarios following updated validation plan
   - name: ubuntu-packages-full
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -21,20 +21,22 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: arch-packages-full
-    image: carlodepieri/docker-archlinux-ansible:latest
+  - name: ubuntu-packages-layered
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/usr/lib/systemd/systemd"
-    env:
-      container: docker
-    capabilities:
-      - SYS_ADMIN
-    ulimits:
-      - nofile:65535:65535
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-repos-layered
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
   - name: arch-packages-basic
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
@@ -71,67 +73,97 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
-        # Base packages merged via ANSIBLE_HASH_BEHAVIOUR=merge
-        manage_packages:
+        # Base packages using new layered approach (REQ-MP-001)
+        manage_packages_all:
           Debian:
             - name: curl
             - name: git
           Archlinux:
             - name: curl
             - name: git
+        # Base repositories using new layered approach (REQ-MP-002)
+        apt_repositories_all:
+          Ubuntu: []
     host_vars:
       # REQ-MP-003: Complete repository + package management
       ubuntu-packages-full:
-        manage_packages:
+        manage_packages_group:
           Debian:
-            - name: curl # From all level (repeated due to list replacement)
-            - name: git # From all level (repeated due to list replacement)
-            - name: nginx # Added to curl+git from all level
-            - name: docker-ce # Will come from docker repository
+            - name: nginx
+        manage_packages_host:
+          Debian:
+            - name: docker-ce
             - name: telnet
               state: absent
             - name: rsh-server
               state: absent
+        apt_repositories_group:
+          Ubuntu: []
+        apt_repositories_host:
+          Ubuntu:
+            - name: docker
+              uris: "https://download.docker.com/linux/ubuntu"
+              suites: "{{ ansible_distribution_release }}"
+              components: "stable"
+              signed_by: "https://download.docker.com/linux/ubuntu/gpg"
         apt:
-          repositories:
-            Ubuntu:
-              - name: docker
-                uris: "https://download.docker.com/linux/ubuntu"
-                suites: "{{ ansible_distribution_release }}"
-                components: "stable"
-                signed_by: "https://download.docker.com/linux/ubuntu/gpg"
           system_upgrade:
             enable: true
             type: "safe"
 
       # Basic package management without repositories
       ubuntu-packages-basic:
-        manage_packages:
+        manage_packages_group:
+          Debian: []
+        manage_packages_host:
           Debian:
-            - name: curl # From all level (repeated due to list replacement)
-            - name: git # From all level (repeated due to list replacement)
-            - name: vim # Added to curl+git from all level
+            - name: vim
             - name: nano
               state: absent
+        apt_repositories_group:
+          Ubuntu: []
+        apt_repositories_host:
+          Ubuntu: []
 
-      # Arch Linux with AUR enabled
-      arch-packages-full:
-        manage_packages:
-          Archlinux:
-            - name: curl # From all level (repeated due to list replacement)
-            - name: git # From all level (repeated due to list replacement)
-            - name: base-devel # Added to curl+git from all level
-            # Note: paru is installed via kewlfft.aur.aur module, not package list
-        pacman:
-          enable_aur: true
+      # REQ-MP-001: Demonstrates layered package combining (using default Ubuntu packages only)
+      ubuntu-packages-layered:
+        manage_packages_group:
+          Debian:
+            - name: nginx # From group level (available in default repos)
+        manage_packages_host:
+          Debian:
+            - name: htop # From host level (available in default repos)
+            - name: curl # Host overrides all level
+              state: absent
+        apt_repositories_group:
+          Ubuntu: []
+        apt_repositories_host:
+          Ubuntu: []
 
-      # Arch Linux without AUR
+      # REQ-MP-002: Demonstrates layered repository combining (Docker repository only, per SRD example)
+      ubuntu-repos-layered:
+        manage_packages_group:
+          Debian: []
+        manage_packages_host:
+          Debian:
+            - name: docker-ce
+        apt_repositories_group:
+          Ubuntu: [] # Empty group level for this test
+        apt_repositories_host:
+          Ubuntu:
+            - name: docker
+              uris: "https://download.docker.com/linux/ubuntu"
+              suites: "{{ ansible_distribution_release }}"
+              components: "stable"
+              signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+
+      # Arch Linux without AUR (container-compatible)
       arch-packages-basic:
-        manage_packages:
+        manage_packages_group:
+          Archlinux: []
+        manage_packages_host:
           Archlinux:
-            - name: curl # From all level (repeated due to list replacement)
-            - name: git # From all level (repeated due to list replacement)
-            - name: vim # Added to curl+git from all level
+            - name: vim
             - name: nano
               state: absent
         pacman:
@@ -139,10 +171,13 @@ provisioner:
 
       # Edge cases: empty configurations
       ubuntu-edge-cases:
-        manage_packages:
+        manage_packages_group:
           Debian: []
-        apt:
-          repositories:
-            Ubuntu: []
+        manage_packages_host:
+          Debian: []
+        apt_repositories_group:
+          Ubuntu: []
+        apt_repositories_host:
+          Ubuntu: []
 verifier:
   name: ansible

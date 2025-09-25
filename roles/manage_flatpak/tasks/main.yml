@@ -50,32 +50,6 @@
   tags:
     - flatpak-plugins
 
-- name: Install GNOME Software flatpak plugin (Arch Linux)
-  community.general.pacman:
-    name: gnome-software-flatpak
-    state: present
-  become: true
-  when:
-    - ansible_os_family == "Archlinux"
-    - flatpak.enabled | default(false)
-    - flatpak.plugins.gnome | default(false)
-  failed_when: false
-  tags:
-    - flatpak-plugins
-
-- name: Install Plasma Discover flatpak plugin (Arch Linux)
-  community.general.pacman:
-    name: discover
-    state: present
-  become: true
-  when:
-    - ansible_os_family == "Archlinux"
-    - flatpak.enabled | default(false)
-    - flatpak.plugins.plasma | default(false)
-  failed_when: false
-  tags:
-    - flatpak-plugins
-
 - name: Enable Flathub repository
   community.general.flatpak_remote:
     name: flathub
