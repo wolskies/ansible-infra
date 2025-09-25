@@ -4,7 +4,7 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: ubuntu-flatpak-test
+  - name: ubuntu-flatpak-system-full
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -12,7 +12,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: arch-flatpak-test
+  - name: arch-flatpak-system-full
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
     privileged: true
@@ -26,6 +26,22 @@ platforms:
       - SYS_ADMIN
     ulimits:
       - nofile:65535:65535
+  - name: ubuntu-flatpak-packages-basic
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+  - name: ubuntu-flatpak-no-action
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -36,21 +52,59 @@ provisioner:
       stdout_callback: ansible.builtin.default
       stdout_callback_format: yaml
   inventory:
-    group_vars:
-      all:
+    host_vars:
+      ubuntu-flatpak-system-full:
         ansible_user: root
         molecule_test: true
-        # Flatpak configuration for testing
+        # REQ-MF-001, REQ-MF-002, REQ-MF-003, REQ-MF-004: Complete system with plugins and packages
         flatpak:
           enabled: true
           flathub: true
           method: system
           plugins:
-            gnome: false # Skip GUI plugins in containers
+            gnome: true
             plasma: false
-          packages:
-            install:
-              - org.freedesktop.Platform//23.08
-            remove: []
+        flatpak_packages:
+          - name: org.freedesktop.Platform//23.08
+            state: present
+          - name: org.mozilla.firefox
+            state: present
+      arch-flatpak-system-full:
+        ansible_user: root
+        molecule_test: true
+        # Platform-specific plugin testing for Arch Linux
+        flatpak:
+          enabled: true
+          flathub: true
+          method: system
+          plugins:
+            gnome: true
+            plasma: true
+        flatpak_packages:
+          - name: org.freedesktop.Platform//23.08
+            state: present
+      ubuntu-flatpak-packages-basic:
+        ansible_user: root
+        molecule_test: true
+        # REQ-MF-004: Basic package management without plugins
+        flatpak:
+          enabled: true
+          flathub: true
+          method: system
+          plugins:
+            gnome: false
+            plasma: false
+        flatpak_packages:
+          - name: org.freedesktop.Platform//23.08
+            state: present
+          - name: unwanted-package
+            state: absent
+      ubuntu-flatpak-no-action:
+        ansible_user: root
+        molecule_test: true
+        # No action scenario: flatpak.enabled false, no packages
+        flatpak:
+          enabled: false
+        flatpak_packages: []
 verifier:
   name: ansible

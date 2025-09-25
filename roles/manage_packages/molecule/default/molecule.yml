@@ -121,7 +121,7 @@ provisioner:
             - name: curl # From all level (repeated due to list replacement)
             - name: git # From all level (repeated due to list replacement)
             - name: base-devel # Added to curl+git from all level
-            - name: yay # AUR helper
+            # Note: paru is installed via kewlfft.aur.aur module, not package list
         pacman:
           enable_aur: true
 

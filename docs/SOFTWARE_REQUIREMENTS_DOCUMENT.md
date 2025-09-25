@@ -204,6 +204,13 @@ firewall:
 | `apt.unattended_upgrades.enabled`               | boolean                   | `false`         | Enable APT unattended security upgrades on Debian/Ubuntu systems                                         |
 | `snap.remove_completely`                        | boolean                   | `false`         | Completely remove snapd system from Debian/Ubuntu systems (manage_snap_packages role)                    |
 | `snap_packages`                                 | list[object]              | `[]`            | Snap package definitions (see schema below)                                                              |
+| `flatpak.enabled`                               | boolean                   | `false`         | Enable flatpak runtime installation and repository management                                             |
+| `flatpak.flathub`                               | boolean                   | `false`         | Enable Flathub repository as package source                                                              |
+| `flatpak.method`                                | string                    | `"system"`      | Installation scope ("system" or "user") for flatpak packages                                             |
+| `flatpak.user`                                  | string                    | `""`            | Target username for user-scope flatpak operations (ignored for system scope)                            |
+| `flatpak.plugins.gnome`                         | boolean                   | `false`         | Install GNOME Software flatpak plugin for desktop integration                                            |
+| `flatpak.plugins.plasma`                        | boolean                   | `false`         | Install Plasma Discover flatpak plugin for desktop integration                                           |
+| `flatpak_packages`                              | list[object]              | `[]`            | Flatpak package definitions (see schema below)                                                           |
 | `pacman.proxy`                                  | string                    | `""`            | Pacman proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://proxy.example.com:3128")        |
 | `pacman.no_confirm`                             | boolean                   | `false`         | Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)                         |
 | `pacman.multilib.enabled`                       | boolean                   | `false`         | Enable Pacman multilib repository for 32-bit packages on Arch Linux systems                              |
@@ -377,6 +384,22 @@ _Common sysctl parameters:_
 | `command`   | string | No       | none      | Shell command to execute (e.g., "npm start", "ssh server.example.com")     |
 | `directory` | string | No       | `~`       | Working directory path (absolute or ~/ relative, e.g., "~/projects/myapp") |
 | `profile`   | string | No       | "default" | Terminal profile name to use                                               |
+
+**Snap Packages Object Schema:**
+
+| Field     | Type   | Required | Default     | Description                                                             |
+| --------- | ------ | -------- | ----------- | ----------------------------------------------------------------------- |
+| `name`    | string | Yes      | -           | Snap package name (e.g., "hello-world", "code", "discord")             |
+| `state`   | string | No       | `"present"` | Package state ("present" to install, "absent" to remove)               |
+| `classic` | boolean| No       | `false`     | Install with classic confinement (bypasses snap security restrictions) |
+| `channel` | string | No       | `"stable"`  | Package channel (e.g., "stable", "latest/edge", "latest/beta")         |
+
+**Flatpak Packages Object Schema:**
+
+| Field   | Type   | Required | Default     | Description                                                       |
+| ------- | ------ | -------- | ----------- | ----------------------------------------------------------------- |
+| `name`  | string | Yes      | -           | Flatpak package name (e.g., "org.mozilla.firefox", "com.spotify.Client") |
+| `state` | string | No       | `"present"` | Package state ("present" to install, "absent" to remove)         |
 
 ### 2.3 Coding Standards
 
@@ -1022,13 +1045,31 @@ This role uses collection-wide variables from section 2.2.1 (flatpak.\*). No rol
 
 ###### 3.5.3.2.1 Package Operations
 
-**REQ-MF-004**: The system SHALL be capable of removing flatpak packages
+**REQ-MF-004**: The system SHALL be capable of managing individual flatpak packages when flatpak system is enabled
 
-**Implementation**: Uses `community.general.flatpak` with `state: absent`, configurable method from `flatpak.method`, and user from `flatpak.user`. Loop variable name: `flatpak_package` (from `flatpak.packages.remove`).
+**Implementation**: When `flatpak.enabled` is true and `flatpak_packages` contains one or more packages, uses `community.general.flatpak` for package management with configurable method from `flatpak.method` and user from `flatpak.user`. Supports state-based management (present/absent). Loop variable name: `flatpak_package` (from `flatpak_packages` list).
 
-**REQ-MF-005**: The system SHALL be capable of installing flatpak packages
+#### 3.5.4 Tag Strategy
 
-**Implementation**: Uses `community.general.flatpak` with `state: present`, configurable method from `flatpak.method`, and user from `flatpak.user`. Loop variable name: `flatpak_package` (from `flatpak.packages.install`).
+##### 3.5.4.1 Container Limitations
+
+**Tag: `no-container`**
+
+Currently no tasks in this role require the `no-container` tag. All flatpak operations are compatible with container environments using the testing approach.
+
+##### 3.5.4.2 Features Opt Out
+
+**Tag: `flatpak-system`**
+
+Tasks installing flatpak runtime and repositories. Skip to avoid installing flatpak entirely while still managing packages if already present.
+
+**Tag: `flatpak-plugins`**
+
+Tasks installing desktop environment plugins (GNOME Software, Plasma Discover). Skip to install flatpak without desktop integration.
+
+**Tag: `flatpak-packages`**
+
+Tasks managing individual flatpak packages. Skip to configure flatpak system without installing specific packages.
 
 ### 3.6 configure_user
 
