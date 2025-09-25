@@ -226,6 +226,14 @@
             - git add .
             - git commit -m "Initial mock dotfiles commit"
 
+        - name: Ensure main branch exists and is current
+          ansible.builtin.shell:
+            cmd: |
+              if ! git show-ref --verify --quiet refs/heads/main; then
+                git branch -m main
+              fi
+            chdir: /tmp/mock-dotfiles
+
         - name: Fix repository ownership for container access
           ansible.builtin.file:
             path: /tmp/mock-dotfiles
