@@ -447,7 +447,7 @@ Some requirements cannot be tested in containers and require VM testing:
 **Requirements**:
 - Ansible 2.17+ with molecule support
 - Container runtime (Docker/Podman) for molecule tests
-- `ANSIBLE_HASH_BEHAVIOUR=merge` environment configuration
+- Standard Ansible configuration (no special settings required)
 - Collection dependencies from `requirements.yml`
 
 **Setup Validation**:
