@@ -53,3 +53,5 @@
     chdir: "~/{{ target_user.dotfiles.dest | default('.dotfiles') }}"
   become: true
   become_user: "{{ target_user.name }}"
+  register: stow_deploy
+  changed_when: "'LINK' in stow_deploy.stderr"
