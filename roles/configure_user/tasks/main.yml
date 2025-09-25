@@ -25,6 +25,7 @@
   ansible.builtin.user:
     name: "{{ target_user.name }}"
     state: absent
+    remove: "{{ target_user.remove | default(false) }}"
   become: true
   when: target_user.state | default('present') == 'absent'
   tags:
@@ -40,7 +41,7 @@
     state: present
     shell: "{{ target_user.shell | default('/bin/bash') }}"
     groups: "{{ target_user.groups | default(omit) }}"
-    append: "{{ target_user.groups is defined and target_user.groups | length > 0 }}"
+    append: "{{ target_user.groups is defined }}"
     password: "{{ target_user.password | default(omit) }}"
     comment: "{{ target_user.comment | default(omit) }}"
   become: true
