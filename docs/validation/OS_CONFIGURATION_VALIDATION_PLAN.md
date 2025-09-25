@@ -1356,24 +1356,64 @@ success_criteria:
 ### REQ-OS-016: Custom Udev Rules
 
 **Requirement**: The system SHALL be capable of deploying custom udev rules on Linux systems
-**Implementation**: Uses `ansible.builtin.copy` to deploy rules to `/etc/udev/rules.d/`. Loop variable: `item` (from `host_udev.rules`)
+**Implementation**:
+- Uses `ansible.builtin.file` to ensure `/etc/udev/rules.d/` directory exists with mode 0755
+- Uses `ansible.builtin.copy` to deploy rules to `/etc/udev/rules.d/{priority}-{name}.rules` when `item.state` is 'present' (default)
+- Uses `ansible.builtin.file` with `state: absent` to remove rules when `item.state` is 'absent'
+- Triggers handler to reload udev via `udevadm control --reload-rules && udevadm trigger`
+- Loop variable: `item` (from `host_udev.rules`)
 
 **Positive Validation**:
 
 ```yaml
-test_case: "Deploy custom udev rules"
+test_case: "Deploy custom udev rules with priority"
 input:
   host_udev:
     rules:
-      - name: "99-usb-permissions"
-        content: 'SUBSYSTEM=="usb", ATTR{idVendor}=="1234", MODE="0666"'
+      - name: "test-usb-device"
+        priority: 50
+        content: 'SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666"'
+        state: present
+      - name: "test-network-device"
+        priority: 60
+        content: 'SUBSYSTEM=="net", ACTION=="add", ATTRS{address}=="aa:bb:cc:dd:ee:ff", NAME="testnet0"'
+        state: present
 verify:
-  - file_exists: "/etc/udev/rules.d/99-usb-permissions.rules"
-  - file_contains: "/etc/udev/rules.d/99-usb-permissions.rules"
-    pattern: 'SUBSYSTEM=="usb"'
+  - file_exists: "/etc/udev/rules.d/50-test-usb-device.rules"
+  - file_contains: "/etc/udev/rules.d/50-test-usb-device.rules"
+    exact_content: 'SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666"'
+  - file_exists: "/etc/udev/rules.d/60-test-network-device.rules"
+  - file_contains: "/etc/udev/rules.d/60-test-network-device.rules"
+    exact_content: 'SUBSYSTEM=="net", ACTION=="add", ATTRS{address}=="aa:bb:cc:dd:ee:ff", NAME="testnet0"'
 ```
 
-**Environment**: VM Only (udev required)
+**Negative Validation (Rule Removal)**:
+
+```yaml
+test_case: "Remove udev rules"
+input:
+  host_udev:
+    rules:
+      - name: "test-remove-rule"
+        priority: 70
+        content: 'SUBSYSTEM=="block", ACTION=="add", MODE="0644"'
+        state: absent
+verify:
+  - file_not_exists: "/etc/udev/rules.d/70-test-remove-rule.rules"
+```
+
+**Conditional Logic Validation**:
+
+```yaml
+test_case: "Skip when host_udev undefined"
+input:
+  # host_udev not defined
+verify:
+  - no_changes_made
+  - debug_message: "udev rules skipped when host_udev undefined"
+```
+
+**Environment**: Container (can verify file operations, but udev daemon may not reload properly)
 
 ---
 

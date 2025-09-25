@@ -1,32 +1,44 @@
 ---
-- name: Merge Homebrew packages from all sources
+# Build lists for geerlingguy.mac.homebrew role compatibility
+- name: Build Homebrew package lists
   ansible.builtin.set_fact:
-    merged_homebrew_packages_install: "{{ merged_packages_install | default([]) }}"
-    merged_homebrew_packages_remove: "{{ merged_packages_remove | default([]) }}"
-
-- name: Merge Homebrew casks from all sources
-  ansible.builtin.set_fact:
-    merged_homebrew_casks_install: >-
+    homebrew_packages_install: >-
       {{
-        (packages.casks_present.all | default([]) ) +
-        (packages.casks_present.group | default([]) ) +
-        (packages.casks_present.host | default([]) )
-        | unique | list
+        manage_packages[ansible_os_family] | default([])
+        | selectattr('state', 'undefined') | map(attribute='name') | list +
+        manage_packages[ansible_os_family] | default([])
+        | selectattr('state', 'defined') | selectattr('state', 'eq', 'present')
+        | map(attribute='name') | list
       }}
-    merged_homebrew_casks_remove: >-
+    homebrew_packages_remove: >-
       {{
-        (packages.casks_remove | default([]) )
-        | unique | list
+        manage_packages[ansible_os_family] | default([])
+        | selectattr('state', 'defined') | selectattr('state', 'eq', 'absent')
+        | map(attribute='name') | list
+      }}
+    homebrew_casks_install: >-
+      {{
+        manage_casks[ansible_os_family] | default([])
+        | selectattr('state', 'undefined') | map(attribute='name') | list +
+        manage_casks[ansible_os_family] | default([])
+        | selectattr('state', 'defined') | selectattr('state', 'eq', 'present')
+        | map(attribute='name') | list
+      }}
+    homebrew_casks_remove: >-
+      {{
+        manage_casks[ansible_os_family] | default([])
+        | selectattr('state', 'defined') | selectattr('state', 'eq', 'absent')
+        | map(attribute='name') | list
       }}
 
 - name: Install and manage packages via Homebrew
   ansible.builtin.include_role:
     name: geerlingguy.mac.homebrew
   vars:
-    homebrew_installed_packages: "{{ merged_homebrew_packages_install | default([]) }}"
-    homebrew_uninstalled_packages: "{{ merged_homebrew_packages_remove | default([]) }}"
-    homebrew_cask_apps: "{{ merged_homebrew_casks_install | default([]) }}"
-    homebrew_cask_uninstalled_apps: "{{ merged_homebrew_casks_remove | default([]) }}"
+    homebrew_installed_packages: "{{ homebrew_packages_install }}"
+    homebrew_uninstalled_packages: "{{ homebrew_packages_remove }}"
+    homebrew_cask_apps: "{{ homebrew_casks_install }}"
+    homebrew_cask_uninstalled_apps: "{{ homebrew_casks_remove }}"
     homebrew_cask_appdir: /Applications
     homebrew_taps: "{{ homebrew.taps | default([]) }}"
     homebrew_clear_cache: "{{ homebrew.cleanup_cache | default(false) }}"

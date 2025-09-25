@@ -92,18 +92,86 @@ Standard Ansible 2.15+ variable precedence rules apply to all collection variabl
 - **Role-specific variables**: No prefix, scoped to role context (e.g., `users`, `packages`)
 - **Boolean variables**: Use `true`/`false`, never `yes`/`no` or `1`/`0`
 
-**Standards - State-Based Configuration**
+**Standards - Configuration Management Behavior**
 
-All collection variables follow state-based management principles:
+Collection variables follow standard Ansible configuration patterns:
 
 - **Variable defined/non-empty**: Feature is configured/enabled, configuration files are created/updated
-- **Variable undefined/empty**: Feature is removed/disabled, configuration files are removed completely
-- **No additive-only behavior**: Variables control the complete desired state, not incremental changes
-- **Clean state management**: Toggling variables between defined/undefined provides clean on/off control
+- **Variable undefined/empty**: Feature is left in current state (not modified)
+- **Explicit removal**: Use role-specific removal mechanisms when cleanup is needed
+- **Additive behavior**: Most features add to existing configuration rather than replacing it
 
-This ensures predictable behavior and prevents accumulation of stale configuration files.
+This follows established Ansible conventions and prevents accidental removal of existing configurations.
+
+**Standards - Dictionary Variable Merging**
+
+This collection requires `ANSIBLE_HASH_BEHAVIOUR=merge` for proper operation. This enables layered configuration across different inventory scopes:
+
+- **Different keys within dictionaries are merged additively** across precedence levels
+- **Same keys still follow standard Ansible precedence** (host_vars > group_vars > role defaults)
+- **Lists within dictionaries are replaced, not merged** (standard Ansible behavior)
+
+Example behavior with merge enabled:
+
+```yaml
+# group_vars/all.yml
+host_security:
+  hardening_enabled: true
+  users_allow: ["admin"]
+
+# host_vars/webserver1.yml
+host_security:
+  ssh_hardening_enabled: true  # Added to existing dict
+  hardening_enabled: false     # Overrides group_vars value
+
+# Result for webserver1:
+host_security:
+  hardening_enabled: false           # host_vars wins (precedence)
+  ssh_hardening_enabled: true        # host_vars only (merged)
+  users_allow: ["admin"]             # group_vars only (merged)
+```
+
+This enables role-based configuration layering (e.g., base security rules + nginx-specific firewall rules) while preserving the ability to override specific settings at more specific inventory scopes.
 
 **REQ-INFRA-002**: Any role using collection variables SHALL respect the defined schema to ensure interoperability.
+
+**Standards - Role-Based Firewall Rule Contribution**
+
+Roles within this collection MAY contribute firewall rules using the collection-wide `firewall.rules` variable through role defaults or vars. This enables service-specific roles (nginx, database, etc.) to declare their required firewall access.
+
+**Interface Requirements:**
+
+- Roles SHALL define firewall rules in `defaults/main.yml` or `vars/main.yml` using the `firewall.rules` array
+- Rules SHALL follow the Firewall Rules Object Schema (see schema below)
+- The `manage_security_services` role SHALL be executed last in playbooks to apply the complete firewall configuration
+- Rules from all roles are merged via `ANSIBLE_HASH_BEHAVIOUR=merge` before being applied to the firewall
+
+**Example role contribution:**
+
+```yaml
+# roles/nginx/defaults/main.yml
+firewall:
+  rules:
+    - rule: allow
+      port: 80
+      protocol: tcp
+      comment: "HTTP"
+    - rule: allow
+      port: 443
+      protocol: tcp
+      comment: "HTTPS"
+```
+
+**Execution pattern in playbooks:**
+
+```yaml
+- name: Configure web servers
+  hosts: webservers
+  roles:
+    - nginx # Contributes HTTP/HTTPS rules
+    - ssl_certificates # May contribute additional rules
+    - manage_security_services # MUST be last - applies complete ruleset
+```
 
 #### 2.2.1 Collection-Wide Variable Interface
 
@@ -128,7 +196,6 @@ This ensures predictable behavior and prevents accumulation of stale configurati
 | `domain_ntp.servers`                            | list[string]              | `[]`            | NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])                                     |
 | `firewall.enabled`                              | boolean                   | `false`         | Enable firewall rule management                                                                          |
 | `firewall.prevent_ssh_lockout`                  | boolean                   | `true`          | Automatically allow SSH during firewall configuration                                                    |
-| `firewall.package`                              | string                    | `"ufw"`         | Firewall management tool ("ufw", "firewalld", "iptables")                                                |
 | `firewall.rules`                                | list[object]              | `[]`            | Firewall rule definitions (see schema below)                                                             |
 | `host_security.hardening_enabled`               | boolean                   | `false`         | Enable devsec.hardening security baseline                                                                |
 | `host_security.ssh_hardening_enabled`           | boolean                   | `false`         | Enable SSH-specific security hardening                                                                   |
@@ -147,6 +214,23 @@ This ensures predictable behavior and prevents accumulation of stale configurati
 | `macosx.system_preferences.use_metric`          | boolean                   | `false`         | Use metric system for measurements and temperatures                                                      |
 | `macosx.system_preferences.show_all_extensions` | boolean                   | `false`         | Show all file extensions in Finder                                                                       |
 | `macosx.airdrop.ethernet_enabled`               | boolean                   | `false`         | Enable AirDrop over Ethernet interfaces (BrowseAllInterfaces setting)                                    |
+| `fail2ban.enabled`                              | boolean                   | `false`         | Enable fail2ban intrusion prevention service on Linux systems                                            |
+| `fail2ban.bantime`                              | string                    | `"10m"`         | Duration for which IP is banned (e.g., "10m", "1h", "1d")                                                |
+| `fail2ban.findtime`                             | string                    | `"10m"`         | Time window for counting failures (e.g., "10m", "1h")                                                    |
+| `fail2ban.maxretry`                             | integer                   | `5`             | Number of failures before IP is banned                                                                   |
+| `fail2ban.jails`                                | list[object]              | `[]`            | Fail2ban jail configurations (see schema below)                                                          |
+| `firewall.stealth_mode`                         | boolean                   | `false`         | Enable stealth mode on macOS Application Layer Firewall (don't respond to pings)                         |
+| `firewall.block_all`                            | boolean                   | `false`         | Block all incoming connections on macOS (except essential services)                                      |
+| `firewall.logging`                              | boolean                   | `false`         | Enable firewall logging on macOS Application Layer Firewall                                              |
+| `apt.repositories.<OS_Family>`                  | list[object]              | `[]`            | APT repository definitions using deb822 format (see schema below)                                        |
+| `apt.system_upgrade.enable`                     | boolean                   | `false`         | Enable APT system upgrades (security, dist-upgrade, etc.)                                                |
+| `apt.system_upgrade.type`                       | string                    | `"safe"`        | APT upgrade type ("safe", "dist", "full", "yes")                                                         |
+| `manage_casks.Darwin`                           | list[dict]                | `[]`            | macOS Homebrew cask specifications with name and optional state                                          |
+| `manage_casks.Darwin[].name`                    | string                    | -               | Cask name (e.g., "google-chrome", "visual-studio-code")                                                  |
+| `manage_casks.Darwin[].state`                   | string                    | `"present"`     | Cask state ("present" or "absent")                                                                       |
+| `homebrew.taps`                                 | list[string]              | `[]`            | Homebrew tap repositories (e.g., ["homebrew/cask-fonts", "user/repo"])                                   |
+| `homebrew.cleanup_cache`                        | boolean                   | `true`          | Clean Homebrew download cache after operations                                                           |
+| `pacman.enable_aur`                             | boolean                   | `false`         | Enable AUR (Arch User Repository) package support with paru helper                                       |
 
 **Users Object Schema:**
 
@@ -177,18 +261,39 @@ This ensures predictable behavior and prevents accumulation of stale configurati
 | `dotfiles.repo`    | string       | No       | none           | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles.git") |
 | `dotfiles.dest`    | string       | No       | `~/.dotfiles`  | Destination directory path for dotfiles (absolute or ~/ relative)              |
 
-**Packages Object Schema:**
+**Package Management Schema:**
 
-| Field                                | Type         | Default | Description                                                               |
-| ------------------------------------ | ------------ | ------- | ------------------------------------------------------------------------- |
-| `packages.present.all.<OS_Family>`   | list[string] | `[]`    | Package names to install on all systems (e.g., ["git", "curl", "vim"])    |
-| `packages.present.group.<OS_Family>` | list[string] | `[]`    | Package names by Ansible inventory group (e.g., ["nginx", "php-fpm"])     |
-| `packages.present.host.<OS_Family>`  | list[string] | `[]`    | Host-specific package names (e.g., ["docker-ce", "nodejs"])               |
-| `packages.absent.all.<OS_Family>`    | list[string] | `[]`    | Package names to remove from all systems (e.g., ["telnet", "rsh-server"]) |
-| `packages.absent.group.<OS_Family>`  | list[string] | `[]`    | Package names to remove by inventory group                                |
-| `packages.absent.host.<OS_Family>`   | list[string] | `[]`    | Host-specific package names to remove                                     |
+| Field                                 | Type       | Default   | Description                                         |
+| ------------------------------------- | ---------- | --------- | --------------------------------------------------- |
+| `manage_packages.<OS_Family>`         | list[dict] | `[]`      | Package specifications with name and optional state |
+| `manage_packages.<OS_Family>[].name`  | string     | -         | Package name (e.g., "git", "curl", "vim")           |
+| `manage_packages.<OS_Family>[].state` | string     | "present" | Package state ("present" or "absent")               |
 
 _OS_Family values: Debian, Archlinux, Darwin_
+
+**Example**:
+
+```yaml
+manage_packages:
+  Debian:
+    - name: git
+      state: present # optional, defaults to present
+    - name: curl
+    - name: telnet
+      state: absent
+```
+
+**Note**: Package lists are automatically merged across inventory precedence levels using `ANSIBLE_HASH_BEHAVIOUR=merge`. Different inventory scopes (all/group_vars/host_vars) contribute packages additively to the final package list for each OS family.
+
+**APT Repository Object Schema:**
+
+| Field        | Type   | Required | Default | Description                                                       |
+| ------------ | ------ | -------- | ------- | ----------------------------------------------------------------- |
+| `name`       | string | Yes      | -       | Repository name (used for file naming and cleanup)                |
+| `uris`       | string | Yes      | -       | Repository URL (e.g., "https://download.docker.com/linux/ubuntu") |
+| `suites`     | string | Yes      | -       | Distribution suite (e.g., "jammy", "focal")                       |
+| `components` | string | Yes      | -       | Repository components (e.g., "stable main")                       |
+| `signed_by`  | string | No       | -       | GPG key file path (e.g., "/etc/apt/keyrings/docker.gpg")          |
 
 **Firewall Rules Object Schema:**
 
@@ -200,6 +305,20 @@ _OS_Family values: Debian, Archlinux, Darwin_
 | `source`      | string          | No       | `"any"`   | Source IP/CIDR (e.g., "192.168.1.0/24", "any") |
 | `destination` | string          | No       | `"any"`   | Destination IP/CIDR                            |
 | `comment`     | string          | No       | `""`      | Rule description                               |
+
+**Fail2ban Jails Object Schema:**
+
+| Field      | Type    | Required | Default      | Description                                                |
+| ---------- | ------- | -------- | ------------ | ---------------------------------------------------------- |
+| `name`     | string  | Yes      | -            | Jail name (e.g., "sshd", "apache-auth", "nginx-http-auth") |
+| `enabled`  | boolean | No       | `true`       | Whether this jail is active                                |
+| `port`     | string  | No       | varies       | Port(s) to monitor (e.g., "ssh", "http,https", "22")       |
+| `filter`   | string  | No       | auto         | Filter name to use (defaults to jail name)                 |
+| `logpath`  | string  | Yes      | -            | Log file path to monitor (e.g., "/var/log/auth.log")       |
+| `maxretry` | integer | No       | inherit      | Override global maxretry for this jail                     |
+| `bantime`  | string  | No       | inherit      | Override global bantime for this jail (e.g., "1h", "1d")   |
+| `findtime` | string  | No       | inherit      | Override global findtime for this jail                     |
+| `action`   | string  | No       | `"iptables"` | Ban action (e.g., "iptables", "iptables-multiport", "ufw") |
 
 **Udev Rules Object Schema:**
 
@@ -325,9 +444,9 @@ Tasks that require capabilities unavailable in containers (hostname changes, sys
 
 **Example**: `ansible-playbook playbook.yml --skip-tags no-container`
 
-##### 3.1.4.2 Feature Opt-Out via State-Based Configuration
+##### 3.1.4.2 Feature Opt-Out via Tags
 
-**Concept**: The role follows state-based configuration principles where undefined variables result in removal of configuration files. However, operational reality requires the ability to preserve existing system configurations.
+**Concept**: The role provides comprehensive system configuration management. However, operational reality requires the ability to preserve existing system configurations.
 
 **Solution**: Use `skip-tags` to completely bypass management of specific configuration areas, leaving existing system state untouched.
 
@@ -360,9 +479,9 @@ Tasks that require capabilities unavailable in containers (hostname changes, sys
 - **Operational Safety**: Prevents accidental removal of critical existing configurations
 - **Gradual Adoption**: Allows incremental deployment of configuration management
 - **Special Cases**: Accommodates systems with non-standard configurations that shouldn't be managed
-- **Clean State Management**: When tags aren't skipped, provides predictable state-based behavior
+- **Predictable Configuration**: When tags aren't skipped, provides consistent configuration management behavior
 
-This approach resolves the tension between clean state-based configuration (defined = configured, undefined = removed) and operational requirements to preserve existing system configurations.
+This approach resolves the tension between comprehensive configuration management and operational requirements to preserve existing system configurations.
 
 #### 3.1.4 Features and Functionality
 
@@ -470,7 +589,6 @@ This approach resolves the tension between clean state-based configuration (defi
 - Uses `ansible.builtin.file` with `state: absent` to remove proxy config when `apt.proxy` is undefined/empty
 - Content template sets both `Acquire::http::Proxy` and `Acquire::https::Proxy` to same URL
 - Expected `apt.proxy` format: `http[s]://[user:pass@]host:port`
-- Follows state-based configuration: defined = configured, undefined = removed
 
 **REQ-OS-017a**: The system SHALL be capable of disabling APT recommends on Debian/Ubuntu systems
 
@@ -479,7 +597,6 @@ This approach resolves the tension between clean state-based configuration (defi
 - Uses `ansible.builtin.copy` to create `/etc/apt/apt.conf.d/99-no-recommends` when `apt.no_recommends` is true
 - Uses `ansible.builtin.file` with `state: absent` to remove config when `apt.no_recommends` is false/undefined
 - Content disables both `APT::Install-Recommends` and `APT::Install-Suggests`
-- Follows state-based configuration: true = disabled, false/undefined = enabled
 
 **REQ-OS-018**: The system SHALL be capable of configuring APT unattended upgrades on Debian/Ubuntu systems
 
@@ -494,7 +611,6 @@ This approach resolves the tension between clean state-based configuration (defi
 - **Future Role Integration**: Dedicated unattended-upgrades role should:
   - Use priority `20` or lower (e.g., `20-unattended-upgrades`) to override this basic configuration
   - Or remove this `50` file entirely and manage complete configuration independently
-- Follows state-based configuration: true = enabled, false/undefined = disabled
 
 ###### 3.1.4.2.9 Arch Linux Specific Configuration
 
@@ -505,7 +621,6 @@ This approach resolves the tension between clean state-based configuration (defi
 - Uses `ansible.builtin.lineinfile` to add/modify `Server = $repo/$arch` under `[options]` section when `pacman.proxy` is defined
 - Uses `ansible.builtin.lineinfile` to remove proxy configuration when `pacman.proxy` is undefined/empty
 - Expected `pacman.proxy` format: `http[s]://[user:pass@]host:port`
-- Follows state-based configuration: defined = configured, undefined = removed
 
 **REQ-OS-021a**: The system SHALL be capable of configuring Pacman NoConfirm on Arch Linux systems
 
@@ -513,7 +628,6 @@ This approach resolves the tension between clean state-based configuration (defi
 
 - Uses `ansible.builtin.lineinfile` to add/modify `NoConfirm` under `[options]` section when `pacman.no_confirm` is true
 - Uses `ansible.builtin.lineinfile` to remove/comment NoConfirm setting when `pacman.no_confirm` is false/undefined
-- Follows state-based configuration: true = enabled, false/undefined = disabled
 
 **REQ-OS-021b**: The system SHALL be capable of configuring Pacman multilib repository on Arch Linux systems
 
@@ -521,7 +635,6 @@ This approach resolves the tension between clean state-based configuration (defi
 
 - Uses `ansible.builtin.lineinfile` to uncomment `[multilib]` section and `Include = /etc/pacman.d/mirrorlist` when `pacman.multilib.enabled` is true
 - Uses `ansible.builtin.lineinfile` to comment out multilib section when `pacman.multilib.enabled` is false/undefined
-- Follows state-based configuration: true = enabled, false/undefined = disabled
 
 ##### 3.1.4.3 macOS System Configuration
 
@@ -539,7 +652,7 @@ This approach resolves the tension between clean state-based configuration (defi
 
 **REQ-OS-024**: The system SHALL be capable of configuring NTP time synchronization on macOS systems
 
-**Implementation**: Uses `ansible.builtin.command` with `systemsetup` utility for state-based NTP configuration. Enables network time synchronization with `systemsetup -setusingnetworktime on` and configures the first server from `domain_ntp.servers` when `domain_ntp.enabled` is true. Disables network time synchronization with `systemsetup -setusingnetworktime off` when `domain_ntp.enabled` is false.
+**Implementation**: Uses `ansible.builtin.command` with `systemsetup` utility for NTP configuration. Enables network time synchronization with `systemsetup -setusingnetworktime on` and configures the first server from `domain_ntp.servers` when `domain_ntp.enabled` is true. Disables network time synchronization with `systemsetup -setusingnetworktime off` when `domain_ntp.enabled` is false.
 
 ###### 3.1.4.3.3 Software Updates
 
@@ -577,65 +690,87 @@ The `manage_security_services` role handles firewall configuration and intrusion
 
 This role uses collection-wide variables from section 2.2.1 (firewall._, fail2ban._). No role-specific variables are defined.
 
-#### 3.2.3 Features and Functionality
+#### 3.2.3 Tag Strategy
 
-##### 3.2.3.1 Linux Security Services
+The `manage_security_services` role implements a tag strategy following the pattern established in `os_configuration`:
 
-###### 3.2.3.1.1 UFW Firewall Management
+##### 3.2.3.1 Container Limitations
 
-**REQ-SS-001**: The system SHALL be capable of managing firewalls via UFW on Linux systems
+**Tag**: `no-container`
 
-**Implementation**: Uses `ansible.builtin.package` to install UFW package and `community.general.ufw` module for configuration when `firewall.enabled` is true.
+Tasks requiring elevated privileges or kernel features unavailable in containers are tagged with `no-container`. Use `skip-tags: no-container` when running in containerized environments.
 
-**REQ-SS-002**: The system SHALL not inadvertently interrupt SSH access during firewall operations
+##### 3.2.3.2 Feature Opt-Out
 
-**Implementation**: Uses `ansible.builtin.set_fact` to detect SSH port from `ansible_env.SSH_CONNECTION` when `firewall.prevent_ssh_lockout` is enabled.
+**Available Feature Tags**:
 
-**REQ-SS-003**: The system SHALL be capable of configuring firewall rules on Linux systems
+- `firewall` - Complete firewall management (UFW on Linux, Application Layer Firewall on macOS)
+- `firewall-rules` - Firewall rule application only
+- `firewall-services` - Firewall service state management only
+- `fail2ban` - Intrusion prevention service management
+- `security` - All security services (firewall + fail2ban)
 
-**Implementation**: Uses `community.general.ufw` module to apply firewall rules. Loop variable name: `item` (from `firewall.rules`).
+**Usage Examples**:
 
-**REQ-SS-004**: The system SHALL be capable of enabling UFW firewall service on Linux systems
+- `skip-tags: firewall` - Don't manage firewall configuration
+- `skip-tags: fail2ban` - Skip intrusion prevention setup
+- `skip-tags: security` - Skip all security service configuration
 
-**Implementation**: Uses `community.general.ufw` with `state: enabled` when `firewall.enabled` is true.
+#### 3.2.4 Features and Functionality
 
-###### 3.2.3.1.2 Fail2ban Intrusion Prevention
+##### 3.2.4.1 Linux Security Services
+
+###### 3.2.4.1.1 UFW Firewall Management
+
+**REQ-SS-001**: The system SHALL be capable of installing and configuring UFW firewall package on Linux systems
+
+**Implementation**: Uses `ansible.builtin.package` to install UFW package when `firewall.enabled` is true.
+
+**REQ-SS-002**: The system SHALL automatically detect and protect SSH access during firewall operations
+
+**Implementation**: Uses `ansible.builtin.set_fact` to detect current SSH port from `ansible_env.SSH_CONNECTION` when `firewall.prevent_ssh_lockout` is true (default). Falls back to `ansible_port` or port 22 if SSH_CONNECTION unavailable.
+
+**REQ-SS-004**: The system SHALL be capable of enabling or disabling UFW firewall service based on configuration
+
+**Implementation**: Uses `community.general.ufw` with `state: enabled` when `firewall.enabled` is true. When `firewall.enabled` is false or undefined, firewall remains in current state (doesn't force disable to avoid lockouts).
+
+###### 3.2.4.1.2 Fail2ban Intrusion Prevention
 
 **REQ-SS-005**: The system SHALL be capable of installing fail2ban on Linux systems
 
-**Implementation**: Uses `ansible.builtin.package` to install fail2ban package when `fail2ban.enabled` is true.
+**Implementation**: Uses `ansible.builtin.package` to install fail2ban package when `fail2ban` is defined and `fail2ban.enabled` is true.
 
 **REQ-SS-006**: The system SHALL be capable of configuring fail2ban jails on Linux systems
 
-**Implementation**: Uses `ansible.builtin.template` to deploy `/etc/fail2ban/jail.local` configuration when `fail2ban.enabled` is true.
+**Implementation**: Uses `ansible.builtin.template` to deploy `/etc/fail2ban/jail.local` configuration file with mode 0644. Template processes `fail2ban.bantime`, `fail2ban.findtime`, `fail2ban.maxretry` and `fail2ban.jails` array. Notifies handler to restart fail2ban when configuration changes.
 
 **REQ-SS-007**: The system SHALL be capable of managing fail2ban service state on Linux systems
 
-**Implementation**: Uses `ansible.builtin.service` to control fail2ban service state based on `fail2ban.enabled` setting.
+**Implementation**: Uses `ansible.builtin.service` to manage fail2ban service. Service is started and enabled when `fail2ban.enabled` is true, stopped and disabled when false.
 
-##### 3.2.3.2 macOS Security Services
+##### 3.2.4.2 macOS Security Services
 
-###### 3.2.3.2.1 Application Layer Firewall Management
+###### 3.2.4.2.1 Application Layer Firewall Management
 
 **REQ-SS-008**: The system SHALL be capable of checking firewall state on macOS systems
 
-**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate` to query current state.
+**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate` to query current firewall state. Sets `changed_when: false` for idempotency.
 
 **REQ-SS-009**: The system SHALL be capable of enabling/disabling Application Layer Firewall on macOS systems
 
-**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate` when `firewall.enabled` is defined.
+**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on/off` based on `firewall.enabled` value. Checks previous state to determine if change occurred for proper idempotency reporting.
 
 **REQ-SS-010**: The system SHALL be capable of configuring stealth mode on macOS systems
 
-**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode` when `firewall.stealth_mode` is defined.
+**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode on/off` based on `firewall.stealth_mode` value (default false).
 
 **REQ-SS-011**: The system SHALL be capable of configuring block all setting on macOS systems
 
-**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --setblockall` when `firewall.block_all` is defined.
+**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --setblockall on/off` based on `firewall.block_all` value (default false).
 
 **REQ-SS-012**: The system SHALL be capable of configuring firewall logging on macOS systems
 
-**Implementation**: Uses `ansible.builtin.command` with `/usr/libexec/ApplicationFirewall/socketfilterfw --setloggingmode` when `firewall.logging` is defined and logging options are available.
+**Implementation**: First checks if logging options are available (version-dependent) using `socketfilterfw -h`. If available, uses `--setloggingmode on/off` based on `firewall.logging` value. When logging enabled, also sets `--setloggingopt detail` for comprehensive logging.
 
 ### 3.3 manage_packages
 
@@ -647,48 +782,54 @@ The `manage_packages` role handles package management across different operating
 
 This role uses collection-wide variables from section 2.2.1 (packages._, apt._, pacman._, homebrew._). No role-specific variables are defined.
 
+**Note**: With `ANSIBLE_HASH_BEHAVIOUR=merge` enabled, package and repository definitions are automatically merged across inventory precedence levels, eliminating the need for manual merging logic.
+
 #### 3.3.3 Features and Functionality
 
 ##### 3.3.3.1 Cross-Platform Package Management
 
 ###### 3.3.3.1.1 Package Merging and Organization
 
-**REQ-MP-001**: The system SHALL merge packages defined at the global ("all") level with packages defined at the group level and packages defined at the host level
+**REQ-MP-001** (DELETED): ~~The system SHALL merge packages defined at the global ("all") level with packages defined at the group level and packages defined at the host level~~
 
-**Implementation**: Uses `ansible.builtin.set_fact` to merge packages from `packages.present.all[ansible_distribution]`, `packages.present.group[ansible_distribution]`, and `packages.present.host[ansible_distribution]` into `merged_packages_install`. Similarly merges `packages.remove.all[ansible_distribution]`, `packages.remove.group[ansible_distribution]`, and `packages.remove.host[ansible_distribution]` into `merged_packages_remove`. Uses `unique | list` filter to eliminate duplicates.
+**Rationale**: With `ANSIBLE_HASH_BEHAVIOUR=merge` enabled collection-wide, package lists are automatically merged across inventory precedence levels. Manual merging logic is no longer required.
 
 ##### 3.3.3.2 Debian/Ubuntu Package Management
 
 ###### 3.3.3.2.1 APT Repository Management
 
-**REQ-MP-002**: The system SHALL merge APT repositories defined at the global ("all") level with repositories defined at the group level and repositories defined at the host level
+**REQ-MP-002** (DELETED): ~~The system SHALL merge APT repositories defined at the global ("all") level with repositories defined at the group level and repositories defined at the host level~~
 
-**Implementation**: Uses `ansible.builtin.set_fact` to merge repositories from `apt.repositories.all[ansible_distribution]`, `apt.repositories.group[ansible_distribution]`, and `apt.repositories.host[ansible_distribution]` into `merged_apt_repositories`. Uses `unique | list` filter to eliminate duplicates.
+**Rationale**: With `ANSIBLE_HASH_BEHAVIOUR=merge` enabled collection-wide, repository lists are automatically merged across inventory precedence levels. Manual merging logic is no longer required.
 
 **REQ-MP-003**: The system SHALL be capable of managing APT repositories using deb822 format
 
-**Implementation**: Uses `ansible.builtin.file` to remove legacy `.list` files from `/etc/apt/sources.list.d/` and `.asc` GPG keys from `/etc/apt/trusted.gpg.d/` for any repository name in `merged_apt_repositories` (removes multiple naming variations including `{name}.list`, `{name-with-dashes}.list`, and `download_{name}.list`). Then uses `ansible.builtin.deb822_repository` module for repository management. Loop variable names: `file_item` (cleanup), `item` (repository management).
+**Implementation**:
 
-**Note**: Cleanup is necessary because `deb822_repository` module does not interact with legacy formats, leading to duplicate repository entries if legacy files are not removed.
+1. **Repository dependencies**: Uses `ansible.builtin.apt` to install `apt-transport-https`, `ca-certificates`, `python3-debian`, and `gnupg` packages when repositories are being configured
+2. **Legacy cleanup**: Uses `ansible.builtin.file` to remove legacy `.list` files from `/etc/apt/sources.list.d/` and `.asc` GPG keys from `/etc/apt/trusted.gpg.d/` for any repository name in `apt.repositories[ansible_distribution]` (removes multiple naming variations including `{name}.list`, `{name-with-dashes}.list`, and `download_{name}.list`)
+3. **deb822 repository management**: Uses `ansible.builtin.deb822_repository` module for repository management with proper deb822 format
 
-**REQ-MP-004**: The system SHALL ensure APT repository dependencies are present whenever managing repositories
+**Note**: Legacy cleanup is necessary because `deb822_repository` module does not interact with legacy formats, leading to duplicate repository entries if legacy files are not removed. Dependencies must be installed before repository operations to ensure proper functionality.
 
-**Implementation**: Uses `ansible.builtin.apt` to install `apt-transport-https`, `ca-certificates`, `python3-debian`, and `gnupg` packages when repositories are being configured.
+**REQ-MP-004** (MERGED INTO REQ-MP-003): ~~The system SHALL ensure APT repository dependencies are present whenever managing repositories~~
+
+**Rationale**: This requirement is an implementation detail of REQ-MP-003 repository management, not a separate functional requirement.
 
 ###### 3.3.3.2.2 APT Package Management
 
-**REQ-MP-005**: The system SHALL update the APT cache before attempting to install packages
+**REQ-MP-005** (DELETED): ~~The system SHALL update the APT cache before attempting to install packages~~
 
-**Implementation**: Uses `ansible.builtin.apt` with `update_cache: true` and configurable cache validity time.
+**Rationale**: This is an implementation detail, not a functional requirement. Cache updating is handled automatically by the apt module when needed.
 
-**REQ-MP-006**: The system SHALL be capable of removing packages via APT
+**REQ-MP-006**: The system SHALL be capable of managing packages via APT
 
-**Implementation**: Uses `ansible.builtin.apt` with `state: absent` for packages in `merged_packages_remove`.
+**Implementation**: Uses `ansible.builtin.apt` with each package's specified `state` (defaults to `present`) for packages in `manage_packages[ansible_os_family]`. Cache is updated automatically via `update_cache: true` with configurable `cache_valid_time`.
 
-**REQ-MP-007**: The system SHALL be capable of installing packages via APT
+**REQ-MP-007** (MERGED INTO REQ-MP-006): ~~The system SHALL be capable of installing packages via APT~~
 
-**Implementation**: Uses `ansible.builtin.apt` with `state: present` for packages in `merged_packages_install`.
-
+**Rationale**: Package installation and removal are both package management operations and should be a single requirement. Merged into REQ-MP-006.
+MP
 **REQ-MP-008**: The system SHALL be capable of performing system upgrades via APT
 
 **Implementation**: Uses `ansible.builtin.apt` with configurable upgrade type when `apt.system_upgrade.enable` is true.
@@ -697,13 +838,17 @@ This role uses collection-wide variables from section 2.2.1 (packages._, apt._, 
 
 ###### 3.3.3.3.1 Pacman Package Management
 
-**REQ-MP-009**: The system SHALL be capable of updating Pacman package cache
+**REQ-MP-009** (DELETED): ~~The system SHALL be capable of updating Pacman package cache~~
 
-**Implementation**: Uses `community.general.pacman` with `update_cache: true`.
+**Rationale**: This is an implementation detail, not a functional requirement. Cache updating is handled automatically by the pacman module when needed.
 
-**REQ-MP-010**: The system SHALL be capable of removing packages via Pacman
+**REQ-MP-009a**: The system SHALL be capable of managing packages via Pacman
 
-**Implementation**: Uses `community.general.pacman` with `state: absent` for packages in `merged_packages_remove`.
+**Implementation**: When `pacman.enable_aur` is false, uses `community.general.pacman` with each package's specified `state` (defaults to `present`) for packages in `manage_packages[ansible_os_family]`. Cache is updated automatically via `update_cache: true`.
+
+**REQ-MP-010** (MERGED INTO REQ-MP-009a): ~~The system SHALL be capable of removing packages via Pacman~~
+
+**Rationale**: Package installation and removal are both package management operations and should be a single requirement. Merged into REQ-MP-009a.
 
 **REQ-MP-011**: The system SHALL be capable of upgrading all Pacman packages
 
@@ -711,15 +856,15 @@ This role uses collection-wide variables from section 2.2.1 (packages._, apt._, 
 
 **REQ-MP-012**: The system SHALL be capable of disabling AUR package installation
 
-**Implementation**: Uses `community.general.pacman` with `state: present` when `pacman.enable_aur` is false, restricting package installation to official repositories only.
+**Implementation**: When `pacman.enable_aur` is false, uses `community.general.pacman` for official repository packages only. When `pacman.enable_aur` is true, uses AUR helper for all package management (see REQ-MP-013).
 
 ###### 3.3.3.3.2 AUR Package Management
 
 **REQ-MP-013**: The system SHALL be capable of managing AUR packages when enabled
 
-**Implementation**: Uses `ansible.builtin.lineinfile` to configure passwordless sudo for pacman operations, then uses `kewlfft.aur.aur` module with paru as the preferred AUR helper when `pacman.enable_aur` is true.
+**Implementation**: When `pacman.enable_aur` is true: 1) Configures passwordless sudo for pacman operations using `ansible.builtin.lineinfile`, 2) Bootstraps paru AUR helper using `kewlfft.aur.aur` with `use: auto`, 3) Manages ALL packages (both official repository and AUR) using `kewlfft.aur.aur` with `use: paru`.
 
-**Note**: AUR package management requires passwordless sudo access to `/usr/bin/pacman` for the ansible user to enable automated package installation. This is limited to the pacman binary only, not full system access.
+**Note**: AUR package management requires passwordless sudo access to `/usr/bin/pacman` for the ansible_user (who acts as the AUR builder) to enable automated package installation and dependency resolution. The ansible_user's home directory is used for AUR package building. This is limited to the pacman binary only, not full system access.
 
 ##### 3.3.3.4 macOS Package Management
 
@@ -727,7 +872,7 @@ This role uses collection-wide variables from section 2.2.1 (packages._, apt._, 
 
 **REQ-MP-014**: The system SHALL be capable of managing Homebrew packages and casks
 
-**Implementation**: Merges casks from `packages.casks_present.all`, `packages.casks_present.group`, and `packages.casks_present.host` into `merged_homebrew_casks_install`. Merges cask removals from `packages.casks_remove` into `merged_homebrew_casks_remove`. Uses `geerlingguy.mac.homebrew` role with variables: `homebrew_installed_packages`, `homebrew_uninstalled_packages`, `homebrew_cask_apps`, `homebrew_cask_uninstalled_apps`, `homebrew_cask_appdir: /Applications`.
+**Implementation**: Uses `geerlingguy.mac.homebrew` role with variables mapped from `manage_packages[ansible_os_family]` and `manage_casks[ansible_os_family]` lists. Package state is determined per item with defaults to `present`. Sets `homebrew_cask_appdir: /Applications`.
 
 **REQ-MP-015**: The system SHALL be capable of managing Homebrew taps
 

@@ -1,17 +1,4 @@
 ---
-- name: Update Pacman cache
-  community.general.pacman:
-    update_cache: true
-  become: true
-  changed_when: false
-
-- name: Remove packages via Pacman
-  community.general.pacman:
-    name: "{{ merged_packages_remove }}"
-    state: absent
-  become: true
-  when: merged_packages_remove | length > 0
-
 - name: Upgrade all Pacman packages
   community.general.pacman:
     update_cache: false
@@ -19,13 +6,15 @@
   become: true
 
 # Branch based on AUR enablement
-- name: Install packages (AUR disabled - pacman only)
+- name: Manage packages (AUR disabled - pacman only)
   community.general.pacman:
-    name: "{{ merged_packages_install }}"
-    state: present
+    name: "{{ item.name }}"
+    state: "{{ item.state | default('present') }}"
+    update_cache: true
+  loop: "{{ manage_packages[ansible_os_family] | default([]) }}"
   become: true
   when:
-    - merged_packages_install | length > 0
+    - manage_packages[ansible_os_family] | default([]) | length > 0
     - not (pacman.enable_aur | default(false))
 
 - name: Install packages (AUR enabled)
@@ -39,17 +28,25 @@
         validate: "visudo -cf %s"
       become: true
 
-    - name: Install packages via kewlfft.aur module (handles both official and AUR)
+    - name: Bootstrap AUR helper (paru) if needed
       kewlfft.aur.aur:
-        name: "{{ merged_packages_install }}"
-        use: auto # Auto-detects: yay, paru, pacaur, trizen, pikaur, or falls back to makepkg
+        name: paru
         state: present
+        use: auto # Will bootstrap using available method
+      become: false # Run as ansible_user, not root
+
+    - name: Manage packages via kewlfft.aur module using paru for ALL packages
+      kewlfft.aur.aur:
+        name: "{{ item.name }}"
+        state: "{{ item.state | default('present') }}"
+        use: paru # Use paru for both official and AUR packages
+      loop: "{{ manage_packages[ansible_os_family] | default([]) }}"
       become: false # Run as ansible_user, not root
   when:
-    - merged_packages_install | length > 0
+    - manage_packages[ansible_os_family] | default([]) | length > 0
     - pacman.enable_aur | default(false)
 
 - name: Gather package facts (Arch Linux)
   ansible.builtin.package_facts:
     manager: pacman
-  when: merged_packages_install | length > 0 or merged_packages_remove | length > 0
+  when: manage_packages[ansible_os_family] | default([]) | length > 0
