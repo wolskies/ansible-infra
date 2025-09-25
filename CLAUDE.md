@@ -238,7 +238,7 @@ This approach provides **true end-to-end validation** on bare cloud images acros
 
 ## Environment Requirements
 
-**Ansible config**: `ANSIBLE_HASH_BEHAVIOUR=merge` required for variable merging
+**Ansible config**: Standard configuration - no special hash_behaviour required
 **Collections**: Run `ansible-galaxy collection install -r requirements.yml` before testing
 **Local development**: Use `cd roles/{name} && molecule converge` for quick testing
 

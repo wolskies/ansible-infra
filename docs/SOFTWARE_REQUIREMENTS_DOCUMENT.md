@@ -103,35 +103,25 @@ Collection variables follow standard Ansible configuration patterns:
 
 This follows established Ansible conventions and prevents accidental removal of existing configurations.
 
-**Standards - Dictionary Variable Merging**
+**Standards - Variable Structure and Layering**
 
-This collection requires `ANSIBLE_HASH_BEHAVIOUR=merge` for proper operation. This enables layered configuration across different inventory scopes:
+This collection uses standard Ansible variable precedence (host_vars > group_vars > role defaults) for configuration. Where layered configuration is needed (such as package management), roles implement explicit merging using the `combine` filter to ensure predictable, portable behavior.
 
-- **Different keys within dictionaries are merged additively** across precedence levels
-- **Same keys still follow standard Ansible precedence** (host_vars > group_vars > role defaults)
-- **Lists within dictionaries are replaced, not merged** (standard Ansible behavior)
-
-Example behavior with merge enabled:
+For complex merging scenarios, roles use the `combine` filter with appropriate list merge strategies:
 
 ```yaml
-# group_vars/all.yml
-host_security:
-  hardening_enabled: true
-  users_allow: ["admin"]
-
-# host_vars/webserver1.yml
-host_security:
-  ssh_hardening_enabled: true  # Added to existing dict
-  hardening_enabled: false     # Overrides group_vars value
-
-# Result for webserver1:
-host_security:
-  hardening_enabled: false           # host_vars wins (precedence)
-  ssh_hardening_enabled: true        # host_vars only (merged)
-  users_allow: ["admin"]             # group_vars only (merged)
+# Example: Combining package lists from multiple inventory levels
+- name: Combine packages from all inventory levels
+  ansible.builtin.set_fact:
+    _final_packages: >-
+      {{
+        (manage_packages_all | default({})) |
+        combine(manage_packages_group | default({}), list_merge='append') |
+        combine(manage_packages_host | default({}), list_merge='append')
+      }}
 ```
 
-This enables role-based configuration layering (e.g., base security rules + nginx-specific firewall rules) while preserving the ability to override specific settings at more specific inventory scopes.
+This approach provides explicit control over merging behavior while maintaining compatibility with all Ansible versions and configurations.
 
 **REQ-INFRA-002**: Any role using collection variables SHALL respect the defined schema to ensure interoperability.
 
@@ -144,7 +134,7 @@ Roles within this collection MAY contribute firewall rules using the collection-
 - Roles SHALL define firewall rules in `defaults/main.yml` or `vars/main.yml` using the `firewall.rules` array
 - Rules SHALL follow the Firewall Rules Object Schema (see schema below)
 - The `manage_security_services` role SHALL be executed last in playbooks to apply the complete firewall configuration
-- Rules from all roles are merged via `ANSIBLE_HASH_BEHAVIOUR=merge` before being applied to the firewall
+- Rules from all roles are combined using standard Ansible variable precedence before being applied to the firewall
 
 **Example role contribution:**
 
@@ -291,7 +281,7 @@ manage_packages:
       state: absent
 ```
 
-**Note**: Package lists are automatically merged across inventory precedence levels using `ANSIBLE_HASH_BEHAVIOUR=merge`. Different inventory scopes (all/group_vars/host_vars) contribute packages additively to the final package list for each OS family.
+**Note**: Where package layering is needed, roles implement explicit combining of package lists from different inventory levels using the `combine` filter with `list_merge='append'` to achieve additive behavior across inventory scopes.
 
 **Snap Package Schema:**
 
@@ -831,7 +821,7 @@ The `manage_packages` role handles package management across different operating
 
 This role uses collection-wide variables from section 2.2.1 (packages._, apt._, pacman._, homebrew._). No role-specific variables are defined.
 
-**Note**: With `ANSIBLE_HASH_BEHAVIOUR=merge` enabled, package and repository definitions are automatically merged across inventory precedence levels, eliminating the need for manual merging logic.
+**Note**: Where layered configuration is needed, roles implement explicit merging of package and repository definitions across inventory levels using the `combine` filter, providing predictable and portable behavior.
 
 #### 3.3.3 Tag Strategy
 
@@ -869,7 +859,7 @@ Tasks that require capabilities unavailable in containers (AUR building as non-r
 
 **REQ-MP-001** (DELETED): ~~The system SHALL merge packages defined at the global ("all") level with packages defined at the group level and packages defined at the host level~~
 
-**Rationale**: With `ANSIBLE_HASH_BEHAVIOUR=merge` enabled collection-wide, package lists are automatically merged across inventory precedence levels. Manual merging logic is no longer required.
+**Rationale**: Package installation and removal operations are both package management functionality and are consolidated into a single requirement for clarity.
 
 ##### 3.3.4.2 Debian/Ubuntu Package Management
 
@@ -877,7 +867,7 @@ Tasks that require capabilities unavailable in containers (AUR building as non-r
 
 **REQ-MP-002** (DELETED): ~~The system SHALL merge APT repositories defined at the global ("all") level with repositories defined at the group level and repositories defined at the host level~~
 
-**Rationale**: With `ANSIBLE_HASH_BEHAVIOUR=merge` enabled collection-wide, repository lists are automatically merged across inventory precedence levels. Manual merging logic is no longer required.
+**Rationale**: Repository installation and management operations are consolidated into a single requirement for clarity.
 
 **REQ-MP-003**: The system SHALL be capable of managing APT repositories using deb822 format
 
