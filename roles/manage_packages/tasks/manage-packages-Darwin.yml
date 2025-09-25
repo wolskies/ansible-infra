@@ -30,6 +30,8 @@
         | selectattr('state', 'defined') | selectattr('state', 'eq', 'absent')
         | map(attribute='name') | list
       }}
+  tags:
+    - packages
 
 - name: Install and manage packages via Homebrew
   ansible.builtin.include_role:
@@ -42,3 +44,6 @@
     homebrew_cask_appdir: /Applications
     homebrew_taps: "{{ homebrew.taps | default([]) }}"
     homebrew_clear_cache: "{{ homebrew.cleanup_cache | default(false) }}"
+  tags:
+    - packages
+    - repositories
