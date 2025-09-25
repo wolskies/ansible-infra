@@ -279,9 +279,22 @@ Following the established pattern, we'll use consolidated test containers for co
 - ✅ Package management: ALL packages (official and AUR) managed via paru
 - ✅ Hash merge behavior: Packages from different inventory levels merged
 
+**Container Testing Limitation**: AUR building cannot run as root, but containers use `ansible_user: root`. AUR package building tasks are tagged with `no-container` and skipped in container tests using `--skip-tags no-container`. Full AUR validation requires VM testing with non-root ansible_user.
+
 **Validation Approach**:
 ```yaml
-- name: Check sudo configuration for pacman
+- name: Check sudo configuration for pacman (container testing with aurbuild user)
+  ansible.builtin.command: sudo -n -l /usr/bin/pacman
+  register: sudo_check
+  changed_when: false
+  failed_when: false
+  become_user: aurbuild
+  when:
+    - inventory_hostname == 'arch-packages-full'
+    - pacman.enable_aur | default(false)
+    - ansible_user == 'root'  # Container testing case
+
+- name: Check sudo configuration for pacman (production with ansible_user)
   ansible.builtin.command: sudo -n -l /usr/bin/pacman
   register: sudo_check
   changed_when: false
@@ -290,6 +303,7 @@ Following the established pattern, we'll use consolidated test containers for co
   when:
     - inventory_hostname == 'arch-packages-full'
     - pacman.enable_aur | default(false)
+    - ansible_user != 'root'  # Production case
 
 - name: Check paru is installed
   ansible.builtin.command: which paru
