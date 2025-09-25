@@ -1,8 +1,10 @@
 ---
-- name: Prepare container for testing
+- name: Prepare containers for configure_user testing
   hosts: all
   become: true
+  gather_facts: true
   tasks:
+    # ===== Basic Container Setup =====
     - name: Install acl package for proper become support (Debian/Ubuntu)
       ansible.builtin.apt:
         name: acl
@@ -17,7 +19,34 @@
         update_cache: true
       when: ansible_os_family == 'Archlinux'
 
-    - name: Fix ansible temp directory permissions for become_user
+    - name: Install git for REQ-CU-012 and REQ-CU-019 testing (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: git
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Install git for REQ-CU-012 and REQ-CU-019 testing (Arch Linux)
+      community.general.pacman:
+        name: git
+        state: present
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Install stow for REQ-CU-019 dotfiles testing (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: stow
+        state: present
+      when:
+        - ansible_os_family == 'Debian'
+        - inventory_hostname == 'ubuntu-user-full'
+
+    - name: Install stow for REQ-CU-019 dotfiles testing (Arch Linux)
+      community.general.pacman:
+        name: stow
+        state: present
+      when:
+        - ansible_os_family == 'Archlinux'
+
+    - name: Fix ansible temp directory permissions for become_user (Arch Linux)
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
@@ -29,24 +58,196 @@
         - /tmp/ansible-tmp
       when: ansible_os_family == 'Archlinux'
 
-    - name: Create test user for role testing (Debian/Ubuntu)
+    # ===== REQ-CU-002: Pre-create user for removal testing =====
+    - name: Create edge case user for removal testing (REQ-CU-002)
       ansible.builtin.user:
-        name: testuser
-        uid: 1001
-        groups: [sudo]
+        name: edgeuser
         shell: /bin/bash
-        comment: "Test Developer User"
         create_home: true
         state: present
-      when: ansible_os_family == 'Debian'
+      when: inventory_hostname == 'ubuntu-user-edge-cases'
 
-    - name: Create test user for role testing (Arch Linux)
-      ansible.builtin.user:
-        name: testuser
-        uid: 1001
-        groups: [wheel]
-        shell: /bin/bash
-        comment: "Test Developer User"
-        create_home: true
-        state: present
-      when: ansible_os_family == 'Archlinux'
+    # ===== Mock External Role Dependencies =====
+    # Note: These roles will be called by configure_user but we need to mock them
+    # The actual functionality is tested in individual role molecule tests
+
+    - name: Create mock nodejs role directory structure
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/nodejs/tasks"
+        state: directory
+        mode: "0755"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock nodejs main task
+      ansible.builtin.copy:
+        dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/nodejs/tasks/main.yml"
+        content: |
+          ---
+          # Mock nodejs role for testing configure_user orchestration
+          - name: Mock nodejs installation (REQ-CU-007)
+            ansible.builtin.debug:
+              msg: "Mock nodejs role called with user: {{ node_user | default('undefined') }}, packages: {{ node_packages | default([]) }}"
+        mode: "0644"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock rust role directory structure
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/rust/tasks"
+        state: directory
+        mode: "0755"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock rust main task
+      ansible.builtin.copy:
+        dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/rust/tasks/main.yml"
+        content: |
+          ---
+          # Mock rust role for testing configure_user orchestration
+          - name: Mock rust installation (REQ-CU-008)
+            ansible.builtin.debug:
+              msg: "Mock rust role called with user: {{ rust_user | default('undefined') }}, packages: {{ rust_packages | default([]) }}"
+        mode: "0644"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock go role directory structure
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/go/tasks"
+        state: directory
+        mode: "0755"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock go main task
+      ansible.builtin.copy:
+        dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/go/tasks/main.yml"
+        content: |
+          ---
+          # Mock go role for testing configure_user orchestration
+          - name: Mock go installation (REQ-CU-009)
+            ansible.builtin.debug:
+              msg: "Mock go role called with user: {{ go_user | default('undefined') }}, packages: {{ go_packages | default([]) }}"
+        mode: "0644"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock neovim role directory structure
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/neovim/tasks"
+        state: directory
+        mode: "0755"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock neovim main task
+      ansible.builtin.copy:
+        dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/neovim/tasks/main.yml"
+        content: |
+          ---
+          # Mock neovim role for testing configure_user orchestration
+          - name: Mock neovim configuration (REQ-CU-010)
+            ansible.builtin.debug:
+              msg: "Mock neovim role called with user: {{ neovim_user | default('undefined') }}"
+        mode: "0644"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock terminal_config role directory structure
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/terminal_config/tasks"
+        state: directory
+        mode: "0755"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create mock terminal_config main task
+      ansible.builtin.copy:
+        dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/terminal_config/tasks/main.yml"
+        content: |
+          ---
+          # Mock terminal_config role for testing configure_user orchestration
+          - name: Mock terminal configuration (REQ-CU-011)
+            ansible.builtin.debug:
+              msg: "Mock terminal_config role called with user: {{ terminal_user | default('undefined') }}, entries: {{ terminal_entries | default([]) }}"
+            when: terminal_entries | default([]) | length > 0
+        mode: "0644"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    # ===== REQ-CU-019: Create mock dotfiles repository =====
+    - name: Create mock dotfiles repository for testing (REQ-CU-019)
+      when: inventory_hostname == 'ubuntu-user-full'
+      block:
+        - name: Create temporary dotfiles repository
+          ansible.builtin.file:
+            path: /tmp/mock-dotfiles
+            state: directory
+            mode: "0755"
+
+        - name: Initialize git repository
+          ansible.builtin.command:
+            cmd: git init
+            chdir: /tmp/mock-dotfiles
+            creates: /tmp/mock-dotfiles/.git
+
+        - name: Create sample dotfiles structure
+          ansible.builtin.file:
+            path: "/tmp/mock-dotfiles/{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - bash
+            - vim
+
+        - name: Create sample .bashrc in dotfiles
+          ansible.builtin.copy:
+            dest: /tmp/mock-dotfiles/bash/.bashrc
+            content: |
+              # Mock dotfiles .bashrc for testing
+              export MOCK_DOTFILES=true
+              echo "Loaded mock dotfiles .bashrc"
+            mode: "0644"
+
+        - name: Create sample .vimrc in dotfiles
+          ansible.builtin.copy:
+            dest: /tmp/mock-dotfiles/vim/.vimrc
+            content: |
+              " Mock dotfiles .vimrc for testing
+              set number
+              " Mock configuration loaded
+            mode: "0644"
+
+        - name: Configure git for commits
+          ansible.builtin.command:
+            cmd: "{{ item }}"
+            chdir: /tmp/mock-dotfiles
+          loop:
+            - git config user.email "test@example.com"
+            - git config user.name "Test User"
+
+        - name: Add and commit dotfiles
+          ansible.builtin.command:
+            cmd: "{{ item }}"
+            chdir: /tmp/mock-dotfiles
+          loop:
+            - git add .
+            - git commit -m "Initial mock dotfiles commit"
+
+        - name: Fix repository ownership for container access
+          ansible.builtin.file:
+            path: /tmp/mock-dotfiles
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+            recurse: true
+
+        - name: Configure git safe directory
+          ansible.builtin.command:
+            cmd: git config --global --add safe.directory /tmp/mock-dotfiles
+
+        - name: Update dotfiles repository URL in molecule variables
+          ansible.builtin.set_fact:
+            target_user: "{{ target_user | combine({'dotfiles': target_user.dotfiles | combine({'repository': 'file:///tmp/mock-dotfiles'})}) }}"
+
+    - name: Display preparation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Configure User Test Preparation Complete ==="
+          - "✅ Base container setup (acl, git, stow)"
+          - "✅ Mock external role dependencies created"
+          - "✅ {{ inventory_hostname }}: Ready for {{ target_user.name if target_user is defined else 'undefined user' }} testing"
+          - "✅ Requirements coverage: {{ 'REQ-CU-001,002,004-012,014-019' if inventory_hostname == 'ubuntu-user-full' else 'Subset per container strategy' }}"

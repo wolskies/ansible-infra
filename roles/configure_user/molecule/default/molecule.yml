@@ -4,7 +4,8 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: ubuntu-user-test
+  # REQ-CU-001,006-012,019: Complete user with all features
+  - name: ubuntu-user-full
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
     privileged: true
@@ -12,7 +13,29 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     command: "/lib/systemd/systemd"
-  - name: arch-user-test
+
+  # REQ-CU-001,006: Minimal user creation and SSH key management
+  - name: ubuntu-user-basic
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+
+  # REQ-CU-004,005: Superuser flag and passwordless sudo testing
+  - name: ubuntu-user-privileged
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+
+  # REQ-CU-001,004: Cross-platform group assignment (wheel vs sudo)
+  - name: arch-user-basic
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
     privileged: true
@@ -26,6 +49,17 @@ platforms:
       - SYS_ADMIN
     ulimits:
       - nofile:65535:65535
+
+  # REQ-CU-002: User removal and edge cases
+  - name: ubuntu-user-edge-cases
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
+
 provisioner:
   name: ansible
   config_options:
@@ -35,20 +69,82 @@ provisioner:
       host_key_checking: false
       stdout_callback: ansible.builtin.default
       stdout_callback_format: yaml
+  playbooks:
+    converge: converge.yml
+  idempotence:
+    run_options:
+      skip_tags: user-removal-test
   inventory:
     group_vars:
       all:
         ansible_user: root
         molecule_test: true
-        # User configuration testing variables (single target user)
-        # Focus on cross-platform logic only - language packages tested individually
+
+    host_vars:
+      # REQ-CU-001,006-012,019: Complete user with all features
+      ubuntu-user-full:
         target_user:
-          name: testuser
+          name: fulluser
           shell: /bin/bash
-          terminal_entries: [] # Skip terminal config in containers
+          groups: [sudo]
+          superuser: true
+          superuser_passwordless: true
+          ssh_keys:
+            - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+              comment: "fulluser@example.com"
+              state: present
+            - key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC5H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+              comment: "fulluser-backup@example.com"
+              options: 'from="192.168.1.0/24",no-port-forwarding'
+              state: present
+          nodejs:
+            packages: ["@angular/cli", "typescript"]
+          rust:
+            packages: ["cargo-watch", "ripgrep"]
+          go:
+            packages: []
+          neovim:
+            enabled: true
+          git:
+            name: "Full User"
+            email: "fulluser@example.com"
+            editor: "nvim"
           dotfiles:
-            enable: false
-            repo: ""
-            dest: ""
+            enable: true
+            repository: "file:///tmp/mock-dotfiles"
+            dest: ".dotfiles"
+            branch: "main"
+
+      # REQ-CU-001,006: Minimal user creation and SSH key management
+      ubuntu-user-basic:
+        target_user:
+          name: basicuser
+          shell: /bin/bash
+          ssh_keys:
+            - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+              comment: "basicuser@example.com"
+              state: present
+
+      # REQ-CU-004,005: Superuser flag and passwordless sudo testing
+      ubuntu-user-privileged:
+        target_user:
+          name: privilegeduser
+          shell: /bin/bash
+          superuser: true
+          superuser_passwordless: true
+
+      # REQ-CU-001,004: Cross-platform group assignment (wheel vs sudo)
+      arch-user-basic:
+        target_user:
+          name: archuser
+          shell: /bin/bash
+          superuser: true
+
+      # REQ-CU-002: User removal and edge cases
+      ubuntu-user-edge-cases:
+        target_user:
+          name: edgeuser
+          state: present # Will be changed to absent during testing
+
 verifier:
   name: ansible

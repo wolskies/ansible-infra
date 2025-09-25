@@ -1,5 +1,6 @@
 ---
 # Configure user preferences for a single user
+# Follows SRD requirements REQ-CU-001 through REQ-CU-019
 # Expects target_user variable to be passed in
 
 - name: Validate required target_user variable
@@ -17,6 +18,126 @@
   become: true
   when: ansible_os_family != 'Darwin'
 
+# =================================================================
+# REQ-CU-002: User Account Removal (simple removal first)
+# =================================================================
+- name: Remove user account
+  ansible.builtin.user:
+    name: "{{ target_user.name }}"
+    state: absent
+  become: true
+  when: target_user.state | default('present') == 'absent'
+  tags:
+    - user-removal
+    - user-config
+
+# =================================================================
+# REQ-CU-001: User Account Creation and Configuration
+# =================================================================
+- name: Create user account
+  ansible.builtin.user:
+    name: "{{ target_user.name }}"
+    state: present
+    shell: "{{ target_user.shell | default('/bin/bash') }}"
+    groups: "{{ target_user.groups | default(omit) }}"
+    append: "{{ target_user.groups is defined and target_user.groups | length > 0 }}"
+    password: "{{ target_user.password | default(omit) }}"
+    comment: "{{ target_user.comment | default(omit) }}"
+  become: true
+  when: target_user.state | default('present') == 'present'
+  tags:
+    - user-creation
+    - user-config
+
+# =================================================================
+# REQ-CU-004: Cross-Platform Sudo Access
+# =================================================================
+- name: Configure platform-specific superuser access
+  ansible.builtin.user:
+    name: "{{ target_user.name }}"
+    groups: "{{ platform_admin_group }}"
+    append: true
+  become: true
+  vars:
+    platform_admin_group: >-
+      {%- if ansible_os_family == 'Debian' -%}sudo
+      {%- elif ansible_os_family == 'Archlinux' -%}wheel
+      {%- elif ansible_os_family == 'Darwin' -%}admin
+      {%- else -%}wheel
+      {%- endif -%}
+  when:
+    - target_user.state | default('present') == 'present'
+    - target_user.superuser | default(false)
+  tags:
+    - sudo-access
+    - user-config
+
+# =================================================================
+# REQ-CU-005: Passwordless Sudo Configuration
+# =================================================================
+- name: Configure passwordless sudo
+  ansible.builtin.template:
+    src: sudoers.j2
+    dest: "/etc/sudoers.d/{{ target_user.name }}"
+    mode: "0440"
+    owner: root
+    group: root
+    validate: "visudo -cf %s"
+  become: true
+  when:
+    - target_user.state | default('present') == 'present'
+    - target_user.superuser | default(false)
+    - target_user.superuser_passwordless | default(false)
+  tags:
+    - passwordless-sudo
+    - user-config
+
+- name: Remove passwordless sudo configuration
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/{{ target_user.name }}"
+    state: absent
+  become: true
+  when:
+    - target_user.state | default('present') == 'absent' or
+      not target_user.superuser | default(false) or
+      not target_user.superuser_passwordless | default(false)
+  tags:
+    - passwordless-sudo
+    - user-config
+
+# =================================================================
+# REQ-CU-006: SSH Key Management
+# =================================================================
+- name: Manage SSH authorized keys
+  ansible.posix.authorized_key:
+    user: "{{ target_user.name }}"
+    key: "{{ ssh_key.key }}"
+    comment: "{{ ssh_key.comment | default(omit) }}"
+    key_options: "{{ ssh_key.options | default(omit) }}"
+    state: "{{ ssh_key.state | default('present') }}"
+    exclusive: "{{ ssh_key.exclusive | default(false) }}"
+  become: true
+  loop: "{{ target_user.ssh_keys | default([]) }}"
+  loop_control:
+    loop_var: ssh_key
+  when:
+    - target_user.state | default('present') == 'present'
+    - target_user.ssh_keys is defined
+    - target_user.ssh_keys | length > 0
+  tags:
+    - ssh-keys
+    - user-config
+
+# =================================================================
+# Stop here if user is being removed
+# =================================================================
+- name: Skip remaining configuration for removed users
+  ansible.builtin.meta: end_play
+  when: target_user.state | default('present') == 'absent'
+
+# =================================================================
+# REQ-CU-007-011: Development Environment Orchestration
+# =================================================================
 - name: Configure language toolchains for {{ target_user.name }}
   block:
     - name: Install Node.js and packages
@@ -67,24 +188,62 @@
     - user-config
     - language-packages
 
-- name: Configure user preferences for {{ target_user.name }}
+# =================================================================
+# REQ-CU-012: Git Configuration
+# =================================================================
+- name: Configure Git settings for {{ target_user.name }}
   block:
-    - name: Configure cross-platform user preferences
-      ansible.builtin.include_tasks: configure-cross-platform.yml
-      tags: cross-platform
+    - name: Set Git user name
+      community.general.git_config:
+        name: user.name
+        value: "{{ target_user.git.name }}"
+        scope: global
+      when: target_user.git.name is defined
 
-    - name: Configure OS-specific user preferences
-      ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
-      when: >
-        target_user.shell is defined or
-        target_user[ansible_system] is defined
-      tags: os-specific
+    - name: Set Git user email
+      community.general.git_config:
+        name: user.email
+        value: "{{ target_user.git.email }}"
+        scope: global
+      when: target_user.git.email is defined
 
-    - name: Configure dotfiles
-      ansible.builtin.include_tasks: configure-dotfiles.yml
-      when: target_user.dotfiles is defined and target_user.dotfiles.enable | default(true)
-      tags: dotfiles
+    - name: Set Git default editor
+      community.general.git_config:
+        name: core.editor
+        value: "{{ target_user.git.editor }}"
+        scope: global
+      when: target_user.git.editor is defined
   become: true
   become_user: "{{ target_user.name }}"
-  when: target_user.name != 'root'
-  tags: user-config
+  when:
+    - target_user.git is defined
+    - target_user.name != 'root'
+  tags:
+    - git-config
+    - user-config
+
+# =================================================================
+# REQ-CU-014-018: macOS-specific Configuration (if applicable)
+# =================================================================
+- name: Configure macOS-specific user preferences
+  ansible.builtin.include_tasks: configure-Darwin.yml
+  when:
+    - ansible_system == 'Darwin'
+    - target_user.Darwin is defined
+    - target_user.name != 'root'
+  tags:
+    - macos-config
+    - user-config
+
+# =================================================================
+# REQ-CU-019: Dotfiles Management
+# =================================================================
+- name: Configure dotfiles
+  ansible.builtin.include_tasks: configure-dotfiles.yml
+  when:
+    - target_user.dotfiles is defined
+    - target_user.dotfiles.enable | default(true)
+    - target_user.name != 'root'
+  tags:
+    - dotfiles
+    - user-config

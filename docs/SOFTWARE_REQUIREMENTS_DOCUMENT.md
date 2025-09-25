@@ -200,10 +200,10 @@ firewall:
 | `apt.unattended_upgrades.enabled`               | boolean                   | `false`         | Enable APT unattended security upgrades on Debian/Ubuntu systems                                         |
 | `snap.remove_completely`                        | boolean                   | `false`         | Completely remove snapd system from Debian/Ubuntu systems (manage_snap_packages role)                    |
 | `snap_packages`                                 | list[object]              | `[]`            | Snap package definitions (see schema below)                                                              |
-| `flatpak.enabled`                               | boolean                   | `false`         | Enable flatpak runtime installation and repository management                                             |
+| `flatpak.enabled`                               | boolean                   | `false`         | Enable flatpak runtime installation and repository management                                            |
 | `flatpak.flathub`                               | boolean                   | `false`         | Enable Flathub repository as package source                                                              |
 | `flatpak.method`                                | string                    | `"system"`      | Installation scope ("system" or "user") for flatpak packages                                             |
-| `flatpak.user`                                  | string                    | `""`            | Target username for user-scope flatpak operations (ignored for system scope)                            |
+| `flatpak.user`                                  | string                    | `""`            | Target username for user-scope flatpak operations (ignored for system scope)                             |
 | `flatpak.plugins.gnome`                         | boolean                   | `false`         | Install GNOME Software flatpak plugin (Debian/Ubuntu only)                                               |
 | `flatpak.plugins.plasma`                        | boolean                   | `false`         | Install Plasma Discover flatpak plugin (Debian/Ubuntu only)                                              |
 | `flatpak_packages`                              | list[object]              | `[]`            | Flatpak package definitions (see schema below)                                                           |
@@ -291,13 +291,13 @@ manage_packages:
 
 **Snap Package Schema:**
 
-| Field            | Type   | Default   | Description                                                              |
-| ---------------- | ------ | --------- | ------------------------------------------------------------------------ |
-| `snap_packages`  | list[dict] | `[]`  | Snap package specifications with name and optional state/options         |
-| `snap_packages[].name` | string | -     | Snap package name (e.g., "code", "firefox", "discord")                  |
-| `snap_packages[].state` | string | "present" | Package state ("present", "absent", "enabled", "disabled")            |
-| `snap_packages[].classic` | boolean | `false` | Install with classic confinement (--classic)                          |
-| `snap_packages[].channel` | string | none  | Install from specific channel (e.g., "latest/edge", "stable")           |
+| Field                     | Type       | Default   | Description                                                      |
+| ------------------------- | ---------- | --------- | ---------------------------------------------------------------- |
+| `snap_packages`           | list[dict] | `[]`      | Snap package specifications with name and optional state/options |
+| `snap_packages[].name`    | string     | -         | Snap package name (e.g., "code", "firefox", "discord")           |
+| `snap_packages[].state`   | string     | "present" | Package state ("present", "absent", "enabled", "disabled")       |
+| `snap_packages[].classic` | boolean    | `false`   | Install with classic confinement (--classic)                     |
+| `snap_packages[].channel` | string     | none      | Install from specific channel (e.g., "latest/edge", "stable")    |
 
 **Example**:
 
@@ -383,19 +383,19 @@ _Common sysctl parameters:_
 
 **Snap Packages Object Schema:**
 
-| Field     | Type   | Required | Default     | Description                                                             |
-| --------- | ------ | -------- | ----------- | ----------------------------------------------------------------------- |
-| `name`    | string | Yes      | -           | Snap package name (e.g., "hello-world", "code", "discord")             |
-| `state`   | string | No       | `"present"` | Package state ("present" to install, "absent" to remove)               |
-| `classic` | boolean| No       | `false`     | Install with classic confinement (bypasses snap security restrictions) |
-| `channel` | string | No       | `"stable"`  | Package channel (e.g., "stable", "latest/edge", "latest/beta")         |
+| Field     | Type    | Required | Default     | Description                                                            |
+| --------- | ------- | -------- | ----------- | ---------------------------------------------------------------------- |
+| `name`    | string  | Yes      | -           | Snap package name (e.g., "hello-world", "code", "discord")             |
+| `state`   | string  | No       | `"present"` | Package state ("present" to install, "absent" to remove)               |
+| `classic` | boolean | No       | `false`     | Install with classic confinement (bypasses snap security restrictions) |
+| `channel` | string  | No       | `"stable"`  | Package channel (e.g., "stable", "latest/edge", "latest/beta")         |
 
 **Flatpak Packages Object Schema:**
 
-| Field   | Type   | Required | Default     | Description                                                       |
-| ------- | ------ | -------- | ----------- | ----------------------------------------------------------------- |
+| Field   | Type   | Required | Default     | Description                                                              |
+| ------- | ------ | -------- | ----------- | ------------------------------------------------------------------------ |
 | `name`  | string | Yes      | -           | Flatpak package name (e.g., "org.mozilla.firefox", "com.spotify.Client") |
-| `state` | string | No       | `"present"` | Package state ("present" to install, "absent" to remove)         |
+| `state` | string | No       | `"present"` | Package state ("present" to install, "absent" to remove)                 |
 
 ### 2.3 Coding Standards
 
@@ -828,6 +828,7 @@ The `manage_packages` role handles package management across different operating
 This role uses collection-wide variables from section 2.2.1 (packages._, apt._, pacman._, homebrew._). No role-specific variables are defined.
 
 For layered package management, the role supports inventory-level variables:
+
 - `manage_packages_all` - Base-level packages (group_vars/all.yml)
 - `manage_packages_group` - Group-level packages (group_vars/[group].yml)
 - `manage_packages_host` - Host-level packages (host_vars/[host].yml)
@@ -967,7 +968,7 @@ The `manage_snap_packages` role manages both snapd system and snap packages on D
 
 #### 3.4.2 Variables
 
-This role uses collection-wide variables from section 2.2.1 (snap.* and snap_packages). No role-specific variables are defined.
+This role uses collection-wide variables from section 2.2.1 (snap.\* and snap_packages). No role-specific variables are defined.
 
 #### 3.4.3 Tag Strategy
 
@@ -1079,7 +1080,9 @@ Tasks managing individual flatpak packages. Skip to configure flatpak system wit
 
 #### 3.6.1 Role Description
 
-The `configure_user` role is a standalone role that configures a single user and their preferences. It handles comprehensive user management including account creation, SSH key management, sudo access, user preferences, and development environment configuration. This role consolidates ALL user management functionality and operates on a single user configuration passed via the `target_user` variable.
+The `configure_user` role configures a single user and their preferences. For core user account management, this role acts as a thin wrapper around `ansible.builtin.user`, passing variables directly through without adding or removing functionality. Beyond the core user account, this role orchestrates SSH key management, sudo configuration, development environment setup (via other collection roles), platform-specific preferences, and dotfiles deployment using GNU stow. The role operates on a single user configuration passed via the `target_user` variable.
+
+**Dependencies**: This role calls nodejs, rust, go, neovim, and terminal_config roles from the same collection. These dependencies are declared in the collection's meta/requirements.yml for ansible-galaxy installation.
 
 #### 3.6.2 Variables
 
@@ -1087,37 +1090,81 @@ This role configures a single user via the `target_user` variable. This is a sta
 
 **target_user Object Schema:**
 
-| Field                 | Type         | Required | Default        | Description                                                                    |
-| --------------------- | ------------ | -------- | -------------- | ------------------------------------------------------------------------------ |
-| `name`                | string       | Yes      | -              | Username (alphanumeric + underscore/hyphen, max 32 chars)                      |
-| `uid`                 | integer      | No       | auto           | User ID (1000-65533 for regular users, <1000 for system)                       |
-| `gid`                 | integer      | No       | auto           | Primary group ID (matches uid by default)                                      |
-| `groups`              | list[string] | No       | `[]`           | Secondary group names (e.g., ["docker", "sudo", "developers"])                 |
-| `shell`               | string       | No       | system default | Login shell path (e.g., "/bin/bash", "/bin/zsh", "/bin/false")                 |
-| `home`                | string       | No       | `/home/{name}` | Home directory absolute path (e.g., "/home/username", "/var/lib/service")      |
-| `comment`             | string       | No       | `""`           | GECOS field description (e.g., "John Doe,,")                                   |
-| `password`            | string       | No       | none           | Password (plaintext or SHA-512 hash starting with $6$)                         |
-| `ssh_keys`            | list[string] | No       | `[]`           | SSH public key strings (full key content, one per list item)                   |
-| `sudo.nopasswd`       | boolean      | No       | `false`        | Allow passwordless sudo access within sudo configuration object                |
-| `state`               | enum         | No       | `"present"`    | User state ("present" or "absent")                                             |
-| `create_home`         | boolean      | No       | `true`         | Create home directory if it doesn't exist                                      |
-| `system`              | boolean      | No       | `false`        | System account (uid <1000, no home by default)                                 |
-| `git.user_name`       | string       | No       | none           | Git global user.name setting (full name, e.g., "John Doe")                     |
-| `git.user_email`      | string       | No       | none           | Git global user.email setting (email address, e.g., "john@example.com")        |
-| `git.editor`          | string       | No       | none           | Git global core.editor setting (editor command, e.g., "vim", "code --wait")    |
-| `nodejs.packages`     | list[string] | No       | `[]`           | npm package names to install globally (e.g., ["typescript", "@angular/cli"])   |
-| `rust.packages`       | list[string] | No       | `[]`           | Cargo package names to install (e.g., ["ripgrep", "fd-find"])                  |
-| `go.packages`         | list[string] | No       | `[]`           | Go package URLs to install (e.g., ["github.com/user/package@latest"])          |
-| `neovim.enabled`      | boolean      | No       | `false`        | Install and configure Neovim for this user                                     |
-| `terminal_entries`    | list[object] | No       | `[]`           | Terminal emulator configuration entries (see schema below)                     |
-| `dotfiles.enable`     | boolean      | No       | `true`         | Enable dotfiles configuration                                                  |
-| `dotfiles.repo`       | string       | No       | none           | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles.git") |
-| `superuser`           | boolean      | No       | `false`        | Automatically assign platform-appropriate admin groups (sudo/wheel/admin)      |
-| `sudo`                | object       | No       | `{}`           | Custom sudo configuration (commands, nopasswd, runas)                          |
-| `macos.dock.*`        | object       | No       | `{}`           | macOS Dock preferences (tilesize, autohide, minimize_to_app, show_recents)     |
-| `macos.finder.*`      | object       | No       | `{}`           | macOS Finder preferences (show_extensions, show_hidden, show_pathbar, etc.)    |
-| `macos.screenshots.*` | object       | No       | `{}`           | macOS screenshot preferences (location, format)                                |
-| `macos.iterm2.*`      | object       | No       | `{}`           | macOS iTerm2 preferences (prompt_on_quit)                                      |
+| Field                    | Type         | Required | Default        | Description                                                                  |
+| ------------------------ | ------------ | -------- | -------------- | ---------------------------------------------------------------------------- |
+| `name`                   | string       | Yes      | -              | Username (alphanumeric + underscore/hyphen, max 32 chars)                    |
+| `groups`                 | list[string] | No       | `[]`           | Secondary groups (automatically uses append: true when defined)               |
+| `shell`                  | string       | No       | `/bin/bash`    | Login shell                                                                   |
+| `comment`                | string       | No       | `""`           | GECOS field (user description)                                               |
+| `password`               | string       | No       | none           | Password hash (use ansible-vault for security)                               |
+| `ssh_keys`               | list[object] | No       | `[]`           | SSH authorized keys (see SSH key schema below)                               |
+| `state`                  | enum         | No       | `"present"`    | User state ("present" or "absent")                                          |
+| `git.user_name`          | string       | No       | none           | Git global user.name setting (full name, e.g., "John Doe")                   |
+| `git.user_email`         | string       | No       | none           | Git global user.email setting (email address, e.g., "john@example.com")      |
+| `git.editor`             | string       | No       | none           | Git global core.editor setting (editor command, e.g., "vim", "code --wait")  |
+| `nodejs.packages`        | list[string] | No       | `[]`           | npm package names to install globally (e.g., ["typescript", "@angular/cli"]) |
+| `rust.packages`          | list[string] | No       | `[]`           | Cargo package names to install (e.g., ["ripgrep", "fd-find"])                |
+| `go.packages`            | list[string] | No       | `[]`           | Go package URLs to install (e.g., ["github.com/user/package@latest"])        |
+| `neovim.enabled`         | boolean      | No       | `false`        | Install and configure Neovim for this user                                   |
+| `terminal_entries`       | list[object] | No       | `[]`           | Terminal emulator configuration entries (see schema below)                   |
+| `dotfiles.enable`        | boolean      | No       | `true`         | Enable dotfiles deployment using stow                                        |
+| `dotfiles.repository`    | string       | No       | none           | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles")   |
+| `dotfiles.dest`          | string       | No       | `".dotfiles"`  | Directory name for dotfiles repository                                       |
+| `dotfiles.branch`        | string       | No       | `"main"`       | Git branch to checkout                                                       |
+| `dotfiles.disable_clone` | boolean      | No       | `false`        | Skip git clone (use existing local copy)                                     |
+| `superuser`              | boolean      | No       | `false`        | Automatically assign platform-appropriate admin groups (sudo/wheel/admin)    |
+| `superuser_passwordless` | boolean      | No       | `false`        | Enable passwordless sudo (requires superuser: true)                          |
+| `Darwin.dock.*`          | object       | No       | `{}`           | macOS Dock preferences (see Darwin dock schema below)                        |
+| `Darwin.finder.*`        | object       | No       | `{}`           | macOS Finder preferences (see Darwin finder schema below)                    |
+| `Darwin.screenshots.*`   | object       | No       | `{}`           | macOS screenshot preferences (see Darwin screenshots schema below)           |
+| `Darwin.iterm2.*`        | object       | No       | `{}`           | macOS iTerm2 preferences (see Darwin iterm2 schema below)                    |
+
+**SSH Key Object Schema** (for items in `ssh_keys` list):
+
+| Field       | Type    | Required | Default     | Description                                                |
+| ----------- | ------- | -------- | ----------- | ---------------------------------------------------------- |
+| `key`       | string  | Yes      | -           | SSH public key content (full key string)                   |
+| `comment`   | string  | No       | none        | Override key comment                                       |
+| `options`   | string  | No       | none        | Key options (e.g., "no-port-forwarding,from='10.0.0.0/8'") |
+| `exclusive` | boolean | No       | `false`     | Remove all other keys if true                              |
+| `state`     | enum    | No       | `"present"` | Key state ("present" or "absent")                          |
+
+**Darwin Dock Object Schema** (for `Darwin.dock` field):
+
+| Field                     | Type    | Required | Default | Description                      |
+| ------------------------- | ------- | -------- | ------- | -------------------------------- |
+| `tile_size`               | integer | No       | none    | Dock icon size in pixels         |
+| `autohide`                | boolean | No       | none    | Auto-hide the dock               |
+| `minimize_to_application` | boolean | No       | none    | Minimize windows into app icon   |
+| `show_recents`            | boolean | No       | none    | Show recent applications in dock |
+
+**Darwin Finder Object Schema** (for `Darwin.finder` field):
+
+| Field                  | Type    | Required | Default | Description                       |
+| ---------------------- | ------- | -------- | ------- | --------------------------------- |
+| `show_extensions`      | boolean | No       | none    | Show all filename extensions      |
+| `show_hidden`          | boolean | No       | none    | Show hidden files                 |
+| `show_pathbar`         | boolean | No       | none    | Show path bar in finder windows   |
+| `show_statusbar`       | boolean | No       | none    | Show status bar in finder windows |
+| `show_external_drives` | boolean | No       | none    | Show external drives on desktop   |
+| `show_removable_media` | boolean | No       | none    | Show removable media on desktop   |
+| `show_posix_path`      | boolean | No       | none    | Show POSIX path in window title   |
+
+**Darwin Screenshots Object Schema** (for `Darwin.screenshots` field):
+
+| Field       | Type   | Required | Default         | Description                        |
+| ----------- | ------ | -------- | --------------- | ---------------------------------- |
+| `directory` | string | No       | `"Screenshots"` | Directory name for screenshots     |
+| `format`    | string | No       | `"png"`         | Screenshot format (png, jpg, etc.) |
+
+**Darwin iTerm2 Object Schema** (for `Darwin.iterm2` field):
+
+| Field            | Type    | Required | Default | Description                   |
+| ---------------- | ------- | -------- | ------- | ----------------------------- |
+| `prompt_on_quit` | boolean | No       | none    | Prompt before quitting iTerm2 |
+
+**Terminal Entry Object Schema** (for items in `terminal_entries` list):
+See terminal_config role documentation (section 3.11) for full schema.
 
 #### 3.6.3 Features and Functionality
 
@@ -1125,29 +1172,31 @@ This role configures a single user via the `target_user` variable. This is a sta
 
 ###### 3.6.3.1.1 User Creation and Configuration
 
-**REQ-CU-001**: The system SHALL be capable of creating and configuring user accounts
+**REQ-CU-001**: The system SHALL create and configure user accounts using ansible.builtin.user
 
-**Implementation**: Uses `ansible.builtin.user` module with variable mappings: `target_user.name` → `name`, `target_user.comment` → `comment`, `target_user.shell` → `shell`, `target_user.groups` → `groups`, `target_user.password` → `password`, `target_user.home` → `home`, `target_user.system` → `system`, `target_user.uid` → `uid`, `target_user.group` → `group`, `target_user.generate_ssh_key` → `generate_ssh_key`, `target_user.expires` → `expires`.
+**Implementation**: Simplified pass-through to `ansible.builtin.user` module. Maps the following `target_user` fields to module parameters: `name`, `comment`, `shell`, `groups`, `password`, and `state`. The `create_home`, `uid`, `gid`, `home`, and `system` parameters have been removed to focus on basic user account creation. Advanced functionality requiring these parameters should use dedicated user management roles.
 
-**REQ-CU-002**: The system SHALL be capable of removing user accounts
+**Critical Implementation Detail**: When using the `groups` parameter, `append: true` is automatically set when groups are defined and non-empty. This prevents inadvertently replacing the user's existing group memberships. If `groups` is undefined or empty, the parameter is omitted entirely to avoid changing the user's current group configuration.
 
-**Implementation**: Uses `ansible.builtin.user` module with `name: target_user.name` and `state: absent` when `target_user.state` is set to `absent`.
+**REQ-CU-002**: The system SHALL remove user accounts when state is absent
+
+**Implementation**: Simple call to `ansible.builtin.user` module with `name: target_user.name` and `state: absent`. Uses default Ansible behavior (keeps home directory). Advanced removal options like force removal or home directory deletion should use dedicated user management roles.
 
 ###### 3.6.3.1.2 Privilege Management
 
-**REQ-CU-003**: The system SHALL manage platform-appropriate admin group assignments with security filtering
+~~**REQ-CU-003**: The system SHALL manage platform-appropriate admin group assignments with security filtering~~
 
-**Implementation**: Uses `ansible.builtin.set_fact` to detect platform and filter platform admin groups (`sudo`, `wheel`, `admin`) from `target_user.groups` with warning logging, ensuring superuser privileges are only granted through the explicit `target_user.superuser` field and not through manual group assignment.
+_Removed: Legacy requirement was overly restrictive. Users can specify admin groups directly in their groups list. No filtering is performed._
 
-**REQ-CU-004**: The system SHALL grant sudo access through platform admin group membership
+**REQ-CU-004**: The system SHALL grant cross-platform sudo access through platform admin group membership
 
-**Implementation**: Uses `ansible.builtin.user` module to add user to platform-appropriate admin groups (`sudo` for Debian/Ubuntu, `wheel` for Arch, `admin` for macOS) when `target_user.superuser` is true. This grants sudo access through existing system sudoers rules that allow these groups to use sudo with password authentication.
+**Implementation**: When `target_user.superuser` is true, automatically adds the user to the platform-appropriate admin group: `sudo` for Debian/Ubuntu, `wheel` for Arch Linux, `admin` for macOS. This is additive to any groups already specified in `target_user.groups`. Grants sudo access through existing system sudoers rules with password authentication.
 
-**REQ-CU-005**: The system SHALL support custom sudo configuration with optional passwordless access
+**REQ-CU-005**: The system SHALL support passwordless sudo configuration for superusers
 
-**Implementation**: Uses `ansible.builtin.template` with `src: sudoers.j2`, `dest: /etc/sudoers.d/{{ target_user.name }}`, `owner: root`, `group: root`, `mode: '0440'`, and `validate: /usr/sbin/visudo -cf %s` to create individual sudoers files from `target_user.sudo` configuration object. Template renders sudo rules based on `target_user.sudo.commands`, `target_user.sudo.nopasswd`, and `target_user.sudo.runas` settings when `target_user.sudo` is defined.
+**Implementation**: When both `target_user.superuser` is true AND `target_user.superuser_passwordless` is true, creates `/etc/sudoers.d/{{ target_user.name }}` file with rule `{{ target_user.name }} ALL=(ALL) NOPASSWD: ALL` using `ansible.builtin.template` with `owner: root`, `group: root`, `mode: '0440'`, and `validate: /usr/sbin/visudo -cf %s`. This grants passwordless sudo for all commands.
 
-**Note**: When `target_user.sudo.nopasswd: true`, this grants passwordless sudo access. Use with caution as this provides unrestricted root access without password verification.
+**Security Note**: Requires explicit `superuser: true` flag to prevent stealth superusers. Complex sudo rule management requires a dedicated sudoers management role.
 
 ##### 3.6.3.2 SSH Key Management
 
@@ -1195,11 +1244,17 @@ This role configures a single user via the `target_user` variable. This is a sta
 
 **Implementation**: Uses `community.general.git_config` to set `user.name` from `target_user.git.user_name`, `user.email` from `target_user.git.user_email`, and `core.editor` from `target_user.git.editor` with global scope when `target_user.git` is defined.
 
+###### 3.6.3.3.7 Dotfiles Management
+
+**REQ-CU-019**: The system SHALL deploy user dotfiles using GNU stow
+
+**Implementation**: When `target_user.dotfiles.enable` is true and `target_user.dotfiles.repository` is defined, clones the git repository to `~/{{ dotfiles.dest }}`, installs the `stow` package, performs conflict detection with `stow --no`, backs up conflicting files with timestamp suffix, and deploys dotfiles using `stow .` from the repository directory.
+
 ##### 3.6.3.4 Linux Shell Configuration
 
-**REQ-CU-013**: The system SHALL be capable of setting user shell preferences on Linux systems
+~~**REQ-CU-013**: The system SHALL be capable of setting user shell preferences on Linux systems~~
 
-**Implementation**: Uses `ansible.builtin.user` module with `name: target_user.name` and `shell: target_user.shell` when `target_user.shell` is defined.
+_Removed: Redundant with REQ-CU-001. Shell configuration is handled by the `shell` parameter passed to ansible.builtin.user_
 
 ##### 3.6.3.5 macOS User Configuration
 
@@ -1207,25 +1262,25 @@ This role configures a single user via the `target_user` variable. This is a sta
 
 **REQ-CU-014**: The system SHALL configure Homebrew PATH for macOS users
 
-**Implementation**: Uses `ansible.builtin.stat` to check `/opt/homebrew/bin/brew` existence and `ansible.builtin.lineinfile` to add Homebrew PATH to `~{{ target_user.name }}/.zprofile` when Homebrew is detected.
+**Implementation**: Uses `ansible.builtin.stat` to check `/opt/homebrew/bin/brew` existence and `ansible.builtin.lineinfile` to add `eval "$(/opt/homebrew/bin/brew shellenv)"` to `~/.zprofile` when Homebrew is detected.
 
 ###### 3.6.3.5.2 macOS Application Preferences
 
 **REQ-CU-015**: The system SHALL configure Dock preferences for macOS users
 
-**Implementation**: Uses `community.general.osx_defaults` with variable mappings: `domain: com.apple.dock`, `user: target_user.name`, and the following key-value pairs: `target_user.macos.dock.tilesize` → `key: tilesize`, `target_user.macos.dock.autohide` → `key: autohide`, `target_user.macos.dock.minimize_to_app` → `key: minimize-to-application`, `target_user.macos.dock.show_recents` → `key: show-recents`. Loop variable name: `dock_setting`.
+**Implementation**: Uses `community.general.osx_defaults` with `domain: com.apple.dock`, conditional loops over defined values: `target_user.Darwin.dock.tile_size` → `key: tilesize, type: int`, `target_user.Darwin.dock.autohide` → `key: autohide, type: bool`, `target_user.Darwin.dock.minimize_to_application` → `key: minimize-to-application, type: bool`, `target_user.Darwin.dock.show_recents` → `key: show-recents, type: bool`. Notifies `Restart Dock` handler.
 
 **REQ-CU-016**: The system SHALL configure Finder preferences for macOS users
 
-**Implementation**: Uses `community.general.osx_defaults` with variable mappings: `domain: com.apple.finder`, `user: target_user.name`, and the following key-value pairs: `target_user.macos.finder.show_extensions` → `key: AppleShowAllExtensions`, `target_user.macos.finder.show_hidden` → `key: AppleShowAllFiles`, `target_user.macos.finder.show_pathbar` → `key: ShowPathbar`, `target_user.macos.finder.show_statusbar` → `key: ShowStatusBar`, `target_user.macos.finder.show_drives` → `key: ShowHardDrivesOnDesktop`. Loop variable name: `finder_setting`.
+**Implementation**: Uses `community.general.osx_defaults` with `domain: com.apple.finder`, conditional loops over defined values: `target_user.Darwin.finder.show_extensions` → `key: AppleShowAllExtensions, type: bool`, `target_user.Darwin.finder.show_hidden` → `key: AppleShowAllFiles, type: bool`, `target_user.Darwin.finder.show_pathbar` → `key: ShowPathbar, type: bool`, `target_user.Darwin.finder.show_statusbar` → `key: ShowStatusBar, type: bool`, `target_user.Darwin.finder.show_external_drives` → `key: ShowExternalHardDrivesOnDesktop, type: bool`, `target_user.Darwin.finder.show_removable_media` → `key: ShowRemovableMediaOnDesktop, type: bool`, `target_user.Darwin.finder.show_posix_path` → `key: _FXShowPosixPathInTitle, type: bool`. Notifies `Restart Finder` handler.
 
 **REQ-CU-017**: The system SHALL configure screenshot preferences for macOS users
 
-**Implementation**: Uses `ansible.builtin.file` with `path: target_user.macos.screenshots.location`, `state: directory`, and `owner: target_user.name`, then uses `community.general.osx_defaults` with variable mappings: `domain: com.apple.screencapture`, `user: target_user.name`, and the following key-value pairs: `target_user.macos.screenshots.location` → `key: location`, `target_user.macos.screenshots.format` → `key: type`. Loop variable name: `screenshot_setting`.
+**Implementation**: Creates directory `/Users/{{ target_user.name }}/{{ target_user.Darwin.screenshots.directory | default('Screenshots') }}` using `ansible.builtin.file`, then uses `community.general.osx_defaults` with `domain: com.apple.screencapture` for `target_user.Darwin.screenshots.directory` → `key: location, type: string` and `target_user.Darwin.screenshots.format` → `key: type, type: string`.
 
 **REQ-CU-018**: The system SHALL configure iTerm2 preferences for macOS users
 
-**Implementation**: Uses `community.general.osx_defaults` with `domain: com.googlecode.iterm2`, `key: PromptOnQuit`, and `value: target_user.macos.iterm2.prompt_on_quit` for user `target_user.name`.
+**Implementation**: Uses `community.general.osx_defaults` with `domain: com.googlecode.iterm2`, `key: PromptOnQuit, type: bool`, and `value: target_user.Darwin.iterm2.prompt_on_quit` when `target_user.Darwin.iterm2` is defined.
 
 ### 3.7 nodejs
 
