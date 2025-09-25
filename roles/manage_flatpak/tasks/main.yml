@@ -10,6 +10,8 @@
   when:
     - ansible_os_family == "Debian"
     - flatpak.enabled | default(false)
+  tags:
+    - flatpak-system
 
 - name: Install flatpak package (Arch Linux)
   community.general.pacman:
@@ -19,6 +21,8 @@
   when:
     - ansible_os_family == "Archlinux"
     - flatpak.enabled | default(false)
+  tags:
+    - flatpak-system
 
 - name: Install GNOME Software flatpak plugin (Debian/Ubuntu)
   ansible.builtin.apt:
@@ -30,6 +34,8 @@
     - flatpak.enabled | default(false)
     - flatpak.plugins.gnome | default(false)
   failed_when: false
+  tags:
+    - flatpak-plugins
 
 - name: Install Plasma Discover flatpak plugin (Debian/Ubuntu)
   ansible.builtin.apt:
@@ -41,6 +47,8 @@
     - flatpak.enabled | default(false)
     - flatpak.plugins.plasma | default(false)
   failed_when: false
+  tags:
+    - flatpak-plugins
 
 - name: Install GNOME Software flatpak plugin (Arch Linux)
   community.general.pacman:
@@ -52,6 +60,8 @@
     - flatpak.enabled | default(false)
     - flatpak.plugins.gnome | default(false)
   failed_when: false
+  tags:
+    - flatpak-plugins
 
 - name: Install Plasma Discover flatpak plugin (Arch Linux)
   community.general.pacman:
@@ -63,6 +73,8 @@
     - flatpak.enabled | default(false)
     - flatpak.plugins.plasma | default(false)
   failed_when: false
+  tags:
+    - flatpak-plugins
 
 - name: Enable Flathub repository
   community.general.flatpak_remote:
@@ -75,31 +87,21 @@
   when:
     - flatpak.enabled | default(false)
     - flatpak.flathub | default(false)
+  tags:
+    - flatpak-system
 
-- name: Remove flatpak packages
+- name: Manage flatpak packages
   community.general.flatpak:
-    name: "{{ flatpak_package }}"
-    state: absent
+    name: "{{ flatpak_package.name }}"
+    state: "{{ flatpak_package.state | default('present') }}"
     method: "{{ flatpak.method | default('system') }}"
-  loop: "{{ flatpak.packages.remove | default([]) }}"
+  loop: "{{ flatpak_packages | default([]) }}"
   loop_control:
     loop_var: flatpak_package
   become: true
   become_user: "{{ flatpak.user | default(omit) }}"
   when:
     - flatpak.enabled | default(false)
-    - flatpak.packages.remove | default([]) | length > 0
-
-- name: Install flatpak packages
-  community.general.flatpak:
-    name: "{{ flatpak_package }}"
-    state: present
-    method: "{{ flatpak.method | default('system') }}"
-  loop: "{{ flatpak.packages.install | default([]) }}"
-  loop_control:
-    loop_var: flatpak_package
-  become: true
-  become_user: "{{ flatpak.user | default(omit) }}"
-  when:
-    - flatpak.enabled | default(false)
-    - flatpak.packages.install | default([]) | length > 0
+    - flatpak_packages | default([]) | length > 0
+  tags:
+    - flatpak-packages
