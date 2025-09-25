@@ -38,26 +38,12 @@
       changed_when: false
       when: ansible_os_family == "Debian"
 
-    - name: Check GNOME plugin installation (Arch Linux)
-      ansible.builtin.command: pacman -Q gnome-software-flatpak
-      register: gnome_plugin_arch_check
-      failed_when: false
-      changed_when: false
-      when: ansible_os_family == "Archlinux"
-
     - name: Check Plasma plugin installation (Debian/Ubuntu)
       ansible.builtin.command: dpkg -l plasma-discover-backend-flatpak
       register: plasma_plugin_debian_check
       failed_when: false
       changed_when: false
       when: ansible_os_family == "Debian"
-
-    - name: Check Plasma plugin installation (Arch Linux)
-      ansible.builtin.command: pacman -Q discover
-      register: plasma_plugin_arch_check
-      failed_when: false
-      changed_when: false
-      when: ansible_os_family == "Archlinux"
 
     - name: Check flatpak remotes
       ansible.builtin.command: flatpak remotes
@@ -112,22 +98,9 @@
         - ansible_os_family == "Debian"
         - inventory_hostname == 'ubuntu-flatpak-system-full'
 
-    - name: REQ-MF-002 - Verify GNOME plugin installation (Arch Linux)
-      ansible.builtin.assert:
-        that:
-          - gnome_plugin_arch_check.rc == 0 # Plugin should be installed
-        fail_msg: "❌ REQ-MF-002: GNOME plugin not installed on Arch Linux"
-        success_msg: "✅ REQ-MF-002: GNOME plugin correctly installed on Arch Linux"
-      when:
-        - ansible_os_family == "Archlinux"
-        - inventory_hostname == 'arch-flatpak-system-full'
-
-    - name: REQ-MF-002 - Verify Plasma plugin installation (Arch Linux)
-      ansible.builtin.assert:
-        that:
-          - plasma_plugin_arch_check.rc == 0 # Plugin should be installed
-        fail_msg: "❌ REQ-MF-002: Plasma plugin not installed on Arch Linux"
-        success_msg: "✅ REQ-MF-002: Plasma plugin correctly installed on Arch Linux"
+    - name: REQ-MF-002 - Note about Arch Linux desktop plugins
+      ansible.builtin.debug:
+        msg: "ℹ️ REQ-MF-002: Desktop plugins are built into gnome-software/plasma packages on Arch Linux"
       when:
         - ansible_os_family == "Archlinux"
         - inventory_hostname == 'arch-flatpak-system-full'

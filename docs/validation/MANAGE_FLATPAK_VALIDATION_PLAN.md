@@ -58,16 +58,16 @@ flatpak list  # Should succeed without error
 
 ---
 
-#### REQ-MF-002: Desktop Integration Plugins
+#### REQ-MF-002: Desktop Integration Plugins (Debian/Ubuntu only)
 
-**Requirement**: The system SHALL install desktop environment flatpak plugins when configured
+**Requirement**: The system SHALL install desktop environment flatpak plugins when configured (Debian/Ubuntu only)
 
-**Implementation**: Uses platform-specific package managers to install GNOME Software plugin (`gnome-software-plugin-flatpak` on Debian, `gnome-software-flatpak` on Arch) when `flatpak.plugins.gnome` is true, and Plasma Discover plugin (`plasma-discover-backend-flatpak` on Debian, `discover` on Arch) when `flatpak.plugins.plasma` is true
+**Implementation**: On Debian/Ubuntu systems, installs GNOME Software plugin (`gnome-software-plugin-flatpak`) when `flatpak.plugins.gnome` is true, and Plasma Discover plugin (`plasma-discover-backend-flatpak`) when `flatpak.plugins.plasma` is true. On Arch Linux, flatpak support is built into the desktop packages themselves rather than requiring separate plugins.
 
 **Test Scenarios**:
-- ✅ **GNOME Plugin**: gnome-software-plugin-flatpak installed when enabled
-- ✅ **Plasma Plugin**: plasma-discover-backend-flatpak/discover installed when enabled
-- ✅ **Platform Specific**: Different package names handled correctly per OS family
+- ✅ **GNOME Plugin (Debian/Ubuntu)**: gnome-software-plugin-flatpak installed when enabled
+- ✅ **Plasma Plugin (Debian/Ubuntu)**: plasma-discover-backend-flatpak installed when enabled
+- ✅ **Arch Linux**: No separate plugin installation (built into desktop packages)
 - ✅ **Conditional Logic**: Only installs plugins when explicitly enabled
 - ✅ **Graceful Failure**: Uses `failed_when: false` for optional components
 

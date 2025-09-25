@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This validation plan follows the successful test-first methodology established with the `os_configuration` and `manage_security_services` roles. Each requirement will be validated through evidence-based testing using Molecule framework with comprehensive test scenarios that leverage the new simplified variable structure enabled by `ANSIBLE_HASH_BEHAVIOUR=merge`.
+This validation plan follows the successful test-first methodology established with the `os_configuration` and `manage_security_services` roles. Each requirement will be validated through evidence-based testing using Molecule framework with comprehensive test scenarios that use explicit combining of package and repository definitions across inventory levels using Ansible's `combine` filter.
 
 ## Testing Strategy
 
@@ -12,9 +12,19 @@ Following the established pattern, we'll use consolidated test containers for co
 
 1. **ubuntu-packages-full**: Complete package management with APT repositories, upgrades, and packages
 2. **ubuntu-packages-basic**: Basic package install/remove without repositories
-3. **arch-packages-full**: Pacman + AUR packages with full feature testing
-4. **arch-packages-basic**: Pacman-only packages without AUR
-5. **ubuntu-edge-cases**: Empty configurations, error handling, and edge conditions
+3. **ubuntu-packages-layered**: Demonstrates inventory-level package combining (REQ-MP-001)
+4. **ubuntu-repos-layered**: Demonstrates repository combining across inventory levels (REQ-MP-002)
+5. **arch-packages-basic**: Pacman-only packages without AUR (REQ-MP-009a)
+6. **ubuntu-edge-cases**: Empty configurations, error handling, and edge conditions
+
+**Container Testing Limitations Identified**:
+- **AUR testing deferred to VM phase**: Container limitations with no-container tags make AUR testing unsuitable for containers
+- **REQ-MP-013 validation**: AUR package management testing requires VM infrastructure for proper sudo, user management, and package building capabilities
+
+**Key Implementation Lessons Learned**:
+- **Docker repository GPG keys**: The `signed_by` parameter in `deb822_repository` accepts URLs directly (e.g., "https://download.docker.com/linux/ubuntu/gpg")
+- **Test setup consistency**: Package installation requires matching repository configuration - containers testing package combining (REQ-MP-001) should use default repo packages only
+- **Repository validation success**: REQ-MP-002 and REQ-MP-003 work correctly with proper Docker repository configuration using SRD-specified format
 
 ### Evidence-Based Testing Principles
 
@@ -22,9 +32,93 @@ Following the established pattern, we'll use consolidated test containers for co
 - Test both install and remove scenarios (standard Ansible behavior)
 - Validate idempotency through Molecule's built-in checks
 - Check for proper error handling and edge cases
-- Leverage hash merge behavior for inventory-level package contribution
+- Leverage explicit combining behavior for inventory-level package contribution
 
 ## Requirements Validation Matrix
+
+### Package and Repository Combining (REQ-MP-001 and REQ-MP-002)
+
+#### REQ-MP-001: Package Combining Across Inventory Levels
+
+**Test Scenarios**:
+- ✅ All-level packages: Packages from manage_packages_all are included
+- ✅ Group-level packages: Packages from manage_packages_group are merged
+- ✅ Host-level packages: Packages from manage_packages_host are merged last
+- ✅ Additive behavior: All levels contribute to final package list
+- ✅ Override behavior: Host-level can override lower-level package states
+- ✅ Cross-platform: Combining works for all OS families (Debian, Archlinux, Darwin)
+
+**Validation Approach**:
+```yaml
+# Test data demonstrates layered combining:
+# manage_packages_all: { "Debian": [{"name": "curl"}, {"name": "git"}] }
+# manage_packages_group: { "Debian": [{"name": "nginx"}] }
+# manage_packages_host: { "Debian": [{"name": "docker-ce"}, {"name": "curl", "state": "absent"}] }
+# Expected result: git, nginx installed; curl removed (host overrides all)
+
+- name: REQ-MP-001 - Verify all-level packages processed
+  ansible.builtin.assert:
+    that:
+      - "'git' in ansible_facts.packages"        # From all level
+    fail_msg: "❌ REQ-MP-001: All-level packages not processed"
+    success_msg: "✅ REQ-MP-001: All-level packages correctly processed"
+  when: inventory_hostname == 'ubuntu-packages-layered'
+
+- name: REQ-MP-001 - Verify group-level packages processed
+  ansible.builtin.assert:
+    that:
+      - "'nginx' in ansible_facts.packages"      # From group level
+    fail_msg: "❌ REQ-MP-001: Group-level packages not processed"
+    success_msg: "✅ REQ-MP-001: Group-level packages correctly processed"
+  when: inventory_hostname == 'ubuntu-packages-layered'
+
+- name: REQ-MP-001 - Verify host-level override behavior
+  ansible.builtin.assert:
+    that:
+      - "'docker-ce' in ansible_facts.packages"  # From host level
+      - "'curl' not in ansible_facts.packages"   # Host overrides all level
+    fail_msg: "❌ REQ-MP-001: Host-level package combining not working"
+    success_msg: "✅ REQ-MP-001: Host-level packages correctly override lower levels"
+  when: inventory_hostname == 'ubuntu-packages-layered'
+```
+
+#### REQ-MP-002: APT Repository Combining Across Inventory Levels
+
+**Test Scenarios**:
+- ✅ All-level repositories: Repositories from apt_repositories_all are included
+- ✅ Group-level repositories: Repositories from apt_repositories_group are merged
+- ✅ Host-level repositories: Repositories from apt_repositories_host are merged last
+- ✅ Additive behavior: All levels contribute to final repository list
+- ✅ deb822 processing: Combined repositories processed with deb822 format
+
+**Validation Approach**:
+```yaml
+# Test data demonstrates layered repository combining:
+# apt_repositories_all: { "Ubuntu": [{"name": "git-core", "uris": "ppa:git-core/ppa", ...}] }
+# apt_repositories_group: { "Ubuntu": [{"name": "nginx", "uris": "ppa:nginx/stable", ...}] }
+# apt_repositories_host: { "Ubuntu": [{"name": "docker", "uris": "https://download.docker.com/linux/ubuntu", ...}] }
+
+- name: Check combined repository files exist
+  ansible.builtin.stat:
+    path: "/etc/apt/sources.list.d/{{ item }}.sources"
+  register: combined_repo_files
+  loop:
+    - "git-core"    # From all level
+    - "nginx"       # From group level
+    - "docker"      # From host level
+  when: inventory_hostname == 'ubuntu-repos-layered'
+
+- name: REQ-MP-002 - Verify repository combining across inventory levels
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+    loop: "{{ combined_repo_files.results }}"
+    fail_msg: "❌ REQ-MP-002: Repository {{ item.item }} from layered configuration not processed"
+    success_msg: "✅ REQ-MP-002: Repository {{ item.item }} from layered configuration correctly processed"
+  when:
+    - inventory_hostname == 'ubuntu-repos-layered'
+    - combined_repo_files is defined
+```
 
 ### Linux Package Management (REQ-MP-003 through REQ-MP-013)
 
@@ -143,7 +237,7 @@ Following the established pattern, we'll use consolidated test containers for co
   ansible.builtin.assert:
     that:
       - "'{{ item }}' not in ansible_facts.packages"
-    loop: "{{ packages.absent[ansible_os_family] | default([]) }}"
+    loop: "{{ _final_packages[ansible_os_family] | selectattr('state', 'equalto', 'absent') | map(attribute='name') | list }}"
     fail_msg: "❌ REQ-MP-006: Package {{ item }} should be removed"
     success_msg: "✅ REQ-MP-006: Package {{ item }} correctly removed"
 ```
@@ -152,7 +246,7 @@ Following the established pattern, we'll use consolidated test containers for co
 
 **Test Scenarios**:
 - ✅ Package installation: Packages in packages.present[ansible_os_family] installed
-- ✅ Hash merge behavior: Packages from different inventory levels merged
+- ✅ Inventory combining: Packages from different inventory levels combined using REQ-MP-001
 - ✅ Fresh cache: Installation uses updated package cache
 
 **Validation Approach**:
@@ -161,7 +255,7 @@ Following the established pattern, we'll use consolidated test containers for co
   ansible.builtin.assert:
     that:
       - "'{{ item }}' in ansible_facts.packages"
-    loop: "{{ packages.present[ansible_os_family] | default([]) }}"
+    loop: "{{ _final_packages[ansible_os_family] | selectattr('state', 'undefined') | map(attribute='name') | list + _final_packages[ansible_os_family] | selectattr('state', 'equalto', 'present') | map(attribute='name') | list }}"
     fail_msg: "❌ REQ-MP-007: Package {{ item }} should be installed"
     success_msg: "✅ REQ-MP-007: Package {{ item }} correctly installed"
 ```
@@ -214,7 +308,7 @@ Following the established pattern, we'll use consolidated test containers for co
 
 **Test Scenarios**:
 - ✅ Package management: Packages in manage_packages[ansible_os_family] managed via pacman
-- ✅ Hash merge behavior: Packages from different inventory levels merged
+- ✅ Inventory combining: Packages from different inventory levels combined using REQ-MP-001
 - ✅ Official repositories only: Packages installed from official repos when AUR disabled
 - ✅ Install and remove: Both installation and removal operations work
 
@@ -277,7 +371,7 @@ Following the established pattern, we'll use consolidated test containers for co
 - ✅ Paru bootstrap: Paru AUR helper is installed and available
 - ✅ Sudo configuration: Passwordless sudo for pacman operations configured
 - ✅ Package management: ALL packages (official and AUR) managed via paru
-- ✅ Hash merge behavior: Packages from different inventory levels merged
+- ✅ Inventory combining: Packages from different inventory levels combined using REQ-MP-001
 
 **Container Testing Limitation**: AUR building cannot run as root, but containers use `ansible_user: root`. AUR package building tasks are tagged with `no-container` and skipped in container tests using `--skip-tags no-container`. Full AUR validation requires VM testing with non-root ansible_user.
 
@@ -393,27 +487,41 @@ Following the established pattern, we'll use consolidated test containers for co
 
 ### Container: ubuntu-packages-full
 ```yaml
-# Demonstrates hash merge behavior across inventory levels
-packages:
-  present:
-    Debian:
-      - git        # From all level (group_vars/all.yml)
-      - curl       # From all level
-      - nginx      # From group level (group_vars/webservers.yml)
-      - docker-ce  # From host level (host_vars/web01.yml)
-  absent:
-    Debian:
-      - telnet
-      - rsh-server
+# Demonstrates explicit combining behavior across inventory levels
+# These would be distributed across group_vars/all.yml, group_vars/webservers.yml, host_vars/web01.yml
+
+manage_packages_all:
+  Debian:
+    - name: git
+    - name: curl
+
+manage_packages_group:
+  Debian:
+    - name: nginx
+
+manage_packages_host:
+  Debian:
+    - name: docker-ce
+    - name: telnet
+      state: absent
+    - name: rsh-server
+      state: absent
+
+apt_repositories_all:
+  Ubuntu: []
+
+apt_repositories_group:
+  Ubuntu: []
+
+apt_repositories_host:
+  Ubuntu:
+    - name: docker
+      uris: "https://download.docker.com/linux/ubuntu"
+      suites: "{{ ansible_distribution_release }}"
+      components: "stable"
+      signed_by: "/etc/apt/keyrings/docker.gpg"
 
 apt:
-  repositories:
-    Ubuntu:
-      - name: docker
-        uris: "https://download.docker.com/linux/ubuntu"
-        suites: "{{ ansible_distribution_release }}"
-        components: "stable"
-        signed_by: "/etc/apt/keyrings/docker.gpg"
   system_upgrade:
     enable: true
     type: "security"
@@ -421,26 +529,43 @@ apt:
 
 ### Container: ubuntu-packages-basic
 ```yaml
-packages:
-  present:
-    Debian:
-      - git
-      - vim
-  absent:
-    Debian:
-      - nano
+# Basic package management without repositories
+manage_packages_all:
+  Debian:
+    - name: git
+    - name: vim
+    - name: nano
+      state: absent
 
-# No repositories - test basic package management only
+manage_packages_group:
+  Debian: []
+
+manage_packages_host:
+  Debian: []
+
+# No repositories configured
+apt_repositories_all:
+  Ubuntu: []
+apt_repositories_group:
+  Ubuntu: []
+apt_repositories_host:
+  Ubuntu: []
 ```
 
 ### Container: arch-packages-full
 ```yaml
-packages:
-  present:
-    Archlinux:
-      - git
-      - base-devel
-      - yay
+# Arch Linux with AUR enabled
+manage_packages_all:
+  Archlinux:
+    - name: git
+    - name: base-devel
+
+manage_packages_group:
+  Archlinux: []
+
+manage_packages_host:
+  Archlinux:
+    - name: yay  # AUR package
 
 pacman:
   enable_aur: true
@@ -448,14 +573,19 @@ pacman:
 
 ### Container: arch-packages-basic
 ```yaml
-packages:
-  present:
-    Archlinux:
-      - git
-      - vim
-  absent:
-    Archlinux:
-      - nano
+# Arch Linux without AUR (official repos only)
+manage_packages_all:
+  Archlinux:
+    - name: git
+    - name: vim
+    - name: nano
+      state: absent
+
+manage_packages_group:
+  Archlinux: []
+
+manage_packages_host:
+  Archlinux: []
 
 pacman:
   enable_aur: false
@@ -463,22 +593,30 @@ pacman:
 
 ### Container: ubuntu-edge-cases
 ```yaml
-packages:
-  present:
-    Debian: []  # Empty package list
-  absent:
-    Debian: []  # Empty removal list
+# Edge cases - empty configurations
+manage_packages_all:
+  Debian: []  # Empty package list
 
-apt:
-  repositories:
-    Ubuntu: []  # Empty repository list
+manage_packages_group:
+  Debian: []  # Empty package list
+
+manage_packages_host:
+  Debian: []  # Empty package list
+
+# Empty repository lists
+apt_repositories_all:
+  Ubuntu: []
+apt_repositories_group:
+  Ubuntu: []
+apt_repositories_host:
+  Ubuntu: []
 ```
 
 ## Success Criteria
 
 1. **All positive tests pass**: Packages installed, repositories configured correctly
 2. **All negative tests pass**: Packages properly removed when requested
-3. **Hash merge behavior works**: Package lists merged across inventory levels
+3. **Inventory combining works**: Package and repository lists explicitly combined across inventory levels using combine filter
 4. **Idempotency verified**: No changes on second run
 5. **Error handling works**: Graceful handling of edge cases
 6. **Cross-platform compatibility**: Works on Debian/Ubuntu, Arch Linux, and macOS (when applicable)
@@ -489,11 +627,11 @@ apt:
 
 Following the successful pattern from previous roles:
 
-1. Create molecule test infrastructure with 5 container scenarios
+1. Create molecule test infrastructure with 6 container scenarios
 2. Write comprehensive verify.yml with all requirement assertions
-3. Implement test scenarios with hash merge behavior demonstration
+3. Implement test scenarios with explicit inventory combining demonstration
 4. Fix production code issues found during testing (expected: variable structure changes)
 5. Document any discovered requirements gaps
 6. Ensure CI pipeline integration
 
-This validation plan ensures comprehensive testing of all package management requirements with the new simplified variable structure enabled by hash merge behavior, providing the same rigor and quality that made our previous roles successful.
+This validation plan ensures comprehensive testing of all package management requirements with explicit inventory-level combining using Ansible's combine filter, providing the same rigor and quality that made our previous roles successful.

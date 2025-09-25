@@ -175,6 +175,12 @@ firewall:
 | `host_update_hosts`                             | boolean                   | `true`          | Update /etc/hosts with hostname entry                                                                    |
 | `users`                                         | list[object]              | `[]`            | User account definitions (see schema below)                                                              |
 | `packages`                                      | object                    | `{}`            | Package management definitions (see schema below)                                                        |
+| `manage_packages_all`                           | object                    | `{}`            | Base-level package definitions merged first (see schema below)                                           |
+| `manage_packages_group`                         | object                    | `{}`            | Group-level package definitions merged second (see schema below)                                         |
+| `manage_packages_host`                          | object                    | `{}`            | Host-level package definitions merged last (see schema below)                                            |
+| `apt_repositories_all`                          | object                    | `{}`            | Base-level APT repository definitions merged first (see schema below)                                    |
+| `apt_repositories_group`                        | object                    | `{}`            | Group-level APT repository definitions merged second (see schema below)                                  |
+| `apt_repositories_host`                         | object                    | `{}`            | Host-level APT repository definitions merged last (see schema below)                                     |
 | `host_services.enable`                          | list[string]              | `[]`            | Systemd service names to enable (e.g., ["nginx", "postgresql"])                                          |
 | `host_services.disable`                         | list[string]              | `[]`            | Systemd service names to disable (e.g., ["apache2", "sendmail"])                                         |
 | `host_services.mask`                            | list[string]              | `[]`            | Systemd service names to mask (e.g., ["snapd", "telnet"])                                                |
@@ -198,8 +204,8 @@ firewall:
 | `flatpak.flathub`                               | boolean                   | `false`         | Enable Flathub repository as package source                                                              |
 | `flatpak.method`                                | string                    | `"system"`      | Installation scope ("system" or "user") for flatpak packages                                             |
 | `flatpak.user`                                  | string                    | `""`            | Target username for user-scope flatpak operations (ignored for system scope)                            |
-| `flatpak.plugins.gnome`                         | boolean                   | `false`         | Install GNOME Software flatpak plugin for desktop integration                                            |
-| `flatpak.plugins.plasma`                        | boolean                   | `false`         | Install Plasma Discover flatpak plugin for desktop integration                                           |
+| `flatpak.plugins.gnome`                         | boolean                   | `false`         | Install GNOME Software flatpak plugin (Debian/Ubuntu only)                                               |
+| `flatpak.plugins.plasma`                        | boolean                   | `false`         | Install Plasma Discover flatpak plugin (Debian/Ubuntu only)                                              |
 | `flatpak_packages`                              | list[object]              | `[]`            | Flatpak package definitions (see schema below)                                                           |
 | `pacman.proxy`                                  | string                    | `""`            | Pacman proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://proxy.example.com:3128")        |
 | `pacman.no_confirm`                             | boolean                   | `false`         | Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)                         |
@@ -821,7 +827,15 @@ The `manage_packages` role handles package management across different operating
 
 This role uses collection-wide variables from section 2.2.1 (packages._, apt._, pacman._, homebrew._). No role-specific variables are defined.
 
-**Note**: Where layered configuration is needed, roles implement explicit merging of package and repository definitions across inventory levels using the `combine` filter, providing predictable and portable behavior.
+For layered package management, the role supports inventory-level variables:
+- `manage_packages_all` - Base-level packages (group_vars/all.yml)
+- `manage_packages_group` - Group-level packages (group_vars/[group].yml)
+- `manage_packages_host` - Host-level packages (host_vars/[host].yml)
+- `apt_repositories_all` - Base-level APT repositories
+- `apt_repositories_group` - Group-level APT repositories
+- `apt_repositories_host` - Host-level APT repositories
+
+These are explicitly merged using the `combine` filter with `list_merge='append'` to provide predictable layered configuration.
 
 #### 3.3.3 Tag Strategy
 
@@ -857,25 +871,25 @@ Tasks that require capabilities unavailable in containers (AUR building as non-r
 
 ###### 3.3.4.1.1 Package Merging and Organization
 
-**REQ-MP-001** (DELETED): ~~The system SHALL merge packages defined at the global ("all") level with packages defined at the group level and packages defined at the host level~~
+**REQ-MP-001**: The manage_packages role SHALL combine packages from different inventory levels before processing for all package managers (apt, pacman/AUR, homebrew)
 
-**Rationale**: Package installation and removal operations are both package management functionality and are consolidated into a single requirement for clarity.
+**Implementation**: Uses `ansible.builtin.set_fact` with `combine` filter and `list_merge='append'` to merge package dictionaries from `manage_packages_all`, `manage_packages_group`, and `manage_packages_host` variables into a unified `_final_packages` structure. This combined structure is then used by all package management tasks (APT, Pacman/AUR, Homebrew) to ensure consistent layered behavior across all supported package managers.
 
 ##### 3.3.4.2 Debian/Ubuntu Package Management
 
 ###### 3.3.4.2.1 APT Repository Management
 
-**REQ-MP-002** (DELETED): ~~The system SHALL merge APT repositories defined at the global ("all") level with repositories defined at the group level and repositories defined at the host level~~
+**REQ-MP-002**: The manage_packages role SHALL combine APT repositories from different inventory levels before processing repository management tasks
 
-**Rationale**: Repository installation and management operations are consolidated into a single requirement for clarity.
+**Implementation**: Uses `ansible.builtin.set_fact` with `combine` filter and `list_merge='append'` to merge repository dictionaries from `apt_repositories_all`, `apt_repositories_group`, and `apt_repositories_host` variables into a unified `_final_repositories` structure. This combined structure is then used by APT repository management tasks to ensure consistent layered repository configuration.
 
 **REQ-MP-003**: The system SHALL be capable of managing APT repositories using deb822 format
 
 **Implementation**:
 
 1. **Repository dependencies**: Uses `ansible.builtin.apt` to install `apt-transport-https`, `ca-certificates`, `python3-debian`, and `gnupg` packages when repositories are being configured
-2. **Legacy cleanup**: Uses `ansible.builtin.file` to remove legacy `.list` files from `/etc/apt/sources.list.d/` and `.asc` GPG keys from `/etc/apt/trusted.gpg.d/` for any repository name in `apt.repositories[ansible_distribution]` (removes multiple naming variations including `{name}.list`, `{name-with-dashes}.list`, and `download_{name}.list`)
-3. **deb822 repository management**: Uses `ansible.builtin.deb822_repository` module for repository management with proper deb822 format
+2. **Legacy cleanup**: Uses `ansible.builtin.file` to remove legacy `.list` files from `/etc/apt/sources.list.d/` and `.asc` GPG keys from `/etc/apt/trusted.gpg.d/` for any repository name in the combined repository structure (removes multiple naming variations including `{name}.list`, `{name-with-dashes}.list`, and `download_{name}.list`)
+3. **deb822 repository management**: Uses `ansible.builtin.deb822_repository` module for repository management from the combined repository structure with proper deb822 format
 
 **Note**: Legacy cleanup is necessary because `deb822_repository` module does not interact with legacy formats, leading to duplicate repository entries if legacy files are not removed. Dependencies must be installed before repository operations to ensure proper functionality.
 
@@ -891,7 +905,7 @@ Tasks that require capabilities unavailable in containers (AUR building as non-r
 
 **REQ-MP-006**: The system SHALL be capable of managing packages via APT
 
-**Implementation**: Uses `ansible.builtin.apt` with each package's specified `state` (defaults to `present`) for packages in `manage_packages[ansible_os_family]`. Cache is updated automatically via `update_cache: true` with configurable `cache_valid_time`.
+**Implementation**: Uses `ansible.builtin.apt` with each package's specified `state` (defaults to `present`) for packages from the combined package list (see REQ-MP-001). Cache is updated automatically via `update_cache: true` with configurable `cache_valid_time`.
 
 **REQ-MP-007** (MERGED INTO REQ-MP-006): ~~The system SHALL be capable of installing packages via APT~~
 
@@ -911,7 +925,7 @@ MP
 
 **REQ-MP-009a**: The system SHALL be capable of managing packages via Pacman
 
-**Implementation**: When `pacman.enable_aur` is false, uses `community.general.pacman` with each package's specified `state` (defaults to `present`) for packages in `manage_packages[ansible_os_family]`. Cache is updated automatically via `update_cache: true`.
+**Implementation**: When `pacman.enable_aur` is false, uses `community.general.pacman` with each package's specified `state` (defaults to `present`) for packages from the combined package list (see REQ-MP-001). Cache is updated automatically via `update_cache: true`.
 
 **REQ-MP-010** (MERGED INTO REQ-MP-009a): ~~The system SHALL be capable of removing packages via Pacman~~
 
@@ -929,7 +943,7 @@ MP
 
 **REQ-MP-013**: The system SHALL be capable of managing AUR packages when enabled
 
-**Implementation**: When `pacman.enable_aur` is true: 1) Configures passwordless sudo for pacman operations using `ansible.builtin.lineinfile`, 2) Bootstraps paru AUR helper using `kewlfft.aur.aur` with `use: auto`, 3) Manages ALL packages (both official repository and AUR) using `kewlfft.aur.aur` with `use: paru`.
+**Implementation**: When `pacman.enable_aur` is true: 1) Configures passwordless sudo for pacman operations using `ansible.builtin.lineinfile`, 2) Bootstraps paru AUR helper using `kewlfft.aur.aur` with `use: auto`, 3) Manages ALL packages (both official repository and AUR) from the combined package list (see REQ-MP-001) using `kewlfft.aur.aur` with `use: paru`.
 
 **Note**: AUR package management requires passwordless sudo access to `/usr/bin/pacman` for the ansible_user (who acts as the AUR builder) to enable automated package installation and dependency resolution. The ansible_user's home directory is used for AUR package building. This is limited to the pacman binary only, not full system access.
 
@@ -939,7 +953,7 @@ MP
 
 **REQ-MP-014**: The system SHALL be capable of managing Homebrew packages and casks
 
-**Implementation**: Uses `geerlingguy.mac.homebrew` role with variables mapped from `manage_packages[ansible_os_family]` and `manage_casks[ansible_os_family]` lists. Package state is determined per item with defaults to `present`. Sets `homebrew_cask_appdir: /Applications`.
+**Implementation**: Uses `geerlingguy.mac.homebrew` role with variables mapped from the combined package list (see REQ-MP-001) and `manage_casks[ansible_os_family]` lists. Package state is determined per item with defaults to `present`. Sets `homebrew_cask_appdir: /Applications`.
 
 **REQ-MP-015**: The system SHALL be capable of managing Homebrew taps
 
@@ -1021,9 +1035,9 @@ This role uses collection-wide variables from section 2.2.1 (flatpak.\*). No rol
 
 ###### 3.5.3.1.2 Desktop Integration Plugins
 
-**REQ-MF-002**: The system SHALL install desktop environment flatpak plugins when configured
+**REQ-MF-002**: The system SHALL install desktop environment flatpak plugins when configured (Debian/Ubuntu only)
 
-**Implementation**: Uses platform-specific package managers to install GNOME Software plugin (`gnome-software-plugin-flatpak` on Debian, `gnome-software-flatpak` on Arch) when `flatpak.plugins.gnome` is true, and Plasma Discover plugin (`plasma-discover-backend-flatpak` on Debian, `discover` on Arch) when `flatpak.plugins.plasma` is true.
+**Implementation**: On Debian/Ubuntu systems, installs GNOME Software plugin (`gnome-software-plugin-flatpak`) when `flatpak.plugins.gnome` is true, and Plasma Discover plugin (`plasma-discover-backend-flatpak`) when `flatpak.plugins.plasma` is true. On Arch Linux, flatpak support is built into the desktop packages themselves (gnome-software, plasma-discover) rather than requiring separate plugins.
 
 ###### 3.5.3.1.3 Repository Management
 

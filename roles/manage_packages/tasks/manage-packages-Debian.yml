@@ -1,11 +1,31 @@
 ---
+# REQ-MP-001: Combine packages from different inventory levels
+- name: Combine packages from all inventory levels
+  ansible.builtin.set_fact:
+    _final_packages: >-
+      {{
+        (manage_packages_all | default({})) |
+        combine(manage_packages_group | default({}), list_merge='append') |
+        combine(manage_packages_host | default({}), list_merge='append')
+      }}
+
+# REQ-MP-002: Combine APT repositories from different inventory levels
+- name: Combine APT repositories from all inventory levels
+  ansible.builtin.set_fact:
+    _final_repositories: >-
+      {{
+        (apt_repositories_all | default({})) |
+        combine(apt_repositories_group | default({}), list_merge='append') |
+        combine(apt_repositories_host | default({}), list_merge='append')
+      }}
+
 - name: Manage APT repositories
   block:
     - name: Ensure old apt keys are not present in trusted.gpg.d
       ansible.builtin.file:
         path: "/etc/apt/trusted.gpg.d/{{ item.name }}.asc"
         state: absent
-      loop: "{{ apt.repositories[ansible_distribution] | default([]) }}"
+      loop: "{{ _final_repositories[ansible_distribution] | default([]) }}"
       become: true
 
     - name: Ensure old apt source lists are not present in sources.list.d
@@ -14,7 +34,7 @@
         state: absent
       loop: >-
         {%- set files = [] -%}
-        {%- for repo in apt.repositories[ansible_distribution] | default([]) -%}
+        {%- for repo in _final_repositories[ansible_distribution] | default([]) -%}
           {%- set _ = files.append(repo.name + '.list') -%}
           {%- set _ = files.append(repo.name | replace('_', '-') + '.list') -%}
           {%- set _ = files.append('download_' + repo.name | replace('.', '_') + '.list') -%}
@@ -45,13 +65,13 @@
         components: "{{ item.components | default(['main']) }}"
         signed_by: "{{ item.signed_by | default(omit) }}"
         state: "{{ item.state | default('present') }}"
-      loop: "{{ apt.repositories[ansible_distribution] | default([]) }}"
+      loop: "{{ _final_repositories[ansible_distribution] | default([]) }}"
       become: true
       register: repositories_changed
   when:
-    - apt.repositories is defined
-    - apt.repositories[ansible_distribution] is defined
-    - apt.repositories[ansible_distribution] | length > 0
+    - _final_repositories is defined
+    - _final_repositories[ansible_distribution] is defined
+    - _final_repositories[ansible_distribution] | length > 0
   tags:
     - repositories
 
@@ -72,9 +92,9 @@
     state: "{{ item.state | default('present') }}"
     update_cache: true
     cache_valid_time: 3600
-  loop: "{{ manage_packages[ansible_os_family] | default([]) }}"
+  loop: "{{ _final_packages[ansible_os_family] | default([]) }}"
   become: true
-  when: manage_packages[ansible_os_family] | default([]) | length > 0
+  when: _final_packages[ansible_os_family] | default([]) | length > 0
   tags:
     - packages
 
