@@ -200,7 +200,7 @@ test-role-os-configuration:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/os_configuration && molecule test
+    - cd roles/os_configuration && molecule test -- --skip-tags no-container
     - echo "✅ OS configuration role tests passed"
 
 test-role-manage-packages:
