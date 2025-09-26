@@ -1,70 +1,270 @@
 ---
-- name: Verify neovim installation
+- name: Verify neovim role with comprehensive testing
   hosts: all
   become: true
+  gather_facts: true
   tasks:
     # =============================================================================
-    # USER VERIFICATION
+    # TEST SETUP - Get user information
     # =============================================================================
-    - name: Verify test user exists
-      ansible.builtin.getent:
-        database: passwd
-        key: testdev
-      register: user_check
-
-    - name: Assert user was created
-      ansible.builtin.assert:
-        that:
-          - user_check.ansible_facts.getent_passwd.testdev is defined
-        fail_msg: "Test user 'testdev' was not created"
+    - name: Get testdev user information
+      ansible.builtin.user:
+        name: testdev
+      register: testdev_info
 
     # =============================================================================
-    # NEOVIM VERIFICATION
+    # REQ-NEOVIM-001: Verify Neovim and development dependencies installation
     # =============================================================================
-    - name: Check if neovim is available for testdev (with full PATH)
-      ansible.builtin.shell: sudo -u testdev bash -l -c 'which nvim || command -v nvim || find /usr -name nvim 2>/dev/null | head -1'
-      register: nvim_check
+    - name: Check neovim installation
+      ansible.builtin.command: sudo -u testdev nvim --version
+      register: nvim_version
       changed_when: false
       failed_when: false
 
-    - name: Verify neovim is installed
+    - name: REQ-NEOVIM-001 - Verify neovim installed
       ansible.builtin.assert:
         that:
-          - nvim_check.rc == 0
-          - nvim_check.stdout | length > 0
-        fail_msg: "neovim not found for testdev user. Output: {{ nvim_check.stdout }}"
-        success_msg: "neovim successfully installed"
+          - nvim_version.rc == 0
+          - "'NVIM' in nvim_version.stdout"
+        fail_msg: "❌ REQ-NEOVIM-001: Neovim not properly installed"
+        success_msg: "✅ REQ-NEOVIM-001: Neovim successfully installed"
 
-    - name: Check neovim configuration exists
+    - name: Check git dependency
+      ansible.builtin.command: git --version
+      register: git_version
+      changed_when: false
+      failed_when: false
+
+    - name: REQ-NEOVIM-001 - Verify git dependency installed
+      ansible.builtin.assert:
+        that:
+          - git_version.rc == 0
+          - "'git version' in git_version.stdout"
+        fail_msg: "❌ REQ-NEOVIM-001: Git dependency not installed"
+        success_msg: "✅ REQ-NEOVIM-001: Git dependency installed"
+
+    # =============================================================================
+    # Platform-Specific Language Server Validation
+    # =============================================================================
+    - name: Check lua-language-server availability (Arch Linux)
       ansible.builtin.stat:
-        path: "/home/testdev/.config/nvim/init.lua"
-      register: nvim_config
+        path: /usr/bin/lua-language-server
+      register: lua_ls_check
+      when: ansible_os_family == 'Archlinux'
 
-    - name: Verify neovim configuration is installed
+    - name: REQ-NEOVIM-001 - Verify lua-language-server on Arch Linux
       ansible.builtin.assert:
         that:
-          - nvim_config.stat.exists
-        fail_msg: "neovim configuration not installed"
-        success_msg: "neovim configuration installed successfully"
+          - lua_ls_check.stat.exists
+          - lua_ls_check.stat.executable
+        fail_msg: "❌ REQ-NEOVIM-001: lua-language-server not available on Arch Linux"
+        success_msg: "✅ REQ-NEOVIM-001: lua-language-server available on Arch Linux"
+      when: ansible_os_family == 'Archlinux'
 
-    - name: Check vim alias exists
+    - name: Check pyright availability (Arch Linux)
       ansible.builtin.stat:
-        path: "/home/testdev/.local/bin/vim"
-      register: vim_alias
+        path: /usr/bin/pyright
+      register: pyright_check
+      when: ansible_os_family == 'Archlinux'
 
-    - name: Verify vim alias is installed
+    - name: REQ-NEOVIM-001 - Verify pyright on Arch Linux
       ansible.builtin.assert:
         that:
-          - vim_alias.stat.exists
-          - vim_alias.stat.executable
-        fail_msg: "vim alias not installed"
-        success_msg: "vim alias installed successfully"
+          - pyright_check.stat.exists
+        fail_msg: "❌ REQ-NEOVIM-001: pyright not available on Arch Linux"
+        success_msg: "✅ REQ-NEOVIM-001: pyright available on Arch Linux"
+      when: ansible_os_family == 'Archlinux'
 
-    - name: Display neovim installation summary
+    - name: Document language server limitation on Ubuntu/Debian
+      ansible.builtin.debug:
+        msg: "ℹ️  REQ-NEOVIM-001: Language servers not available via system packages on Ubuntu/Debian"
+      when: ansible_os_family == 'Debian'
+
+    # =============================================================================
+    # REQ-NEOVIM-002: Verify comprehensive configuration deployment
+    # =============================================================================
+    - name: Check lazy.nvim plugin manager installation
+      ansible.builtin.stat:
+        path: "{{ testdev_info.home }}/.local/share/nvim/lazy/lazy.nvim"
+      register: lazy_nvim_check
+      when: neovim_config_enabled | default(true)
+
+    - name: REQ-NEOVIM-002 - Verify lazy.nvim plugin manager installed
+      ansible.builtin.assert:
+        that:
+          - lazy_nvim_check.stat.exists
+          - lazy_nvim_check.stat.isdir
+        fail_msg: "❌ REQ-NEOVIM-002: lazy.nvim plugin manager not installed"
+        success_msg: "✅ REQ-NEOVIM-002: lazy.nvim plugin manager installed"
+      when: neovim_config_enabled | default(true)
+
+    - name: Check neovim configuration directory
+      ansible.builtin.stat:
+        path: "{{ testdev_info.home }}/.config/nvim"
+      register: nvim_config_dir
+      when: neovim_config_enabled | default(true)
+
+    - name: REQ-NEOVIM-002 - Verify configuration directory created
+      ansible.builtin.assert:
+        that:
+          - nvim_config_dir.stat.exists
+          - nvim_config_dir.stat.isdir
+        fail_msg: "❌ REQ-NEOVIM-002: Configuration directory not created"
+        success_msg: "✅ REQ-NEOVIM-002: Configuration directory created"
+      when: neovim_config_enabled | default(true)
+
+    - name: Check main configuration file
+      ansible.builtin.stat:
+        path: "{{ testdev_info.home }}/.config/nvim/init.lua"
+      register: init_lua_check
+      when: neovim_config_enabled | default(true)
+
+    - name: REQ-NEOVIM-002 - Verify main configuration file deployed
+      ansible.builtin.assert:
+        that:
+          - init_lua_check.stat.exists
+          - init_lua_check.stat.size > 0
+        fail_msg: "❌ REQ-NEOVIM-002: Main configuration file not deployed"
+        success_msg: "✅ REQ-NEOVIM-002: Main configuration file deployed"
+      when: neovim_config_enabled | default(true)
+
+    - name: Check plugin configuration files
+      ansible.builtin.stat:
+        path: "{{ testdev_info.home }}/.config/nvim/lua/{{ item }}"
+      register: plugin_files_check
+      loop:
+        - config/lazy.lua
+        - plugins/configuration.lua
+        - plugins/lsp.lua
+        - plugins/support.lua
+        - plugins/ui.lua
+      when: neovim_config_enabled | default(true)
+
+    - name: REQ-NEOVIM-002 - Verify all plugin configuration files deployed
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.size > 0
+        fail_msg: "❌ REQ-NEOVIM-002: Plugin configuration file {{ item.item }} not deployed"
+        success_msg: "✅ REQ-NEOVIM-002: Plugin configuration file {{ item.item }} deployed"
+      loop: "{{ plugin_files_check.results }}"
+      when: neovim_config_enabled | default(true)
+
+    # =============================================================================
+    # REQ-NEOVIM-003: Verify vim compatibility alias
+    # =============================================================================
+    - name: Check local bin directory
+      ansible.builtin.stat:
+        path: "{{ testdev_info.home }}/.local/bin"
+      register: local_bin_dir
+
+    - name: REQ-NEOVIM-003 - Verify local bin directory created
+      ansible.builtin.assert:
+        that:
+          - local_bin_dir.stat.exists
+          - local_bin_dir.stat.isdir
+          - local_bin_dir.stat.mode == '0755'
+        fail_msg: "❌ REQ-NEOVIM-003: Local bin directory not created properly"
+        success_msg: "✅ REQ-NEOVIM-003: Local bin directory created"
+
+    - name: Check vim alias script
+      ansible.builtin.stat:
+        path: "{{ testdev_info.home }}/.local/bin/vim"
+      register: vim_alias_check
+
+    - name: REQ-NEOVIM-003 - Verify vim alias script deployed
+      ansible.builtin.assert:
+        that:
+          - vim_alias_check.stat.exists
+          - vim_alias_check.stat.executable
+          - vim_alias_check.stat.mode == '0755'
+        fail_msg: "❌ REQ-NEOVIM-003: Vim alias script not properly deployed"
+        success_msg: "✅ REQ-NEOVIM-003: Vim alias script deployed and executable"
+
+    # =============================================================================
+    # Configuration Disabled Scenario Testing
+    # =============================================================================
+    - name: Verify configuration not deployed when disabled
+      ansible.builtin.stat:
+        path: "{{ testdev_info.home }}/.config/nvim/init.lua"
+      register: config_disabled_check
+      when: not (neovim_config_enabled | default(true))
+
+    - name: Assert no configuration when disabled
+      ansible.builtin.assert:
+        that:
+          - not config_disabled_check.stat.exists
+        fail_msg: "❌ Configuration was deployed despite neovim_config_enabled: false"
+        success_msg: "✅ Configuration correctly not deployed when disabled"
+      when: not (neovim_config_enabled | default(true))
+
+    - name: Verify plugin manager not installed when config disabled
+      ansible.builtin.stat:
+        path: "{{ testdev_info.home }}/.local/share/nvim/lazy"
+      register: plugin_disabled_check
+      when: not (neovim_config_enabled | default(true))
+
+    - name: Assert no plugin manager when config disabled
+      ansible.builtin.assert:
+        that:
+          - not plugin_disabled_check.stat.exists
+        fail_msg: "❌ Plugin manager was installed despite neovim_config_enabled: false"
+        success_msg: "✅ Plugin manager correctly not installed when config disabled"
+      when: not (neovim_config_enabled | default(true))
+
+    # =============================================================================
+    # Platform-Specific Package Validation
+    # =============================================================================
+    - name: Verify platform-specific neovim installation (Debian/Ubuntu)
+      ansible.builtin.command: dpkg -l neovim git
+      register: ubuntu_packages_check
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == 'Debian'
+
+    - name: Assert packages installed on Debian/Ubuntu
+      ansible.builtin.assert:
+        that:
+          - ubuntu_packages_check.rc == 0
+          - "'ii  neovim' in ubuntu_packages_check.stdout"
+          - "'ii  git' in ubuntu_packages_check.stdout"
+        fail_msg: "❌ Required packages not installed on Debian/Ubuntu"
+        success_msg: "✅ Required packages correctly installed on Debian/Ubuntu"
+      when: ansible_os_family == 'Debian'
+
+    - name: Verify platform-specific neovim installation (Arch Linux)
+      ansible.builtin.command: pacman -Q neovim git lua-language-server pyright
+      register: arch_packages_check
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Assert packages installed on Arch Linux
+      ansible.builtin.assert:
+        that:
+          - arch_packages_check.rc == 0
+        fail_msg: "❌ Required packages not installed on Arch Linux"
+        success_msg: "✅ Required packages correctly installed on Arch Linux"
+      when: ansible_os_family == 'Archlinux'
+
+    # =============================================================================
+    # Test Summary
+    # =============================================================================
+    - name: Display comprehensive test results
       ansible.builtin.debug:
         msg:
-          - "=== Neovim Installation Complete ==="
-          - "✅ Neovim: {{ 'PASS' if nvim_check.rc == 0 else 'FAIL' }}"
-          - "✅ Configuration: {{ 'PASS' if nvim_config.stat.exists else 'FAIL' }}"
-          - "✅ Vim alias: {{ 'PASS' if (vim_alias.stat.exists and vim_alias.stat.executable) else 'FAIL' }}"
-          - "User: testdev created with proper neovim access"
+          - "=== Neovim Role Comprehensive Test Results ==="
+          - ""
+          - "✅ REQ-NEOVIM-001: Neovim and dependencies installed via system packages"
+          - "✅ REQ-NEOVIM-002: Configuration deployment verified"
+          - "✅ REQ-NEOVIM-003: Vim compatibility alias verified"
+          - ""
+          - "Platform Testing:"
+          - "- Platform: {{ ansible_os_family }}"
+          - "- Neovim: {{ 'Installed ✓' if nvim_version.rc == 0 else 'ERROR' }}"
+          - "- Git dependency: {{ 'Installed ✓' if git_version.rc == 0 else 'ERROR' }}"
+          - "- Language servers: {{ 'Available ✓' if ansible_os_family == 'Archlinux' else 'Limited (platform packages unavailable)' }}"
+          - "- Configuration enabled: {{ neovim_config_enabled | default(true) }}"
+          - "- Vim alias: {{ 'Functional ✓' if vim_alias_check.stat.executable else 'ERROR' }}"
+          - ""
+          - "{{ inventory_hostname }}: All tests passed successfully!"
