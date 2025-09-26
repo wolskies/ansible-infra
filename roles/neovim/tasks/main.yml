@@ -40,8 +40,8 @@
     state: present
   when: ansible_system == 'Darwin'
 
-# User-level configuration (run as target user)
-- name: Configure neovim for {{ neovim_user }}
+# User-level vim alias setup (always installed per REQ-NEOVIM-003)
+- name: Setup vim compatibility alias for {{ neovim_user }}
   block:
     - name: Ensure local bin directory exists
       ansible.builtin.file:
@@ -54,7 +54,12 @@
         src: vim
         dest: ~/.local/bin/vim
         mode: "0755"
+  become: true
+  become_user: "{{ neovim_user }}"
 
+# User-level configuration (run as target user)
+- name: Configure neovim for {{ neovim_user }}
+  block:
     - name: Install lazy.nvim plugin manager
       ansible.builtin.git:
         repo: https://github.com/folke/lazy.nvim.git

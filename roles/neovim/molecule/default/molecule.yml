@@ -26,6 +26,14 @@ platforms:
       - SYS_ADMIN
     ulimits:
       - nofile:65535:65535
+  - name: ubuntu-neovim-minimal
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -70,5 +78,18 @@ provisioner:
         # Neovim configuration
         neovim_user: testdev
         neovim_config_enabled: true
+      ubuntu-neovim-minimal:
+        # Test user for neovim installation
+        users:
+          - name: testdev
+            uid: 1001
+            groups: [sudo]
+            shell: /bin/bash
+            comment: "Test Developer User"
+            create_home: true
+
+        # Neovim configuration - minimal setup without configuration
+        neovim_user: testdev
+        neovim_config_enabled: false
 verifier:
   name: ansible
