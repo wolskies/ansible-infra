@@ -23,4 +23,4 @@
             target_user:
               name: edgeuser
               state: absent
-              remove: true # Complete removal including home directory
+              # Uses default Ansible behavior (keeps home directory) per REQ-CU-002

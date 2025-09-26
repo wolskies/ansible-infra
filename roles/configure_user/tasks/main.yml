@@ -25,7 +25,7 @@
   ansible.builtin.user:
     name: "{{ target_user.name }}"
     state: absent
-    remove: "{{ target_user.remove | default(false) }}"
+    # Uses default Ansible behavior (keeps home directory) per REQ-CU-002
   become: true
   when: target_user.state | default('present') == 'absent'
   tags:

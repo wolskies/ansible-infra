@@ -1286,7 +1286,7 @@ _Removed: Redundant with REQ-CU-001. Shell configuration is handled by the `shel
 
 #### 3.7.1 Role Description
 
-The `nodejs` role handles Node.js installation and npm package management for individual users. This role installs Node.js via Node Version Manager (nvm) and manages global npm packages for a specified user.
+The `nodejs` role handles Node.js installation and npm package management for individual users. This role installs Node.js system-wide from NodeSource repositories and manages npm packages in user-local directories to avoid permission issues.
 
 #### 3.7.2 Variables
 
@@ -1294,22 +1294,42 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 
 | Variable        | Type         | Required | Default | Description                                                                |
 | --------------- | ------------ | -------- | ------- | -------------------------------------------------------------------------- |
-| `node_user`     | string       | Yes      | -       | Target username for Node.js installation                                   |
-| `node_packages` | list[string] | No       | `[]`    | Global npm package names to install (e.g., ["typescript", "@angular/cli"]) |
+| `node_user`     | string       | Yes      | -       | Target username for npm package installation                               |
+| `node_packages` | list         | No       | `[]`    | npm packages to install (see below for format)                            |
+| `nodejs_version`| string       | No       | `"20"`  | Major version of Node.js to install (Debian/Ubuntu only, from NodeSource) |
+| `npm_config_prefix` | string   | No       | `"~/.npm-global"` | Directory for npm global installations (user-specific)          |
+| `npm_config_unsafe_perm` | string | No    | `"true"` | Whether to suppress UID/GID switching when running package scripts |
+
+**Package specification format**:
+```yaml
+node_packages:
+  # Simple string format (installs latest version)
+  - typescript
+  - "@angular/cli"
+
+  # Object format with version specification
+  - name: eslint
+    version: "8.0.0"
+  - name: webpack
+    version: "^5.0.0"
+```
 
 #### 3.7.3 Features and Functionality
 
 ##### 3.7.3.1 Node.js Installation
 
-**REQ-NODE-001**: The system SHALL install Node.js via Node Version Manager (nvm) for the specified user
+**REQ-NODE-001**: The system SHALL install Node.js runtime and npm package manager system-wide
 
-**Implementation**: Uses `ansible.builtin.get_url` to download nvm install script, `ansible.builtin.shell` to install nvm with `become_user: node_user`, and `ansible.builtin.shell` to install latest Node.js LTS version via nvm.
+**Implementation**:
+- For Debian/Ubuntu: Uses `ansible.builtin.deb822_repository` to add NodeSource repository with version `nodejs_version`, then `ansible.builtin.apt` to install `nodejs` and `npm` packages
+- For Arch Linux: Uses `community.general.pacman` to install `npm` package from official Arch repositories (includes nodejs runtime)
+- For macOS: Uses `community.general.homebrew` to install `node` formula (includes npm)
 
 ##### 3.7.3.2 npm Package Management
 
-**REQ-NODE-002**: The system SHALL install global npm packages for the specified user
+**REQ-NODE-002**: The system SHALL install npm packages in user-local directories for the specified user
 
-**Implementation**: Uses `ansible.builtin.shell` with `npm install -g {{ item }}` for each package in `node_packages` with `become_user: node_user`. Loop variable name: `item`.
+**Implementation**: Uses `community.general.npm` module with `global: true` and configurable `NPM_CONFIG_PREFIX` environment variable to install packages to user's directory. Supports both string and object format for package specifications with optional version constraints. Creates npm prefix directory with `ansible.builtin.file` and updates PATH in user's `.profile` with `ansible.builtin.lineinfile`. Loop variable name: `node_package`.
 
 ### 3.8 rust
 

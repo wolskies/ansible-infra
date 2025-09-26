@@ -39,7 +39,7 @@
       ansible.builtin.assert:
         that:
           - user_info_check.ansible_facts.getent_passwd[expected_username] is defined
-          - user_info_check.ansible_facts.getent_passwd[expected_username][4] == expected_shell
+          - user_info_check.ansible_facts.getent_passwd[expected_username][5] == expected_shell
         fail_msg: "❌ REQ-CU-001: User account not created correctly"
         success_msg: "✅ REQ-CU-001: User account successfully created"
       when: inventory_hostname != 'ubuntu-user-edge-cases'
@@ -78,23 +78,23 @@
     - name: REQ-CU-002 - Verify user removal (negative case)
       ansible.builtin.assert:
         that:
-          - user_info_check.rc != 0 or user_info_check.ansible_facts.getent_passwd.edgeuser is not defined
+          - user_info_check.ansible_facts.getent_passwd is not defined or user_info_check.ansible_facts.getent_passwd.edgeuser is not defined
         fail_msg: "❌ REQ-CU-002: User not properly removed"
         success_msg: "✅ REQ-CU-002: User successfully removed"
       when: inventory_hostname == 'ubuntu-user-edge-cases'
 
-    - name: REQ-CU-002 - Verify home directory removal
+    - name: REQ-CU-002 - Verify home directory behavior (kept per default Ansible behavior)
       ansible.builtin.stat:
         path: /home/edgeuser
       register: removed_home_check
       when: inventory_hostname == 'ubuntu-user-edge-cases'
 
-    - name: REQ-CU-002 - Assert home directory removed
+    - name: REQ-CU-002 - Assert home directory kept (per SRD default behavior)
       ansible.builtin.assert:
         that:
-          - not removed_home_check.stat.exists
-        fail_msg: "❌ REQ-CU-002: Home directory not removed with remove=true"
-        success_msg: "✅ REQ-CU-002: Home directory correctly removed"
+          - removed_home_check.stat.exists
+        fail_msg: "❌ REQ-CU-002: Home directory unexpectedly removed (should use default Ansible behavior)"
+        success_msg: "✅ REQ-CU-002: Home directory correctly preserved per SRD requirements"
       when: inventory_hostname == 'ubuntu-user-edge-cases'
 
     # ===== REQ-CU-004: Cross-Platform Sudo Access =====
