@@ -140,11 +140,8 @@ provisioner:
           shell: /bin/bash
           superuser: true
 
-      # REQ-CU-002: User removal and edge cases
-      ubuntu-user-edge-cases:
-        target_user:
-          name: edgeuser
-          state: present # Will be changed to absent during testing
+      # REQ-CU-002: User removal and edge cases (no default user config - only removal test)
+      ubuntu-user-edge-cases: {}
 
 verifier:
   name: ansible

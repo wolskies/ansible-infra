@@ -8,6 +8,7 @@
     - name: Configure user with role
       ansible.builtin.include_role:
         name: wolskies.infrastructure.configure_user
+      when: inventory_hostname != 'ubuntu-user-edge-cases'
 
     # REQ-CU-002: Additional test for user removal (edge-cases only)
     - name: Test user removal functionality
