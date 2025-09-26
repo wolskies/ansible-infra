@@ -21,6 +21,19 @@ Project guidance for Claude Code when working with the `wolskies.infrastructure`
 **ALWAYS investigate if test failure indicates setup issue vs production bug**
 **NEVER add Claude attribution to git commits** - No "Generated with Claude Code" or "Co-Authored-By: Claude" lines
 
+## TDD Process - MUST FOLLOW THIS ORDER
+
+When implementing new features or requirements:
+1. **Update SRD** with requirements
+2. **Write validation plan** in docs/validation/
+3. **Write/update tests** (molecule/verify.yml)
+4. **Run tests and OBSERVE FAILURES** - Document what fails and why
+5. **ONLY THEN modify production code** (tasks/, defaults/, etc.)
+6. **Run tests again** to confirm they pass
+7. **Document the implementation** in commit message
+
+**CRITICAL**: Steps 1-4 must be complete BEFORE touching any production code (tasks/, defaults/, handlers/, templates/). Test failures in step 4 prove we're testing the right thing.
+
 ## Testing Strategy
 
 ### Core Testing Principles

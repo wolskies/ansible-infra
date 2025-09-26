@@ -11,3 +11,11 @@ nodejs_version: "20"
 
 # Whether to update apt cache when adding repository
 nodejs_update_cache: true
+
+# The directory for npm global installations (user-specific)
+# Use ~ for user's home directory or an absolute path
+npm_config_prefix: "~/.npm-global"
+
+# Set to true to suppress the UID/GID switching when running package scripts
+# If set explicitly to false, then installing as a non-root user will fail
+npm_config_unsafe_perm: "true"
