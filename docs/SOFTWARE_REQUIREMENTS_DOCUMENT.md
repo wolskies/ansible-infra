@@ -1090,34 +1090,34 @@ This role configures a single user via the `target_user` variable. This is a sta
 
 **target_user Object Schema:**
 
-| Field                    | Type         | Required | Default        | Description                                                                  |
-| ------------------------ | ------------ | -------- | -------------- | ---------------------------------------------------------------------------- |
-| `name`                   | string       | Yes      | -              | Username (alphanumeric + underscore/hyphen, max 32 chars)                    |
-| `groups`                 | list[string] | No       | `[]`           | Secondary groups (automatically uses append: true when defined)               |
-| `shell`                  | string       | No       | `/bin/bash`    | Login shell                                                                   |
-| `comment`                | string       | No       | `""`           | GECOS field (user description)                                               |
-| `password`               | string       | No       | none           | Password hash (use ansible-vault for security)                               |
-| `ssh_keys`               | list[object] | No       | `[]`           | SSH authorized keys (see SSH key schema below)                               |
-| `state`                  | enum         | No       | `"present"`    | User state ("present" or "absent")                                          |
-| `git.user_name`          | string       | No       | none           | Git global user.name setting (full name, e.g., "John Doe")                   |
-| `git.user_email`         | string       | No       | none           | Git global user.email setting (email address, e.g., "john@example.com")      |
-| `git.editor`             | string       | No       | none           | Git global core.editor setting (editor command, e.g., "vim", "code --wait")  |
-| `nodejs.packages`        | list[string] | No       | `[]`           | npm package names to install globally (e.g., ["typescript", "@angular/cli"]) |
-| `rust.packages`          | list[string] | No       | `[]`           | Cargo package names to install (e.g., ["ripgrep", "fd-find"])                |
-| `go.packages`            | list[string] | No       | `[]`           | Go package URLs to install (e.g., ["github.com/user/package@latest"])        |
-| `neovim.enabled`         | boolean      | No       | `false`        | Install and configure Neovim for this user                                   |
-| `terminal_entries`       | list[object] | No       | `[]`           | Terminal emulator configuration entries (see schema below)                   |
-| `dotfiles.enable`        | boolean      | No       | `true`         | Enable dotfiles deployment using stow                                        |
-| `dotfiles.repository`    | string       | No       | none           | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles")   |
-| `dotfiles.dest`          | string       | No       | `".dotfiles"`  | Directory name for dotfiles repository                                       |
-| `dotfiles.branch`        | string       | No       | `"main"`       | Git branch to checkout                                                       |
-| `dotfiles.disable_clone` | boolean      | No       | `false`        | Skip git clone (use existing local copy)                                     |
-| `superuser`              | boolean      | No       | `false`        | Automatically assign platform-appropriate admin groups (sudo/wheel/admin)    |
-| `superuser_passwordless` | boolean      | No       | `false`        | Enable passwordless sudo (requires superuser: true)                          |
-| `Darwin.dock.*`          | object       | No       | `{}`           | macOS Dock preferences (see Darwin dock schema below)                        |
-| `Darwin.finder.*`        | object       | No       | `{}`           | macOS Finder preferences (see Darwin finder schema below)                    |
-| `Darwin.screenshots.*`   | object       | No       | `{}`           | macOS screenshot preferences (see Darwin screenshots schema below)           |
-| `Darwin.iterm2.*`        | object       | No       | `{}`           | macOS iTerm2 preferences (see Darwin iterm2 schema below)                    |
+| Field                    | Type         | Required | Default       | Description                                                                  |
+| ------------------------ | ------------ | -------- | ------------- | ---------------------------------------------------------------------------- |
+| `name`                   | string       | Yes      | -             | Username (alphanumeric + underscore/hyphen, max 32 chars)                    |
+| `groups`                 | list[string] | No       | `[]`          | Secondary groups (automatically uses append: true when defined)              |
+| `shell`                  | string       | No       | `/bin/bash`   | Login shell                                                                  |
+| `comment`                | string       | No       | `""`          | GECOS field (user description)                                               |
+| `password`               | string       | No       | none          | Password hash (use ansible-vault for security)                               |
+| `ssh_keys`               | list[object] | No       | `[]`          | SSH authorized keys (see SSH key schema below)                               |
+| `state`                  | enum         | No       | `"present"`   | User state ("present" or "absent")                                           |
+| `git.user_name`          | string       | No       | none          | Git global user.name setting (full name, e.g., "John Doe")                   |
+| `git.user_email`         | string       | No       | none          | Git global user.email setting (email address, e.g., "john@example.com")      |
+| `git.editor`             | string       | No       | none          | Git global core.editor setting (editor command, e.g., "vim", "code --wait")  |
+| `nodejs.packages`        | list[string] | No       | `[]`          | npm package names to install globally (e.g., ["typescript", "@angular/cli"]) |
+| `rust.packages`          | list[string] | No       | `[]`          | Cargo package names to install (e.g., ["ripgrep", "fd-find"])                |
+| `go.packages`            | list[string] | No       | `[]`          | Go package URLs to install (e.g., ["github.com/user/package@latest"])        |
+| `neovim.enabled`         | boolean      | No       | `false`       | Install and configure Neovim for this user                                   |
+| `terminal_entries`       | list[object] | No       | `[]`          | Terminal emulator configuration entries (see schema below)                   |
+| `dotfiles.enable`        | boolean      | No       | `true`        | Enable dotfiles deployment using stow                                        |
+| `dotfiles.repository`    | string       | No       | none          | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles")   |
+| `dotfiles.dest`          | string       | No       | `".dotfiles"` | Directory name for dotfiles repository                                       |
+| `dotfiles.branch`        | string       | No       | `"main"`      | Git branch to checkout                                                       |
+| `dotfiles.disable_clone` | boolean      | No       | `false`       | Skip git clone (use existing local copy)                                     |
+| `superuser`              | boolean      | No       | `false`       | Automatically assign platform-appropriate admin groups (sudo/wheel/admin)    |
+| `superuser_passwordless` | boolean      | No       | `false`       | Enable passwordless sudo (requires superuser: true)                          |
+| `Darwin.dock.*`          | object       | No       | `{}`          | macOS Dock preferences (see Darwin dock schema below)                        |
+| `Darwin.finder.*`        | object       | No       | `{}`          | macOS Finder preferences (see Darwin finder schema below)                    |
+| `Darwin.screenshots.*`   | object       | No       | `{}`          | macOS screenshot preferences (see Darwin screenshots schema below)           |
+| `Darwin.iterm2.*`        | object       | No       | `{}`          | macOS iTerm2 preferences (see Darwin iterm2 schema below)                    |
 
 **SSH Key Object Schema** (for items in `ssh_keys` list):
 
@@ -1292,15 +1292,16 @@ The `nodejs` role handles Node.js installation and npm package management for in
 
 This role uses role-specific variables passed from calling roles (e.g., configure_user):
 
-| Variable        | Type         | Required | Default | Description                                                                |
-| --------------- | ------------ | -------- | ------- | -------------------------------------------------------------------------- |
-| `node_user`     | string       | Yes      | -       | Target username for npm package installation                               |
-| `node_packages` | list         | No       | `[]`    | npm packages to install (see below for format)                            |
-| `nodejs_version`| string       | No       | `"20"`  | Major version of Node.js to install (Debian/Ubuntu only, from NodeSource) |
-| `npm_config_prefix` | string   | No       | `"~/.npm-global"` | Directory for npm global installations (user-specific)          |
-| `npm_config_unsafe_perm` | string | No    | `"true"` | Whether to suppress UID/GID switching when running package scripts |
+| Variable                 | Type   | Required | Default           | Description                                                               |
+| ------------------------ | ------ | -------- | ----------------- | ------------------------------------------------------------------------- |
+| `node_user`              | string | Yes      | -                 | Target username for npm package installation                              |
+| `node_packages`          | list   | No       | `[]`              | npm packages to install (see below for format)                            |
+| `nodejs_version`         | string | No       | `"20"`            | Major version of Node.js to install (Debian/Ubuntu only, from NodeSource) |
+| `npm_config_prefix`      | string | No       | `"~/.npm-global"` | Directory for npm global installations (user-specific)                    |
+| `npm_config_unsafe_perm` | string | No       | `"true"`          | Whether to suppress UID/GID switching when running package scripts        |
 
 **Package specification format**:
+
 ```yaml
 node_packages:
   # Simple string format (installs latest version)
@@ -1321,6 +1322,7 @@ node_packages:
 **REQ-NODE-001**: The system SHALL install Node.js runtime and npm package manager system-wide
 
 **Implementation**:
+
 - For Debian/Ubuntu: Uses `ansible.builtin.deb822_repository` to add NodeSource repository with version `nodejs_version`, then `ansible.builtin.apt` to install `nodejs` and `npm` packages
 - For Arch Linux: Uses `community.general.pacman` to install `npm` package from official Arch repositories (includes nodejs runtime)
 - For macOS: Uses `community.general.homebrew` to install `node` formula (includes npm)
@@ -1353,6 +1355,7 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 **REQ-RUST-001**: The system SHALL install rustup toolchain manager for the specified user to enable Rust development with multiple toolchain versions and cross-compilation capabilities
 
 **Implementation**:
+
 - For Debian 13+/Ubuntu 24+: Uses `ansible.builtin.apt` to install `rustup` package
 - For Arch Linux: Uses `community.general.pacman` to install `rustup` and `base-devel` packages
 - For macOS: Uses `community.general.homebrew` to install `rustup` formula
@@ -1368,9 +1371,7 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 
 ### 3.9 go
 
-#### 3.9.1 Role Description
-
-The `go` role handles Go programming language installation and package management for individual users. This role installs Go and manages go packages for a specified user.
+Don
 
 #### 3.9.2 Variables
 
@@ -1388,6 +1389,7 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 **REQ-GO-001**: The system SHALL install Go development toolchain including compiler, built-in tools (go fmt, go test, go build), and package management capabilities for the specified user
 
 **Implementation**:
+
 - For Debian/Ubuntu: Uses `ansible.builtin.apt` to install `golang` package
 - For Arch Linux: Uses `community.general.pacman` to install `go` package
 - For macOS: Uses `community.general.homebrew` to install `go` formula
@@ -1404,29 +1406,40 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 
 #### 3.10.1 Role Description
 
-The `neovim` role handles Neovim installation and basic configuration for individual users. This role installs Neovim and sets up basic user configuration.
+The `neovim` role handles comprehensive Neovim installation and development-ready configuration for individual users. This role provides a batteries-included editor setup with plugin management, LSP support, and vim compatibility.
 
 #### 3.10.2 Variables
 
 This role uses role-specific variables passed from calling roles (e.g., configure_user):
 
-| Variable      | Type   | Required | Default | Description                             |
-| ------------- | ------ | -------- | ------- | --------------------------------------- |
-| `neovim_user` | string | Yes      | -       | Target username for Neovim installation |
+| Variable | Type | Required | Default | Description |
+| -------- | ---- | -------- | ------- | ----------- |
+| `neovim_user` | string | Yes | - | Target username for Neovim installation |
+| `neovim_config_enabled` | boolean | No | `true` | Enable comprehensive configuration deployment |
 
 #### 3.10.3 Features and Functionality
 
-##### 3.10.3.1 Neovim Installation
+##### 3.10.3.1 Neovim Installation and Dependencies
 
-**REQ-NEOVIM-001**: The system SHALL install Neovim for the specified user
+**REQ-NEOVIM-001**: The system SHALL install Neovim and development dependencies for the specified user
 
-**Implementation**: Uses platform-specific package managers: `ansible.builtin.apt` for Debian/Ubuntu, `community.general.pacman` for Arch Linux, and `community.general.homebrew` for macOS.
+**Implementation**:
+- For Debian/Ubuntu: Uses `ansible.builtin.apt` to install `neovim` and `git` packages
+- For Arch Linux: Uses `ansible.builtin.package` to install `neovim`, `git`, `lua-language-server`, and `pyright` packages
+- For macOS: Uses `community.general.homebrew` to install `neovim`, `git`, `lua-language-server`, and `pyright` packages
+- Platform-specific language server availability results in enhanced LSP functionality on Arch Linux and macOS
 
-##### 3.10.3.2 Neovim Configuration
+##### 3.10.3.2 Plugin Manager and Configuration
 
-**REQ-NEOVIM-002**: The system SHALL create basic Neovim configuration for the specified user
+**REQ-NEOVIM-002**: The system SHALL deploy comprehensive Neovim configuration with plugin manager and LSP setup for the specified user
 
-**Implementation**: Uses `ansible.builtin.file` to create `~{{ neovim_user }}/.config/nvim` directory with `owner: neovim_user` and `ansible.builtin.copy` to deploy basic `init.vim` configuration file.
+**Implementation**: When `neovim_config_enabled` is true (default), uses `ansible.builtin.git` to clone lazy.nvim plugin manager to `~/.local/share/nvim/lazy/lazy.nvim`, creates configuration directory structure with `ansible.builtin.file`, and deploys Lua-based configuration files via `ansible.builtin.copy`. Configuration includes LSP setup for lua_ls, rust_analyzer, and pyright language servers with development key bindings.
+
+##### 3.10.3.3 Vim Compatibility Alias
+
+**REQ-NEOVIM-003**: The system SHALL create vim compatibility alias for enhanced user experience
+
+**Implementation**: Uses `ansible.builtin.file` to create `~/.local/bin` directory and `ansible.builtin.copy` to deploy executable vim alias script that redirects `vim` commands to `nvim`, maintaining muscle memory compatibility for users transitioning from vim.
 
 ### 3.11 terminal_config
 
