@@ -26,6 +26,14 @@ platforms:
       - SYS_ADMIN
     ulimits:
       - nofile:65535:65535
+  - name: ubuntu-rust-edge
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: "/lib/systemd/systemd"
 provisioner:
   name: ansible
   config_options:
@@ -54,10 +62,11 @@ provisioner:
             comment: "Test Developer User"
             create_home: true
 
-        # Rust configuration
+        # Rust configuration - Test full setup with multiple packages
         rust_user: testdev
         rust_packages:
           - ripgrep
+          - fd-find
           - cargo-watch
       arch-rust-test:
         # Test user for rust installation
@@ -69,10 +78,23 @@ provisioner:
             comment: "Test Developer User"
             create_home: true
 
-        # Rust configuration
+        # Rust configuration - Test full setup with different packages
         rust_user: testdev
         rust_packages:
           - ripgrep
-          - cargo-watch
+          - exa
+      ubuntu-rust-edge:
+        # Test user for edge case testing
+        users:
+          - name: testdev
+            uid: 1001
+            groups: [sudo]
+            shell: /bin/bash
+            comment: "Test Developer User"
+            create_home: true
+
+        # Edge case: Empty packages list (toolchain only)
+        rust_user: testdev
+        rust_packages: []
 verifier:
   name: ansible
