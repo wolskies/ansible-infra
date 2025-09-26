@@ -1,57 +1,235 @@
 ---
-- name: Verify go installation
+- name: Verify go role with comprehensive testing
   hosts: all
   become: true
+  gather_facts: true
   tasks:
     # =============================================================================
-    # USER VERIFICATION
+    # TEST SETUP - Get user information
     # =============================================================================
-    - name: Verify test user exists
-      ansible.builtin.getent:
-        database: passwd
-        key: testdev
-      register: user_check
+    - name: Get testdev user information
+      ansible.builtin.user:
+        name: testdev
+      register: testdev_info
 
-    - name: Assert user was created
+    # =============================================================================
+    # REQ-GO-001: Verify Go development toolchain installation
+    # =============================================================================
+    - name: Check go compiler availability
+      ansible.builtin.command: sudo -u testdev go version
+      register: go_version
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/go/bin:{{ ansible_env.PATH }}"
+
+    - name: REQ-GO-001 - Verify go compiler available
       ansible.builtin.assert:
         that:
-          - user_check.ansible_facts.getent_passwd.testdev is defined
-        fail_msg: "Test user 'testdev' was not created"
+          - go_version.rc == 0
+          - go_version.stdout is match("go version go\\d+\\.\\d+\\.\\d+")
+        fail_msg: "❌ REQ-GO-001: Go compiler not available"
+        success_msg: "✅ REQ-GO-001: Go compiler {{ go_version.stdout.split()[2] }} available"
+
+    - name: Check go built-in tools availability
+      ansible.builtin.command: sudo -u testdev go help {{ item }}
+      register: go_tools_check
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/go/bin:{{ ansible_env.PATH }}"
+      loop:
+        - fmt
+        - test
+        - build
+        - install
+        - mod
+
+    - name: REQ-GO-001 - Verify go built-in tools available
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "❌ REQ-GO-001: go {{ item.item }} tool not available"
+        success_msg: "✅ REQ-GO-001: go {{ item.item }} tool available"
+      loop: "{{ go_tools_check.results }}"
 
     # =============================================================================
-    # GO VERIFICATION
+    # REQ-GO-002: Verify go package management
     # =============================================================================
-    - name: Check if go is available for testdev
-      ansible.builtin.command: sudo -u testdev bash -l -c 'command -v go'
-      register: go_check
+    - name: List installed go packages
+      ansible.builtin.command: sudo -u testdev ls {{ testdev_info.home }}/go/bin/
+      register: go_packages_list
+      changed_when: false
+      failed_when: false
+      when: go_packages | length > 0
+
+    - name: REQ-GO-002 - Verify go packages installed (ubuntu-go-test)
+      ansible.builtin.assert:
+        that:
+          - go_packages_list.rc == 0
+          - "'goreleaser' in go_packages_list.stdout"
+          - "'goimports' in go_packages_list.stdout"
+          - "'golangci-lint' in go_packages_list.stdout"
+        fail_msg: "❌ REQ-GO-002: Expected go packages not installed"
+        success_msg: "✅ REQ-GO-002: All expected go packages installed"
+      when:
+        - inventory_hostname == 'ubuntu-go-test'
+        - go_packages | length > 0
+
+    - name: REQ-GO-002 - Verify go packages installed (arch-go-test)
+      ansible.builtin.assert:
+        that:
+          - go_packages_list.rc == 0
+          - "'cobra-cli' in go_packages_list.stdout"
+          - "'godoc' in go_packages_list.stdout"
+        fail_msg: "❌ REQ-GO-002: Expected go packages not installed"
+        success_msg: "✅ REQ-GO-002: All expected go packages installed"
+      when:
+        - inventory_hostname == 'arch-go-test'
+        - go_packages | length > 0
+
+    - name: REQ-GO-002 - Verify edge case (no packages installed)
+      ansible.builtin.debug:
+        msg: "✅ REQ-GO-002: Edge case validated - toolchain ready, no packages installed"
+      when:
+        - inventory_hostname == 'ubuntu-go-edge'
+        - go_packages | length == 0
+
+    # =============================================================================
+    # PATH Configuration Testing
+    # =============================================================================
+    - name: Check .profile for PATH update
+      ansible.builtin.command: grep -E "go|~/go/bin" {{ testdev_info.home }}/.profile
+      register: profile_path
       changed_when: false
       failed_when: false
 
-    - name: Verify go is installed
+    - name: Verify PATH configuration
       ansible.builtin.assert:
         that:
-          - go_check.rc == 0
-        fail_msg: "go not found for testdev user"
-        success_msg: "go successfully installed"
+          - profile_path.rc == 0
+          - "'/go/bin' in profile_path.stdout"
+        fail_msg: "❌ PATH not updated with go bin directory"
+        success_msg: "✅ PATH correctly updated with go bin directory"
 
-    - name: Check go packages in user's GOPATH
-      ansible.builtin.command: sudo -u testdev ls -la /home/testdev/go/bin/
-      register: go_packages_check
+    # =============================================================================
+    # Platform-Specific Validation
+    # =============================================================================
+    - name: Verify platform-specific go installation (Debian/Ubuntu)
+      ansible.builtin.command: dpkg -l golang
+      register: golang_package_check
       changed_when: false
       failed_when: false
+      when: ansible_os_family == 'Debian'
 
-    - name: Verify go packages are installed
+    - name: Assert golang package installed on Debian/Ubuntu
       ansible.builtin.assert:
         that:
-          - go_packages_check.rc == 0
-          - go_packages_check.stdout | length > 0
-        fail_msg: "go packages not installed correctly"
-        success_msg: "go packages installed successfully"
+          - golang_package_check.rc == 0
+          - "'ii  golang' in golang_package_check.stdout"
+        fail_msg: "❌ golang package not installed on Debian/Ubuntu"
+        success_msg: "✅ golang package correctly installed on Debian/Ubuntu"
+      when: ansible_os_family == 'Debian'
 
-    - name: Display go installation summary
+    - name: Verify platform-specific go installation (Arch Linux)
+      ansible.builtin.command: pacman -Q go
+      register: go_package_check
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Assert go package installed on Arch Linux
+      ansible.builtin.assert:
+        that:
+          - go_package_check.rc == 0
+        fail_msg: "❌ go package not installed on Arch Linux"
+        success_msg: "✅ go package correctly installed on Arch Linux"
+      when: ansible_os_family == 'Archlinux'
+
+    # =============================================================================
+    # Functional Testing - Can we actually use Go?
+    # =============================================================================
+    - name: Create test Go project directory
+      ansible.builtin.file:
+        path: /tmp/test_go_project
+        state: directory
+        mode: "0755"
+        owner: testdev
+        group: testdev
+      become: true
+
+    - name: Initialize go module
+      ansible.builtin.command: sudo -u testdev go mod init test_project
+      args:
+        chdir: /tmp/test_go_project
+      register: go_mod_init
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/go/bin:{{ ansible_env.PATH }}"
+
+    - name: Create simple Go program
+      ansible.builtin.copy:
+        content: |
+          package main
+
+          import "fmt"
+
+          func main() {
+              fmt.Println("Hello Go!")
+          }
+        dest: /tmp/test_go_project/main.go
+        mode: "0644"
+        owner: testdev
+        group: testdev
+      become: true
+
+    - name: Build test Go project
+      ansible.builtin.command: sudo -u testdev go build main.go
+      args:
+        chdir: /tmp/test_go_project
+      register: go_build_test
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/go/bin:{{ ansible_env.PATH }}"
+
+    - name: Run test Go project
+      ansible.builtin.command: sudo -u testdev go run main.go
+      args:
+        chdir: /tmp/test_go_project
+      register: go_run_test
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/go/bin:{{ ansible_env.PATH }}"
+
+    - name: Verify Go development environment functional
+      ansible.builtin.assert:
+        that:
+          - go_mod_init.rc == 0
+          - go_build_test.rc == 0
+          - go_run_test.rc == 0
+          - "'Hello Go!' in go_run_test.stdout"
+        fail_msg: "❌ Go development environment not functional"
+        success_msg: "✅ Go development environment fully functional"
+
+    # =============================================================================
+    # Test Summary
+    # =============================================================================
+    - name: Display comprehensive test results
       ansible.builtin.debug:
         msg:
-          - "=== Go Installation Complete ==="
-          - "✅ Go: {{ 'PASS' if go_check.rc == 0 else 'FAIL' }}"
-          - "✅ Go packages: {{ 'PASS' if (go_packages_check.rc == 0 and go_packages_check.stdout | length > 0) else 'FAIL' }}"
-          - "User: testdev created with proper go access"
+          - "=== Go Role Comprehensive Test Results ==="
+          - ""
+          - "✅ REQ-GO-001: Go development toolchain installed via system packages"
+          - "✅ REQ-GO-002: Go package management verified"
+          - ""
+          - "Platform Testing:"
+          - "- Platform: {{ ansible_os_family }}"
+          - "- Go version: {{ go_version.stdout.split()[2] if go_version.rc == 0 else 'ERROR' }}"
+          - "- Package count: {{ go_packages | length }}"
+          - "- PATH configuration: Updated ✓"
+          - "- Development environment: Functional ✓"
+          - ""
+          - "{{ inventory_hostname }}: All tests passed successfully!"

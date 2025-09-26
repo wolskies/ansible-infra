@@ -1,56 +1,210 @@
 ---
-- name: Verify rust installation
+- name: Verify rust role with comprehensive testing
   hosts: all
   become: true
+  gather_facts: true
   tasks:
     # =============================================================================
-    # USER VERIFICATION
+    # TEST SETUP - Get user information
     # =============================================================================
-    - name: Verify test user exists
-      ansible.builtin.getent:
-        database: passwd
-        key: testdev
-      register: user_check
-
-    - name: Assert user was created
-      ansible.builtin.assert:
-        that:
-          - user_check.ansible_facts.getent_passwd.testdev is defined
-        fail_msg: "Test user 'testdev' was not created"
+    - name: Get testdev user information
+      ansible.builtin.user:
+        name: testdev
+      register: testdev_info
 
     # =============================================================================
-    # RUST VERIFICATION
+    # REQ-RUST-001: Verify rustup toolchain manager installation
     # =============================================================================
-    - name: Check if cargo is available for testdev
-      ansible.builtin.command: sudo -u testdev which cargo
-      register: cargo_check
+    - name: Check rustup installation
+      ansible.builtin.command: rustup --version
+      register: rustup_version
       changed_when: false
       failed_when: false
 
-    - name: Verify cargo is installed
+    - name: REQ-RUST-001 - Verify rustup installed
       ansible.builtin.assert:
         that:
-          - cargo_check.rc == 0
-        fail_msg: "cargo not found for testdev user"
-        success_msg: "cargo successfully installed"
+          - rustup_version.rc == 0
+          - rustup_version.stdout is match("rustup \\d+\\.\\d+\\.\\d+")
+        fail_msg: "❌ REQ-RUST-001: rustup not properly installed"
+        success_msg: "✅ REQ-RUST-001: rustup installed successfully"
 
-    - name: Check if rust packages are available
-      ansible.builtin.command: sudo -u testdev bash -c 'PATH="/home/testdev/.cargo/bin:$PATH" which rg'
-      register: rust_packages_check
+    - name: Check stable toolchain initialization
+      ansible.builtin.command: sudo -u testdev rustup show
+      register: rustup_show
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/.cargo/bin:{{ ansible_env.PATH }}"
+
+    - name: REQ-RUST-001 - Verify stable toolchain configured
+      ansible.builtin.assert:
+        that:
+          - rustup_show.rc == 0
+          - "'stable' in rustup_show.stdout"
+          - "'default' in rustup_show.stdout"
+        fail_msg: "❌ REQ-RUST-001: stable toolchain not configured as default"
+        success_msg: "✅ REQ-RUST-001: stable toolchain configured as default"
+
+    - name: Check rust compiler availability
+      ansible.builtin.command: sudo -u testdev rustc --version
+      register: rustc_version
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/.cargo/bin:{{ ansible_env.PATH }}"
+
+    - name: REQ-RUST-001 - Verify rust compiler available
+      ansible.builtin.assert:
+        that:
+          - rustc_version.rc == 0
+          - rustc_version.stdout is match("rustc \\d+\\.\\d+\\.\\d+")
+        fail_msg: "❌ REQ-RUST-001: rust compiler not available"
+        success_msg: "✅ REQ-RUST-001: rust compiler {{ rustc_version.stdout.split()[1] }} available"
+
+    - name: Check cargo availability
+      ansible.builtin.command: sudo -u testdev cargo --version
+      register: cargo_version
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/.cargo/bin:{{ ansible_env.PATH }}"
+
+    - name: REQ-RUST-001 - Verify cargo available
+      ansible.builtin.assert:
+        that:
+          - cargo_version.rc == 0
+          - cargo_version.stdout is match("cargo \\d+\\.\\d+\\.\\d+")
+        fail_msg: "❌ REQ-RUST-001: cargo not available"
+        success_msg: "✅ REQ-RUST-001: cargo {{ cargo_version.stdout.split()[1] }} available"
+
+    # =============================================================================
+    # REQ-RUST-002: Verify cargo package management
+    # =============================================================================
+    - name: List installed cargo packages
+      ansible.builtin.command: sudo -u testdev cargo install --list
+      register: cargo_packages_list
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/.cargo/bin:{{ ansible_env.PATH }}"
+      when: rust_packages | length > 0
+
+    - name: REQ-RUST-002 - Verify cargo packages installed (ubuntu-rust-test)
+      ansible.builtin.assert:
+        that:
+          - cargo_packages_list.rc == 0
+          - "'ripgrep' in cargo_packages_list.stdout"
+          - "'fd-find' in cargo_packages_list.stdout"
+          - "'cargo-watch' in cargo_packages_list.stdout"
+        fail_msg: "❌ REQ-RUST-002: Expected cargo packages not installed"
+        success_msg: "✅ REQ-RUST-002: All expected cargo packages installed"
+      when:
+        - inventory_hostname == 'ubuntu-rust-test'
+        - rust_packages | length > 0
+
+    - name: REQ-RUST-002 - Verify cargo packages installed (arch-rust-test)
+      ansible.builtin.assert:
+        that:
+          - cargo_packages_list.rc == 0
+          - "'ripgrep' in cargo_packages_list.stdout"
+          - "'exa' in cargo_packages_list.stdout"
+        fail_msg: "❌ REQ-RUST-002: Expected cargo packages not installed"
+        success_msg: "✅ REQ-RUST-002: All expected cargo packages installed"
+      when:
+        - inventory_hostname == 'arch-rust-test'
+        - rust_packages | length > 0
+
+    - name: REQ-RUST-002 - Verify edge case (no packages installed)
+      ansible.builtin.debug:
+        msg: "✅ REQ-RUST-002: Edge case validated - toolchain ready, no packages installed"
+      when:
+        - inventory_hostname == 'ubuntu-rust-edge'
+        - rust_packages | length == 0
+
+    # =============================================================================
+    # PATH Configuration Testing
+    # =============================================================================
+    - name: Check .profile for PATH update
+      ansible.builtin.command: grep -E "cargo|\.cargo/bin" {{ testdev_info.home }}/.profile
+      register: profile_path
       changed_when: false
       failed_when: false
 
-    - name: Verify rust packages are installed
+    - name: Verify PATH configuration
       ansible.builtin.assert:
         that:
-          - rust_packages_check.rc == 0
-        fail_msg: "rust packages not installed correctly"
-        success_msg: "rust packages installed successfully"
+          - profile_path.rc == 0
+          - "'/.cargo/bin' in profile_path.stdout"
+        fail_msg: "❌ PATH not updated with cargo bin directory"
+        success_msg: "✅ PATH correctly updated with cargo bin directory"
 
-    - name: Display rust installation summary
+    # =============================================================================
+    # Platform-Specific Validation
+    # =============================================================================
+    - name: Verify platform-specific packages (Arch Linux)
+      ansible.builtin.command: pacman -Q base-devel
+      register: base_devel_check
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == 'Archlinux'
+
+    - name: Assert base-devel installed on Arch Linux
+      ansible.builtin.assert:
+        that:
+          - base_devel_check.rc == 0
+        fail_msg: "❌ base-devel not installed on Arch Linux"
+        success_msg: "✅ base-devel correctly installed on Arch Linux"
+      when: ansible_os_family == 'Archlinux'
+
+    # =============================================================================
+    # Functional Testing - Can we actually use Rust?
+    # =============================================================================
+    - name: Create test Rust project
+      ansible.builtin.command: sudo -u testdev cargo new /tmp/test_project --bin
+      register: cargo_new
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/.cargo/bin:{{ ansible_env.PATH }}"
+
+    - name: Build test Rust project
+      ansible.builtin.command: sudo -u testdev cargo build
+      args:
+        chdir: /tmp/test_project
+      register: cargo_build
+      changed_when: false
+      failed_when: false
+      environment:
+        PATH: "{{ testdev_info.home }}/.cargo/bin:{{ ansible_env.PATH }}"
+
+    - name: Verify Rust development environment functional
+      ansible.builtin.assert:
+        that:
+          - cargo_new.rc == 0
+          - cargo_build.rc == 0
+          - "'Finished' in cargo_build.stderr or 'Compiling' in cargo_build.stderr"
+        fail_msg: "❌ Rust development environment not functional"
+        success_msg: "✅ Rust development environment fully functional"
+
+    # =============================================================================
+    # Test Summary
+    # =============================================================================
+    - name: Display comprehensive test results
       ansible.builtin.debug:
         msg:
-          - "=== Rust Installation Complete ==="
-          - "✅ Rust: {{ 'PASS' if cargo_check.rc == 0 else 'FAIL' }}"
-          - "✅ Rust packages: {{ 'PASS' if rust_packages_check.rc == 0 else 'FAIL' }}"
-          - "User: testdev created with proper rust access"
+          - "=== Rust Role Comprehensive Test Results ==="
+          - ""
+          - "✅ REQ-RUST-001: Rust toolchain installed via rustup system packages"
+          - "✅ REQ-RUST-002: Cargo package management verified"
+          - ""
+          - "Platform Testing:"
+          - "- Platform: {{ ansible_os_family }}"
+          - "- rustup version: {{ rustup_version.stdout.split()[1] if rustup_version.rc == 0 else 'ERROR' }}"
+          - "- rustc version: {{ rustc_version.stdout.split()[1] if rustc_version.rc == 0 else 'ERROR' }}"
+          - "- cargo version: {{ cargo_version.stdout.split()[1] if cargo_version.rc == 0 else 'ERROR' }}"
+          - "- Package count: {{ rust_packages | length }}"
+          - "- PATH configuration: Updated ✓"
+          - "- Development environment: Functional ✓"
+          - ""
+          - "{{ inventory_hostname }}: All tests passed successfully!"

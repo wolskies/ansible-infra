@@ -17,7 +17,6 @@
     update_cache: true
   become: true
   when:
-    - rust_packages | length > 0
     - ansible_os_family == 'Debian'
     - (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version | int >= 24) or
       (ansible_distribution == 'Debian' and ansible_distribution_major_version | int >= 13)
@@ -34,7 +33,6 @@
     state: present
   become: true
   when:
-    - rust_packages | length > 0
     - ansible_os_family == 'Archlinux'
   tags:
     - rust
@@ -45,7 +43,6 @@
     name: rustup
     state: present
   when:
-    - rust_packages | length > 0
     - ansible_system == 'Darwin'
   tags:
     - rust
@@ -55,8 +52,6 @@
   ansible.builtin.user:
     name: "{{ rust_user }}"
   register: rust_user_info
-  when:
-    - rust_packages | length > 0
 
 - name: Initialize rustup default toolchain
   ansible.builtin.command: rustup default stable
@@ -66,8 +61,6 @@
   become_user: "{{ rust_user }}"
   register: rustup_default
   changed_when: "'info: using existing install' not in rustup_default.stderr"
-  when:
-    - rust_packages | length > 0
   tags:
     - rust
     - language-packages
@@ -99,8 +92,6 @@
     owner: "{{ rust_user }}"
     group: "{{ rust_user }}"
   become: true
-  when:
-    - rust_packages | length > 0
   tags:
     - rust
     - user-packages

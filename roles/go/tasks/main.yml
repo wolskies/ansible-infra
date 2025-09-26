@@ -17,7 +17,6 @@
     update_cache: true
   become: true
   when:
-    - go_packages | length > 0
     - ansible_os_family == 'Debian'
   tags:
     - go
@@ -29,7 +28,6 @@
     state: present
   become: true
   when:
-    - go_packages | length > 0
     - ansible_os_family == 'Archlinux'
   tags:
     - go
@@ -41,7 +39,6 @@
     state: present
   # Note: Run as ansible_user who owns Homebrew, not as target user
   when:
-    - go_packages | length > 0
     - ansible_system == 'Darwin'
   tags:
     - go
@@ -67,7 +64,6 @@
   ansible.builtin.user:
     name: "{{ go_user }}"
   register: go_user_info
-  when: go_packages | length > 0
 
 - name: Add ~/go/bin to user's PATH in ~/.profile
   ansible.builtin.lineinfile:
@@ -79,7 +75,6 @@
     owner: "{{ go_user }}"
     group: "{{ go_user }}"
   become: true
-  when: go_packages | length > 0
   tags:
     - go
     - user-packages

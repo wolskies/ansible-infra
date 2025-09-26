@@ -1335,7 +1335,7 @@ node_packages:
 
 #### 3.8.1 Role Description
 
-The `rust` role handles Rust toolchain installation and cargo package management for individual users. This role installs Rust via rustup and manages cargo packages for a specified user.
+The `rust` role handles Rust toolchain installation and cargo package management for individual users. This role provides complete automated Rust development environment setup using rustup system packages. Note: Requires Debian 13+, Ubuntu 24+, Arch Linux, or macOS due to rustup system package availability. Earlier Debian/Ubuntu versions are not supported.
 
 #### 3.8.2 Variables
 
@@ -1350,15 +1350,21 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 
 ##### 3.8.3.1 Rust Toolchain Installation
 
-**REQ-RUST-001**: The system SHALL install Rust toolchain via rustup for the specified user
+**REQ-RUST-001**: The system SHALL install rustup toolchain manager for the specified user to enable Rust development with multiple toolchain versions and cross-compilation capabilities
 
-**Implementation**: Uses `ansible.builtin.get_url` to download rustup-init script, `ansible.builtin.shell` to install rustup with default settings and `become_user: rust_user`.
+**Implementation**:
+- For Debian 13+/Ubuntu 24+: Uses `ansible.builtin.apt` to install `rustup` package
+- For Arch Linux: Uses `community.general.pacman` to install `rustup` and `base-devel` packages
+- For macOS: Uses `community.general.homebrew` to install `rustup` formula
+- Initializes stable toolchain with `ansible.builtin.command: rustup default stable` using `become_user: rust_user` with `changed_when` condition to detect if toolchain was already configured (REQ-INFRA-007)
+- Adds `~/.cargo/bin` to user's PATH via `ansible.builtin.lineinfile` in `~/.profile`
+- Fails with clear error message on unsupported platforms (Debian 12, Ubuntu 22/23)
 
 ##### 3.8.3.2 Cargo Package Management
 
 **REQ-RUST-002**: The system SHALL install cargo packages for the specified user
 
-**Implementation**: Uses `ansible.builtin.shell` with `cargo install {{ item }}` for each package in `rust_packages` with `become_user: rust_user`. Loop variable name: `item`.
+**Implementation**: Uses `ansible.builtin.command` with `cargo install {{ rust_package }}` for each package in `rust_packages` with `become_user: rust_user`. Includes proper PATH environment to ensure cargo is found. Uses `changed_when` condition to detect if package was already installed (REQ-INFRA-007). Loop variable name: `rust_package`. Only executes when `rust_packages` list is not empty.
 
 ### 3.9 go
 
@@ -1379,15 +1385,20 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 
 ##### 3.9.3.1 Go Language Installation
 
-**REQ-GO-001**: The system SHALL install Go programming language for the specified user
+**REQ-GO-001**: The system SHALL install Go development toolchain including compiler, built-in tools (go fmt, go test, go build), and package management capabilities for the specified user
 
-**Implementation**: Uses `ansible.builtin.get_url` to download Go binary tarball, `ansible.builtin.unarchive` to extract to user's home directory with `owner: go_user`, and `ansible.builtin.lineinfile` to add Go PATH to user's shell profile.
+**Implementation**:
+- For Debian/Ubuntu: Uses `ansible.builtin.apt` to install `golang` package
+- For Arch Linux: Uses `community.general.pacman` to install `go` package
+- For macOS: Uses `community.general.homebrew` to install `go` formula
+- Adds `~/go/bin` to user's PATH via `ansible.builtin.lineinfile` in `~/.profile`
+- Provides complete Go development environment with compiler and built-in tools
 
 ##### 3.9.3.2 Go Package Management
 
 **REQ-GO-002**: The system SHALL install go packages for the specified user
 
-**Implementation**: Uses `ansible.builtin.shell` with `go install {{ item }}` for each package in `go_packages` with `become_user: go_user`. Loop variable name: `item`.
+**Implementation**: Uses `ansible.builtin.command` with `go install {{ go_package }}` for each package in `go_packages` with `become_user: go_user`. Automatically appends `@latest` if no version specified. Uses `changed_when` condition to detect if package was already installed (REQ-INFRA-007). Loop variable name: `go_package`. Only executes when `go_packages` list is not empty.
 
 ### 3.10 neovim
 
