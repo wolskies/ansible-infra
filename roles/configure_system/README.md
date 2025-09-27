@@ -1,98 +1,76 @@
 # configure_system
 
-A convenience role for configuring a system - calls multiple roles in this collection.
+Meta-role that orchestrates complete system configuration by calling multiple collection roles in the correct order.
 
-## Description
+## What It Does
 
-## Role Execution Order
+Configures a complete system from OS-level settings through user preferences:
 
-1. **os_configuration** - Essential OS-level configuration (timezone, hostname, services)
-2. **manage_users** - System-level user account management
-3. **manage_packages** - Distribution-specific package installation
-4. **manage_security_services** - Firewall and fail2ban configuration
-5. **manage_snap_packages** - Snap management (Ubuntu/Debian, optional)
-6. **manage_flatpak** - Flatpak management (Linux, optional)
-7. **configure_user** - Per-user preferences and dotfiles
+1. **os_configuration** - System settings (hostname, timezone, locale, services)
+2. **manage_packages** - Package installation and repository management
+3. **manage_security_services** - Firewall and fail2ban configuration
+4. **manage_snap_packages** - Snap package management (optional)
+5. **manage_flatpak** - Flatpak package management (optional)
+6. **configure_user** - User-specific configuration (dotfiles, development tools)
 
-## Configuration
+## Usage
 
-See configure_system/defaults/main.yml for complete reference:
-
+### Basic Configuration
 ```yaml
-domain_name: "company.com"
-domain_timezone: "America/New_York"
-users:
-  - name: alice
-    groups: [sudo]
-    git: { user_name: "Alice", user_email: "alice@company.com" }
-    nodejs: { packages: [typescript] }
-
-host_hostname: "web01"
-packages:
-  present:
-    all:
-      Ubuntu: [git, curl, htop]
-    group:
-      Ubuntu: [nginx]
-    host:
-      Ubuntu: [redis-server]
-firewall:
-  enabled: true
-  rules:
-    - { port: 80, proto: tcp }
-  snap:
-    disable_and_remove: true
-```
-
-## Usage Examples
-
-### Basic Server Setup
-
-```yaml
-- hosts: servers
+- hosts: all
+  become: true
   roles:
     - wolskies.infrastructure.configure_system
   vars:
-    domain_name: "company.com"
     domain_timezone: "America/New_York"
+    host_hostname: "{{ inventory_hostname }}"
     users:
       - name: admin
         groups: [sudo]
-        ssh_pubkey: "ssh-ed25519 AAAAC3..."
-    host_hostname: "{{ inventory_hostname }}"
+        ssh_keys:
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
     packages:
       present:
         all:
-          Ubuntu: [git, htop, nginx]
+          Ubuntu: [git, curl, vim]
+    firewall:
+      enabled: true
+      rules:
+        - port: 22
+          protocol: tcp
 ```
 
-### Multi-Group Configuration
-
+### Advanced Configuration
 ```yaml
-# inventory/group_vars/all.yml
-domain_name: "company.local"
+# group_vars/all.yml
 domain_timezone: "America/New_York"
+domain_locale: "en_US.UTF-8"
+
 users:
-  - name: deploy
+  - name: developer
     groups: [sudo]
-    git: { user_name: "Deploy User", user_email: "deploy@company.com" }
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+
 packages:
   present:
     all:
-      Ubuntu: [git, curl, vim]
+      Ubuntu: [git, curl, vim, htop]
+      Debian: [git, curl, vim, htop]
 
-# inventory/group_vars/webservers.yml
+# group_vars/webservers.yml
 packages:
   present:
     group:
       Ubuntu: [nginx, certbot]
+
 firewall:
   enabled: true
   rules:
-    - { port: 80, proto: tcp }
-    - { port: 443, proto: tcp }
+    - port: 80,443
+      protocol: tcp
 
-# inventory/host_vars/web01.yml
+# host_vars/web01.yml
 host_hostname: "web01"
 packages:
   present:
@@ -100,84 +78,45 @@ packages:
       Ubuntu: [redis-server]
 ```
 
-### User Configuration
+## Variables
 
-After system setup, configure user preferences:
+Uses collection-wide variables. See collection README for complete variable reference.
 
-```yaml
-# Configure user preferences (runs as each user)
-- hosts: all
-  vars:
-    target_user: "{{ item }}"
-  include_role:
-    name: wolskies.infrastructure.configure_user
-  loop: "{{ users }}"
-  loop_control:
-    loop_var: item
-  when:
-    - item.name is defined
-    - item.name != 'root'
-```
+Key variables:
+- `domain_timezone` - System timezone
+- `host_hostname` - System hostname
+- `users` - User account definitions
+- `packages` - Package management configuration
+- `firewall` - Firewall rules and settings
+- `snap` - Snap package management settings
+- `flatpak` - Flatpak package management settings
 
 ## Tags
 
-### Component Tags
+Control which components run:
 
-- `os-configuration` - OS setup only
-- `security-services` - Firewall/fail2ban only
-- `users` - User management only
+- `os-configuration` - OS settings only
 - `packages` - Package management only
+- `security-services` - Firewall/fail2ban only
 - `snap-packages` - Snap packages only
 - `flatpak-packages` - Flatpak packages only
-- `user-preferences` - User configuration only
+- `user-configuration` - User preferences only
 
-### Usage
-
+Example:
 ```bash
-# Run only core system components
-ansible-playbook -t os-configuration,users,packages playbook.yml
-
-# Run only security configuration
-ansible-playbook -t security-services playbook.yml
-
-# Skip optional components
+# Skip optional package systems
 ansible-playbook --skip-tags snap-packages,flatpak-packages playbook.yml
+
+# Run only core system setup
+ansible-playbook -t os-configuration,packages,security-services playbook.yml
 ```
-
-## Architecture
-
-### Non-Opinionated Group Structure
-
-```yaml
-
-[webservers]
-web01
-web02
-
-[databases]
-db01
-db02
-
-[all:vars]
-infrastructure.domain.name=company.com
-```
-
-### Distribution Detection
-
-Roles use `{{ ansible_distribution }}` and `{{ ansible_os_family }}` facts for OS-specific behavior within the unified variable structure.
 
 ## Dependencies
 
-Required roles (all included in collection):
-
+All required roles are included in the collection:
 - `wolskies.infrastructure.os_configuration`
-- `wolskies.infrastructure.manage_users`
 - `wolskies.infrastructure.manage_packages`
 - `wolskies.infrastructure.manage_security_services`
 - `wolskies.infrastructure.manage_snap_packages`
 - `wolskies.infrastructure.manage_flatpak`
 - `wolskies.infrastructure.configure_user`
-
-## License
-
-MIT
