@@ -2,35 +2,55 @@
 # =============================================================================
 # MANAGE PACKAGES ROLE DEFAULTS
 # =============================================================================
-# This role handles package management across different operating systems
-# Uses collection-wide variables from section 2.2.1 - no role-specific variables
-#
-# All variables are defined in the collection interface (docs/source/api/variables.rst)
-# and documented in meta/argument_specs.yml
+# This role uses collection-wide variables from SRD section 2.2.1
+# All variables defined exactly as specified in the SRD
 # =============================================================================
 
 # Cross-Platform Package Management
-packages: {}
+packages:
+  present: {}
+  # Example structure from SRD:
+  # present:
+  #   all:
+  #     Ubuntu: [curl, git, vim]
+  #     Debian: [curl, git, vim]
+  #     Archlinux: [curl, git, neovim]
+  #     Darwin: [curl, git]
+  #   group:
+  #     Ubuntu: [docker.io, nginx]
+  #     Archlinux: [docker, nginx]
+  #   host:
+  #     Ubuntu: [postgresql, redis]
 
-# Layered Package Configuration
+# Layered Package Definitions (merged in order: all → group → host)
 manage_packages_all: {}
 manage_packages_group: {}
 manage_packages_host: {}
 
-# APT Repository Management
+# APT Repository Management (Debian/Ubuntu)
 apt_repositories_all: {}
 apt_repositories_group: {}
 apt_repositories_host: {}
 
-# APT Configuration
+# APT Configuration (Debian/Ubuntu)
 apt:
-  repositories: {}
+  proxy: ""
+  no_recommends: false
+  unattended_upgrades:
+    enabled: false
+  repositories:
+    Ubuntu: []
+    Debian: []
   system_upgrade:
     enable: false
     type: "safe"
 
 # Pacman Configuration (Arch Linux)
 pacman:
+  proxy: ""
+  no_confirm: false
+  multilib:
+    enabled: false
   enable_aur: false
 
 # Homebrew Configuration (macOS)
@@ -41,3 +61,9 @@ homebrew:
 # macOS Cask Management
 manage_casks:
   Darwin: []
+  # Example:
+  # Darwin:
+  #   - name: google-chrome
+  #     state: present
+  #   - name: visual-studio-code
+  #     state: present

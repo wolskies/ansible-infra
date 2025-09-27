@@ -2,59 +2,56 @@
 # =============================================================================
 # OS CONFIGURATION ROLE DEFAULTS
 # =============================================================================
-# This role handles fundamental operating system configuration across platforms
-# Uses collection-wide variables from section 2.2.1 - no role-specific variables
-#
-# All variables are defined in the collection interface (docs/source/api/variables.rst)
-# and documented in meta/argument_specs.yml
+# This role uses collection-wide variables from SRD section 2.2.1
+# All variables defined exactly as specified in the SRD
 # =============================================================================
 
-# Domain Configuration - RFC 1035 compliant domain name
+# Domain Configuration
 domain_name: ""
-
-# System timezone in IANA format (e.g., "America/New_York", "Europe/London")
 domain_timezone: ""
-
-# System locale in language_COUNTRY.encoding format
 domain_locale: "en_US.UTF-8"
 domain_language: "en_US.UTF-8"
 
-# Host Configuration - RFC 1123 compliant hostname
+# Host Configuration
 host_hostname: ""
 host_update_hosts: true
 
-# Security Configuration
-host_security:
-  hardening_enabled: false
-  ssh_hardening_enabled: false
-
-# Linux Service Management
+# Host Services (Linux)
 host_services:
   enable: []
   disable: []
   mask: []
 
-# Linux Kernel Module Management
+# Host Modules (Linux)
 host_modules:
   load: []
   blacklist: []
 
-# Linux Udev Rules Management
+# Host Udev Rules (Linux)
 host_udev:
   rules: []
 
-# Linux Sysctl Parameters
+# Host Sysctl Parameters (Linux)
 host_sysctl:
   parameters: {}
 
-# Linux NTP Configuration
+# NTP Configuration (Linux)
 domain_ntp:
   enabled: false
   servers: []
 
-# Linux Journal Configuration
+# Journal Configuration (Linux)
 journal:
   configure: false
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
+
+# Security Configuration
+host_security:
+  hardening_enabled: false
+  ssh_hardening_enabled: false
 
 # APT Configuration (Debian/Ubuntu)
 apt:
@@ -70,7 +67,7 @@ pacman:
   multilib:
     enabled: false
 
-# macOS System Configuration
+# macOS Configuration
 macosx:
   updates:
     auto_check: true

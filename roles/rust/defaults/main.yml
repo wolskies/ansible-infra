@@ -2,10 +2,8 @@
 # =============================================================================
 # RUST ROLE DEFAULTS
 # =============================================================================
-# This role handles Rust toolchain installation and cargo package management
-# Uses role-specific variables passed from calling roles
-#
-# All variables are documented in meta/argument_specs.yml
+# This role uses collection-wide variables from SRD section 2.2.1
+# All variables defined exactly as specified in the SRD
 # =============================================================================
 
 # Package Management

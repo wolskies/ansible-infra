@@ -190,6 +190,11 @@ firewall:
 | `host_sysctl.parameters`                        | dict[string, string\|int] | `{}`            | Kernel parameter definitions (see schema below)                                                          |
 | `domain_ntp.enabled`                            | boolean                   | `false`         | Enable NTP time synchronization configuration                                                            |
 | `domain_ntp.servers`                            | list[string]              | `[]`            | NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])                                     |
+| `journal.configure`                             | boolean                   | `false`         | Enable systemd journal configuration management                                                          |
+| `journal.max_size`                              | string                    | `"500M"`        | Maximum disk space for journal files (e.g., "500M", "1G", "2G")                                         |
+| `journal.max_retention`                         | string                    | `"30d"`         | Maximum journal retention time (e.g., "7d", "30d", "1y")                                                |
+| `journal.forward_to_syslog`                     | boolean                   | `false`         | Forward journal messages to syslog daemon                                                               |
+| `journal.compress`                              | boolean                   | `true`          | Enable journal file compression                                                                          |
 | `firewall.enabled`                              | boolean                   | `false`         | Enable firewall rule management                                                                          |
 | `firewall.prevent_ssh_lockout`                  | boolean                   | `true`          | Automatically allow SSH during firewall configuration                                                    |
 | `firewall.rules`                                | list[object]              | `[]`            | Firewall rule definitions (see schema below)                                                             |
