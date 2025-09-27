@@ -1,46 +1,61 @@
 # Ansible Collection - wolskies.infrastructure
 
-Automates installation and maintenance tasks for multiple machines/operating systems.
+Infrastructure management automation for cross-platform development and production environments. Focuses on configuration management, security hardening, and development environment setup.
 
 **Supported Operating Systems:**
-- Ubuntu 22.04+
-- Arch Linux
-- macOS (limited support)
+- Ubuntu 22.04+, 24.04+
+- Debian 12+, 13+
+- Arch Linux (Rolling)
+- macOS 13+ (Ventura)
 
 ## Included Roles
 
-- **configure_system**: meta-role that orchestrates system configuration, system-level package installation, and initial user configuration (user, password, ssh keys)
-- **configure_users**: Configures users preferences and user-level software installation
-- **os_configuration**: System settings (timezone, hostname, services, kernel parameters, locale) + comprehensive security hardening for Linux systems
-- **manage_users**: Creates user accounts, groups, and SSH keys (system-level)
-- **manage_packages**: Manages packages via os-native package management system. For MacOS, homebrew is considered the 'native' package management system. If not present it will be installed via geerlingguy.mac collection.
-- **manage_security_services**: Firewall (UFW/macOS) and fail2ban configuration
-- **manage_snap_packages**: System level snap management and snap package management. Has the option to completely remove and disable snap on Ubuntu systems
-- **manage_flatpak**: System level flatpak management, can enable flathub and browser extensions for flatpak
-- **nodejs**: Nodejs installation (system level) and user-level package management
-- **rust**: Rustup installation (system level) and user-level rust package management
-- **go**: Go installation (system level) and user-level go package management
+### Core System Management
+- **configure_system**: Meta-role orchestrating complete system configuration including OS settings, packages, security, and initial user setup
+- **os_configuration**: System settings (timezone, hostname, locale, services, kernel parameters) with comprehensive security hardening
+- **manage_packages**: Cross-platform package management (APT, Pacman, Homebrew) with repository configuration
+- **manage_security_services**: Firewall (UFW/macOS ALF) and fail2ban configuration for intrusion prevention
+
+### User and Development Environment
+- **configure_user**: User-specific configuration including dotfiles, development tools, and language environments
+- **nodejs**: Node.js installation and user-level package management with npm
+- **rust**: Rust/Cargo installation and user-level package management
+- **go**: Go installation and user-level package management
+- **neovim**: Neovim installation and basic configuration
+- **terminal_config**: Terminal and shell configuration (bash, zsh, tmux)
+
+### Package Systems and Infrastructure
+- **manage_snap_packages**: Snap package management with option to completely remove snapd system
+- **manage_flatpak**: Flatpak runtime and package management with Flathub integration
+- **docker_compose_generic**: Generic Docker Compose service management
+- **install_docker**: Docker Engine installation and configuration
+
+### Utilities
+- **discovery**: System state discovery and documentation for validation and auditing
 
 ## Supported Operating Systems
 
-**Ubuntu 22+**, **Debian 12+**, **Arch Linux**, and **macOS**.
+**Ubuntu 22.04+**, **Ubuntu 24.04+**, **Debian 12+**, **Debian 13+**, **Arch Linux**, and **macOS 13+**.
 
-**Note**:
-This collection has the ability to specify nodejs, go and rust packages to install at the user level in configure_users. The nodejs, rustup, and go packages, if missing, are installed via system package manager. For Debian family, only **Ubuntu 24.04+** and **Debian 13+** have system packages available. For those operating systems nodejs, rustup, and go must be installed manually before running the script.
+**Note on Development Tools**:
+Language runtimes (Node.js, Rust, Go) are installed via system package managers when available. For older Debian/Ubuntu versions that lack system packages, manual installation is required before running collection roles.
 
 ## Privilege and Execution Model
 
-This collection supports a limited ability to configure multiple users and preferences on a host. System packages are installed normally with elevated privileges. In the case of homebrew, which can be picky about privileges, while intended to be common across users, the "homebrew user" will be the ansible user. Local packages and preferences can be configured at the user-level and will be installed to the user's home directory with the exception that any tooling ("rustup" in the case of rust) will be installed at the system level.
+The collection supports multi-user configuration with appropriate privilege separation:
 
-**Important for Docker/Kubernetes users**: The collection applies security hardening that disables IP forwarding by default. If you're running containers, you must enable it:
+- **System packages**: Installed with elevated privileges via native package managers
+- **User-level packages**: Installed to user home directories without elevation
+- **Development tools**: Language runtimes installed system-wide, packages installed per-user
+- **macOS Homebrew**: Installed and managed under the Ansible user account
+
+**Important for Container Users**: Security hardening disables IP forwarding by default. Enable for Docker/Kubernetes:
 
 ```yaml
 host_sysctl:
   parameters:
     net.ipv4.ip_forward: 1 # Required for Docker/Kubernetes
 ```
-
-**Note on compatibility**: Some older systems may need adjusted hardening settings (see os_configuration role documentation for memory randomization and SSH key compatibility).
 
 ## Installation
 
@@ -65,195 +80,181 @@ ansible-galaxy collection install . --force
 
 ## Quick Start
 
+### Basic Server Configuration
 ```yaml
 # group_vars/all.yml
-domain_name: "company.com"
 domain_timezone: "America/New_York"
 domain_locale: "en_US.UTF-8"
-domain_ntp:
-  enabled: true
-  servers: ["time1.company.com"]
-users:
-  - name: admin
-    groups: [sudo]
-    ssh_keys:
-      - "ssh-ed25519 AAAAC3..."
-target_user:
-  name: admin
-  nodejs:
-    packages: [typescript, eslint]
-  rust:
-    packages: [ripgrep, bat]
 
 # host_vars/web01.yml
 host_hostname: "web01"
-host_services:
-  enable: [nginx]
-  disable: [bluetooth]
 packages:
   present:
-    host:
-      Ubuntu: [redis-server]
+    all:
+      Ubuntu: [nginx, git, curl]
+      Debian: [nginx, git, curl]
+
 firewall:
   enabled: true
   rules:
     - rule: allow
-      port: 80
-      proto: tcp
+      port: 22
+      protocol: tcp
+    - rule: allow
+      port: 80,443
+      protocol: tcp
+
+fail2ban:
+  enabled: true
+  maxretry: 3
 ```
 
+### Development Workstation Configuration
 ```yaml
-# playbook.yml
+# group_vars/workstations.yml
+users:
+  - name: developer
+    groups: [sudo]
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+
+target_user:
+  name: developer
+  git:
+    user_name: "Developer Name"
+    user_email: "dev@company.com"
+    editor: "nvim"
+  nodejs:
+    packages: [typescript, eslint, prettier]
+  rust:
+    packages: [ripgrep, bat, fd-find]
+  neovim:
+    enabled: true
+  dotfiles:
+    enable: true
+    repository: "https://github.com/developer/dotfiles"
+```
+
+### Complete Playbook
+```yaml
+# site.yml
 - hosts: all
   become: true
   roles:
     - wolskies.infrastructure.configure_system
-    - wolskies.infrastructure.configure_users
+
+- hosts: all
+  become: true
+  become_user: "{{ target_user.name }}"
+  roles:
+    - wolskies.infrastructure.configure_user
+  when: target_user is defined
 ```
-
-## Dependencies and Credits
-
-This collection uses and builds upon:
-
-- **geerlingguy.mac**: Homebrew installation on macOS
-- **devsec.hardening**: Comprehensive OS security hardening for Linux systems
-- **kewlfft.aur**: AUR package management for Arch Linux
-- **Jeff Geerling's nodejs role**: Inspiration for our nodejs implementation
-
-## Additional Security Hardening
-
-This collection includes comprehensive OS-level security hardening for Linux systems via devsec.hardening.os_hardening. For additional SSH-specific hardening, consider adding:
-
-- **devsec.hardening**: OS and SSH hardening (os_hardening, ssh_hardening roles)
 
 ## Variable Reference
 
-### Domain Configuration
-
+### Domain-Wide Configuration
 ```yaml
-domain_name: "company.com" # Optional domain name
-domain_timezone: "America/New_York" # System timezone
-domain_locale: "en_US.UTF-8" # System locale
-domain_language: "en_US" # System language
+domain_timezone: "America/New_York"    # IANA timezone
+domain_locale: "en_US.UTF-8"          # System locale
+domain_language: "en_US.UTF-8"        # System language
 domain_ntp:
-  enabled: true # Enable NTP synchronization
-  servers: # Custom NTP servers
-    - "time1.company.com"
-    - "time2.company.com"
-users: [] # Domain-wide user definitions
+  enabled: true                       # Enable NTP sync
+  servers: ["pool.ntp.org"]           # NTP servers
 ```
 
-### Host Configuration
-
+### Host-Specific Configuration
 ```yaml
-host_hostname: "web01" # Individual hostname
-host_update_hosts: true # Manage /etc/hosts file
+host_hostname: "web01"                # System hostname
+host_update_hosts: true               # Update /etc/hosts
 
-host_services: # systemd service management
-  enable: [nginx, redis]
-  disable: [bluetooth, cups]
+host_services:
+  enable: [nginx, postgresql]         # Enable services
+  disable: [apache2, sendmail]        # Disable services
+  mask: [snapd, telnet]              # Mask services
 
-host_sysctl: # Kernel parameters
+host_sysctl:
   parameters:
-    vm.swappiness: 10
+    vm.swappiness: 10                 # Kernel parameters
     net.ipv4.ip_forward: 1
 
-host_limits: # PAM limits
-  - domain: "*"
-    type: soft
-    item: nofile
-    value: 65536
-
-host_modules: # Kernel modules
-  load: [uvcvideo]
-  blacklist: [nouveau, radeon]
-
-host_udev: # udev rules
-  rules:
-    - name: pico-permissions
-      content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", MODE="0666"'
-      priority: 99
-      state: present
-
-packages: {} # Package management (see below)
-firewall: {} # Firewall configuration (see below)
-fail2ban: {} # Fail2ban configuration (see below)
-journal: {} # Journal settings (see below)
-snap: {} # Snap management (see below)
-flatpak: {} # Flatpak management (see below)
+host_modules:
+  load: [br_netfilter, overlay]       # Load modules
+  blacklist: [pcspkr, nouveau]       # Blacklist modules
 ```
 
 ### Package Management
-
 ```yaml
 packages:
   present:
-    all: # Packages for all hosts
+    all:                              # All hosts
       Ubuntu: [git, curl, vim]
       Debian: [git, curl, vim]
       Archlinux: [git, curl, vim]
-      MacOSX: [git, curl, vim]
-    group: # Group-specific packages
+    group:                            # Group-specific
       Ubuntu: [nginx, postgresql]
-    host: # Host-specific packages
+    host:                             # Host-specific
       Ubuntu: [redis-server]
   remove:
     all:
-      Ubuntu: [snapd] # Remove unwanted packages
-  casks_present: # macOS casks
-    all: [visual-studio-code, docker]
+      Ubuntu: [snapd]                 # Remove packages
 
-apt: # APT-specific settings
+# APT Configuration
+apt:
+  repositories:
+    Ubuntu:
+      - name: nodejs
+        types: [deb]
+        uris: "https://deb.nodesource.com/node_20.x"
+        suites: ["nodistro"]
+        components: [main]
+        signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
   unattended_upgrades:
     enabled: true
-  repositories: # Custom repositories
-    nodejs:
-      name: nodejs
-      types: [deb]
-      uris: "https://deb.nodesource.com/node_20.x"
-      suites: ["nodistro"]
-      components: [main]
-      signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
 
-homebrew: # Homebrew settings
-  taps:
-    - homebrew/cask-fonts
+# Homebrew Configuration (macOS)
+homebrew:
+  taps: [homebrew/cask-fonts]
+manage_casks:
+  Darwin:
+    - name: visual-studio-code
+    - name: docker
 ```
 
-### User Management
-
+### User Configuration
 ```yaml
 users:
   - name: developer
-    comment: "Development User"
+    uid: 1000
     groups: [sudo, docker]
+    shell: /bin/bash
     ssh_keys:
-      - "ssh-ed25519 AAAAC3..."
+      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+        comment: "developer@workstation"
+        state: present
 
-    # Cross-platform preferences (identical across OS)
-    git:
-      user_name: "Developer Name"
-      user_email: "dev@company.com"
-      editor: vim
-
-    # Language packages with auto-installation
-    nodejs:
-      packages: [typescript, eslint, prettier]
-    rust:
-      packages: [ripgrep, bat, fd-find]
-    go:
-      packages: [github.com/charmbracelet/glow@latest]
-
-    # OS-specific preferences
-    shell: /bin/zsh # Cross-platform shell
-    dotfiles: # Linux/macOS dotfiles
-      enable: true
-      repository: "https://github.com/user/dotfiles"
-      branch: main
+target_user:
+  name: developer
+  git:
+    user_name: "Developer Name"
+    user_email: "developer@company.com"
+    editor: "nvim"
+  nodejs:
+    packages: [typescript, eslint, "@vue/cli"]
+  rust:
+    packages: [ripgrep, bat, fd-find]
+  go:
+    packages: [github.com/charmbracelet/glow@latest]
+  neovim:
+    enabled: true
+  dotfiles:
+    enable: true
+    repository: "https://github.com/developer/dotfiles"
+    branch: main
+    dest: ".dotfiles"
 ```
 
-### Firewall Configuration
-
+### Security Configuration
 ```yaml
 firewall:
   enabled: true
@@ -261,64 +262,67 @@ firewall:
   rules:
     - rule: allow
       port: 22
-      proto: tcp
+      protocol: tcp
     - rule: allow
       port: 80,443
-      proto: tcp
+      protocol: tcp
+      comment: "Web services"
     - rule: allow
       from_ip: 192.168.1.0/24
       port: 3000
-      proto: tcp
-```
+      protocol: tcp
 
-### Fail2ban Configuration
-
-```yaml
 fail2ban:
   enabled: true
-  dest_email: "admin@company.com"
-  defaults:
-    bantime: 3600
-    findtime: 600
-    maxretry: 5
-  services:
+  bantime: "10m"
+  findtime: "10m"
+  maxretry: 5
+  jails:
     - name: sshd
       enabled: true
       maxretry: 3
-      bantime: 7200
-```
-
-
-### System Journal
-
-```yaml
-journal:
-  max_size: "500M"
-  max_retention: "30d"
-  forward_to_syslog: false
+      bantime: "1h"
 ```
 
 ### Alternative Package Systems
-
 ```yaml
 snap:
-  packages:
-    install: [hello-world, code]
-    remove: [unwanted-snap]
+  remove_completely: false           # Don't remove snapd
+snap_packages:
+  - name: code
+    state: present
+  - name: unwanted-snap
+    state: absent
 
 flatpak:
   enabled: true
-  flathub: true
-  packages:
-    install: [org.gimp.GIMP, com.spotify.Client]
+  flathub: true                      # Enable Flathub
+  method: system                     # System-wide install
+flatpak_packages:
+  - name: org.gimp.GIMP
+    state: present
+  - name: com.spotify.Client
+    state: present
 ```
 
-## Role Usage
+### System Configuration
+```yaml
+journal:
+  configure: true
+  max_size: "500M"
+  max_retention: "30d"
+  compress: true
+  forward_to_syslog: false
+
+host_security:
+  hardening_enabled: true           # Enable OS hardening
+  ssh_hardening_enabled: true      # Enable SSH hardening
+```
+
+## Role Usage Patterns
 
 ### System Orchestration
-
-Use `configure_system` to orchestrate all infrastructure roles:
-
+Use `configure_system` for complete infrastructure setup:
 ```yaml
 - hosts: all
   become: true
@@ -326,23 +330,31 @@ Use `configure_system` to orchestrate all infrastructure roles:
     - wolskies.infrastructure.configure_system
 ```
 
-### Individual Roles
-
-Each role can be used independently:
-
+### Selective Role Usage
+Apply specific functionality as needed:
 ```yaml
 - hosts: web_servers
   become: true
   roles:
     - wolskies.infrastructure.os_configuration
-    - wolskies.infrastructure.manage_users
     - wolskies.infrastructure.manage_packages
     - wolskies.infrastructure.manage_security_services
 
+- hosts: development_machines
+  become: true
+  roles:
+    - wolskies.infrastructure.nodejs
+    - wolskies.infrastructure.rust
+    - wolskies.infrastructure.neovim
+```
+
+### User-Specific Configuration
+Configure individual users with their preferences:
+```yaml
 - hosts: all
   become: true
   tasks:
-    - name: Configure users individually
+    - name: Configure each user
       include_role:
         name: wolskies.infrastructure.configure_user
       vars:
@@ -352,32 +364,55 @@ Each role can be used independently:
       become_user: "{{ item.name }}"
 ```
 
+## Dependencies and Credits
+
+This collection builds upon excellent work from the community:
+
+- **geerlingguy.mac**: Homebrew installation and macOS configuration
+- **devsec.hardening**: OS and SSH security hardening (os_hardening, ssh_hardening roles)
+- **kewlfft.aur**: AUR package management for Arch Linux
+- **community.general**: Core modules for package management and system configuration
+
 ## Documentation
 
-**📖 Comprehensive documentation is available on GitLab Pages:**
-- **Collection Overview**: Complete collection documentation with platform support, requirements, and usage examples
-- **Individual Role Documentation**: Detailed documentation for each role including variables, requirements, and examples
-- **Generated from SRD**: All documentation is automatically generated from Software Requirements Document (SRD) and role specifications
+**📖 Complete documentation is available on GitLab Pages:**
+- **Collection Overview**: Full variable reference and usage patterns
+- **Individual Role Documentation**: Detailed specifications for each role
+- **Requirements and Examples**: Platform-specific configuration examples
+- **Auto-Generated**: Documentation is generated from the Software Requirements Document (SRD)
 
 **Local Documentation Generation:**
 ```bash
-# Generate enhanced role documentation
+# Generate complete documentation
 python3 scripts/generate_enhanced_docs.py
-
-# Generate collection-level documentation
 python3 scripts/generate_collection_docs.py
-
-# Generated files will be in docs/generated/
 ```
 
-**CI/CD Integration:**
-- Documentation is automatically generated and validated on every merge request
-- GitLab Pages deployment occurs automatically on main branch updates
-- RST syntax validation ensures documentation quality
+## Requirements
 
-## Dependencies
+- **Ansible Core**: 2.15+ (tested with 2.17)
+- **Python**: 3.9+ on control and managed nodes
+- **Collections**:
+  - `community.general` - Package management and system modules
+  - `ansible.posix` - POSIX system management
+- **Platform-Specific**:
+  - **macOS**: Xcode Command Line Tools
+  - **Arch Linux**: `base-devel` group for AUR support
+  - **Debian/Ubuntu**: `python3-debian` for repository management
 
-- **ansible-core**: 2.13+
-- **community.general**: For npm, homebrew, and flatpak modules
-- **ansible.posix**: For ACL and system management
-- **Xcode Command Line Tools**: Required on macOS hosts
+## Testing and Validation
+
+The collection includes comprehensive testing:
+- **Molecule tests** for individual roles
+- **CI/CD integration** with GitLab
+- **Cross-platform validation** on Ubuntu, Debian, Arch, macOS
+- **VM-based end-to-end testing** with 4-VM test matrix
+
+For local testing:
+```bash
+# Test individual role
+cd roles/role_name && molecule test
+
+# Run collection-wide tests
+make test
+```
