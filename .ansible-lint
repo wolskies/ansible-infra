@@ -12,6 +12,7 @@ exclude_paths:
   - molecule/*/prepare.yml
   - molecule/shared/molecule-base.yml
   - tests/
+  - vm-test-infrastructure/
 
 # Enable additional rules for better error detection
 enable_list:

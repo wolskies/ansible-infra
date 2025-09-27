@@ -3,12 +3,12 @@
 # Compares discovery results against expected workstation configuration
 
 - name: Load discovery results for {{ host_name }}
-  set_fact:
+  ansible.builtin.set_fact:
     actual_config: "{{ lookup('file', 'validation/discovery-results/' + host_name + '_actual.json', errors='ignore') | from_json }}"
-  ignore_errors: yes
+  failed_when: false
 
 - name: Initialize validation result for {{ host_name }}
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation:
       hostname: "{{ host_name }}"
       type: "workstation"
@@ -19,7 +19,7 @@
       errors: []
 
 - name: Validate hostname configuration
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -32,7 +32,7 @@
   when: actual_config is defined
 
 - name: Validate timezone configuration
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -45,7 +45,7 @@
   when: actual_config is defined
 
 - name: Validate target user creation
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -58,7 +58,7 @@
   when: actual_config is defined
 
 - name: Validate Node.js installation
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -71,7 +71,7 @@
   when: actual_config is defined
 
 - name: Validate Rust installation
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -84,7 +84,7 @@
   when: actual_config is defined
 
 - name: Validate Go installation
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -97,7 +97,7 @@
   when: actual_config is defined
 
 - name: Validate Neovim installation
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -110,13 +110,13 @@
   when: actual_config is defined
 
 - name: Validate essential development packages
-  set_fact:
+  ansible.builtin.set_fact:
     essential_packages: ["git", "curl", "build-essential", "nodejs"] # Adjust for distribution
     installed_packages: "{{ actual_config.get('packages', {}).get('installed', []) }}"
   when: actual_config is defined
 
 - name: Check essential package installation
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -129,7 +129,7 @@
   when: actual_config is defined
 
 - name: Validate terminal configuration
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -142,7 +142,7 @@
   when: actual_config is defined
 
 - name: Calculate validation summary
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'passed': host_validation.checks | selectattr('passed') | list | length,
@@ -151,11 +151,11 @@
       }) }}
 
 - name: Add host validation to results
-  set_fact:
+  ansible.builtin.set_fact:
     validation_results: "{{ validation_results + [host_validation] }}"
 
 - name: Display workstation validation result for {{ host_name }}
-  debug:
+  ansible.builtin.debug:
     msg:
       - "Workstation {{ host_name }}: {{ host_validation.status | upper }}"
       - "Passed: {{ host_validation.passed }}/{{ host_validation.checks | length }}"
