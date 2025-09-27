@@ -18,53 +18,43 @@ Manages system packages using the appropriate package manager:
   roles:
     - wolskies.infrastructure.manage_packages
   vars:
-    packages:
-      present:
-        all:
-          Ubuntu: [git, curl, vim]
-          Debian: [git, curl, vim]
-          Archlinux: [git, curl, vim]
-          Darwin: [git, curl, vim]
+    manage_packages_all:
+      Ubuntu: [git, curl, vim]
+      Debian: [git, curl, vim]
+      Archlinux: [git, curl, vim]
+      Darwin: [git, curl, vim]
 ```
 
 ### Layered Package Management
 ```yaml
 # group_vars/all.yml - Base packages for all hosts
 manage_packages_all:
-  present:
-    all:
-      Ubuntu: [git, curl, vim, htop]
-      Darwin: [git, curl, vim, htop]
+  Ubuntu: [git, curl, vim, htop]
+  Darwin: [git, curl, vim, htop]
 
 # group_vars/webservers.yml - Group-specific packages
 manage_packages_group:
-  present:
-    group:
-      Ubuntu: [nginx, postgresql]
+  Ubuntu: [nginx, postgresql]
 
 # host_vars/web01.yml - Host-specific packages
 manage_packages_host:
-  present:
-    host:
-      Ubuntu: [redis-server]
+  Ubuntu: [redis-server]
 ```
 
 ### APT Repository Management
 ```yaml
+apt_repositories_all:
+  Ubuntu:
+    - name: nodejs
+      uris: "https://deb.nodesource.com/node_20.x"
+      suites: "nodistro"
+      components: "main"
+      signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+
 apt:
-  repositories:
-    Ubuntu:
-      - name: nodejs
-        types: [deb]
-        uris: "https://deb.nodesource.com/node_20.x"
-        suites: ["nodistro"]
-        components: [main]
-        signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
   unattended_upgrades:
     enabled: true
-  system_upgrade:
-    enable: true
-    type: "safe"
+  proxy: "http://proxy.example.com:8080"
 ```
 
 ### macOS Homebrew Configuration
@@ -96,20 +86,20 @@ Uses collection-wide variables - see collection README for complete reference.
 ### Package Structure
 Packages are organized by scope and OS family:
 ```yaml
-packages:
-  present:
-    all:      # Applied to all hosts
-      Ubuntu: [package1, package2]
-      Debian: [package1, package2]
-      Archlinux: [package1, package2]
-      Darwin: [package1, package2]
-    group:    # Applied to inventory groups
-      Ubuntu: [group-specific-package]
-    host:     # Applied to specific hosts
-      Ubuntu: [host-specific-package]
-  remove:
-    all:
-      Ubuntu: [unwanted-package]
+# Base-level packages (merged first)
+manage_packages_all:
+  Ubuntu: [package1, package2]
+  Debian: [package1, package2]
+  Archlinux: [package1, package2]
+  Darwin: [package1, package2]
+
+# Group-level packages (merged second)
+manage_packages_group:
+  Ubuntu: [group-specific-package]
+
+# Host-level packages (merged last)
+manage_packages_host:
+  Ubuntu: [host-specific-package]
 ```
 
 ### Layered Package Variables
@@ -118,9 +108,10 @@ packages:
 - `manage_packages_host` - Host-level packages (merged last)
 
 ### APT Configuration
-- `apt.repositories` - Custom APT repositories using deb822 format
+- `apt_repositories_all` - Base-level APT repositories
+- `apt_repositories_group` - Group-level APT repositories
+- `apt_repositories_host` - Host-level APT repositories
 - `apt.unattended_upgrades.enabled` - Enable automatic security updates
-- `apt.system_upgrade.enable` - Enable system upgrades
 - `apt.proxy` - APT proxy URL
 
 ### Homebrew Configuration (macOS)

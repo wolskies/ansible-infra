@@ -36,9 +36,21 @@ The following roles are under development for the next release:
 - **docker_compose_generic**: Generic Docker Compose service management
 - **install_docker**: Docker Engine installation and configuration
 
-## Supported Operating Systems
+## Platform Support
 
-**Ubuntu 22.04+**, **Ubuntu 24.04+**, **Debian 12+**, **Debian 13+**, **Arch Linux**, and **macOS 13+**.
+This collection categorizes platform support into the following tiers:
+
+- **Tier 1 (Fully Tested)**: These platforms are automatically tested in CI on every change. They are considered fully supported and stable.
+- **Tier 2 (Best Effort)**: Functionality has been developed and is expected to work, but lacks automated CI testing. We welcome contributions to expand CI coverage for these platforms.
+
+### Supported Platforms by Tier
+
+- **Tier 1**:
+  - Ubuntu 22.04+, 24.04+
+  - Debian 12+, 13+
+  - Arch Linux (Rolling)
+- **Tier 2**:
+  - macOS 13+ (Ventura) - *Lacks automated CI testing*
 
 **Note on Development Tools**:
 Language runtimes (Node.js, Rust, Go) are installed via system package managers when available. For older Debian/Ubuntu versions that lack system packages, manual installation is required before running collection roles.
@@ -91,11 +103,9 @@ domain_locale: "en_US.UTF-8"
 
 # host_vars/web01.yml
 host_hostname: "web01"
-packages:
-  present:
-    all:
-      Ubuntu: [nginx, git, curl]
-      Debian: [nginx, git, curl]
+manage_packages_host:
+  Ubuntu: [nginx, git, curl]
+  Debian: [nginx, git, curl]
 
 firewall:
   enabled: true
@@ -188,19 +198,19 @@ host_modules:
 
 ### Package Management
 ```yaml
-packages:
-  present:
-    all:                              # All hosts
-      Ubuntu: [git, curl, vim]
-      Debian: [git, curl, vim]
-      Archlinux: [git, curl, vim]
-    group:                            # Group-specific
-      Ubuntu: [nginx, postgresql]
-    host:                             # Host-specific
-      Ubuntu: [redis-server]
-  remove:
-    all:
-      Ubuntu: [snapd]                 # Remove packages
+# Base packages for all hosts
+manage_packages_all:
+  Ubuntu: [git, curl, vim]
+  Debian: [git, curl, vim]
+  Archlinux: [git, curl, vim]
+
+# Group-specific packages
+manage_packages_group:
+  Ubuntu: [nginx, postgresql]
+
+# Host-specific packages
+manage_packages_host:
+  Ubuntu: [redis-server]
 
 # APT Configuration
 apt:

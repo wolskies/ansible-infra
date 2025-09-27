@@ -1,166 +1,99 @@
 # neovim
 
-Neovim installation and user-level configuration with lazy.nvim plugin manager.
+Comprehensive Neovim installation and development-ready configuration.
 
-## Description
+## What It Does
 
-Installs neovim system-wide if not present, then configures per-user neovim setup with lazy.nvim plugin manager, LSP support, and a comprehensive configuration. Creates a vim alias for seamless transition from vim to neovim.
+Installs and configures Neovim for development:
+- **Neovim Installation** - Latest available version via system package manager
+- **Plugin Manager** - lazy.nvim for efficient plugin management
+- **LSP Configuration** - Language server protocol support for multiple languages
+- **Development Dependencies** - Git and language servers (platform-dependent)
+- **Vim Compatibility** - Alias for seamless transition from vim
 
-## Features
+## Usage
 
-- **System installation**: Installs neovim via system package manager if missing
-- **User configuration**: Sets up per-user neovim config with lazy.nvim
-- **LSP support**: Includes lua-language-server and pyright on Arch Linux and macOS
-- **Vim compatibility**: Creates vim alias script for easy transition
-- **Plugin management**: Lazy.nvim for modern plugin management
-- **Cross-platform**: Works on Ubuntu, Debian, Arch Linux, and macOS
-
-## Role Variables
-
+### Basic Installation
 ```yaml
-neovim_user: ""                    # Target username (required)
-neovim_config_enabled: true        # Whether to install user configuration
-```
-
-## Usage Examples
-
-### Standalone Usage
-
-```yaml
-- hosts: developers
-  become: true
-  roles:
-    - role: wolskies.infrastructure.neovim
-      vars:
-        neovim_user: developer
-```
-
-### With Variable Files
-
-```yaml
-# group_vars/developers.yml
-neovim_user: developer
-neovim_config_enabled: true
-
-# playbook.yml
 - hosts: developers
   become: true
   roles:
     - wolskies.infrastructure.neovim
+  vars:
+    neovim_user: developer
 ```
 
 ### Integration with configure_user
-
-This role is automatically called by configure_user when neovim configuration is specified:
-
 ```yaml
 target_user:
   name: developer
   neovim:
     enabled: true
 ```
+
+## Variables
+
+### Role Variables
+| Variable | Type | Required | Default | Description |
+| -------- | ---- | -------- | ------- | ----------- |
+| `neovim_user` | string | Yes | - | Target username for Neovim installation |
+| `neovim_config_enabled` | boolean | No | `true` | Enable comprehensive configuration deployment |
 
 ## Installation Behavior
 
-1. **Neovim Check**: Verifies if `nvim` command exists
-2. **System Installation**: If missing, installs neovim via package manager:
-   - **Ubuntu/Debian**: `neovim`, `lua-language-server`, `pyright` via apt
-   - **Arch Linux**: `neovim`, `lua-language-server`, `pyright` via pacman
-   - **macOS**: `neovim`, `lua-language-server`, `pyright` via Homebrew
-3. **User Configuration**: As the target user:
-   - Creates `~/.local/bin/vim` alias script
-   - Installs lazy.nvim plugin manager
-   - Copies comprehensive neovim configuration files
+1. **Neovim Installation** - Installs Neovim and dependencies:
+   - **Ubuntu/Debian** - APT `neovim` and `git` packages
+   - **Arch Linux** - Pacman `neovim`, `git`, `lua-language-server`, and `pyright` packages
+   - **macOS** - Homebrew `neovim`, `git`, `lua-language-server`, and `pyright` packages
+2. **Plugin Manager Setup** - Clones lazy.nvim to `~/.local/share/nvim/lazy/lazy.nvim`
+3. **Configuration Deployment** - Creates comprehensive Lua-based configuration
+4. **Vim Compatibility** - Creates `~/.local/bin/vim` alias script
 
 ## Configuration Features
 
-### Included Configuration
-- **Lazy.nvim**: Modern plugin manager with lazy loading
-- **LSP Integration**: Built-in language server protocol support
-- **Clipboard**: Unified clipboard integration (`unnamedplus`)
-- **Leader Key**: Space as leader key for custom mappings
-- **Plugin Categories**: UI, LSP, configuration, and support plugins
+When `neovim_config_enabled` is true (default):
+- **Plugin Management** - lazy.nvim for efficient plugin loading
+- **LSP Support** - Configured for lua_ls, rust_analyzer, and pyright
+- **Development Bindings** - Essential key mappings for development workflow
+- **Modern Configuration** - Lua-based configuration for performance
 
-### File Structure
-```
-~/.config/nvim/
-├── init.lua                      # Main configuration entry point
-├── lua/
-│   ├── config/
-│   │   └── lazy.lua             # Lazy.nvim setup and plugin loading
-│   └── plugins/
-│       ├── configuration.lua     # General vim configuration
-│       ├── lsp.lua              # Language server setup
-│       ├── support.lua          # Supporting utilities
-│       └── ui.lua               # User interface plugins
-```
+## Platform-Specific Features
 
-### Vim Alias
-Creates `~/.local/bin/vim` script that executes `nvim "$@"` for seamless transition.
+### Arch Linux & macOS
+- Enhanced LSP functionality with pre-installed language servers
+- `lua-language-server` for Lua development
+- `pyright` for Python development
 
-## OS Support
-
-- **Ubuntu 22+**: Neovim installation only (LSP packages not available in repos)
-- **Debian 12+**: Neovim installation only (LSP packages not available in repos)
-- **Arch Linux**: Full support with LSP packages (lua-language-server, pyright)
-- **macOS 10.15+**: Full support with LSP packages via Homebrew
-
-**LSP Setup on Ubuntu/Debian**: LSP packages (lua-language-server, pyright) are not available in Ubuntu/Debian repositories. After running this role, manually install LSP servers:
-- Use `:Mason` in neovim to install language servers
-- Or manually install lua-language-server and pyright via their binary releases
-
-## Requirements
-
-- Target user must exist on the system
-- System package manager access (for neovim installation if needed)
-- Internet access for downloading lazy.nvim and plugins
-- Git (for lazy.nvim and plugin installation)
+### Ubuntu/Debian
+- Base Neovim installation with git support
+- LSP servers can be installed separately as needed
 
 ## File Locations
 
-- **Neovim installation**: System-wide via package manager
-- **User configuration**: `~/.config/nvim/` (XDG config standard)
-- **Plugin manager**: `~/.local/share/nvim/lazy/lazy.nvim`
-- **Plugins**: `~/.local/share/nvim/lazy/` (managed by lazy.nvim)
-- **Vim alias**: `~/.local/bin/vim`
+- **Configuration**: `~/.config/nvim/`
+- **Plugin Manager**: `~/.local/share/nvim/lazy/lazy.nvim`
+- **Vim Alias**: `~/.local/bin/vim`
+- **User Binaries**: `~/.local/bin/` (added to PATH if needed)
 
-## Integration Notes
+## Vim Compatibility
 
-### With configure_user Role
-This role integrates seamlessly with configure_user for complete development environment setup:
+The role creates a vim compatibility alias that:
+- Redirects `vim` commands to `nvim`
+- Maintains muscle memory for users transitioning from vim
+- Preserves all command-line arguments and options
 
-```yaml
-target_user:
-  name: developer
-  neovim:
-    enabled: true
-  nodejs:
-    packages: [typescript]
-  rust:
-    packages: [rust-analyzer]
-```
+## Platform Support
 
-### PATH Configuration
-The vim alias is installed to `~/.local/bin/vim`. Ensure `~/.local/bin` is in the user's PATH for the alias to work.
-
-## Plugin Management
-
-The included configuration uses lazy.nvim for plugin management. Users can:
-- Add plugins by editing `~/.config/nvim/lua/plugins/` files
-- Lazy.nvim automatically manages plugin installation and loading
-- Run `:Lazy` in neovim to manage plugins interactively
+- **Ubuntu** 22.04+, 24.04+
+- **Debian** 12+, 13+
+- **Arch Linux** (Rolling)
+- **macOS** 13+ (Ventura)
 
 ## Dependencies
 
-- System package manager (apt, pacman, homebrew)
-- Git (for plugin management)
-- `ansible.builtin.command` - For neovim detection
-- `community.general.homebrew` - For macOS installation
-
-## License
-
-MIT
-
-## Author Information
-
-This role is part of the wolskies.infrastructure collection.
+- `ansible.builtin.apt` (Ubuntu/Debian package installation)
+- `ansible.builtin.package` (Arch Linux package installation)
+- `community.general.homebrew` (macOS package installation)
+- `ansible.builtin.git` (Plugin manager installation)
+- `ansible.builtin.file` (Directory and alias creation)
+- `ansible.builtin.copy` (Configuration deployment)

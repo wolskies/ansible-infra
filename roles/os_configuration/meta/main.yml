@@ -32,3 +32,6 @@ galaxy_info:
     - repositories
 
 dependencies: []
+
+collections:
+  - community.general # For timezone, locale_gen, modprobe, osx_defaults modules

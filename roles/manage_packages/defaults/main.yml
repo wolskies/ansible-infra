@@ -6,22 +6,6 @@
 # All variables defined exactly as specified in the SRD
 # =============================================================================
 
-# Cross-Platform Package Management
-packages:
-  present: {}
-  # Example structure from SRD:
-  # present:
-  #   all:
-  #     Ubuntu: [curl, git, vim]
-  #     Debian: [curl, git, vim]
-  #     Archlinux: [curl, git, neovim]
-  #     Darwin: [curl, git]
-  #   group:
-  #     Ubuntu: [docker.io, nginx]
-  #     Archlinux: [docker, nginx]
-  #   host:
-  #     Ubuntu: [postgresql, redis]
-
 # Layered Package Definitions (merged in order: all → group → host)
 manage_packages_all: {}
 manage_packages_group: {}

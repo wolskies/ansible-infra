@@ -1,181 +1,119 @@
 # manage_snap_packages
 
-Snap package management for Ubuntu/Debian systems with optional complete removal.
+Snap package management and system removal for Ubuntu/Debian systems.
 
-## Description
+## What It Does
 
-Manages snap packages on Ubuntu/Debian systems. By default, preserves existing snap installation and provides package management. Optionally can completely remove snap from the system if desired.
+Manages snap packages and the snap system:
+- **Snap Package Management** - Install and remove snap packages via snapd
+- **System Removal** - Complete snapd system removal with prevention of reinstallation
+- **Ubuntu/Debian Only** - Snap support limited to Debian-based distributions
 
-## Role Variables
+## Usage
 
-```yaml
-snap:
-  remove_completely: false      # Preserve snap system (default)
-  packages:
-    install: []                 # Snap packages to install
-    remove: []                  # Snap packages to remove
-```
-
-## Usage Examples
-
-### Standalone Usage
-
+### Basic Snap Package Management
 ```yaml
 - hosts: ubuntu_servers
   become: true
   roles:
-    - role: wolskies.infrastructure.manage_snap_packages
-      vars:
-        snap:
-          packages:
-            install:
-              - hello-world
-              - core
+    - wolskies.infrastructure.manage_snap_packages
+  vars:
+    snap_packages:
+      - name: code
+        classic: true
+      - name: discord
+        state: present
+      - name: old-package
+        state: absent
 ```
 
-### With Variable Files
-
+### Complete Snap System Removal
 ```yaml
-# group_vars/servers.yml
-snap:
-  packages:
-    install:
-      - microk8s
-      - helm
-
-# host_vars/media-server.yml
-snap:
-  packages:
-    install:
-      - jellyfin
-      - plex-media-server
-
-# playbook.yml
-- hosts: all
+- hosts: ubuntu_servers
   become: true
   roles:
     - wolskies.infrastructure.manage_snap_packages
+  vars:
+    snap:
+      remove_completely: true
 ```
 
-### Complete Snap Removal
+## Variables
 
+Uses collection-wide variables - see collection README for complete reference.
+
+### Snap Configuration
+| Variable | Type | Required | Default | Description |
+| -------- | ---- | -------- | ------- | ----------- |
+| `snap.remove_completely` | boolean | No | `false` | Completely remove snapd system from Debian/Ubuntu systems |
+
+### Package Management
+| Variable | Type | Required | Default | Description |
+| -------- | ---- | -------- | ------- | ----------- |
+| `snap_packages` | list[object] | No | `[]` | Snap packages to manage (see format below) |
+
+### Package Format
+Supports comprehensive snap package configuration:
 ```yaml
-snap:
-  remove_completely: true       # Completely remove snap from system
-  # packages are ignored when remove_completely is true
-```
+snap_packages:
+  # Simple installation
+  - name: "package-name"
 
-### Default Behavior (Preserve Snap)
-
-```yaml
-# Default - no configuration needed
-snap:
-  remove_completely: false      # This is the default
+  # With options
+  - name: "code"
+    classic: true          # Enable classic confinement
+    state: present         # present or absent
+    channel: "stable"      # Channel specification
 ```
 
 ## Installation Behavior
 
-### Default Mode (`snap.remove_completely: false`)
-1. **Installs snapd**: If packages are requested and snapd not present
-2. **Starts snapd services**: Ensures snap daemon is running
-3. **Removes packages**: Uninstalls packages in `packages.remove` list
-4. **Installs packages**: Installs packages in `packages.install` list
+### When `snap.remove_completely` is false (default):
+1. **Snapd Installation** - Ensures snapd is installed via APT
+2. **Service Management** - Starts and enables snapd services
+3. **System Readiness** - Waits for snapd to be ready
+4. **Package Management** - Installs/removes packages as specified
 
-### Removal Mode (`snap.remove_completely: true`)
-1. **Removes all snap packages**: Including core snaps and dependencies
-2. **Stops snapd services**: Disables all snap-related services
-3. **Removes snapd packages**: Purges snapd from system via apt
-4. **Cleans directories**: Removes `/snap`, `/var/snap`, etc.
-5. **Prevents reinstallation**: Sets APT preferences to block snapd
-6. **Ignores package lists**: Safety feature - package configuration ignored
+### When `snap.remove_completely` is true:
+1. **Package Removal** - Removes all installed snap packages
+2. **Service Shutdown** - Stops and disables snapd services
+3. **System Purge** - Removes snapd packages via APT
+4. **Directory Cleanup** - Removes snap directories
+5. **Reinstallation Prevention** - Creates APT preferences to block snapd
 
-## Common Snap Packages
+## Complete System Removal
 
-```yaml
-snap:
-  packages:
-    install:
-      - core
-      - snapd
-      - hello-world
-      - discord
-      - code
-      - microk8s
-      - helm
-      - kubectl
+When removing the snap system entirely:
+- All snap packages are removed (including core packages)
+- Snapd services are stopped and disabled
+- Snapd packages are purged from the system
+- Snap directories (`/snap`, `/var/snap`, etc.) are removed
+- APT preferences prevent snapd reinstallation
+- Snap paths are removed from system PATH
+
+## Tags
+
+Control which operations run:
+- `snap-packages` - All snap package management operations
+
+Example:
+```bash
+# Skip all snap operations
+ansible-playbook --skip-tags snap-packages playbook.yml
 ```
 
-## OS Support
+## Platform Support
 
-- **Ubuntu 22+**: Full support (primary target)
-- **Debian 12+**: Full support
-- **Other OS**: Role skips gracefully
+- **Ubuntu** 22.04+, 24.04+
+- **Debian** 12+, 13+
 
-## Requirements
-
-- Debian-family operating system (Ubuntu/Debian)
-- System package manager access (for snapd installation/removal)
-- Internet access for downloading snap packages
-
-## Integration Notes
-
-### With configure_system Role
-This role integrates with system configuration:
-
-```yaml
-- hosts: all
-  become: true
-  roles:
-    - wolskies.infrastructure.os_configuration          # System settings
-    - wolskies.infrastructure.manage_snap_packages      # Snap management
-```
-
-### Safety Features
-- **Removal precedence**: When `remove_completely: true`, package lists are ignored
-- **Graceful handling**: All operations handle missing snap gracefully
-- **APT prevention**: After removal, prevents accidental snapd reinstallation
-- **OS detection**: Only runs on supported Debian-family systems
-
-## File Locations
-
-- **Snap packages**: `/snap/` (when installed)
-- **Snap data**: `/var/snap/` (user data and configurations)
-- **Snap cache**: `/var/lib/snapd/`
-- **APT preferences**: `/etc/apt/preferences.d/snapd` (when removed)
-
-## Use Cases
-
-### Keep Snap (Default)
-Most systems where snap is already present and working:
-```yaml
-# No configuration needed - snap is preserved by default
-```
-
-### Install Specific Applications
-When you need specific snap packages:
-```yaml
-snap:
-  packages:
-    install: [discord, code, microk8s]
-```
-
-### Remove Snap Completely
-For minimal systems or when snap conflicts with other package management:
-```yaml
-snap:
-  remove_completely: true
-```
+**Note**: Snap support is limited to Debian-based distributions. This role has no effect on Arch Linux or macOS systems.
 
 ## Dependencies
 
-- `community.general`: snap module for package management
-- `ansible.builtin.systemd`: Service management
-- `ansible.builtin.apt`: Package removal and APT preferences
-
-## License
-
-MIT
-
-## Author Information
-
-This role is part of the wolskies.infrastructure collection.
+- `ansible.builtin.apt` (Package installation and removal)
+- `ansible.builtin.systemd` (Service management)
+- `community.general.snap` (Snap package management)
+- `ansible.builtin.command` (System operations)
+- `ansible.builtin.file` (Directory cleanup)
+- `ansible.builtin.copy` (APT preferences creation)

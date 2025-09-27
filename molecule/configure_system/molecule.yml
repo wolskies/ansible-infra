@@ -56,28 +56,26 @@ provisioner:
             - 0.pool.ntp.org
             - 1.pool.ntp.org
 
-        # System packages configuration - corrected structure
-        packages:
-          present:
-            all:
-              Ubuntu:
-                - curl
-                - wget
-                - git
-                - vim
-                - htop
-                - fail2ban
-                - ufw
-                - build-essential
-                - python3-pip
-              Archlinux:
-                - curl
-                - wget
-                - git
-                - vim
-                - htop
-                - python-pip
-                - base-devel
+        # System packages configuration - using manage_packages interface
+        manage_packages_all:
+          Ubuntu:
+            - curl
+            - wget
+            - git
+            - vim
+            - htop
+            - fail2ban
+            - ufw
+            - build-essential
+            - python3-pip
+          Archlinux:
+            - curl
+            - wget
+            - git
+            - vim
+            - htop
+            - python-pip
+            - base-devel
 
         # Security services configuration - corrected to top-level structure
         firewall:
@@ -168,12 +166,10 @@ provisioner:
         host_hostname: "ubuntu-full-test"
         host_update_hosts: false # Disabled for containers
         # Host-specific packages
-        packages:
-          present:
-            host:
-              Ubuntu:
-                - jq
-                - tree
+        manage_packages_host:
+          Ubuntu:
+            - jq
+            - tree
         # Host-specific firewall settings
         firewall:
           enabled: false
@@ -194,12 +190,10 @@ provisioner:
         host_hostname: "arch-full-test"
         host_update_hosts: false # Disabled for containers
         # Host-specific packages
-        packages:
-          present:
-            host:
-              Archlinux:
-                - rsync
-                - strace
+        manage_packages_host:
+          Archlinux:
+            - rsync
+            - strace
         # Different fail2ban config for Arch
         fail2ban:
           enabled: false

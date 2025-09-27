@@ -22,3 +22,6 @@ galaxy_info:
     - debian
 
 dependencies: []
+
+collections:
+  - community.general # For snap module

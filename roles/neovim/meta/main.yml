@@ -38,3 +38,6 @@ galaxy_info:
     - lsp
 
 dependencies: []
+
+collections:
+  - community.general # For homebrew module

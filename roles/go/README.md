@@ -1,172 +1,90 @@
 # go
 
-Go toolchain installation and user-level package management.
+Go language installation and user-level package management.
 
-## Description
+## What It Does
 
-Installs the Go compiler and development tools, then installs user-specified Go packages. The role automatically handles Go installation via system package managers when the `go` command is not found. Packages are installed in the user's Go workspace using `go install`.
+Installs Go toolchain and user-level packages:
+- **Go Development Toolchain** - Compiler, built-in tools (go fmt, go test, go build)
+- **Package Management** - go install capabilities for third-party tools
+- **User packages** - Go packages in user's `~/go` directory
+- **Cross-platform** - Ubuntu, Debian, Arch Linux, macOS support
 
-## Features
+## Usage
 
-- **Automatic Go installation**: Installs Go compiler if not present via system package manager
-- **User-level packages**: Installs packages in user's `~/go` directory
-- **Cross-platform**: Works on Ubuntu, Debian, Arch Linux, and macOS
-- **Version support**: Supports versioned package installation (e.g., `package@latest`)
-- **Standalone or integrated**: Can be used directly or called by configure_user role
-
-## Role Variables
-
+### Basic Package Installation
 ```yaml
-go_user: ""                      # Target username (required)
-go_packages: []                  # List of Go packages to install (required)
-```
-
-### Go Packages Format
-
-Go packages use full module paths with optional version specifiers. If no version is specified, `@latest` is automatically appended:
-
-```yaml
-go_packages:
-  - github.com/charmbracelet/glow@latest
-  - github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2
-  - golang.org/x/tools/cmd/goimports  # Becomes golang.org/x/tools/cmd/goimports@latest
-  - github.com/air-verse/air@latest
-```
-
-**Version Handling:**
-- Packages with `@version` are installed as-is
-- Packages without version get `@latest` automatically appended
-- This ensures compatibility with modern Go module requirements
-
-## Usage Examples
-
-### Standalone Usage
-
-```yaml
-- hosts: developers
-  become: true
-  roles:
-    - role: wolskies.infrastructure.go
-      vars:
-        go_user: developer
-        go_packages:
-          - github.com/charmbracelet/glow@latest
-          - github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          - golang.org/x/tools/cmd/goimports
-```
-
-### With Variable Files
-
-```yaml
-# group_vars/developers.yml
-go_user: developer
-go_packages:
-  - github.com/charmbracelet/glow@latest
-  - github.com/air-verse/air@latest
-  - golang.org/x/tools/cmd/goimports
-  - github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
-# playbook.yml
 - hosts: developers
   become: true
   roles:
     - wolskies.infrastructure.go
+  vars:
+    go_user: developer
+    go_packages:
+      - github.com/charmbracelet/glow@latest
+      - github.com/junegunn/fzf@latest
 ```
 
 ### Integration with configure_user
-
-This role is automatically called by configure_user when Go packages are specified:
-
 ```yaml
 target_user:
   name: developer
   go:
     packages:
       - github.com/charmbracelet/glow@latest
-      - golang.org/x/tools/cmd/goimports
+      - github.com/junegunn/fzf@latest
+      - github.com/cli/cli/v2/cmd/gh@latest
 ```
+
+## Variables
+
+### Role Variables
+| Variable      | Type         | Required | Default | Description                                                           |
+| ------------- | ------------ | -------- | ------- | --------------------------------------------------------------------- |
+| `go_user`     | string       | Yes      | -       | Target username for Go installation                                   |
+| `go_packages` | list[string] | No       | `[]`    | Go package URLs to install (e.g., ["github.com/user/package@latest"]) |
 
 ## Installation Behavior
 
-1. **Go Installation Check**: Verifies if `go` command exists for the target user
-2. **Automatic Installation**: If missing, installs Go via system package manager:
-   - **Ubuntu/Debian**: `golang-go` package via apt
-   - **Arch Linux**: `go` package via pacman
-   - **macOS**: `go` package via Homebrew
-3. **Package Installation**: Installs each package using `go install` as the target user
-4. **PATH Integration**: Go binaries are available in `~/go/bin` (add to PATH manually if needed)
+1. **Go Installation** - Installs Go development toolchain:
+   - **Ubuntu/Debian** - APT `golang` package
+   - **Arch Linux** - Pacman `go` package
+   - **macOS** - Homebrew `go` formula
+2. **PATH Configuration** - Adds `~/go/bin` to user's `.profile`
+3. **Package Installation** - Installs packages via `go install` with user-local installation
 
-## Common Go Packages
+## Package Format
 
+Go packages use full import URLs with optional version specifiers:
 ```yaml
 go_packages:
-  - golang.org/x/tools/cmd/goimports
-  - github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-  - github.com/air-verse/air@latest
-  - github.com/charmbracelet/glow@latest
-  - github.com/junegunn/fzf@latest
-  - github.com/jesseduffield/lazygit@latest
-  - github.com/antonmedv/fx@latest
+  # With explicit version
+  - "github.com/user/package@v1.2.3"
+  - "github.com/user/package@latest"
+
+  # Auto-appends @latest if no version specified
+  - "github.com/user/package"
 ```
 
-## OS Support
+## User-Level Package Management
 
-- **Ubuntu 22+**: Supported (24.04+ has automatic Go installation)
-- **Debian 12+**: Supported (13+ has automatic Go installation)
-- **Arch Linux**: Full support with automatic go package installation
-- **macOS 10.15+**: Full support with automatic Homebrew go package installation
+All Go packages install to user directories:
+- **Packages**: `~/go/pkg/`
+- **Binaries**: `~/go/bin/`
+- **Source Cache**: `~/go/src/`
 
-**Note**: This collection supports Ubuntu 22+, Debian 12+, Arch Linux, and macOS. For the language toolchain roles (nodejs, go, rust): system packages are only available on **Ubuntu 24.04+** and **Debian 13+**. On older supported versions (Ubuntu 22/23, Debian 12), you must manually install the latest rustup, node, and go before using these language roles.
+Users need `~/go/bin` in their PATH - automatically added to `~/.profile` by the role.
 
-## Requirements
+## Platform Support
 
-- Target user must exist on the system
-- System package manager access (for Go installation if needed)
-- Internet access for downloading Go packages
-- Sufficient disk space in user's home directory
-
-## File Locations
-
-- **Go installation**: System-wide via package manager
-- **User packages**: `~/go/bin/` (executables), `~/go/pkg/` (compiled packages)
-- **Go workspace**: `~/go/` (GOPATH, though modules don't require this)
-- **Module cache**: `~/go/pkg/mod/`
-
-## Integration Notes
-
-### With configure_user Role
-This role integrates seamlessly with configure_user for complete development environment setup:
-
-```yaml
-target_user:
-  name: developer
-  go:
-    packages: [github.com/charmbracelet/glow@latest]
-  nodejs:
-    packages: [typescript]
-  rust:
-    packages: [ripgrep]
-```
-
-### PATH Configuration
-Go binaries install to `~/go/bin`. Users may need to add this to their PATH:
-
-```bash
-export PATH="$PATH:$HOME/go/bin"
-```
-
-This is typically handled by shell configuration or dotfiles.
+- **Ubuntu** 22.04+, 24.04+
+- **Debian** 12+, 13+
+- **Arch Linux** (Rolling)
+- **macOS** 13+ (Ventura)
 
 ## Dependencies
 
-- System package manager (apt, pacman, homebrew)
-- `ansible.builtin.command` - For go install execution
-- `ansible.builtin.package` - For Go compiler installation
-
-## License
-
-MIT
-
-## Author Information
-
-This role is part of the wolskies.infrastructure collection.
+- `ansible.builtin.apt` (Ubuntu/Debian package installation)
+- `community.general.pacman` (Arch Linux package installation)
+- `community.general.homebrew` (macOS package installation)
+- `ansible.builtin.command` (Go package installation)

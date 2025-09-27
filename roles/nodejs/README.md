@@ -5,7 +5,7 @@ Node.js installation and user-level npm package management.
 ## What It Does
 
 Installs Node.js system packages and user-level npm packages:
-- **Node.js installation** - System packages via package manager
+- **Node.js installation** - System packages via package manager (NodeSource for Ubuntu/Debian)
 - **User packages** - npm packages in user's `~/.npm-global` directory
 - **Cross-platform** - Ubuntu, Debian, Arch Linux, macOS support
 
@@ -26,6 +26,20 @@ Installs Node.js system packages and user-level npm packages:
       - "@vue/cli"
 ```
 
+### With Version Specifications
+```yaml
+node_user: developer
+node_packages:
+  # Simple string format (latest version)
+  - typescript
+  - "@angular/cli"
+  # Object format with version specification
+  - name: eslint
+    version: "8.0.0"
+  - name: webpack
+    version: "^5.0.0"
+```
+
 ### Integration with configure_user
 ```yaml
 target_user:
@@ -35,15 +49,74 @@ target_user:
       - typescript
       - eslint
       - prettier
-      - "@angular/cli"
+      - "@nestjs/cli"
 ```
 
 ## Variables
 
-Key configuration options:
-- `node_user` - Target username (required)
-- `node_packages` - List of npm packages to install globally
-- `nodejs_version` - Node.js major version (default: "20")
+### Role Variables
+| Variable                 | Type   | Required | Default           | Description                                                               |
+|--------------------------|--------|----------|-------------------|---------------------------------------------------------------------------|
+| `node_user`              | string | Yes      | -                 | Target username for npm package installation                              |
+| `node_packages`          | list   | No       | `[]`              | npm packages to install (see format below)                                |
+| `nodejs_version`         | string | No       | `"20"`            | Major version of Node.js to install (Ubuntu/Debian NodeSource)            |
+| `npm_config_prefix`      | string | No       | `"~/.npm-global"` | Directory for npm global installations                                    |
+| `npm_config_unsafe_perm` | string | No       | `"true"`          | Suppress UID/GID switching when running package scripts                   |
+
+### Package Format
+Supports both string and object formats:
+```yaml
+node_packages:
+  # String format (installs latest)
+  - "package-name"
+  - "@scoped/package"
+
+  # Object format with version
+  - name: "package-name"
+    version: "1.0.0"
+  - name: "@scoped/package"
+    version: "^2.0.0"
+```
+
+## Installation Behavior
+
+1. **Node.js Installation Check** - Verifies if Node.js/npm exists
+2. **System Installation** - Installs Node.js via package manager:
+   - **Ubuntu/Debian** - NodeSource repository for specified version
+   - **Arch Linux** - Official `nodejs` and `npm` packages
+   - **macOS** - Homebrew `node` package
+3. **User Directory Setup** - Creates `~/.npm-global` directory
+4. **Package Installation** - Installs packages with user-local configuration
+5. **PATH Configuration** - Updates user's `.profile` for npm binaries
+
+## Platform-Specific Features
+
+### Ubuntu/Debian
+- Uses NodeSource repository for current Node.js versions
+- Configurable Node.js version (default: v20)
+- Automatic GPG key and repository setup
+
+### Arch Linux
+- Uses official repository packages
+- Always current versions from Arch repos
+
+### macOS
+- Uses Homebrew for Node.js installation
+- Integrates with existing Homebrew setup
+
+## User-Level Package Management
+
+All npm packages install to user directories:
+- **Packages**: `~/.npm-global/lib/node_modules/`
+- **Binaries**: `~/.npm-global/bin/`
+- **Configuration**: `NPM_CONFIG_PREFIX=~/.npm-global`
+
+Users need to add `~/.npm-global/bin` to their PATH:
+```bash
+export PATH="$PATH:$HOME/.npm-global/bin"
+```
+
+This is automatically added to `~/.profile` by the role.
 
 ## Platform Support
 
