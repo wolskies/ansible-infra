@@ -4,6 +4,7 @@ stages:
   - integration
   - docs
   - build
+  - release
   - publish
 
 variables:
@@ -326,7 +327,7 @@ generate-docs:
 
 # GitLab Pages deployment (only on main branch)
 pages:
-  stage: docs
+  stage: build
   dependencies:
     - generate-docs
   script:
@@ -391,6 +392,136 @@ version-check:
     - echo "✅ Version validated"
   only:
     - tags
+
+# =============================================================================
+# RELEASE STAGE
+# =============================================================================
+
+# Create release tag and generate release notes
+create-release:
+  stage: release
+  image: python:3.13-slim
+  dependencies:
+    - collection-build
+  script:
+    - apt-get update -qq && apt-get install -y -qq git python3-yaml curl
+    - git config --global user.email "ci@wolskinet.com"
+    - git config --global user.name "GitLab CI"
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+
+    # Get version from galaxy.yml
+    - export COLLECTION_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('galaxy.yml'))['version'])")
+    - export TAG_NAME="v${COLLECTION_VERSION}"
+    - echo "Creating release for version ${COLLECTION_VERSION} with tag ${TAG_NAME}"
+
+    # Generate release notes from commits since last tag
+    - |
+      LAST_TAG=$(git tag --sort=-creatordate | head -n1 || echo "")
+      if [ -z "$LAST_TAG" ]; then
+        echo "No previous tags found, generating release notes from beginning"
+        COMMIT_RANGE="HEAD"
+      else
+        echo "Last tag: $LAST_TAG"
+        COMMIT_RANGE="${LAST_TAG}..HEAD"
+      fi
+
+      echo "# Release Notes for ${TAG_NAME}" > RELEASE_NOTES.md
+      echo "" >> RELEASE_NOTES.md
+      echo "## Changes" >> RELEASE_NOTES.md
+      git log $COMMIT_RANGE --pretty=format:"- %s (%h)" --no-merges >> RELEASE_NOTES.md
+      echo "" >> RELEASE_NOTES.md
+      echo "" >> RELEASE_NOTES.md
+      echo "## Collection Info" >> RELEASE_NOTES.md
+      echo "- **Version**: ${COLLECTION_VERSION}" >> RELEASE_NOTES.md
+      echo "- **Build**: ${CI_PIPELINE_ID}" >> RELEASE_NOTES.md
+      echo "- **Commit**: ${CI_COMMIT_SHA:0:8}" >> RELEASE_NOTES.md
+
+    # Create GitLab release using the API
+    - |
+      curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+           --header "Content-Type: application/json" \
+           --data "{
+             \"tag_name\": \"$TAG_NAME\",
+             \"name\": \"wolskies.infrastructure $COLLECTION_VERSION\",
+             \"description\": \"$(cat RELEASE_NOTES.md | sed 's/"/\\"/g' | tr '\n' ' ')\",
+             \"assets\": {
+               \"links\": [
+                 {
+                   \"name\": \"Collection Package\",
+                   \"url\": \"$CI_JOB_URL/artifacts/raw/wolskies-infrastructure-${COLLECTION_VERSION}.tar.gz\"
+                 }
+               ]
+             }
+           }" \
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+
+    - echo "✅ Release ${TAG_NAME} created successfully"
+    - cat RELEASE_NOTES.md
+  artifacts:
+    paths:
+      - RELEASE_NOTES.md
+    expire_in: 1 week
+  only:
+    - main
+  when: manual
+  environment:
+    name: production
+    url: $CI_PROJECT_URL/-/releases
+
+# Update changelog (optional, manual)
+update-changelog:
+  stage: release
+  image: python:3.13-slim
+  dependencies:
+    - create-release
+  script:
+    - apt-get update -qq && apt-get install -y -qq git python3-yaml
+    - git config --global user.email "ci@wolskinet.com"
+    - git config --global user.name "GitLab CI"
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+
+    # Get version and prepare changelog entry
+    - export COLLECTION_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('galaxy.yml'))['version'])")
+    - export RELEASE_DATE=$(date +"%Y-%m-%d")
+
+    # Create/update CHANGELOG.md
+    - |
+      if [ ! -f CHANGELOG.md ]; then
+        echo "# Changelog" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+      fi
+
+      # Prepare new changelog entry
+      echo "## [${COLLECTION_VERSION}] - ${RELEASE_DATE}" > CHANGELOG_NEW.md
+      echo "" >> CHANGELOG_NEW.md
+      cat RELEASE_NOTES.md | grep "^- " >> CHANGELOG_NEW.md
+      echo "" >> CHANGELOG_NEW.md
+
+      # Insert new entry at the top of existing changelog
+      head -n 4 CHANGELOG.md > CHANGELOG_TEMP.md
+      cat CHANGELOG_NEW.md >> CHANGELOG_TEMP.md
+      tail -n +5 CHANGELOG.md >> CHANGELOG_TEMP.md
+      mv CHANGELOG_TEMP.md CHANGELOG.md
+
+    # Commit changelog update
+    - git add CHANGELOG.md
+    - git commit -m "update changelog for v${COLLECTION_VERSION}"
+    - git push https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
+
+    - echo "✅ Changelog updated and committed"
+  artifacts:
+    paths:
+      - CHANGELOG.md
+    expire_in: 1 week
+  only:
+    - main
+  when: manual
+
+# =============================================================================
+# PUBLISH STAGE
+# =============================================================================
 
 # Publish to Ansible Galaxy (manual trigger only)
 publish-galaxy:

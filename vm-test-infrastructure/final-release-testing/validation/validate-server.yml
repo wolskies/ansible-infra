@@ -3,12 +3,12 @@
 # Compares discovery results against expected server configuration
 
 - name: Load discovery results for {{ host_name }}
-  set_fact:
+  ansible.builtin.set_fact:
     actual_config: "{{ lookup('file', 'validation/discovery-results/' + host_name + '_actual.json', errors='ignore') | from_json }}"
-  ignore_errors: yes
+  failed_when: false
 
 - name: Initialize validation result for {{ host_name }}
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation:
       hostname: "{{ host_name }}"
       type: "server"
@@ -19,7 +19,7 @@
       errors: []
 
 - name: Validate hostname configuration
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -32,7 +32,7 @@
   when: actual_config is defined
 
 - name: Validate timezone configuration
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -45,7 +45,7 @@
   when: actual_config is defined
 
 - name: Validate target user creation
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -58,7 +58,7 @@
   when: actual_config is defined
 
 - name: Validate firewall configuration
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -71,7 +71,7 @@
   when: actual_config is defined
 
 - name: Validate fail2ban configuration
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -84,13 +84,13 @@
   when: actual_config is defined
 
 - name: Validate essential server packages
-  set_fact:
+  ansible.builtin.set_fact:
     essential_packages: ["nginx", "fail2ban", "ufw"]
     installed_packages: "{{ actual_config.get('packages', {}).get('installed', []) }}"
   when: actual_config is defined
 
 - name: Check essential package installation
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'checks': host_validation.checks + [{
@@ -103,7 +103,7 @@
   when: actual_config is defined
 
 - name: Calculate validation summary
-  set_fact:
+  ansible.builtin.set_fact:
     host_validation: >
       {{ host_validation | combine({
         'passed': host_validation.checks | selectattr('passed') | list | length,
@@ -112,11 +112,11 @@
       }) }}
 
 - name: Add host validation to results
-  set_fact:
+  ansible.builtin.set_fact:
     validation_results: "{{ validation_results + [host_validation] }}"
 
 - name: Display server validation result for {{ host_name }}
-  debug:
+  ansible.builtin.debug:
     msg:
       - "Server {{ host_name }}: {{ host_validation.status | upper }}"
       - "Passed: {{ host_validation.passed }}/{{ host_validation.checks | length }}"
