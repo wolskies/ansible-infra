@@ -1,0 +1,123 @@
+---
+# Server Configuration Validation Tasks
+# Compares discovery results against expected server configuration
+
+- name: Load discovery results for {{ host_name }}
+  set_fact:
+    actual_config: "{{ lookup('file', 'validation/discovery-results/' + host_name + '_actual.json', errors='ignore') | from_json }}"
+  ignore_errors: yes
+
+- name: Initialize validation result for {{ host_name }}
+  set_fact:
+    host_validation:
+      hostname: "{{ host_name }}"
+      type: "server"
+      status: "unknown"
+      checks: []
+      passed: 0
+      failed: 0
+      errors: []
+
+- name: Validate hostname configuration
+  set_fact:
+    host_validation: >
+      {{ host_validation | combine({
+        'checks': host_validation.checks + [{
+          'test': 'hostname',
+          'expected': expected_config.host_hostname,
+          'actual': actual_config.get('hostname', 'not_found'),
+          'passed': (actual_config.get('hostname', '') == expected_config.host_hostname)
+        }]
+      }) }}
+  when: actual_config is defined
+
+- name: Validate timezone configuration
+  set_fact:
+    host_validation: >
+      {{ host_validation | combine({
+        'checks': host_validation.checks + [{
+          'test': 'timezone',
+          'expected': expected_config.domain_timezone,
+          'actual': actual_config.get('timezone', 'not_found'),
+          'passed': (actual_config.get('timezone', '') == expected_config.domain_timezone)
+        }]
+      }) }}
+  when: actual_config is defined
+
+- name: Validate target user creation
+  set_fact:
+    host_validation: >
+      {{ host_validation | combine({
+        'checks': host_validation.checks + [{
+          'test': 'target_user',
+          'expected': expected_config.target_user.name,
+          'actual': actual_config.get('users', {}).get(expected_config.target_user.name, 'not_found'),
+          'passed': (expected_config.target_user.name in actual_config.get('users', {}))
+        }]
+      }) }}
+  when: actual_config is defined
+
+- name: Validate firewall configuration
+  set_fact:
+    host_validation: >
+      {{ host_validation | combine({
+        'checks': host_validation.checks + [{
+          'test': 'firewall_enabled',
+          'expected': expected_config.firewall.enabled,
+          'actual': actual_config.get('firewall', {}).get('enabled', false),
+          'passed': (actual_config.get('firewall', {}).get('enabled', false) == expected_config.firewall.enabled)
+        }]
+      }) }}
+  when: actual_config is defined
+
+- name: Validate fail2ban configuration
+  set_fact:
+    host_validation: >
+      {{ host_validation | combine({
+        'checks': host_validation.checks + [{
+          'test': 'fail2ban_enabled',
+          'expected': expected_config.fail2ban.enabled,
+          'actual': actual_config.get('services', {}).get('fail2ban', {}).get('enabled', false),
+          'passed': (actual_config.get('services', {}).get('fail2ban', {}).get('enabled', false) == expected_config.fail2ban.enabled)
+        }]
+      }) }}
+  when: actual_config is defined
+
+- name: Validate essential server packages
+  set_fact:
+    essential_packages: ["nginx", "fail2ban", "ufw"]
+    installed_packages: "{{ actual_config.get('packages', {}).get('installed', []) }}"
+  when: actual_config is defined
+
+- name: Check essential package installation
+  set_fact:
+    host_validation: >
+      {{ host_validation | combine({
+        'checks': host_validation.checks + [{
+          'test': 'essential_packages',
+          'expected': essential_packages,
+          'actual': installed_packages | intersect(essential_packages),
+          'passed': (essential_packages | difference(installed_packages) | length == 0)
+        }]
+      }) }}
+  when: actual_config is defined
+
+- name: Calculate validation summary
+  set_fact:
+    host_validation: >
+      {{ host_validation | combine({
+        'passed': host_validation.checks | selectattr('passed') | list | length,
+        'failed': host_validation.checks | rejectattr('passed') | list | length,
+        'status': 'pass' if (host_validation.checks | rejectattr('passed') | list | length == 0) else 'fail'
+      }) }}
+
+- name: Add host validation to results
+  set_fact:
+    validation_results: "{{ validation_results + [host_validation] }}"
+
+- name: Display server validation result for {{ host_name }}
+  debug:
+    msg:
+      - "Server {{ host_name }}: {{ host_validation.status | upper }}"
+      - "Passed: {{ host_validation.passed }}/{{ host_validation.checks | length }}"
+      - "Failed checks: {{ host_validation.checks | rejectattr('passed') | map(attribute='test') | list }}"

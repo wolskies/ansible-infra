@@ -1,0 +1,167 @@
+---
+# Server Configuration for Final Release Testing
+# Based on MASTER_REFERENCE_CONFIG.yml - proven variable formats
+
+# =============================================================================
+# BASE SYSTEM CONFIGURATION
+# =============================================================================
+
+# OS Configuration (from os_configuration role testing)
+host_hostname: "{{ inventory_hostname }}"
+domain_name: "test.local"
+host_update_hosts: true
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_timezone: "America/New_York"
+
+# =============================================================================
+# PACKAGE MANAGEMENT
+# =============================================================================
+
+# Package Management (from manage_packages role testing)
+# Using proven packages.present.{all|group|host}.{Distribution} format
+packages:
+  present:
+    all:
+      Ubuntu:
+        - curl
+        - wget
+        - git
+        - vim
+        - htop
+        - fail2ban
+        - ufw
+        - build-essential
+        - python3-pip
+        - tree
+        - rsync
+        - unzip
+      Debian:
+        - curl
+        - wget
+        - git
+        - vim
+        - htop
+        - fail2ban
+        - ufw
+        - build-essential
+        - python3-pip
+        - tree
+        - rsync
+        - unzip
+    group:
+      # Server-specific packages
+      Ubuntu:
+        - nginx
+        - postgresql
+        - docker.io
+        - docker-compose
+        - certbot
+      Debian:
+        - nginx
+        - postgresql
+        - docker.io
+        - docker-compose
+        - certbot
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Firewall Configuration (from manage_security_services role testing)
+firewall:
+  enabled: true
+  prevent_ssh_lockout: true
+  package: "ufw"
+  stealth_mode: false
+  block_all: false
+  logging: true
+  rules:
+    - rule: allow
+      port: 22
+      proto: tcp
+      comment: "SSH access"
+    - rule: allow
+      port: 80
+      proto: tcp
+      comment: "HTTP"
+    - rule: allow
+      port: 443
+      proto: tcp
+      comment: "HTTPS"
+    - rule: allow
+      port: 5432
+      proto: tcp
+      src: "192.168.0.0/16"
+      comment: "PostgreSQL internal"
+
+# Fail2ban Configuration (from manage_security_services role testing)
+fail2ban:
+  enabled: true
+  sender: "root@{{ inventory_hostname }}.test.local"
+  dest_email: ""
+  defaults:
+    bantime: 3600
+    findtime: 600
+    maxretry: 5
+  services:
+    - name: sshd
+      enabled: true
+      maxretry: 3
+      bantime: 3600
+      findtime: 600
+      logpath: /var/log/auth.log
+    - name: nginx-http-auth
+      enabled: true
+      maxretry: 5
+      bantime: 1800
+      findtime: 600
+  ignoreips:
+    - "127.0.0.1/8"
+    - "::1"
+    - "192.168.0.0/16"
+
+# =============================================================================
+# USER MANAGEMENT
+# =============================================================================
+
+# User Management (from configure_user role testing + collection defaults)
+target_user:
+  name: serveradmin
+  uid: 1001
+  groups: [sudo]
+  shell: /bin/bash
+  comment: "Server Administrator"
+  state: present
+  create_home: true
+  ssh_keys:
+    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestServerKeyForVMTesting serveradmin@test"
+  dotfiles:
+    enabled: false # Minimal server setup
+
+# =============================================================================
+# SYSTEM SERVICES
+# =============================================================================
+
+# System Services Configuration
+host_services:
+  enabled:
+    - nginx
+    - postgresql
+    - docker
+    - fail2ban
+    - ufw
+  disabled:
+    - snapd # Disable snap on servers
+
+# =============================================================================
+# PACKAGE SYSTEM CONFIGURATION
+# =============================================================================
+
+# Snap Configuration (from manage_snap_packages role testing)
+snap:
+  remove_completely: true # Servers use traditional packages
+
+# Flatpak Configuration (from manage_flatpak role testing)
+flatpak:
+  enabled: false # Not needed on servers

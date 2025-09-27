@@ -1,0 +1,55 @@
+#cloud-config
+# Final Release Testing VM Configuration
+# Minimal setup - collection will handle the rest
+
+hostname: ${hostname}
+fqdn: ${hostname}.test.local
+
+# Create ed user with sudo access and SSH key
+users:
+  - name: ed
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILGVTKRzOQtyBFYST4LI7KKmVLmnQDtQz4w3cQGy8IwH ed@testing-vm
+
+# Enable SSH
+ssh_pwauth: false
+disable_root: true
+
+# Basic packages for Ansible
+packages:
+  - python3
+  - python3-pip
+  - curl
+  - wget
+
+# Configure SSH daemon
+ssh:
+  emit_keys_to_console: false
+
+# Set timezone (will be overridden by collection)
+timezone: UTC
+
+# Enable services
+runcmd:
+  - systemctl enable ssh
+  - systemctl start ssh
+  - systemctl enable systemd-resolved
+  - systemctl start systemd-resolved
+
+# Set up basic networking
+write_files:
+  - path: /etc/systemd/resolved.conf.d/test.conf
+    content: |
+      [Resolve]
+      DNS=8.8.8.8 8.8.4.4
+      FallbackDNS=1.1.1.1 1.0.0.1
+    permissions: '0644'
+
+power_state:
+  mode: reboot
+  delay: "+1"
+  message: "Rebooting for final setup"
+  timeout: 30

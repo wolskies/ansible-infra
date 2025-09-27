@@ -1,0 +1,190 @@
+---
+# Workstation Configuration for Final Release Testing
+# Based on MASTER_REFERENCE_CONFIG.yml - proven variable formats
+
+# =============================================================================
+# BASE SYSTEM CONFIGURATION
+# =============================================================================
+
+# OS Configuration (from os_configuration role testing)
+host_hostname: "{{ inventory_hostname }}"
+domain_name: "dev.local"
+host_update_hosts: true
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_timezone: "America/Los_Angeles" # Different from servers
+
+# =============================================================================
+# PACKAGE MANAGEMENT
+# =============================================================================
+
+# Package Management (from manage_packages role testing)
+packages:
+  present:
+    all:
+      Ubuntu:
+        - curl
+        - wget
+        - git
+        - vim
+        - htop
+        - build-essential
+        - python3-pip
+        - tree
+        - jq
+        - tmux
+        - neovim
+      Debian:
+        - curl
+        - wget
+        - git
+        - vim
+        - htop
+        - build-essential
+        - python3-pip
+        - tree
+        - jq
+        - tmux
+        - neovim
+      Archlinux:
+        - curl
+        - wget
+        - git
+        - vim
+        - htop
+        - base-devel
+        - python-pip
+        - tree
+        - jq
+        - tmux
+        - neovim
+    group:
+      # Development tools
+      Ubuntu:
+        - code
+        - docker.io
+        - docker-compose
+        - nodejs
+        - npm
+        - golang
+        - rustc
+        - cargo
+      Debian:
+        - docker.io
+        - docker-compose
+        - nodejs
+        - npm
+        - golang
+        - rustc
+        - cargo
+      Archlinux:
+        - docker
+        - docker-compose
+        - nodejs
+        - npm
+        - go
+        - rust
+        - cargo
+
+# =============================================================================
+# DEVELOPMENT ENVIRONMENTS
+# =============================================================================
+
+# NodeJS Configuration (from nodejs role testing)
+node_user: devuser
+nodejs_version: "20" # LTS version
+npm_config_prefix: "~/.npm-global"
+npm_config_unsafe_perm: "true"
+node_packages:
+  - typescript
+  - eslint
+  - prettier
+  - "@vue/cli"
+  - nodemon
+  - pm2
+
+# Rust Configuration (from rust role testing)
+rust_user: devuser
+rust_packages:
+  - cargo-watch
+  - ripgrep
+  - fd-find
+  - bat
+  - exa
+  - tokei
+
+# Go Configuration (from go role testing)
+go_user: devuser
+go_packages:
+  - "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+  - "golang.org/x/tools/cmd/goimports@latest"
+  - "github.com/cosmtrek/air@latest"
+
+# Neovim Configuration (from neovim role testing)
+neovim_user: devuser
+neovim_config_enabled: true
+
+# =============================================================================
+# USER MANAGEMENT
+# =============================================================================
+
+# User Management (from configure_user role testing)
+target_user:
+  name: devuser
+  uid: 1001
+  groups: [sudo, docker]
+  shell: /bin/bash
+  comment: "Development User"
+  state: present
+  create_home: true
+  ssh_keys:
+    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestDevKeyForVMTesting devuser@dev"
+    - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... devuser@dev-backup"
+  dotfiles:
+    enabled: true
+    repository: "https://github.com/example/dotfiles.git" # Example - would be real repo
+
+# =============================================================================
+# TERMINAL CONFIGURATION
+# =============================================================================
+
+# Terminal Configuration (from terminal_config role testing)
+terminal_user: devuser
+terminal_entries:
+  - alacritty
+  - kitty
+  - wezterm
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Minimal security for development
+firewall:
+  enabled: false # Workstations need open access for development
+
+fail2ban:
+  enabled: false # Not needed on workstations
+
+# =============================================================================
+# PACKAGE SYSTEM CONFIGURATION
+# =============================================================================
+
+# Snap Configuration (development tools)
+snap:
+  remove_completely: false
+snap_packages:
+  - name: code
+    state: present
+    classic: true
+  - name: discord
+    state: present
+
+# Flatpak Configuration (GUI applications)
+flatpak:
+  enabled: true
+flatpak_packages:
+  - name: org.mozilla.firefox
+    state: present
+  - name: org.gimp.GIMP
+    state: present

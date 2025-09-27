@@ -1,0 +1,72 @@
+---
+# Final Release Testing - Server Configuration Deployment
+# Applies comprehensive server configuration to server VMs
+
+- name: Configure Server Systems
+  hosts: servers
+  become: true
+  gather_facts: true
+  vars_files:
+    - test-scenarios/server-config.yml
+
+  pre_tasks:
+    - name: Wait for system to be ready
+      wait_for_connection:
+        timeout: 300
+        delay: 10
+
+    - name: Update package cache
+      package:
+        update_cache: yes
+      when: ansible_pkg_mgr in ['apt', 'pacman']
+
+    - name: Display test scenario info
+      debug:
+        msg:
+          - "=== Final Release Testing - Server Configuration ==="
+          - "Host: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Platform: {{ ansible_architecture }}"
+          - "Test Type: Server Configuration"
+          - "Target User: {{ target_user.name }}"
+          - "Packages: {{ packages.present.all[ansible_distribution] | length }} base + {{ packages.present.group[ansible_distribution] | length }} server"
+          - "Security: Firewall enabled, Fail2ban enabled"
+
+  roles:
+    # Core system configuration
+    - wolskies.infrastructure.os_configuration
+
+    # Package management
+    - wolskies.infrastructure.manage_packages
+
+    # Security services
+    - wolskies.infrastructure.manage_security_services
+
+    # User management
+    - wolskies.infrastructure.configure_user
+
+    # Package system management
+    - wolskies.infrastructure.manage_snap_packages
+
+  post_tasks:
+    - name: Verify critical services are running
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - ssh
+        - fail2ban
+      ignore_errors: yes
+      register: service_check
+
+    - name: Display deployment summary
+      debug:
+        msg:
+          - "=== Server Configuration Deployment Complete ==="
+          - "Host: {{ inventory_hostname }}"
+          - "User created: {{ target_user.name }}"
+          - "Firewall status: {{ 'enabled' if firewall.enabled else 'disabled' }}"
+          - "Fail2ban status: {{ 'enabled' if fail2ban.enabled else 'disabled' }}"
+          - "Services checked: {{ service_check.results | map(attribute='name') | list }}"
+          - "Ready for discovery validation"

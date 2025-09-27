@@ -1,0 +1,90 @@
+---
+# Final Release Testing - Discovery and Validation
+# Captures actual system state and compares against expected configuration
+
+- name: Run Discovery on All Test VMs
+  hosts: test_vms
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Display discovery phase info
+      debug:
+        msg:
+          - "=== Final Release Testing - Discovery Phase ==="
+          - "Host: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Collecting actual system state for validation"
+
+  tasks:
+    # Run the discovery role to capture actual state
+    - name: Execute discovery role
+      include_role:
+        name: wolskies.infrastructure.discovery
+      vars:
+        discovery_output_dir: "discovery_results"
+        discovery_detailed: true
+
+  post_tasks:
+    - name: Save discovery results locally
+      fetch:
+        src: "{{ discovery_output_dir }}/{{ inventory_hostname }}_discovery.json"
+        dest: "validation/discovery-results/{{ inventory_hostname }}_actual.json"
+        flat: yes
+      ignore_errors: yes
+
+    - name: Display discovery completion
+      debug:
+        msg:
+          - "=== Discovery Complete for {{ inventory_hostname }} ==="
+          - "Results saved to validation/discovery-results/"
+          - "Ready for validation comparison"
+
+# Validation phase - compare discovery results vs expected configuration
+- name: Validate Configuration Results
+  hosts: localhost
+  gather_facts: false
+  vars:
+    validation_results: []
+
+  tasks:
+    - name: Create validation results directory
+      file:
+        path: validation/reports
+        state: directory
+        mode: "0755"
+
+    - name: Load expected configurations
+      set_fact:
+        server_config: "{{ lookup('file', 'test-scenarios/server-config.yml') | from_yaml }}"
+        workstation_config: "{{ lookup('file', 'test-scenarios/workstation-config.yml') | from_yaml }}"
+
+    - name: Validate server configurations
+      include_tasks: validation/validate-server.yml
+      vars:
+        host_name: "{{ item }}"
+        expected_config: "{{ server_config }}"
+      loop: "{{ groups['servers'] }}"
+      when: groups['servers'] is defined
+
+    - name: Validate workstation configurations
+      include_tasks: validation/validate-workstation.yml
+      vars:
+        host_name: "{{ item }}"
+        expected_config: "{{ workstation_config }}"
+      loop: "{{ groups['workstations'] }}"
+      when: groups['workstations'] is defined
+
+    - name: Generate final validation report
+      template:
+        src: validation/templates/final-report.j2
+        dest: "validation/reports/final-test-report.txt"
+        mode: "0644"
+
+    - name: Display final test results
+      debug:
+        msg:
+          - "=== Final Release Testing Complete ==="
+          - "Validation report: validation/reports/final-test-report.txt"
+          - "Discovery results: validation/discovery-results/"
+          - "{{ validation_results | length }} hosts validated"
