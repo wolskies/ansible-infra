@@ -5,7 +5,7 @@ Create Sphinx configuration files for GitLab Pages documentation.
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -83,7 +83,7 @@ def create_manifest_json(output_dir: Path):
     manifest = {
         "collection": "wolskies.infrastructure",
         "version": "1.2.0",
-        "generated_at": datetime.now(datetime.UTC).isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "commit": os.environ.get("CI_COMMIT_SHA", "unknown"),
         "pipeline": os.environ.get("CI_PIPELINE_ID", "unknown"),
         "roles": [
