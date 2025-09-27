@@ -352,6 +352,29 @@ Each role can be used independently:
       become_user: "{{ item.name }}"
 ```
 
+## Documentation
+
+**📖 Comprehensive documentation is available on GitLab Pages:**
+- **Collection Overview**: Complete collection documentation with platform support, requirements, and usage examples
+- **Individual Role Documentation**: Detailed documentation for each role including variables, requirements, and examples
+- **Generated from SRD**: All documentation is automatically generated from Software Requirements Document (SRD) and role specifications
+
+**Local Documentation Generation:**
+```bash
+# Generate enhanced role documentation
+python3 scripts/generate_enhanced_docs.py
+
+# Generate collection-level documentation
+python3 scripts/generate_collection_docs.py
+
+# Generated files will be in docs/generated/
+```
+
+**CI/CD Integration:**
+- Documentation is automatically generated and validated on every merge request
+- GitLab Pages deployment occurs automatically on main branch updates
+- RST syntax validation ensures documentation quality
+
 ## Dependencies
 
 - **ansible-core**: 2.13+
