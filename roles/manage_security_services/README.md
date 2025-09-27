@@ -1,207 +1,149 @@
 # manage_security_services
 
-Configures firewall (UFW on Linux, ALF on macOS) and fail2ban security services.
+Firewall and intrusion prevention configuration for Ubuntu, Debian, Arch Linux, and macOS.
 
-## Description
+## What It Does
 
-This role manages security services using simple, direct variable structures. On Linux, it configures UFW firewall rules and fail2ban jails. On macOS, it manages the Application Layer Firewall (ALF). The role includes SSH anti-lockout protection and automatic service management.
+Manages security services with platform-specific implementations:
+- **Linux** - UFW firewall rules and fail2ban intrusion prevention
+- **macOS** - Application Layer Firewall configuration
 
-## Features
+## Usage
 
-- **Linux**: UFW firewall with rule management and SSH anti-lockout protection
-- **macOS**: Application Layer Firewall control via `socketfilterfw`
-- **fail2ban**: Jail configuration and intrusion prevention (Linux only)
-- **Platform detection**: Automatic OS-specific configuration
-
-## Role Variables
-
-### Firewall Configuration
-
+### Basic Firewall Configuration
 ```yaml
-firewall:
-  enabled: false                # Enable firewall service
-  prevent_ssh_lockout: true     # Automatically allow SSH to prevent lockout
-  package: "ufw"                # Firewall package (Linux only)
-  stealth_mode: false           # macOS: Don't respond to ping/stealth mode
-  block_all: false              # macOS: Block all incoming connections
-  logging: false                # Enable firewall logging
-  rules: []                     # Firewall rules (Linux only)
-```
+- hosts: all
+  become: true
+  roles:
+    - wolskies.infrastructure.manage_security_services
+  vars:
+    firewall:
+      enabled: true
+      rules:
+        - rule: allow
+          port: 22
+          protocol: tcp
+        - rule: allow
+          port: 80,443
+          protocol: tcp
 
-### Firewall Rules (Linux only)
-
-Rules are passed directly to the `community.general.ufw` module:
-
-```yaml
-firewall:
-  rules:
-    - rule: allow               # allow/deny/limit/reject
-      port: 22                  # Port number or range
-      proto: tcp                # tcp/udp/any
-    - rule: allow
-      port: 80,443              # Multiple ports
-      proto: tcp
-    - rule: allow
-      from_ip: 192.168.1.0/24   # Source IP/network
-      port: 3000
-      proto: tcp
-    - rule: deny
-      port: 23
-      proto: tcp
-      comment: "Block telnet"
-```
-
-### fail2ban Configuration (Linux only)
-
-```yaml
 fail2ban:
-  enabled: false                # Enable fail2ban service
-  sender: "root@localhost"      # Email sender for notifications
-  dest_email: ""                # Email destination for notifications
-  defaults:                     # Global defaults for all jails
-    bantime: 3600               # Ban duration (seconds)
-    findtime: 600               # Time window to count failures (seconds)
-    maxretry: 5                 # Max failures before ban
-  services:                     # Individual jail configurations
-    - name: sshd                # Jail name
-      enabled: true             # Enable this jail
-      maxretry: 5               # Override global maxretry
-      bantime: 3600             # Override global bantime
-      findtime: 600             # Override global findtime
-      logpath: /var/log/auth.log # Log file to monitor
-  ignoreips:                    # IPs to never ban
-    - "127.0.0.1/8"
-    - "::1"
+  enabled: true
+  maxretry: 3
+  bantime: "1h"
 ```
 
-## Usage Examples
-
-### Basic Linux Firewall
-
+### Advanced Configuration
 ```yaml
-- hosts: linux_servers
-  become: true
-  roles:
-    - role: wolskies.infrastructure.manage_security_services
-      vars:
-        firewall:
-          enabled: true
-          prevent_ssh_lockout: true
-          rules:
-            - rule: allow
-              port: 80
-              proto: tcp
-            - rule: allow
-              port: 443
-              proto: tcp
-            - rule: limit
-              port: 22
-              proto: tcp
-```
-
-### macOS Firewall
-
-```yaml
-- hosts: macos_hosts
-  become: true
-  roles:
-    - role: wolskies.infrastructure.manage_security_services
-      vars:
-        firewall:
-          enabled: true
-          stealth_mode: true    # Don't respond to ping
-          logging: true         # Log firewall events
-          # Note: rules are ignored on macOS
-```
-
-### fail2ban Protection
-
-```yaml
-- hosts: linux_servers
-  become: true
-  roles:
-    - role: wolskies.infrastructure.manage_security_services
-      vars:
-        fail2ban:
-          enabled: true
-          dest_email: "admin@company.com"
-          defaults:
-            bantime: 3600
-            maxretry: 3
-          services:
-            - name: sshd
-              enabled: true
-              maxretry: 3
-              bantime: 7200
-              logpath: /var/log/auth.log
-            - name: nginx-http-auth
-              enabled: true
-              logpath: /var/log/nginx/error.log
-```
-
-### Combined Configuration
-
-```yaml
-# group_vars/webservers.yml
 firewall:
   enabled: true
   prevent_ssh_lockout: true
   rules:
     - rule: allow
       port: 22
-      proto: tcp
+      protocol: tcp
+      comment: "SSH access"
     - rule: allow
-      port: 80,443
-      proto: tcp
+      source: 192.168.1.0/24
+      port: 3000
+      protocol: tcp
+    - rule: deny
+      port: 23
+      protocol: tcp
+      comment: "Block telnet"
 
 fail2ban:
   enabled: true
-  dest_email: "security@company.com"
-  services:
+  bantime: "10m"
+  findtime: "10m"
+  maxretry: 5
+  jails:
     - name: sshd
       enabled: true
       maxretry: 3
-      bantime: 3600
+      logpath: /var/log/auth.log
 ```
+
+## Variables
+
+Uses collection-wide variables - see collection README for complete reference.
+
+### Firewall Variables
+- `firewall.enabled` - Enable firewall service
+- `firewall.prevent_ssh_lockout` - Automatically allow SSH to prevent lockout
+- `firewall.rules` - Firewall rules (Linux only)
+- `firewall.stealth_mode` - Don't respond to ping (macOS)
+- `firewall.block_all` - Block all incoming connections (macOS)
+- `firewall.logging` - Enable firewall logging (macOS)
+
+### Firewall Rules Schema
+| Field         | Type            | Required | Default   | Description                                    |
+|---------------|-----------------|----------|-----------|------------------------------------------------|
+| `port`        | integer\|string | Yes      | -         | Port number or range (e.g., 22, "8080:8090")   |
+| `protocol`    | string          | No       | `"tcp"`   | Protocol ("tcp", "udp", "any")                 |
+| `rule`        | string          | No       | `"allow"` | Rule action ("allow", "deny")                  |
+| `source`      | string          | No       | `"any"`   | Source IP/CIDR (e.g., "192.168.1.0/24")       |
+| `destination` | string          | No       | `"any"`   | Destination IP/CIDR                            |
+| `comment`     | string          | No       | `""`      | Rule description                               |
+
+### fail2ban Variables (Linux only)
+- `fail2ban.enabled` - Enable fail2ban intrusion prevention
+- `fail2ban.bantime` - Ban duration (e.g., "10m", "1h", "1d")
+- `fail2ban.findtime` - Time window for counting failures
+- `fail2ban.maxretry` - Number of failures before IP is banned
+- `fail2ban.jails` - Jail configurations
+
+### fail2ban Jails Schema
+| Field      | Type    | Required | Default      | Description                                                |
+|------------|---------|----------|--------------|-----------------------------------------------------------|
+| `name`     | string  | Yes      | -            | Jail name (e.g., "sshd", "apache-auth", "nginx-http-auth") |
+| `enabled`  | boolean | No       | `true`       | Whether this jail is active                                |
+| `port`     | string  | No       | varies       | Port(s) to monitor (e.g., "ssh", "http,https", "22")       |
+| `filter`   | string  | No       | auto         | Filter name to use (defaults to jail name)                 |
+| `logpath`  | string  | Yes      | -            | Log file path to monitor (e.g., "/var/log/auth.log")       |
+| `maxretry` | integer | No       | inherit      | Override global maxretry for this jail                     |
 
 ## Platform Differences
 
-### Linux (UFW)
-- Uses `community.general.ufw` module for rule management
-- Supports comprehensive port-based rules with protocols, sources, etc.
-- SSH anti-lockout automatically allows SSH before applying rules
+### Linux (UFW + fail2ban)
+- Port-based firewall rules with comprehensive options
+- SSH anti-lockout protection automatically detects SSH port
 - fail2ban provides intrusion detection and prevention
+- Supports rule actions: allow, deny, limit, reject
 
-### macOS (ALF)
-- Uses native `socketfilterfw` command for configuration
+### macOS (Application Layer Firewall)
 - Application-based firewall (not port-based)
-- Rules are ignored - ALF controls application access
+- Firewall rules are ignored - ALF controls application access
 - No fail2ban support (different security model)
 - SSH access managed via System Preferences → Sharing → Remote Login
 
-## SSH Anti-Lockout Protection
+## Tags
 
-When `firewall.prevent_ssh_lockout: true` (default):
-- Automatically allows SSH (port 22) before applying other rules
-- Prevents accidental lockout when enabling firewall
-- Only applies if SSH rule not already present in rules list
-- Works on both IPv4 and IPv6
+Control which components run:
+- `firewall` - Complete firewall management
+- `firewall-rules` - Firewall rule application only
+- `firewall-services` - Firewall service state management only
+- `fail2ban` - Intrusion prevention service management
+- `security` - All security services (firewall + fail2ban)
+- `no-container` - Tasks requiring host capabilities
+
+Example:
+```bash
+# Skip fail2ban configuration
+ansible-playbook --skip-tags fail2ban playbook.yml
+
+# Skip all security services
+ansible-playbook --skip-tags security playbook.yml
+```
+
+## Platform Support
+
+- **Ubuntu** 22.04+, 24.04+
+- **Debian** 12+, 13+
+- **Arch Linux** (Rolling)
+- **macOS** 13+ (Ventura)
 
 ## Dependencies
 
-- `community.general.ufw` - Linux firewall management
-- `ansible.posix` - Service management
-
-## Testing
-
-```bash
-molecule test -s manage_security_services
-```
-
-## License
-
-MIT
-
-## Author Information
-
-This role is part of the wolskies.infrastructure collection.
+- `community.general.ufw` (Linux firewall management)
+- `ansible.posix` (Service management)

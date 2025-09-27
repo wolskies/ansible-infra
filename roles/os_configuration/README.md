@@ -9,12 +9,13 @@ Handles fundamental operating system configuration:
 - **Hostname** - Set system hostname and update /etc/hosts
 - **Timezone** - Configure system timezone
 - **Locale** - Set system locale and language (Linux)
-- **Users** - Create user accounts with SSH keys and groups
 - **Services** - Enable/disable/mask systemd services (Linux)
 - **Security** - Apply OS and SSH hardening (Linux, optional)
 - **System Tuning** - Kernel parameters, modules, udev rules (Linux)
 - **NTP** - Configure time synchronization
 - **Journal** - Configure systemd journal settings (Linux)
+- **Package Managers** - APT/Pacman proxy and configuration (Linux)
+- **System Preferences** - Basic system settings (macOS)
 
 ## Usage
 
@@ -26,30 +27,18 @@ Handles fundamental operating system configuration:
     - wolskies.infrastructure.os_configuration
   vars:
     domain_timezone: "America/New_York"
-    host_hostname: "web01"
-    users:
-      - name: admin
-        groups: [sudo]
-        ssh_keys:
-          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+    host_hostname: "{{ inventory_hostname }}"
+    host_update_hosts: true
 ```
 
 ### Advanced Configuration
 ```yaml
+# group_vars/all.yml
 domain_timezone: "America/New_York"
 domain_locale: "en_US.UTF-8"
-host_hostname: "{{ inventory_hostname }}"
-host_update_hosts: true
 
-users:
-  - name: admin
-    uid: 1000
-    groups: [sudo]
-    shell: /bin/bash
-    ssh_keys:
-      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
-        comment: "admin@workstation"
-
+# host_vars/web01.yml
+host_hostname: "web01"
 host_services:
   enable: [nginx, postgresql]
   disable: [apache2, sendmail]
@@ -76,19 +65,29 @@ journal:
 
 ## Variables
 
-Uses collection-wide variables:
+Uses collection-wide variables - see collection README for complete reference.
 
+### Core Variables
 - `domain_timezone` - System timezone (IANA format)
 - `domain_locale` - System locale (e.g., "en_US.UTF-8")
 - `host_hostname` - System hostname
 - `host_update_hosts` - Update /etc/hosts file
-- `users` - User account definitions
-- `host_services` - Service management
-- `host_sysctl` - Kernel parameters
-- `host_modules` - Kernel modules
-- `host_security` - Security hardening settings
-- `domain_ntp` - NTP configuration
-- `journal` - Journal settings
+
+### System Management
+- `host_services.enable` - Services to enable and start
+- `host_services.disable` - Services to disable and stop
+- `host_services.mask` - Services to mask
+- `host_modules.load` - Kernel modules to load
+- `host_modules.blacklist` - Kernel modules to blacklist
+- `host_sysctl.parameters` - Kernel parameters
+
+### Optional Features
+- `host_security.hardening_enabled` - Enable OS hardening
+- `host_security.ssh_hardening_enabled` - Enable SSH hardening
+- `domain_ntp.enabled` - Enable NTP configuration
+- `journal.configure` - Enable journal configuration
+- `apt.proxy` - APT proxy URL (Ubuntu/Debian)
+- `pacman.proxy` - Pacman proxy URL (Arch Linux)
 
 ## Tags
 
@@ -102,6 +101,8 @@ Skip specific configuration areas:
 - `modules` - Kernel module configuration
 - `security` - Security hardening
 - `journal` - Journal configuration
+- `apt` - APT configuration (Ubuntu/Debian)
+- `pacman` - Pacman configuration (Arch Linux)
 - `no-container` - Tasks requiring host capabilities
 
 Example:
