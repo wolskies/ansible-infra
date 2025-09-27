@@ -1,4 +1,12 @@
 ---
-# Default configuration for rust role
-rust_user: "{{ ansible_user }}"
+# =============================================================================
+# RUST ROLE DEFAULTS
+# =============================================================================
+# This role handles Rust toolchain installation and cargo package management
+# Uses role-specific variables passed from calling roles
+#
+# All variables are documented in meta/argument_specs.yml
+# =============================================================================
+
+# Package Management
 rust_packages: []

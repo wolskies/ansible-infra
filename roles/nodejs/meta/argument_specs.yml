@@ -1,0 +1,49 @@
+---
+# Node.js Role Argument Specification
+# This role handles Node.js installation and npm package management for individual users
+
+argument_specs:
+  main:
+    short_description: Install Node.js runtime and manage npm packages for individual users
+    description:
+      - Installs Node.js system-wide from NodeSource repositories (Debian/Ubuntu)
+      - Installs Node.js from official repositories (Arch Linux, macOS)
+      - Manages npm packages in user-local directories to avoid permission issues
+      - Supports both simple string and object format for package specifications
+      - Configures user PATH to include npm global directory
+
+    options:
+      # User Configuration
+      node_user:
+        description: Target username for npm package installation
+        type: str
+        required: true
+
+      # Package Management
+      node_packages:
+        description:
+          - npm packages to install for the specified user
+          - Supports both string format and object format with version specification
+        type: list
+        elements: raw
+        required: false
+        default: []
+
+      # Node.js Configuration
+      nodejs_version:
+        description: Major version of Node.js to install (Debian/Ubuntu only, from NodeSource)
+        type: str
+        required: false
+        default: "20"
+
+      npm_config_prefix:
+        description: Directory for npm global installations (user-specific)
+        type: str
+        required: false
+        default: "~/.npm-global"
+
+      npm_config_unsafe_perm:
+        description: Whether to suppress UID/GID switching when running package scripts
+        type: str
+        required: false
+        default: "true"

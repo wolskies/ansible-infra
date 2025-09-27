@@ -27,4 +27,3 @@
       loop:
         - /tmp/ansible-remote-tmp
         - /tmp/ansible-tmp
-      when: ansible_os_family == 'Archlinux'

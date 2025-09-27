@@ -28,6 +28,5 @@
       loop_control:
         loop_var: terminal_item
         label: "{{ terminal_item }}"
-
   become: true
   become_user: "{{ terminal_user }}"

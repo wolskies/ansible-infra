@@ -1,24 +1,86 @@
 ---
 # =============================================================================
-# OS CONFIGURATION ROLE VARIABLES
+# OS CONFIGURATION ROLE DEFAULTS
 # =============================================================================
-# This role handles domain-level and host-level OS configuration including
-# hostname, timezone, locale, NTP, logging, services, user management, and security hardening
+# This role handles fundamental operating system configuration across platforms
+# Uses collection-wide variables from section 2.2.1 - no role-specific variables
 #
-# Uses devsec.hardening.os_hardening for Linux security hardening.
-# Some variables exposed for convenience. See devsec.hardening docs for advanced usage.
-#
-# Variables mirror the structure in configure_system/defaults/main.yml
+# All variables are defined in the collection interface (docs/source/api/variables.rst)
+# and documented in meta/argument_specs.yml
 # =============================================================================
 
-# Role-specific defaults (shared variables moved to collection defaults/main.yml)
+# Domain Configuration - RFC 1035 compliant domain name
+domain_name: ""
 
-host_fonts:
-  nerd_fonts:
+# System timezone in IANA format (e.g., "America/New_York", "Europe/London")
+domain_timezone: ""
+
+# System locale in language_COUNTRY.encoding format
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+
+# Host Configuration - RFC 1123 compliant hostname
+host_hostname: ""
+host_update_hosts: true
+
+# Security Configuration
+host_security:
+  hardening_enabled: false
+  ssh_hardening_enabled: false
+
+# Linux Service Management
+host_services:
+  enable: []
+  disable: []
+  mask: []
+
+# Linux Kernel Module Management
+host_modules:
+  load: []
+  blacklist: []
+
+# Linux Udev Rules Management
+host_udev:
+  rules: []
+
+# Linux Sysctl Parameters
+host_sysctl:
+  parameters: {}
+
+# Linux NTP Configuration
+domain_ntp:
+  enabled: false
+  servers: []
+
+# Linux Journal Configuration
+journal:
+  configure: false
+
+# APT Configuration (Debian/Ubuntu)
+apt:
+  proxy: ""
+  no_recommends: false
+  unattended_upgrades:
     enabled: false
-    install_dir: "/usr/share/fonts/nerd-fonts"
-    fonts: []
 
-# User management (batch wrapper around ansible.builtin.user)
-users: []
-users_absent: []
+# Pacman Configuration (Arch Linux)
+pacman:
+  proxy: ""
+  no_confirm: false
+  multilib:
+    enabled: false
+
+# macOS System Configuration
+macosx:
+  updates:
+    auto_check: true
+    auto_download: true
+  gatekeeper:
+    enabled: true
+  system_preferences:
+    natural_scroll: true
+    measurement_units: "Inches"
+    use_metric: false
+    show_all_extensions: false
+  airdrop:
+    ethernet_enabled: false

@@ -1,29 +1,27 @@
 ---
 # =============================================================================
-# TERMINAL_CONFIG ROLE VARIABLES - Terminal emulator configuration
+# TERMINAL CONFIG ROLE DEFAULTS
 # =============================================================================
-# Configures terminfo entries and settings for modern terminal emulators
+# This role installs terminfo entries for modern terminal emulators
+# Uses role-specific variables passed from calling roles
+#
+# All variables are documented in meta/argument_specs.yml
 # =============================================================================
 
-terminal_user: "" # Target username (required)
-terminal_entries: [] # List of terminals to configure (required)
-# Example:
-# terminal_entries:
-#   - alacritty
-#   - kitty
-#   - wezterm
+# Terminal Configuration
+terminal_entries: []
 
-# Terminal-specific configuration URLs and settings
+# Terminal-specific configuration mapping
 terminal_configs:
   alacritty:
     terminfo_url: "https://raw.githubusercontent.com/alacritty/alacritty/master/extra/alacritty.info"
-    entries: [alacritty, alacritty-direct]
+    entries: ["alacritty", "alacritty-direct"]
     tic_options: "-x"
   kitty:
     terminfo_url: "https://raw.githubusercontent.com/kovidgoyal/kitty/master/terminfo/kitty.terminfo"
-    entries: [xterm-kitty]
+    entries: ["xterm-kitty"]
     tic_options: "-x"
   wezterm:
     terminfo_url: "https://raw.githubusercontent.com/wez/wezterm/main/termwiz/data/wezterm.terminfo"
-    entries: [wezterm]
+    entries: ["wezterm"]
     tic_options: "-x"

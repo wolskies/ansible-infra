@@ -1,4 +1,12 @@
 ---
-# Default configuration for go role
-go_user: "{{ ansible_user }}"
+# =============================================================================
+# GO ROLE DEFAULTS
+# =============================================================================
+# This role handles Go toolchain installation and package management
+# Uses role-specific variables passed from calling roles
+#
+# All variables are documented in meta/argument_specs.yml
+# =============================================================================
+
+# Package Management
 go_packages: []

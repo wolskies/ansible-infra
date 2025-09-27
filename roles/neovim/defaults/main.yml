@@ -1,10 +1,12 @@
 ---
 # =============================================================================
-# NEOVIM ROLE VARIABLES - User-level neovim configuration
+# NEOVIM ROLE DEFAULTS
 # =============================================================================
-# Installs neovim system-wide, then configures per-user neovim setup with
-# lazy.nvim plugin manager and comprehensive LSP support
+# This role handles Neovim installation and configuration for individual users
+# Uses role-specific variables passed from calling roles
+#
+# All variables are documented in meta/argument_specs.yml
 # =============================================================================
 
-neovim_user: "" # Target username (required)
-neovim_config_enabled: true # Whether to install user configuration
+# Configuration Options
+neovim_config_enabled: true

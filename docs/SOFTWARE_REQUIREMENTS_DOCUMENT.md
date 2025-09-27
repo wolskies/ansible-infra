@@ -1445,7 +1445,7 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 
 #### 3.11.1 Role Description
 
-The `terminal_config` role handles terminal emulator configuration for individual users. This role manages terminal emulator settings and preferences based on provided configuration entries.
+The `terminal_config` role installs terminfo entries for modern terminal emulators for individual users. This role downloads, compiles, and installs terminfo files to enable proper terminal capabilities and prevent "unknown terminal type" errors when using modern terminals.
 
 #### 3.11.2 Variables
 
@@ -1454,29 +1454,15 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 | Variable           | Type         | Required | Default | Description                                       |
 | ------------------ | ------------ | -------- | ------- | ------------------------------------------------- |
 | `terminal_user`    | string       | Yes      | -       | Target username for terminal configuration        |
-| `terminal_entries` | list[object] | Yes      | -       | Terminal configuration entries (see schema below) |
-
-**terminal_entries Object Schema:**
-
-| Field   | Type   | Required | Default | Description                                                |
-| ------- | ------ | -------- | ------- | ---------------------------------------------------------- |
-| `type`  | string | Yes      | -       | Terminal emulator type ("gnome-terminal", "konsole", etc.) |
-| `key`   | string | Yes      | -       | Configuration key name                                     |
-| `value` | string | Yes      | -       | Configuration value                                        |
+| `terminal_entries` | list[string] | Yes      | -       | List of terminal names to install terminfo for   |
 
 #### 3.11.3 Features and Functionality
 
-##### 3.11.3.1 GNOME Terminal Configuration
+##### 3.11.3.1 Terminfo Installation
 
-**REQ-TERMINAL-001**: The system SHALL configure GNOME Terminal settings for the specified user
+**REQ-TERMINAL-001**: The system SHALL install terminfo entries for modern terminal emulators for the specified user in ~/.terminfo directory
 
-**Implementation**: Uses `ansible.builtin.shell` with `gsettings set org.gnome.Terminal.Legacy.Settings:{{ item.key }} {{ item.value }}` for entries where `item.type == 'gnome-terminal'` with `become_user: terminal_user`. Loop variable name: `item`.
-
-##### 3.11.3.2 KDE Konsole Configuration
-
-**REQ-TERMINAL-002**: The system SHALL configure KDE Konsole settings for the specified user
-
-**Implementation**: Uses `ansible.builtin.ini_file` to modify `~{{ terminal_user }}/.config/konsolerc` with `section: {{ item.section }}`, `option: {{ item.key }}`, `value: {{ item.value }}`, and `owner: terminal_user` for entries where `item.type == 'konsole'`. Loop variable name: `item`.
+**Implementation**: Uses `ansible.builtin.get_url` to download terminfo files from configured URLs, then `ansible.builtin.shell` with `tic` command to compile and install terminfo entries in `~{{ terminal_user }}/.terminfo` directory. Checks for existing terminfo with `infocmp` before installation for idempotency. Terminal configurations are defined in `terminal_configs` variable mapping terminal names to terminfo URLs, entries, and tic options.
 
 ---
 

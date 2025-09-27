@@ -1,0 +1,301 @@
+---
+# Configure User Role Argument Specification
+# This role configures a single user and their preferences
+
+argument_specs:
+  main:
+    short_description: Configure a single user and their preferences
+    description:
+      - Creates and configures user accounts using ansible.builtin.user
+      - Manages SSH authorized keys and sudo configuration
+      - Orchestrates development environment setup via collection roles
+      - Configures platform-specific preferences (macOS dock, finder, etc.)
+      - Deploys dotfiles using GNU stow when configured
+      - Uses single target_user variable for complete user configuration
+
+    options:
+      # Core User Configuration
+      target_user:
+        description:
+          - Complete user configuration object
+          - Contains all user account, preference, and environment settings
+        type: dict
+        required: true
+        options:
+          name:
+            description: Username (alphanumeric + underscore/hyphen, max 32 chars)
+            type: str
+            required: true
+          groups:
+            description: Secondary groups (automatically uses append=true when defined)
+            type: list
+            elements: str
+            required: false
+            default: []
+          shell:
+            description: Login shell
+            type: str
+            required: false
+            default: "/bin/bash"
+          comment:
+            description: GECOS field (user description)
+            type: str
+            required: false
+            default: ""
+          password:
+            description: Password hash (use ansible-vault for security)
+            type: str
+            required: false
+          state:
+            description: User state
+            type: str
+            required: false
+            default: "present"
+            choices: ["present", "absent"]
+          superuser:
+            description: Automatically assign platform-appropriate admin groups (sudo/wheel/admin)
+            type: bool
+            required: false
+            default: false
+          superuser_passwordless:
+            description: Enable passwordless sudo (requires superuser=true)
+            type: bool
+            required: false
+            default: false
+
+          # SSH Configuration
+          ssh_keys:
+            description: SSH authorized keys for this user
+            type: list
+            elements: dict
+            required: false
+            default: []
+            options:
+              key:
+                description: SSH public key content (full key string)
+                type: str
+                required: true
+              comment:
+                description: Override key comment
+                type: str
+                required: false
+              options:
+                description: Key options (e.g., "no-port-forwarding,from='10.0.0.0/8'")
+                type: str
+                required: false
+              exclusive:
+                description: Remove all other keys if true
+                type: bool
+                required: false
+                default: false
+              state:
+                description: Key state
+                type: str
+                required: false
+                default: "present"
+                choices: ["present", "absent"]
+
+          # Git Configuration
+          git:
+            description: Git global configuration settings
+            type: dict
+            required: false
+            default: {}
+            options:
+              user_name:
+                description: Git global user.name setting (full name, e.g., "John Doe")
+                type: str
+                required: false
+              user_email:
+                description: Git global user.email setting (email address, e.g., "john@example.com")
+                type: str
+                required: false
+              editor:
+                description: Git global core.editor setting (editor command, e.g., "vim", "code --wait")
+                type: str
+                required: false
+
+          # Development Environment Configuration
+          nodejs:
+            description: Node.js development environment configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              packages:
+                description: npm package names to install globally (e.g., ["typescript", "@angular/cli"])
+                type: list
+                elements: str
+                required: false
+                default: []
+
+          rust:
+            description: Rust development environment configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              packages:
+                description: Cargo package names to install (e.g., ["ripgrep", "fd-find"])
+                type: list
+                elements: str
+                required: false
+                default: []
+
+          go:
+            description: Go development environment configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              packages:
+                description: Go package URLs to install (e.g., ["github.com/user/package@latest"])
+                type: list
+                elements: str
+                required: false
+                default: []
+
+          neovim:
+            description: Neovim configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              enabled:
+                description: Install and configure Neovim for this user
+                type: bool
+                required: false
+                default: false
+
+          # Terminal Configuration
+          terminal_entries:
+            description: Terminal emulator configuration entries
+            type: list
+            elements: dict
+            required: false
+            default: []
+
+          # Dotfiles Configuration
+          dotfiles:
+            description: Dotfiles deployment configuration using GNU stow
+            type: dict
+            required: false
+            default: {}
+            options:
+              enable:
+                description: Enable dotfiles deployment using stow
+                type: bool
+                required: false
+                default: true
+              repository:
+                description: Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles")
+                type: str
+                required: false
+              dest:
+                description: Directory name for dotfiles repository
+                type: str
+                required: false
+                default: ".dotfiles"
+              branch:
+                description: Git branch to checkout
+                type: str
+                required: false
+                default: "main"
+              disable_clone:
+                description: Skip git clone (use existing local copy)
+                type: bool
+                required: false
+                default: false
+
+          # macOS Configuration
+          Darwin:
+            description: macOS-specific preferences and configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              dock:
+                description: macOS Dock preferences
+                type: dict
+                required: false
+                default: {}
+                options:
+                  tile_size:
+                    description: Dock icon size in pixels
+                    type: int
+                    required: false
+                  autohide:
+                    description: Auto-hide the dock
+                    type: bool
+                    required: false
+                  minimize_to_application:
+                    description: Minimize windows into app icon
+                    type: bool
+                    required: false
+                  show_recents:
+                    description: Show recent applications in dock
+                    type: bool
+                    required: false
+
+              finder:
+                description: macOS Finder preferences
+                type: dict
+                required: false
+                default: {}
+                options:
+                  show_extensions:
+                    description: Show all filename extensions
+                    type: bool
+                    required: false
+                  show_hidden:
+                    description: Show hidden files
+                    type: bool
+                    required: false
+                  show_pathbar:
+                    description: Show path bar in finder windows
+                    type: bool
+                    required: false
+                  show_statusbar:
+                    description: Show status bar in finder windows
+                    type: bool
+                    required: false
+                  show_external_drives:
+                    description: Show external drives on desktop
+                    type: bool
+                    required: false
+                  show_removable_media:
+                    description: Show removable media on desktop
+                    type: bool
+                    required: false
+                  show_posix_path:
+                    description: Show POSIX path in window title
+                    type: bool
+                    required: false
+
+              screenshots:
+                description: macOS screenshot preferences
+                type: dict
+                required: false
+                default: {}
+                options:
+                  directory:
+                    description: Directory name for screenshots
+                    type: str
+                    required: false
+                    default: "Screenshots"
+                  format:
+                    description: Screenshot format (png, jpg, etc.)
+                    type: str
+                    required: false
+                    default: "png"
+
+              iterm2:
+                description: macOS iTerm2 preferences
+                type: dict
+                required: false
+                default: {}
+                options:
+                  prompt_on_quit:
+                    description: Prompt before quitting iTerm2
+                    type: bool
+                    required: false

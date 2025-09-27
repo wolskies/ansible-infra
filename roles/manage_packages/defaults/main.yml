@@ -1,48 +1,43 @@
 ---
 # =============================================================================
-# PACKAGE MANAGEMENT ROLE VARIABLES
+# MANAGE PACKAGES ROLE DEFAULTS
 # =============================================================================
-# Distribution-specific package installation and repository management
-# Packages are merged in order: all -> group -> host
-# Variables mirror the structure in configure_system/defaults/main.yml
+# This role handles package management across different operating systems
+# Uses collection-wide variables from section 2.2.1 - no role-specific variables
+#
+# All variables are defined in the collection interface (docs/source/api/variables.rst)
+# and documented in meta/argument_specs.yml
 # =============================================================================
 
-packages:
-  present: {}
-  remove: {}
-  # Package structure documented in collection README:
-  # present/remove: { all/group/host: { Ubuntu: [], Debian: [], Archlinux: [], MacOSX: [] } }
-  casks_present:
-    all: []
-    group: []
-    host: []
-  casks_remove: []
+# Cross-Platform Package Management
+packages: {}
 
+# Layered Package Configuration
+manage_packages_all: {}
+manage_packages_group: {}
+manage_packages_host: {}
+
+# APT Repository Management
+apt_repositories_all: {}
+apt_repositories_group: {}
+apt_repositories_host: {}
+
+# APT Configuration
 apt:
-  apt_cache:
-    update_cache: false
-    valid_time: 3600
-  no_recommends: false
-  unattended_upgrades:
-    enabled: false
-    email: ""
-    auto_reboot: false
-    reboot_with_users: false
-    reboot_time: "02:00"
+  repositories: {}
   system_upgrade:
     enable: false
-    type: safe
-  proxy: ""
-  repositories: {}
+    type: "safe"
 
+# Pacman Configuration (Arch Linux)
 pacman:
-  no_confirms: false
-  proxy: ""
-  multilib: false
   enable_aur: false
 
+# Homebrew Configuration (macOS)
 homebrew:
-  install: true
-  update_homebrew: true
-  cleanup_cache: false
   taps: []
+  cleanup_cache: true
+
+# macOS Cask Management
+manage_casks:
+  Darwin: []

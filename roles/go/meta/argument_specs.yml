@@ -1,0 +1,27 @@
+---
+# Go Role Argument Specification
+# This role handles Go toolchain installation and package management for individual users
+
+argument_specs:
+  main:
+    short_description: Install Go development toolchain and manage packages for individual users
+    description:
+      - Installs Go compiler, built-in tools, and package management capabilities
+      - Configures user PATH to include Go binary directory
+      - Manages Go package installation using go install command
+      - Supports cross-platform installation on Debian/Ubuntu, Arch Linux, and macOS
+
+    options:
+      # User Configuration
+      go_user:
+        description: Target username for Go installation
+        type: str
+        required: true
+
+      # Package Management
+      go_packages:
+        description: Go package URLs to install (e.g., ["github.com/user/package@latest"])
+        type: list
+        elements: str
+        required: false
+        default: []
