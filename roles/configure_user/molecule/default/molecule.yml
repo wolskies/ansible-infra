@@ -106,8 +106,8 @@ provisioner:
           neovim:
             enabled: true
           git:
-            name: "Full User"
-            email: "fulluser@example.com"
+            user_name: "Full User"
+            user_email: "fulluser@example.com"
             editor: "nvim"
           dotfiles:
             enable: true
