@@ -1,162 +1,133 @@
 ---
-# Manage Security Services Role Argument Specification
-# This role handles firewall configuration and intrusion prevention services
-
 argument_specs:
   main:
-    short_description: Configure firewall and intrusion prevention services
-    description:
-      - Handles firewall configuration on Linux (UFW) and macOS (Application Layer Firewall)
-      - Manages intrusion prevention services (fail2ban on Linux)
-      - Automatically detects and protects SSH access during firewall operations
-      - Configures firewall rules, stealth mode, and logging options
-      - Uses collection-wide variables for consistent security configuration
-
+    short_description: Security services management role
+    description: |
+      Handles firewall configuration and intrusion prevention services across
+      Linux and macOS systems. Uses UFW on Linux and Application Layer Firewall
+      on macOS.
     options:
       # Firewall Configuration
       firewall:
-        description:
-          - Firewall configuration and management options
-          - Controls UFW on Linux and Application Layer Firewall on macOS
         type: dict
-        required: false
         default: {}
+        description: Firewall configuration settings
         options:
           enabled:
-            description: Enable firewall service and rule management
             type: bool
-            required: false
             default: false
+            description: Enable firewall rule management
           prevent_ssh_lockout:
-            description: Automatically detect and protect SSH access during firewall operations
             type: bool
-            required: false
             default: true
+            description: Automatically allow SSH during firewall configuration
           rules:
-            description: List of firewall rule definitions
             type: list
             elements: dict
-            required: false
             default: []
+            description: Firewall rule definitions
             options:
               port:
-                description: Port number or range (e.g., 22, "8080:8090")
                 type: raw
-                required: true
-              protocol:
-                description: Protocol type
-                type: str
                 required: false
+                description: Port number or range (e.g., 22, "8080:8090")
+              protocol:
+                type: str
                 default: "tcp"
                 choices: ["tcp", "udp", "any"]
+                description: Protocol
               rule:
-                description: Rule action
                 type: str
-                required: false
                 default: "allow"
                 choices: ["allow", "deny"]
+                description: Rule action
               source:
+                type: str
+                default: "any"
                 description: Source IP/CIDR (e.g., "192.168.1.0/24", "any")
-                type: str
-                required: false
-                default: "any"
               destination:
-                description: Destination IP/CIDR
                 type: str
-                required: false
                 default: "any"
+                description: Destination IP/CIDR
               comment:
-                description: Rule description
                 type: str
-                required: false
                 default: ""
+                description: Rule description
+          # macOS-specific firewall options
           stealth_mode:
+            type: bool
+            default: false
             description: Enable stealth mode on macOS Application Layer Firewall (don't respond to pings)
-            type: bool
-            required: false
-            default: false
           block_all:
+            type: bool
+            default: false
             description: Block all incoming connections on macOS (except essential services)
-            type: bool
-            required: false
-            default: false
           logging:
-            description: Enable firewall logging on macOS Application Layer Firewall
             type: bool
-            required: false
             default: false
+            description: Enable firewall logging on macOS Application Layer Firewall
 
       # Fail2ban Configuration
       fail2ban:
-        description:
-          - Fail2ban intrusion prevention configuration
-          - Linux-only service for protecting against brute force attacks
         type: dict
-        required: false
         default: {}
+        description: Fail2ban intrusion prevention configuration
         options:
           enabled:
-            description: Enable fail2ban intrusion prevention service
             type: bool
-            required: false
             default: false
+            description: Enable fail2ban intrusion prevention service on Linux systems
           bantime:
+            type: str
+            default: "10m"
             description: Duration for which IP is banned (e.g., "10m", "1h", "1d")
-            type: str
-            required: false
-            default: "10m"
           findtime:
-            description: Time window for counting failures (e.g., "10m", "1h")
             type: str
-            required: false
             default: "10m"
+            description: Time window for counting failures (e.g., "10m", "1h")
           maxretry:
-            description: Number of failures before IP is banned
             type: int
-            required: false
             default: 5
+            description: Number of failures before IP is banned
           jails:
-            description: List of fail2ban jail configurations
             type: list
             elements: dict
-            required: false
             default: []
+            description: Fail2ban jail configurations
             options:
               name:
+                type: str
+                required: true
                 description: Jail name (e.g., "sshd", "apache-auth", "nginx-http-auth")
-                type: str
-                required: true
               enabled:
-                description: Whether this jail is active
                 type: bool
-                required: false
                 default: true
+                description: Whether this jail is active
               port:
+                type: str
+                required: false
                 description: Port(s) to monitor (e.g., "ssh", "http,https", "22")
-                type: str
-                required: false
               filter:
-                description: Filter name to use (defaults to jail name)
                 type: str
                 required: false
+                description: Filter name to use (defaults to jail name)
               logpath:
-                description: Log file path to monitor (e.g., "/var/log/auth.log")
                 type: str
                 required: true
+                description: Log file path to monitor (e.g., "/var/log/auth.log")
               maxretry:
-                description: Override global maxretry for this jail
                 type: int
                 required: false
+                description: Override global maxretry for this jail
               bantime:
+                type: str
+                required: false
                 description: Override global bantime for this jail (e.g., "1h", "1d")
-                type: str
-                required: false
               findtime:
+                type: str
+                required: false
                 description: Override global findtime for this jail
-                type: str
-                required: false
               action:
-                description: Ban action (e.g., "iptables", "iptables-multiport", "ufw")
                 type: str
-                required: false
                 default: "iptables"
+                description: Ban action (e.g., "iptables", "iptables-multiport", "ufw")

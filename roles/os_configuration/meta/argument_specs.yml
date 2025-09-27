@@ -1,376 +1,304 @@
 ---
-# OS Configuration Role Argument Specification
-# This role handles fundamental operating system configuration across platforms
-
 argument_specs:
   main:
-    short_description: Configure fundamental operating system settings
-    description:
-      - Handles cross-platform system configuration including hostname, timezone, locale, and security
-      - Manages Linux-specific features like systemd services, kernel modules, udev rules, and NTP
-      - Applies security hardening via devsec.hardening roles when enabled
-      - Configures macOS system preferences and automatic updates
-      - Uses collection-wide variables for consistent configuration across roles
-
+    short_description: OS configuration management role
+    description: |
+      Handles fundamental operating system configuration including hostname, timezone,
+      locale, NTP, systemd services/modules, journal, security hardening, and OS-specific
+      configurations.
     options:
-      # Domain and System Configuration
+      # Domain/System Configuration
       domain_name:
-        description:
-          - Organization domain name used in /etc/hosts entries
-          - Required when host_update_hosts is true
-          - Must be RFC 1035 compliant format
         type: str
-        required: false
+        default: ""
+        description: Organization domain name (RFC 1035 format, e.g., "example.com")
 
       domain_timezone:
-        description:
-          - System timezone in IANA format
-          - When defined and non-empty, system timezone will be configured
         type: str
-        required: false
+        default: ""
+        description: System timezone (IANA format, e.g., "America/New_York", "Europe/London")
 
       domain_locale:
-        description:
-          - System locale in language_COUNTRY.encoding format
-          - Used for locale generation on Linux systems
         type: str
-        required: false
         default: "en_US.UTF-8"
+        description: "System locale (format: language_COUNTRY.encoding, e.g., en_US.UTF-8, fr_FR.UTF-8)"
 
       domain_language:
-        description:
-          - System language setting (same format as locale)
-          - Used for system language configuration
         type: str
-        required: false
         default: "en_US.UTF-8"
+        description: System language (locale format, e.g., "en_US.UTF-8", "de_DE.UTF-8")
 
       # Host Configuration
       host_hostname:
-        description:
-          - System hostname to set
-          - Must be RFC 1123 compliant (alphanumeric + hyphens, max 253 chars)
-          - When defined and non-empty, hostname will be configured
         type: str
-        required: false
+        default: ""
+        description: System hostname (RFC 1123 format, alphanumeric + hyphens, max 253 chars)
 
       host_update_hosts:
-        description:
-          - Whether to update /etc/hosts with hostname entry
-          - Requires both host_hostname and domain_name to be defined
-          - "Entry format: 127.0.0.1 localhost {hostname}.{domain} {hostname}"
         type: bool
-        required: false
         default: true
+        description: Update /etc/hosts with hostname entry
+
+      # Systemd Services
+      host_services:
+        type: dict
+        default: {}
+        description: Systemd service management configuration
+        options:
+          enable:
+            type: list
+            elements: str
+            default: []
+            description: Systemd service names to enable (e.g., ["nginx", "postgresql"])
+          disable:
+            type: list
+            elements: str
+            default: []
+            description: Systemd service names to disable (e.g., ["apache2", "sendmail"])
+          mask:
+            type: list
+            elements: str
+            default: []
+            description: Systemd service names to mask (e.g., ["snapd", "telnet"])
+
+      # Kernel Modules
+      host_modules:
+        type: dict
+        default: {}
+        description: Kernel module management configuration
+        options:
+          load:
+            type: list
+            elements: str
+            default: []
+            description: Kernel modules to load persistently (e.g., ["br_netfilter", "overlay"])
+          blacklist:
+            type: list
+            elements: str
+            default: []
+            description: Kernel modules to blacklist (e.g., ["pcspkr", "snd_pcsp"])
+
+      # Udev Rules
+      host_udev:
+        type: dict
+        default: {}
+        description: Custom udev rules management
+        options:
+          rules:
+            type: list
+            elements: dict
+            default: []
+            description: Custom udev rules definitions
+            options:
+              name:
+                type: str
+                required: true
+                description: Rule identifier (alphanumeric + hyphens, used in filename)
+              content:
+                type: str
+                required: true
+                description: 'Udev rule content (e.g., ''SUBSYSTEM=="usb", MODE="0666"'')'
+              priority:
+                type: int
+                default: 99
+                description: Rule priority (10-99, lower executes first)
+              state:
+                type: str
+                default: "present"
+                choices: ["present", "absent"]
+                description: Rule state ("present" to deploy, "absent" to remove)
+
+      # Sysctl Parameters
+      host_sysctl:
+        type: dict
+        default: {}
+        description: Kernel parameter configuration
+        options:
+          parameters:
+            type: dict
+            default: {}
+            description: "Kernel parameter definitions (key: sysctl name, value: setting)"
+
+      # NTP Configuration
+      domain_ntp:
+        type: dict
+        default: {}
+        description: NTP time synchronization configuration
+        options:
+          enabled:
+            type: bool
+            default: false
+            description: Enable NTP time synchronization configuration
+          servers:
+            type: list
+            elements: str
+            default: []
+            description: NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])
+
+      # Journal Configuration
+      journal:
+        type: dict
+        default: {}
+        description: Systemd journal configuration management
+        options:
+          configure:
+            type: bool
+            default: false
+            description: Enable systemd journal configuration management
+          max_size:
+            type: str
+            default: "500M"
+            description: Maximum disk space for journal files (e.g., "500M", "1G", "2G")
+          max_retention:
+            type: str
+            default: "30d"
+            description: Maximum journal retention time (e.g., "7d", "30d", "1y")
+          forward_to_syslog:
+            type: bool
+            default: false
+            description: Forward journal messages to syslog daemon
+          compress:
+            type: bool
+            default: true
+            description: Enable journal file compression
 
       # Security Configuration
       host_security:
-        description:
-          - Security hardening configuration options
-          - Used to control devsec.hardening role behavior
         type: dict
-        required: false
         default: {}
+        description: Security hardening configuration
         options:
           hardening_enabled:
-            description: Enable OS security hardening via devsec.hardening.os_hardening
             type: bool
-            required: false
             default: false
+            description: Enable devsec.hardening security baseline
           ssh_hardening_enabled:
-            description: Enable SSH security hardening via devsec.hardening.ssh_hardening
             type: bool
-            required: false
             default: false
-
-      # Service Management (Linux)
-      host_services:
-        description:
-          - Systemd service management configuration
-          - Controls enable/disable/mask operations for systemd units
-        type: dict
-        required: false
-        default: {}
-        options:
-          enable:
-            description: List of systemd service names to enable and start
-            type: list
-            elements: str
-            required: false
-            default: []
-          disable:
-            description: List of systemd service names to disable and stop
-            type: list
-            elements: str
-            required: false
-            default: []
-          mask:
-            description: List of systemd service names to mask and stop
-            type: list
-            elements: str
-            required: false
-            default: []
-
-      # Kernel Module Management (Linux)
-      host_modules:
-        description:
-          - Kernel module management configuration
-          - Controls loading and blacklisting of kernel modules
-        type: dict
-        required: false
-        default: {}
-        options:
-          load:
-            description: List of kernel module names to load persistently
-            type: list
-            elements: str
-            required: false
-            default: []
-          blacklist:
-            description: List of kernel module names to blacklist
-            type: list
-            elements: str
-            required: false
-            default: []
-
-      # Udev Rules Management (Linux)
-      host_udev:
-        description:
-          - Custom udev rules configuration
-          - Manages deployment and removal of udev rules
-        type: dict
-        required: false
-        default: {}
-        options:
-          rules:
-            description: List of custom udev rule definitions
-            type: list
-            elements: dict
-            required: false
-            default: []
-            options:
-              name:
-                description: Rule identifier (used in filename)
-                type: str
-                required: true
-              content:
-                description: Udev rule content
-                type: str
-                required: true
-              priority:
-                description: Rule priority (10-99, lower executes first)
-                type: int
-                required: false
-                default: 99
-              state:
-                description: Rule state
-                type: str
-                required: false
-                default: "present"
-                choices: ["present", "absent"]
-
-      # Sysctl Parameters (Linux)
-      host_sysctl:
-        description:
-          - Kernel parameter configuration via sysctl
-          - Used by security hardening and custom kernel parameter management
-        type: dict
-        required: false
-        default: {}
-        options:
-          parameters:
-            description: Dictionary of sysctl parameter names and values
-            type: dict
-            required: false
-            default: {}
-
-      # NTP Configuration (Linux)
-      domain_ntp:
-        description:
-          - Network time synchronization configuration
-          - Configures systemd-timesyncd for basic SNTP client functionality
-        type: dict
-        required: false
-        default: {}
-        options:
-          enabled:
-            description: Enable NTP time synchronization configuration
-            type: bool
-            required: false
-            default: false
-          servers:
-            description: List of NTP server hostnames or IP addresses
-            type: list
-            elements: str
-            required: false
-            default: []
-
-      # Journal Configuration (Linux)
-      journal:
-        description:
-          - Systemd journal configuration options
-          - Controls journal settings via configuration file
-        type: dict
-        required: false
-        default: {}
-        options:
-          configure:
-            description: Enable systemd journal configuration management
-            type: bool
-            required: false
-            default: false
-          max_size:
-            description: Maximum disk space for journal files
-            type: str
-            required: false
-            default: "500M"
-          max_retention:
-            description: Maximum journal retention time
-            type: str
-            required: false
-            default: "30d"
-          forward_to_syslog:
-            description: Forward journal messages to syslog
-            type: bool
-            required: false
-            default: false
-          compress:
-            description: Enable journal compression
-            type: bool
-            required: false
-            default: true
+            description: Enable SSH-specific security hardening
 
       # APT Configuration (Debian/Ubuntu)
       apt:
-        description:
-          - APT package manager configuration options
-          - Controls proxy, recommends, and unattended upgrades
         type: dict
-        required: false
         default: {}
+        description: APT package manager configuration
         options:
           proxy:
-            description: "APT proxy URL (format: http[s]://[user:pass@]host:port)"
             type: str
-            required: false
+            default: ""
+            description: "APT proxy URL (format: http[s]://[user:pass@]host:port, e.g., http://user:pass@proxy.company.com:8080)"
           no_recommends:
-            description: Disable APT automatic installation of recommended packages
             type: bool
-            required: false
             default: false
+            description: Disable APT automatic installation of recommended and suggested packages
           unattended_upgrades:
-            description: APT unattended upgrades configuration
             type: dict
-            required: false
             default: {}
+            description: APT unattended upgrades configuration
             options:
               enabled:
-                description: Enable APT unattended security upgrades
                 type: bool
-                required: false
                 default: false
+                description: Enable APT unattended security upgrades on Debian/Ubuntu systems
+          system_upgrade:
+            type: dict
+            default: {}
+            description: APT system upgrade configuration
+            options:
+              enable:
+                type: bool
+                default: false
+                description: Enable APT system upgrades (security, dist-upgrade, etc.)
+              type:
+                type: str
+                default: "safe"
+                choices: ["safe", "dist", "full", "yes"]
+                description: APT upgrade type
 
       # Pacman Configuration (Arch Linux)
       pacman:
-        description:
-          - Pacman package manager configuration options
-          - Controls proxy, no-confirm, and multilib repository
         type: dict
-        required: false
         default: {}
+        description: Pacman package manager configuration
         options:
           proxy:
-            description: "Pacman proxy URL (format: http[s]://[user:pass@]host:port)"
             type: str
-            required: false
+            default: ""
+            description: "Pacman proxy URL (format: http[s]://[user:pass@]host:port, e.g., http://proxy.example.com:3128)"
           no_confirm:
-            description: Enable Pacman NoConfirm option (skip confirmation prompts)
             type: bool
-            required: false
             default: false
+            description: Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)
           multilib:
-            description: Pacman multilib repository configuration
             type: dict
-            required: false
             default: {}
+            description: Pacman multilib repository configuration
             options:
               enabled:
-                description: Enable multilib repository for 32-bit packages
                 type: bool
-                required: false
                 default: false
+                description: Enable Pacman multilib repository for 32-bit packages on Arch Linux systems
+          enable_aur:
+            type: bool
+            default: false
+            description: Enable AUR (Arch User Repository) package support with paru helper
 
-      # macOS System Configuration
+      # macOS Configuration
       macosx:
-        description:
-          - macOS-specific system configuration options
-          - Controls automatic updates, gatekeeper, and system preferences
         type: dict
-        required: false
         default: {}
+        description: macOS system configuration
         options:
           updates:
-            description: macOS software update configuration
             type: dict
-            required: false
             default: {}
+            description: macOS software update configuration
             options:
               auto_check:
-                description: Enable automatic checking for software updates
                 type: bool
-                required: false
                 default: true
+                description: Enable automatic checking for macOS software updates
               auto_download:
-                description: Enable automatic downloading of software updates
                 type: bool
-                required: false
                 default: true
+                description: Enable automatic downloading of macOS software updates
           gatekeeper:
-            description: macOS Gatekeeper configuration
             type: dict
-            required: false
             default: {}
+            description: macOS Gatekeeper configuration
             options:
               enabled:
-                description: Enable Gatekeeper security feature
                 type: bool
-                required: false
                 default: true
+                description: Enable macOS Gatekeeper security feature (prevents unsigned application execution)
           system_preferences:
-            description: macOS system preference settings
             type: dict
-            required: false
             default: {}
+            description: macOS system preferences configuration
             options:
               natural_scroll:
-                description: Enable natural scroll direction
                 type: bool
-                required: false
                 default: true
+                description: Enable natural scroll direction (reverse scrolling) on macOS
               measurement_units:
-                description: System measurement units
                 type: str
-                required: false
                 default: "Inches"
                 choices: ["Inches", "Centimeters"]
+                description: System measurement units
               use_metric:
+                type: bool
+                default: false
                 description: Use metric system for measurements and temperatures
-                type: bool
-                required: false
-                default: false
               show_all_extensions:
-                description: Show all file extensions in Finder
                 type: bool
-                required: false
                 default: false
+                description: Show all file extensions in Finder
           airdrop:
-            description: macOS AirDrop configuration
             type: dict
-            required: false
             default: {}
+            description: macOS AirDrop configuration
             options:
               ethernet_enabled:
-                description: Enable AirDrop over Ethernet interfaces
                 type: bool
-                required: false
                 default: false
+                description: Enable AirDrop over Ethernet interfaces (BrowseAllInterfaces setting)
