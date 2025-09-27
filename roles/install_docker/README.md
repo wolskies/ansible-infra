@@ -1,5 +1,6 @@
 # Install Docker Role
 
+**_ TO BE INCLUDED IN v1.0.3_**
 Lightweight Docker installation with NVIDIA GPU detection and Container Toolkit support.
 
 ## Features
@@ -19,6 +20,7 @@ ansible-galaxy install geerlingguy.docker
 ```
 
 Or in a requirements.yml:
+
 ```yaml
 roles:
   - name: geerlingguy.docker
@@ -29,11 +31,11 @@ roles:
 
 ```yaml
 # Docker installation settings (passed to geerlingguy.docker)
-docker_edition: 'ce'                    # Community Edition
-docker_install_compose_plugin: true     # Use modern compose plugin
-docker_install_compose: false           # Don't install standalone compose
-docker_users: ["{{ ansible_user }}"]    # Users to add to docker group
-docker_daemon_options:                  # Docker daemon configuration
+docker_edition: "ce" # Community Edition
+docker_install_compose_plugin: true # Use modern compose plugin
+docker_install_compose: false # Don't install standalone compose
+docker_users: ["{{ ansible_user }}"] # Users to add to docker group
+docker_daemon_options: # Docker daemon configuration
   storage-driver: "overlay2"
   log-driver: "json-file"
   log-opts:
@@ -52,6 +54,7 @@ docker_daemon_options:                  # Docker daemon configuration
 ## GPU Support
 
 If an NVIDIA GPU is detected, the role will:
+
 - Add NVIDIA Container Toolkit repository
 - Install nvidia-container-toolkit package
 - Configure Docker to use NVIDIA runtime

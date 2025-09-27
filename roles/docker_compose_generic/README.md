@@ -1,5 +1,6 @@
 # Docker Compose Generic Role
 
+**_ NOT YET READY FOR PRIME TIME _** to be included in v1.0.3 release
 Deploy Docker Compose services with standardized templates and optional proxy support.
 
 ## Features
@@ -14,20 +15,20 @@ Deploy Docker Compose services with standardized templates and optional proxy su
 
 ```yaml
 # Required
-service_name: ""                # Name of the service
+service_name: "" # Name of the service
 
 # Service configuration
-docker_services_root: "/srv/docker"  # Root directory for Docker services
-service_enabled: true               # Whether to start the service
-service_env_vars: {}               # Environment variables for .env file
-compose_file_content: ""           # Custom docker-compose content (overrides default)
+docker_services_root: "/srv/docker" # Root directory for Docker services
+service_enabled: true # Whether to start the service
+service_env_vars: {} # Environment variables for .env file
+compose_file_content: "" # Custom docker-compose content (overrides default)
 
 # Proxy configuration
-service_use_proxy: false           # Enable proxy mode (no direct port exposure)
-proxy_network_name: "proxy"       # Name of the external proxy network
-proxy_network_external: true      # Whether proxy network is external
-service_ports: []                 # Ports to expose (no default ports - must be explicitly defined)
-service_labels: {}                # Labels for proxy configuration (e.g., Traefik)
+service_use_proxy: false # Enable proxy mode (no direct port exposure)
+proxy_network_name: "proxy" # Name of the external proxy network
+proxy_network_external: true # Whether proxy network is external
+service_ports: [] # Ports to expose (no default ports - must be explicitly defined)
+service_labels: {} # Labels for proxy configuration (e.g., Traefik)
 ```
 
 ## Usage Examples
@@ -122,6 +123,7 @@ docker network create nginx-proxy
 ## Directory Structure
 
 Services are deployed to:
+
 ```
 {{ docker_services_root }}/
 ├── {{ service_name }}/

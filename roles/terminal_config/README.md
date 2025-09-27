@@ -1,5 +1,6 @@
 # terminal_config
 
+**_NOT YET READY FOR PRIME TIME_** still having test issues with this role
 Terminal emulator configuration and terminfo setup for modern terminals.
 
 ## Description
@@ -17,8 +18,8 @@ Configures terminfo entries for modern terminal emulators to ensure proper termi
 ## Role Variables
 
 ```yaml
-terminal_user: ""                     # Target username (required)
-terminal_entries: []                  # List of terminals to configure (required)
+terminal_user: "" # Target username (required)
+terminal_entries: [] # List of terminals to configure (required)
 ```
 
 ## Supported Terminals
@@ -32,6 +33,7 @@ terminal_entries: []                  # List of terminals to configure (required
 ### Terminal Configuration
 
 Each terminal has predefined configuration including:
+
 - Terminfo source URL (GitHub raw files)
 - Terminal entry names for compilation
 - TIC compilation options
