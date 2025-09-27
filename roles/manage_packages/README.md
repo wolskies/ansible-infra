@@ -27,25 +27,31 @@ Manages system packages using the appropriate package manager:
           Darwin: [git, curl, vim]
 ```
 
-### Advanced Configuration
+### Layered Package Management
 ```yaml
-packages:
+# group_vars/all.yml - Base packages for all hosts
+manage_packages_all:
   present:
-    all:                              # All hosts
+    all:
       Ubuntu: [git, curl, vim, htop]
       Darwin: [git, curl, vim, htop]
-    group:                            # Group-specific
-      Ubuntu: [nginx, postgresql]
-    host:                             # Host-specific
-      Ubuntu: [redis-server]
-  remove:
-    all:
-      Ubuntu: [snapd]                 # Remove unwanted packages
 
-# APT Configuration (Ubuntu/Debian)
+# group_vars/webservers.yml - Group-specific packages
+manage_packages_group:
+  present:
+    group:
+      Ubuntu: [nginx, postgresql]
+
+# host_vars/web01.yml - Host-specific packages
+manage_packages_host:
+  present:
+    host:
+      Ubuntu: [redis-server]
+```
+
+### APT Repository Management
+```yaml
 apt:
-  unattended_upgrades:
-    enabled: true
   repositories:
     Ubuntu:
       - name: nodejs
@@ -54,57 +60,127 @@ apt:
         suites: ["nodistro"]
         components: [main]
         signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+  unattended_upgrades:
+    enabled: true
+  system_upgrade:
+    enable: true
+    type: "safe"
+```
 
-# Homebrew Configuration (macOS)
+### macOS Homebrew Configuration
+```yaml
 homebrew:
   taps: [homebrew/cask-fonts]
+  cleanup_cache: true
+
 manage_casks:
   Darwin:
     - name: visual-studio-code
     - name: docker
+    - name: firefox
+      state: present
+```
 
-# Pacman Configuration (Arch Linux)
+### Arch Linux AUR Support
+```yaml
 pacman:
-  enable_aur: true                    # Enable AUR packages
+  enable_aur: true
   multilib:
-    enabled: true                     # Enable 32-bit packages
+    enabled: true
 ```
 
 ## Variables
 
-Package management uses hierarchical structure for flexibility:
+Uses collection-wide variables - see collection README for complete reference.
 
-### Core Variables
-- `packages.present` - Packages to install (by OS and scope)
-- `packages.remove` - Packages to remove (by OS and scope)
+### Package Structure
+Packages are organized by scope and OS family:
+```yaml
+packages:
+  present:
+    all:      # Applied to all hosts
+      Ubuntu: [package1, package2]
+      Debian: [package1, package2]
+      Archlinux: [package1, package2]
+      Darwin: [package1, package2]
+    group:    # Applied to inventory groups
+      Ubuntu: [group-specific-package]
+    host:     # Applied to specific hosts
+      Ubuntu: [host-specific-package]
+  remove:
+    all:
+      Ubuntu: [unwanted-package]
+```
+
+### Layered Package Variables
+- `manage_packages_all` - Base-level packages (merged first)
+- `manage_packages_group` - Group-level packages (merged second)
+- `manage_packages_host` - Host-level packages (merged last)
+
+### APT Configuration
+- `apt.repositories` - Custom APT repositories using deb822 format
+- `apt.unattended_upgrades.enabled` - Enable automatic security updates
+- `apt.system_upgrade.enable` - Enable system upgrades
+- `apt.proxy` - APT proxy URL
+
+### Homebrew Configuration (macOS)
+- `homebrew.taps` - Additional tap repositories
+- `homebrew.cleanup_cache` - Clean download cache after operations
 - `manage_casks.Darwin` - macOS GUI applications
-- `apt.repositories` - Custom APT repositories
-- `homebrew.taps` - Homebrew tap repositories
 
-### Platform-Specific Settings
-- `apt.unattended_upgrades` - Automatic security updates (Ubuntu/Debian)
-- `pacman.enable_aur` - AUR package support (Arch Linux)
-- `homebrew.cleanup_cache` - Clean download cache (macOS)
+### Pacman Configuration (Arch Linux)
+- `pacman.enable_aur` - Enable AUR package support
+- `pacman.multilib.enabled` - Enable 32-bit packages
+- `pacman.proxy` - Pacman proxy URL
 
 ## Package Hierarchy
 
-Packages are merged from multiple scopes:
+Packages are merged from multiple scopes in order:
 1. **all** - Applied to all hosts
 2. **group** - Applied to inventory groups
 3. **host** - Applied to specific hosts
 
 This allows flexible package management from global to host-specific needs.
 
-## Repository Management
+## Platform-Specific Features
 
-### APT Repositories (Ubuntu/Debian)
-Uses modern deb822 format for repository definitions. Automatically installs GPG keys and configures sources.
+### Ubuntu/Debian (APT)
+- Uses modern deb822 format for repository definitions
+- Automatically installs GPG keys and configures sources
+- Supports unattended upgrades for security updates
+- System upgrade capability with configurable upgrade type
 
-### Homebrew Taps (macOS)
-Manages additional Homebrew repositories for extended package availability.
+### Arch Linux (Pacman/AUR)
+- Official repository packages via pacman
+- Optional AUR support using paru helper
+- Multilib repository for 32-bit packages
+- Automatic dependency resolution
 
-### AUR Support (Arch Linux)
-Optional support for Arch User Repository packages using `paru` helper.
+### macOS (Homebrew)
+- Formula packages and casks for GUI applications
+- Tap repository management
+- Automatic cache cleanup
+- Applications installed to /Applications
+
+## Tags
+
+Control which package managers run:
+- `apt` - APT package management (Ubuntu/Debian)
+- `pacman` - Pacman package management (Arch Linux)
+- `aur` - AUR package management (Arch Linux)
+- `homebrew` - Homebrew package management (macOS)
+- `repositories` - Repository management only
+- `packages` - Package installation only
+- `no-container` - Tasks requiring host capabilities
+
+Example:
+```bash
+# Skip AUR packages in containers
+ansible-playbook --skip-tags aur,no-container playbook.yml
+
+# Only manage repositories
+ansible-playbook -t repositories playbook.yml
+```
 
 ## Platform Support
 
