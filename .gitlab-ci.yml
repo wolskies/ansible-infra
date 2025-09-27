@@ -298,41 +298,8 @@ generate-docs:
     # Create Sphinx documentation structure
     - cp -r docs/generated/* public/
 
-    # Create index.rst for Sphinx
-    - echo "Creating Sphinx index.rst..."
-    - echo "wolskies.infrastructure Collection Documentation" > public/index.rst
-    - echo "===============================================" >> public/index.rst
-    - echo "" >> public/index.rst
-    - echo ".. toctree::" >> public/index.rst
-    - echo "   :maxdepth: 2" >> public/index.rst
-    - echo "   :caption: Contents:" >> public/index.rst
-    - echo "" >> public/index.rst
-    - echo "   collection_overview" >> public/index.rst
-    - echo "   role_configure_user" >> public/index.rst
-    - echo "   role_go" >> public/index.rst
-    - echo "   role_manage_flatpak" >> public/index.rst
-    - echo "   role_manage_packages" >> public/index.rst
-    - echo "   role_manage_security_services" >> public/index.rst
-    - echo "   role_manage_snap_packages" >> public/index.rst
-    - echo "   role_neovim" >> public/index.rst
-    - echo "   role_nodejs" >> public/index.rst
-    - echo "   role_os_configuration" >> public/index.rst
-    - echo "   role_rust" >> public/index.rst
-    - echo "   role_terminal_config" >> public/index.rst
-
-    # Create conf.py for Sphinx
-    - echo "Creating Sphinx conf.py..."
-    - echo "project = 'wolskies.infrastructure'" > public/conf.py
-    - echo "copyright = '2025, wolskies infrastructure team'" >> public/conf.py
-    - echo "author = 'wolskies infrastructure team'" >> public/conf.py
-    - echo "" >> public/conf.py
-    - echo "release = '1.2.0'" >> public/conf.py
-    - echo "version = '1.2.0'" >> public/conf.py
-    - echo "" >> public/conf.py
-    - echo "extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode']" >> public/conf.py
-    - echo "templates_path = ['_templates']" >> public/conf.py
-    - echo "exclude_patterns = []" >> public/conf.py
-    - echo "html_theme = 'sphinx_rtd_theme'" >> public/conf.py
+    # Create Sphinx configuration files
+    - python3 scripts/create_sphinx_files.py public
 
     # Build Sphinx documentation
     - cd public
@@ -345,16 +312,6 @@ generate-docs:
 
     # Create .nojekyll for GitHub Pages compatibility (good practice)
     - touch public/.nojekyll
-
-    # Generate docs manifest
-    - echo "Creating manifest.json..."
-    - echo "{" > public/manifest.json
-    - echo "  \"collection\": \"wolskies.infrastructure\"," >> public/manifest.json
-    - echo "  \"version\": \"1.2.0\"," >> public/manifest.json
-    - echo "  \"generated_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"," >> public/manifest.json
-    - echo "  \"commit\": \"${CI_COMMIT_SHA}\"," >> public/manifest.json
-    - echo "  \"pipeline\": \"${CI_PIPELINE_ID}\"" >> public/manifest.json
-    - echo "}" >> public/manifest.json
 
     - echo "Sphinx documentation built successfully"
     - ls -la public/
