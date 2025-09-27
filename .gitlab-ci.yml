@@ -81,9 +81,9 @@ validate-all:
     - python3 scripts/generate_enhanced_docs.py
     - python3 scripts/generate_collection_docs.py
     - rstcheck docs/generated/*.rst
-    - echo "✅ Documentation generation and validation passed"
+    - echo "Documentation generation and validation passed"
 
-    - echo "✅ All validation checks completed"
+    - echo "All validation checks completed"
 
 # Template for molecule test jobs
 .molecule_test_template:
@@ -282,15 +282,15 @@ generate-docs:
 
     # Generate role documentation from argument_specs and SRD
     - python3 scripts/generate_enhanced_docs.py
-    - echo "✅ Enhanced role documentation generated"
+    - echo "Enhanced role documentation generated"
 
     # Generate collection-level documentation
     - python3 scripts/generate_collection_docs.py
-    - echo "✅ Collection overview documentation generated"
+    - echo "Collection overview documentation generated"
 
     # Validate all RST files
     - rstcheck docs/generated/*.rst
-    - echo "✅ RST validation passed"
+    - echo "RST validation passed"
 
     # Create public directory for GitLab Pages
     - mkdir -p public
@@ -299,67 +299,40 @@ generate-docs:
     - cp -r docs/generated/* public/
 
     # Create index.rst for Sphinx
-    - |
-      cat > public/index.rst << 'EOF'
-      wolskies.infrastructure Collection Documentation
-      ===============================================
-
-      .. toctree::
-         :maxdepth: 2
-         :caption: Contents:
-
-         collection_overview
-         role_configure_user
-         role_go
-         role_manage_flatpak
-         role_manage_packages
-         role_manage_security_services
-         role_manage_snap_packages
-         role_neovim
-         role_nodejs
-         role_os_configuration
-         role_rust
-         role_terminal_config
-
-      Indices and tables
-      ==================
-
-      * :ref:`genindex`
-      * :ref:`modindex`
-      * :ref:`search`
-      EOF
+    - echo "Creating Sphinx index.rst..."
+    - echo "wolskies.infrastructure Collection Documentation" > public/index.rst
+    - echo "===============================================" >> public/index.rst
+    - echo "" >> public/index.rst
+    - echo ".. toctree::" >> public/index.rst
+    - echo "   :maxdepth: 2" >> public/index.rst
+    - echo "   :caption: Contents:" >> public/index.rst
+    - echo "" >> public/index.rst
+    - echo "   collection_overview" >> public/index.rst
+    - echo "   role_configure_user" >> public/index.rst
+    - echo "   role_go" >> public/index.rst
+    - echo "   role_manage_flatpak" >> public/index.rst
+    - echo "   role_manage_packages" >> public/index.rst
+    - echo "   role_manage_security_services" >> public/index.rst
+    - echo "   role_manage_snap_packages" >> public/index.rst
+    - echo "   role_neovim" >> public/index.rst
+    - echo "   role_nodejs" >> public/index.rst
+    - echo "   role_os_configuration" >> public/index.rst
+    - echo "   role_rust" >> public/index.rst
+    - echo "   role_terminal_config" >> public/index.rst
 
     # Create conf.py for Sphinx
-    - |
-      cat > public/conf.py << 'EOF'
-      project = 'wolskies.infrastructure'
-      copyright = '2025, wolskies infrastructure team'
-      author = 'wolskies infrastructure team'
-
-      release = '1.2.0'
-      version = '1.2.0'
-
-      extensions = [
-          'sphinx.ext.autodoc',
-          'sphinx.ext.viewcode',
-          'sphinx.ext.napoleon',
-      ]
-
-      templates_path = ['_templates']
-      exclude_patterns = []
-
-      html_theme = 'sphinx_rtd_theme'
-      html_static_path = ['_static']
-
-      # Theme options
-      html_theme_options = {
-          'navigation_depth': 3,
-          'collapse_navigation': False,
-          'sticky_navigation': True,
-          'includehidden': True,
-          'titles_only': False
-      }
-      EOF
+    - echo "Creating Sphinx conf.py..."
+    - echo "project = 'wolskies.infrastructure'" > public/conf.py
+    - echo "copyright = '2025, wolskies infrastructure team'" >> public/conf.py
+    - echo "author = 'wolskies infrastructure team'" >> public/conf.py
+    - echo "" >> public/conf.py
+    - echo "release = '1.2.0'" >> public/conf.py
+    - echo "version = '1.2.0'" >> public/conf.py
+    - echo "" >> public/conf.py
+    - echo "extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode']" >> public/conf.py
+    - echo "templates_path = ['_templates']" >> public/conf.py
+    - echo "exclude_patterns = []" >> public/conf.py
+    - echo "html_theme = 'sphinx_rtd_theme'" >> public/conf.py
 
     # Build Sphinx documentation
     - cd public
@@ -374,23 +347,16 @@ generate-docs:
     - touch public/.nojekyll
 
     # Generate docs manifest
-    - |
-      cat > public/manifest.json << EOF
-      {
-        "collection": "wolskies.infrastructure",
-        "version": "1.2.0",
-        "generated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-        "commit": "${CI_COMMIT_SHA}",
-        "pipeline": "${CI_PIPELINE_ID}",
-        "roles": [
-          "configure_user", "go", "manage_flatpak", "manage_packages",
-          "manage_security_services", "manage_snap_packages", "neovim",
-          "nodejs", "os_configuration", "rust", "terminal_config"
-        ]
-      }
-      EOF
+    - echo "Creating manifest.json..."
+    - echo "{" > public/manifest.json
+    - echo "  \"collection\": \"wolskies.infrastructure\"," >> public/manifest.json
+    - echo "  \"version\": \"1.2.0\"," >> public/manifest.json
+    - echo "  \"generated_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"," >> public/manifest.json
+    - echo "  \"commit\": \"${CI_COMMIT_SHA}\"," >> public/manifest.json
+    - echo "  \"pipeline\": \"${CI_PIPELINE_ID}\"" >> public/manifest.json
+    - echo "}" >> public/manifest.json
 
-    - echo "✅ Sphinx documentation built successfully"
+    - echo "Sphinx documentation built successfully"
     - ls -la public/
 
   artifacts:
@@ -409,8 +375,8 @@ pages:
   script:
     - echo "Deploying documentation to GitLab Pages..."
     - ls -la public/
-    - echo "✅ Documentation ready for GitLab Pages"
-    - echo "📖 Documentation will be available at: $CI_PAGES_URL"
+    - echo "Documentation ready for GitLab Pages"
+    - echo "Documentation will be available at $CI_PAGES_URL"
   artifacts:
     paths:
       - public/
@@ -425,8 +391,8 @@ docs-preview:
     - generate-docs
   script:
     - echo "Documentation preview generated for merge request"
-    - echo "📖 Preview artifacts contain built documentation"
-    - echo "💡 Download the artifacts to preview the documentation locally"
+    - echo "Preview artifacts contain built documentation"
+    - echo "Download the artifacts to preview the documentation locally"
   artifacts:
     paths:
       - public/
