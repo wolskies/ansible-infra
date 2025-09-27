@@ -174,7 +174,6 @@ firewall:
 | `host_hostname`                                 | string                    | `""`            | System hostname (RFC 1123 format, alphanumeric + hyphens, max 253 chars)                                 |
 | `host_update_hosts`                             | boolean                   | `true`          | Update /etc/hosts with hostname entry                                                                    |
 | `users`                                         | list[object]              | `[]`            | User account definitions (see schema below)                                                              |
-| `packages`                                      | object                    | `{}`            | Package management definitions (see schema below)                                                        |
 | `manage_packages_all`                           | object                    | `{}`            | Base-level package definitions merged first (see schema below)                                           |
 | `manage_packages_group`                         | object                    | `{}`            | Group-level package definitions merged second (see schema below)                                         |
 | `manage_packages_host`                          | object                    | `{}`            | Host-level package definitions merged last (see schema below)                                            |

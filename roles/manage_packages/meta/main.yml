@@ -30,3 +30,8 @@ galaxy_info:
     - homebrew
 
 dependencies: []
+
+collections:
+  - community.general # For pacman module
+  - geerlingguy.mac # For Homebrew management on macOS
+  - kewlfft.aur # For AUR package management on Arch Linux

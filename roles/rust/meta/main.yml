@@ -28,3 +28,6 @@ galaxy_info:
     - language
 
 dependencies: []
+
+collections:
+  - community.general # For homebrew module

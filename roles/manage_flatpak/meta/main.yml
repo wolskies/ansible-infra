@@ -28,3 +28,6 @@ galaxy_info:
     - flathub
 
 dependencies: []
+
+collections:
+  - community.general # For pacman, flatpak_remote, flatpak modules

@@ -30,3 +30,6 @@ galaxy_info:
     - system
 
 dependencies: []
+
+collections:
+  - community.general # For ufw module

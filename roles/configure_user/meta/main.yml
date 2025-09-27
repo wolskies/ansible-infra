@@ -28,3 +28,7 @@ galaxy_info:
     - macos
 
 dependencies: []
+
+collections:
+  - ansible.posix # For authorized_key module
+  - community.general # For git_config, osx_defaults modules
