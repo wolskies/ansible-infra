@@ -81,6 +81,27 @@ argument_specs:
         required: false
         default: {}
         options:
+          proxy:
+            description: "APT proxy URL (format: http[s]://[user:pass@]host:port)"
+            type: str
+            required: false
+            default: ""
+          no_recommends:
+            description: Disable APT automatic installation of recommended and suggested packages
+            type: bool
+            required: false
+            default: false
+          unattended_upgrades:
+            description: APT unattended upgrades configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              enabled:
+                description: Enable APT unattended security upgrades on Debian/Ubuntu systems
+                type: bool
+                required: false
+                default: false
           repositories:
             description:
               - APT repository definitions using deb822 format
@@ -115,6 +136,27 @@ argument_specs:
         required: false
         default: {}
         options:
+          proxy:
+            description: "Pacman proxy URL (format: http[s]://[user:pass@]host:port)"
+            type: str
+            required: false
+            default: ""
+          no_confirm:
+            description: Enable Pacman NoConfirm option (skip confirmation prompts on Arch Linux systems)
+            type: bool
+            required: false
+            default: false
+          multilib:
+            description: Pacman multilib repository configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              enabled:
+                description: Enable Pacman multilib repository for 32-bit packages on Arch Linux systems
+                type: bool
+                required: false
+                default: false
           enable_aur:
             description: Enable AUR (Arch User Repository) package support with paru helper
             type: bool

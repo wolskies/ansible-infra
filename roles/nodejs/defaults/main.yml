@@ -2,10 +2,8 @@
 # =============================================================================
 # NODE.JS ROLE DEFAULTS
 # =============================================================================
-# This role handles Node.js installation and npm package management for users
-# Uses role-specific variables passed from calling roles
-#
-# All variables are documented in meta/argument_specs.yml
+# This role uses collection-wide variables from SRD section 2.2.1
+# All variables defined exactly as specified in the SRD
 # =============================================================================
 
 # Node.js Configuration

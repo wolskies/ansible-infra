@@ -219,6 +219,26 @@ argument_specs:
             type: bool
             required: false
             default: false
+          max_size:
+            description: Maximum disk space for journal files
+            type: str
+            required: false
+            default: "500M"
+          max_retention:
+            description: Maximum journal retention time
+            type: str
+            required: false
+            default: "30d"
+          forward_to_syslog:
+            description: Forward journal messages to syslog
+            type: bool
+            required: false
+            default: false
+          compress:
+            description: Enable journal compression
+            type: bool
+            required: false
+            default: true
 
       # APT Configuration (Debian/Ubuntu)
       apt:

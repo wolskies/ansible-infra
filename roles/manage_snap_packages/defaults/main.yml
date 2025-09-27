@@ -2,15 +2,20 @@
 # =============================================================================
 # MANAGE SNAP PACKAGES ROLE DEFAULTS
 # =============================================================================
-# This role manages both snapd system and snap packages on Debian/Ubuntu systems
-# Uses collection-wide variables for consistent snap management
-#
-# All variables are defined in the collection interface (docs/source/api/variables.rst)
-# and documented in meta/argument_specs.yml
+# This role uses collection-wide variables from SRD section 2.2.1
+# All variables defined exactly as specified in the SRD
 # =============================================================================
 
 # Snap System Configuration
-snap: {}
+snap:
+  remove_completely: false
 
 # Snap Package Management
 snap_packages: []
+# Example:
+# snap_packages:
+#   - name: code
+#     state: present
+#     classic: true
+#   - name: discord
+#     state: present

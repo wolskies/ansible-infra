@@ -2,15 +2,25 @@
 # =============================================================================
 # MANAGE FLATPAK ROLE DEFAULTS
 # =============================================================================
-# This role handles flatpak package management and desktop integration plugins
-# Uses collection-wide variables for consistent flatpak management
-#
-# All variables are defined in the collection interface (docs/source/api/variables.rst)
-# and documented in meta/argument_specs.yml
+# This role uses collection-wide variables from SRD section 2.2.1
+# All variables defined exactly as specified in the SRD
 # =============================================================================
 
 # Flatpak System Configuration
-flatpak: {}
+flatpak:
+  enabled: false
+  flathub: false
+  method: "system"
+  user: ""
+  plugins:
+    gnome: false
+    plasma: false
 
 # Flatpak Package Management
 flatpak_packages: []
+# Example:
+# flatpak_packages:
+#   - name: org.mozilla.firefox
+#     state: present
+#   - name: org.gimp.GIMP
+#     state: present

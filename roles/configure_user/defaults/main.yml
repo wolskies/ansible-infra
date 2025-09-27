@@ -2,12 +2,33 @@
 # =============================================================================
 # CONFIGURE USER ROLE DEFAULTS
 # =============================================================================
-# This role configures a single user and their preferences
-# Uses collection-wide variables for consistent user management
-#
-# All variables are defined in the collection interface (docs/source/api/variables.rst)
-# and documented in meta/argument_specs.yml
+# This role uses collection-wide variables from SRD section 2.2.1
+# All variables defined exactly as specified in the SRD
 # =============================================================================
+
+# User Management (Collection-wide)
+users: []
+# Example:
+# users:
+#   - name: developer
+#     shell: "/bin/bash"
+#     groups: ["sudo", "docker"]
+#     ssh_keys: ["ssh-ed25519 AAAA... user@example.com"]
+#     git:
+#       user_name: "John Doe"
+#       user_email: "john@example.com"
+#     nodejs:
+#       packages: ["typescript", "@angular/cli"]
+#     rust:
+#       packages: ["ripgrep", "fd-find"]
+#     go:
+#       packages: ["github.com/user/package@latest"]
+#     neovim:
+#       enabled: true
+#     terminal_entries: []
+#     dotfiles:
+#       enable: true
+#       repo: "https://github.com/user/dotfiles.git"
 
 # Target User Configuration
 # Note: This role requires the target_user variable to be provided
