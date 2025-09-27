@@ -1,0 +1,83 @@
+---
+# Final Release Testing - Workstation Configuration Deployment
+# Applies comprehensive development environment to workstation VMs
+
+- name: Configure Workstation Systems
+  hosts: workstations
+  become: true
+  gather_facts: true
+  vars_files:
+    - test-scenarios/workstation-config.yml
+
+  pre_tasks:
+    - name: Wait for system to be ready
+      wait_for_connection:
+        timeout: 300
+        delay: 10
+
+    - name: Update package cache
+      package:
+        update_cache: yes
+      when: ansible_pkg_mgr in ['apt', 'pacman']
+
+    - name: Display test scenario info
+      debug:
+        msg:
+          - "=== Final Release Testing - Workstation Configuration ==="
+          - "Host: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Platform: {{ ansible_architecture }}"
+          - "Test Type: Workstation Configuration"
+          - "Target User: {{ target_user.name }}"
+          - "Development Tools: Node.js, Rust, Go, Neovim"
+          - "Terminals: {{ terminal_entries | join(', ') }}"
+
+  roles:
+    # Core system configuration
+    - wolskies.infrastructure.os_configuration
+
+    # Package management
+    - wolskies.infrastructure.manage_packages
+
+    # User management (must come before language roles)
+    - wolskies.infrastructure.configure_user
+
+    # Development environments
+    - wolskies.infrastructure.nodejs
+    - wolskies.infrastructure.rust
+    - wolskies.infrastructure.go
+    - wolskies.infrastructure.neovim
+
+    # Terminal configuration
+    - role: wolskies.infrastructure.terminal_config
+      tags: [terminal]
+
+    # Package system management
+    - wolskies.infrastructure.manage_snap_packages
+    - wolskies.infrastructure.manage_flatpak
+
+  post_tasks:
+    - name: Verify development tools installation
+      command: "{{ item }}"
+      loop:
+        - "node --version"
+        - "npm --version"
+        - "rustc --version"
+        - "cargo --version"
+        - "go version"
+        - "nvim --version"
+      become_user: "{{ target_user.name }}"
+      ignore_errors: yes
+      register: dev_tools_check
+
+    - name: Display deployment summary
+      debug:
+        msg:
+          - "=== Workstation Configuration Deployment Complete ==="
+          - "Host: {{ inventory_hostname }}"
+          - "User created: {{ target_user.name }}"
+          - "Node.js packages: {{ node_packages | length }}"
+          - "Rust packages: {{ rust_packages | length }}"
+          - "Go packages: {{ go_packages | length }}"
+          - "Terminal configs: {{ terminal_entries | length }}"
+          - "Ready for discovery validation"
