@@ -22,16 +22,19 @@ Infrastructure management automation for cross-platform development and producti
 - **rust**: Rust/Cargo installation and user-level package management
 - **go**: Go installation and user-level package management
 - **neovim**: Neovim installation and basic configuration
-- **terminal_config**: Terminal and shell configuration (bash, zsh, tmux)
 
-### Package Systems and Infrastructure
+### Package Systems
 - **manage_snap_packages**: Snap package management with option to completely remove snapd system
 - **manage_flatpak**: Flatpak runtime and package management with Flathub integration
-- **docker_compose_generic**: Generic Docker Compose service management
-- **install_docker**: Docker Engine installation and configuration
 
 ### Utilities
 - **discovery**: System state discovery and documentation for validation and auditing
+
+### Coming in 1.0.3
+The following roles are under development for the next release:
+- **terminal_config**: Terminal and shell configuration (bash, zsh, tmux)
+- **docker_compose_generic**: Generic Docker Compose service management
+- **install_docker**: Docker Engine installation and configuration
 
 ## Supported Operating Systems
 
