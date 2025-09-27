@@ -79,7 +79,6 @@ provisioner:
               protocol: tcp
               comment: "HTTPS"
             - rule: deny
-              port: "1:65535"
               source: "10.0.0.0/8"
               comment: "Block private network"
         fail2ban:

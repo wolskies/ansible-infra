@@ -97,6 +97,8 @@ provisioner:
         # REQ-OS-009: Journal configuration - positive test
         journal:
           configure: true
+          max_size: "100M"
+          max_retention: "7d"
         # REQ-OS-011: Systemd unit control - mixed operations test
         host_services:
           enable:
@@ -154,6 +156,8 @@ provisioner:
         # REQ-OS-009: Journal - disabled test
         journal:
           configure: false
+          max_size: "50M"
+          max_retention: "3d"
         # REQ-OS-011: Systemd unit control - enable only test
         host_services:
           enable:
@@ -188,6 +192,8 @@ provisioner:
         # REQ-OS-009: Journal - enabled test
         journal:
           configure: true
+          max_size: "200M"
+          max_retention: "14d"
         # REQ-OS-011: Systemd unit control - disable/mask test
         host_services:
           disable:
@@ -243,6 +249,8 @@ provisioner:
         # REQ-OS-009: Journal - large values test
         journal:
           configure: true
+          max_size: "1G"
+          max_retention: "30d"
         # REQ-OS-011: Systemd unit control - empty arrays test
         host_services:
           enable: []
