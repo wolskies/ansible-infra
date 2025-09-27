@@ -1,0 +1,28 @@
+---
+# Rust Role Argument Specification
+# This role handles Rust toolchain installation and cargo package management for individual users
+
+argument_specs:
+  main:
+    short_description: Install Rust toolchain and manage cargo packages for individual users
+    description:
+      - Installs rustup toolchain manager for complete Rust development environment
+      - Supports Debian 13+, Ubuntu 24+, Arch Linux, and macOS only
+      - Initializes stable toolchain and configures user PATH
+      - Manages cargo package installation in user space
+      - Fails with clear error on unsupported platforms
+
+    options:
+      # User Configuration
+      rust_user:
+        description: Target username for Rust installation
+        type: str
+        required: true
+
+      # Package Management
+      rust_packages:
+        description: Cargo package names to install (e.g., ["ripgrep", "fd-find"])
+        type: list
+        elements: str
+        required: false
+        default: []

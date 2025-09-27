@@ -1,0 +1,55 @@
+---
+# Terminal Configuration Role Argument Specification
+# This role installs terminfo entries for modern terminal emulators
+
+argument_specs:
+  main:
+    short_description: Configure terminfo entries for modern terminal emulators
+    description:
+      - Downloads and compiles terminfo entries for modern terminals like Alacritty, Kitty, and WezTerm
+      - Installs terminfo in user-specific ~/.terminfo directory
+      - Enables proper terminal capabilities and rendering for modern terminal emulators
+      - Prevents "unknown terminal type" errors when using modern terminals
+
+    options:
+      terminal_user:
+        description:
+          - Target username for terminal configuration
+          - All terminfo operations will be performed as this user
+          - Terminfo entries will be installed in this user's ~/.terminfo directory
+        type: str
+        required: true
+
+      terminal_entries:
+        description:
+          - List of terminal emulators to configure
+          - Each entry must correspond to a key in terminal_configs variable
+          - "Available terminals: alacritty, kitty, wezterm"
+        type: list
+        elements: str
+        required: true
+        choices:
+          - alacritty
+          - kitty
+          - wezterm
+
+      terminal_configs:
+        description:
+          - Configuration mapping for terminal emulators
+          - Contains terminfo URLs, entries, and compilation options
+          - Usually not overridden - uses sensible defaults
+        type: dict
+        required: false
+        default:
+          alacritty:
+            terminfo_url: "https://raw.githubusercontent.com/alacritty/alacritty/master/extra/alacritty.info"
+            entries: ["alacritty", "alacritty-direct"]
+            tic_options: "-x"
+          kitty:
+            terminfo_url: "https://raw.githubusercontent.com/kovidgoyal/kitty/master/terminfo/kitty.terminfo"
+            entries: ["xterm-kitty"]
+            tic_options: "-x"
+          wezterm:
+            terminfo_url: "https://raw.githubusercontent.com/wez/wezterm/main/termwiz/data/wezterm.terminfo"
+            entries: ["wezterm"]
+            tic_options: "-x"

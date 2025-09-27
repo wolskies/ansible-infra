@@ -1,0 +1,82 @@
+---
+# Manage Flatpak Role Argument Specification
+# This role handles flatpak package management and desktop integration plugins
+
+argument_specs:
+  main:
+    short_description: Manage flatpak packages and desktop integration on Linux systems
+    description:
+      - Installs flatpak runtime on Debian and Arch Linux systems
+      - Manages desktop environment flatpak plugins (GNOME, Plasma)
+      - Enables Flathub repository when configured
+      - Handles individual flatpak package installation and removal
+      - Uses collection-wide variables for consistent flatpak management
+
+    options:
+      # Flatpak System Configuration
+      flatpak:
+        description:
+          - Flatpak package management configuration options
+          - Controls flatpak system installation and package management
+        type: dict
+        required: false
+        default: {}
+        options:
+          enabled:
+            description: Enable flatpak package management system
+            type: bool
+            required: false
+            default: false
+          flathub:
+            description: Enable Flathub repository for flatpak packages
+            type: bool
+            required: false
+            default: true
+          method:
+            description: Installation method for flatpak packages
+            type: str
+            required: false
+            default: "system"
+            choices: ["system", "user"]
+          user:
+            description: Target username for user-scope flatpak operations (ignored for system scope)
+            type: str
+            required: false
+            default: ""
+          plugins:
+            description: Desktop environment flatpak plugin configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              gnome:
+                description: Install GNOME Software flatpak plugin (Debian/Ubuntu only)
+                type: bool
+                required: false
+                default: false
+              plasma:
+                description: Install Plasma Discover flatpak plugin (Debian/Ubuntu only)
+                type: bool
+                required: false
+                default: false
+
+      # Flatpak Package Management
+      flatpak_packages:
+        description:
+          - List of flatpak package definitions to install or remove
+          - Each package can specify name and state
+        type: list
+        elements: dict
+        required: false
+        default: []
+        options:
+          name:
+            description: Flatpak package name (e.g., "org.mozilla.firefox", "com.spotify.Client")
+            type: str
+            required: true
+          state:
+            description: Package state
+            type: str
+            required: false
+            default: "present"
+            choices: ["present", "absent"]

@@ -1,11 +1,16 @@
 ---
 # =============================================================================
-# SNAP PACKAGES ROLE VARIABLES
+# MANAGE SNAP PACKAGES ROLE DEFAULTS
 # =============================================================================
-# Snap package management for Ubuntu/Debian systems
-# Variables mirror the structure in configure_system/defaults/main.yml
+# This role manages both snapd system and snap packages on Debian/Ubuntu systems
+# Uses collection-wide variables for consistent snap management
+#
+# All variables are defined in the collection interface (docs/source/api/variables.rst)
+# and documented in meta/argument_specs.yml
 # =============================================================================
 
-snap:
-  disable_and_remove: false
-  packages: {}
+# Snap System Configuration
+snap: {}
+
+# Snap Package Management
+snap_packages: []

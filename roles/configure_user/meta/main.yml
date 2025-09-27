@@ -1,0 +1,30 @@
+---
+galaxy_info:
+  role_name: configure_user
+  author: wolskies.infrastructure
+  description: Configure a single user and their preferences
+  license: MIT
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "22.04"
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+    - name: MacOSX
+      versions:
+        - all
+  galaxy_tags:
+    - user
+    - configuration
+    - development
+    - dotfiles
+    - macos
+
+dependencies: []

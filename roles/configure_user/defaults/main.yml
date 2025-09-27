@@ -1,12 +1,14 @@
 ---
 # =============================================================================
-# CONFIGURE_USER ROLE - Per-user preference configuration
+# CONFIGURE USER ROLE DEFAULTS
 # =============================================================================
-# This role uses collection-wide defaults from defaults/main.yml
-# Configures preferences for users as defined in the users array
+# This role configures a single user and their preferences
+# Uses collection-wide variables for consistent user management
 #
-# For complete variable reference, see: defaults/main.yml
+# All variables are defined in the collection interface (docs/source/api/variables.rst)
+# and documented in meta/argument_specs.yml
 # =============================================================================
 
-# This role configures preferences for individual users
-# Users are defined in the main users array with all preferences included
+# Target User Configuration
+# Note: This role requires the target_user variable to be provided
+# The target_user structure matches individual user objects from the collection-wide users[] variable

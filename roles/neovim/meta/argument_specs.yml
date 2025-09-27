@@ -1,0 +1,27 @@
+---
+# Neovim Role Argument Specification
+# This role handles comprehensive Neovim installation and configuration for individual users
+
+argument_specs:
+  main:
+    short_description: Install and configure Neovim with plugin management and LSP support
+    description:
+      - Installs Neovim and development dependencies across platforms
+      - Deploys comprehensive configuration with lazy.nvim plugin manager
+      - Configures LSP support for multiple languages (Lua, Rust, Python)
+      - Creates vim compatibility alias for seamless transition
+      - Provides batteries-included development-ready editor setup
+
+    options:
+      # User Configuration
+      neovim_user:
+        description: Target username for Neovim installation
+        type: str
+        required: true
+
+      # Configuration Options
+      neovim_config_enabled:
+        description: Enable comprehensive configuration deployment
+        type: bool
+        required: false
+        default: true

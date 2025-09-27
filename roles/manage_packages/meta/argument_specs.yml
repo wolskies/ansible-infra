@@ -1,0 +1,170 @@
+---
+# Manage Packages Role Argument Specification
+# This role handles package management across different operating systems and package managers
+
+argument_specs:
+  main:
+    short_description: Manage packages across different operating systems and package managers
+    description:
+      - Handles cross-platform package management (APT, Pacman, Homebrew)
+      - Supports layered package configuration (all → group → host)
+      - Manages APT repositories using deb822 format
+      - Provides AUR package support via paru helper on Arch Linux
+      - Manages Homebrew packages and casks on macOS
+      - Uses collection-wide variables for consistent package management
+
+    options:
+      # Cross-Platform Package Management
+      packages:
+        description:
+          - Base package management definitions
+          - Combined with layered variables for final package list
+        type: dict
+        required: false
+        default: {}
+
+      manage_packages_all:
+        description:
+          - Base-level package definitions merged first
+          - Combined with group and host level packages
+        type: dict
+        required: false
+        default: {}
+
+      manage_packages_group:
+        description:
+          - Group-level package definitions merged second
+          - Combined with base and host level packages
+        type: dict
+        required: false
+        default: {}
+
+      manage_packages_host:
+        description:
+          - Host-level package definitions merged last
+          - Final layer in package combination hierarchy
+        type: dict
+        required: false
+        default: {}
+
+      # APT Repository Management
+      apt_repositories_all:
+        description:
+          - Base-level APT repository definitions merged first
+          - Combined with group and host level repositories
+        type: dict
+        required: false
+        default: {}
+
+      apt_repositories_group:
+        description:
+          - Group-level APT repository definitions merged second
+          - Combined with base and host level repositories
+        type: dict
+        required: false
+        default: {}
+
+      apt_repositories_host:
+        description:
+          - Host-level APT repository definitions merged last
+          - Final layer in repository combination hierarchy
+        type: dict
+        required: false
+        default: {}
+
+      # APT Configuration
+      apt:
+        description:
+          - APT package manager configuration options
+          - Controls repositories, upgrades, and system behavior
+        type: dict
+        required: false
+        default: {}
+        options:
+          repositories:
+            description:
+              - APT repository definitions using deb822 format
+              - Platform-specific repository configuration
+            type: dict
+            required: false
+            default: {}
+          system_upgrade:
+            description: APT system upgrade configuration
+            type: dict
+            required: false
+            default: {}
+            options:
+              enable:
+                description: Enable APT system upgrades
+                type: bool
+                required: false
+                default: false
+              type:
+                description: APT upgrade type
+                type: str
+                required: false
+                default: "safe"
+                choices: ["safe", "dist", "full", "yes"]
+
+      # Pacman Configuration (Arch Linux)
+      pacman:
+        description:
+          - Pacman package manager configuration options
+          - Controls AUR support and package management behavior
+        type: dict
+        required: false
+        default: {}
+        options:
+          enable_aur:
+            description: Enable AUR (Arch User Repository) package support with paru helper
+            type: bool
+            required: false
+            default: false
+
+      # Homebrew Configuration (macOS)
+      homebrew:
+        description:
+          - Homebrew package manager configuration options
+          - Controls taps and cache management
+        type: dict
+        required: false
+        default: {}
+        options:
+          taps:
+            description: List of Homebrew tap repositories
+            type: list
+            elements: str
+            required: false
+            default: []
+          cleanup_cache:
+            description: Clean Homebrew download cache after operations
+            type: bool
+            required: false
+            default: true
+
+      # macOS Cask Management
+      manage_casks:
+        description:
+          - macOS Homebrew cask management configuration
+          - Platform-specific cask specifications
+        type: dict
+        required: false
+        default: {}
+        options:
+          Darwin:
+            description: macOS Homebrew cask specifications
+            type: list
+            elements: dict
+            required: false
+            default: []
+            options:
+              name:
+                description: Cask name
+                type: str
+                required: true
+              state:
+                description: Cask state
+                type: str
+                required: false
+                default: "present"
+                choices: ["present", "absent"]

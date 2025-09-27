@@ -173,3 +173,48 @@ dev-setup: ## Set up development environment
 	. .venv/bin/activate && pip install --upgrade pip
 	. .venv/bin/activate && pip install -r requirements-dev.txt
 	@echo "Development environment ready. Activate with: source .venv/bin/activate"
+
+# =============================================================================
+# DOCUMENTATION
+# =============================================================================
+
+.PHONY: docs
+docs: docs-generate ## Build Sphinx documentation
+	@echo "Building documentation..."
+	cd docs/source && make html
+	@echo "Documentation built successfully! Open docs/source/_build/html/index.html"
+
+.PHONY: docs-generate
+docs-generate: ## Generate role documentation from metadata
+	@echo "Generating role documentation from metadata..."
+	python scripts/generate_role_docs.py
+	@echo "Role documentation generated successfully"
+
+.PHONY: docs-clean
+docs-clean: ## Clean documentation build artifacts
+	@echo "Cleaning documentation build..."
+	cd docs/source && make clean
+	@echo "Documentation build artifacts removed"
+
+.PHONY: docs-serve
+docs-serve: docs ## Build and serve documentation locally on port 8000
+	@echo "Serving documentation at http://localhost:8000"
+	cd docs/source/_build/html && python -m http.server 8000
+
+.PHONY: docs-live
+docs-live: ## Build documentation with auto-reload (requires sphinx-autobuild)
+	@echo "Starting live documentation server..."
+	@echo "Install sphinx-autobuild with: pip install sphinx-autobuild"
+	sphinx-autobuild docs/source docs/source/_build/html --host 0.0.0.0 --port 8000
+
+.PHONY: docs-check
+docs-check: ## Check documentation for issues
+	@echo "Checking documentation for issues..."
+	cd docs/source && make linkcheck
+	cd docs/source && make doctest
+
+.PHONY: docs-pdf
+docs-pdf: ## Generate PDF documentation (requires LaTeX)
+	@echo "Building PDF documentation..."
+	cd docs/source && make latexpdf
+	@echo "PDF documentation built at docs/source/_build/latex/wolskinet-infrastructure.pdf"

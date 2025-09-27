@@ -1,18 +1,16 @@
 ---
 # =============================================================================
-# FLATPAK PACKAGES ROLE VARIABLES
+# MANAGE FLATPAK ROLE DEFAULTS
 # =============================================================================
-# Flatpak package management for Linux systems
-# Variables mirror the structure in configure_system/defaults/main.yml
+# This role handles flatpak package management and desktop integration plugins
+# Uses collection-wide variables for consistent flatpak management
+#
+# All variables are defined in the collection interface (docs/source/api/variables.rst)
+# and documented in meta/argument_specs.yml
 # =============================================================================
 
-flatpak:
-  enabled: false
-  packages: {}
-  flathub: true
-  plugins:
-    gnome: false
-    plasma: false
-  # Installation method and user
-  method: "system" # "system" or "user"
-  user: "" # Username for user installs, empty for system
+# Flatpak System Configuration
+flatpak: {}
+
+# Flatpak Package Management
+flatpak_packages: []

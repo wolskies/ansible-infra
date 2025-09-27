@@ -10,6 +10,8 @@
   loop: "{{ terminal_config.entries }}"
   loop_control:
     label: "{{ item }}"
+  become: true
+  become_user: "{{ terminal_user }}"
 
 - name: "Determine if terminfo compilation needed for {{ terminal_name }}"
   ansible.builtin.set_fact:
@@ -50,5 +52,7 @@
         path: "{{ _terminal_tmp.path }}"
         state: absent
   when: _terminal_needs_compilation
+  become: true
+  become_user: "{{ terminal_user }}"
   tags:
     - terminal-config
