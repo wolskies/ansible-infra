@@ -43,9 +43,9 @@ check_prerequisites() {
     command -v ansible-playbook >/dev/null 2>&1 || error "Ansible not found. Please install ansible."
     command -v virsh >/dev/null 2>&1 || error "libvirt not found. Please install libvirt."
 
-    # Check if libvirt is running
-    if ! systemctl is-active --quiet libvirtd; then
-        error "libvirtd is not running. Please start libvirtd service."
+    # Check if libvirt is accessible (handles socket activation)
+    if ! virsh list >/dev/null 2>&1; then
+        error "libvirt is not accessible. Please check libvirtd service or permissions."
     fi
 
     # Check SSH key

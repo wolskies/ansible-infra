@@ -89,7 +89,7 @@ resource "libvirt_domain" "test_vms" {
 
   # Network configuration
   network_interface {
-    network_name   = "default"
+    bridge         = "br0"
     wait_for_lease = true
     addresses      = []
   }
