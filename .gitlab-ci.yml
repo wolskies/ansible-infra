@@ -65,10 +65,9 @@ validate-all:
     - echo "Installing current collection wolskies.infrastructure..."
     - ansible-galaxy collection install . --force
 
-    # Configure git to use SSH instead of HTTPS
+    # Configure git to use HTTPS instead of HTTP
     - git config --global --add safe.directory $CI_PROJECT_DIR
-    - git config --global url."ssh://git@gitlab.wolskinet.com:2222/".insteadOf "http://gitlab.wolskinet.com/"
-    - git config --global url."ssh://git@gitlab.wolskinet.com:2222/".insteadOf "https://gitlab.wolskinet.com/"
+    - git config --global url."https://gitlab.wolskinet.com/".insteadOf "http://gitlab.wolskinet.com/"
     # Run pre-commit checks (includes yamllint, prettier, custom checks)
     - pre-commit run --all-files || true # Non-blocking but shows issues
 
@@ -511,7 +510,7 @@ update-changelog:
     # Commit changelog update
     - git add CHANGELOG.md
     - git commit -m "update changelog for v${COLLECTION_VERSION}"
-    - git push ssh://git@gitlab.wolskinet.com:2222/ansible/collections/infrastructure.git HEAD:main
+    - git push https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
 
     - echo "✅ Changelog updated and committed"
   artifacts:
