@@ -39,19 +39,19 @@ cleanup_vms() {
     cd "$TERRAFORM_DIR"
 
     if [[ ! -f "terraform.tfstate" ]]; then
-        warning "No Terraform state found. VMs may not exist."
+        warning "No OpenTofu state found. VMs may not exist."
         return 0
     fi
 
     # Show what will be destroyed
     log "Planning VM destruction..."
-    if ! terraform plan -destroy -out=destroy.tfplan >/dev/null 2>&1; then
-        warning "Terraform plan failed. Attempting direct destroy..."
-        terraform destroy -auto-approve || warning "Terraform destroy had issues"
+    if ! tofu plan -destroy -out=destroy.tfplan >/dev/null 2>&1; then
+        warning "OpenTofu plan failed. Attempting direct destroy..."
+        tofu destroy -auto-approve || warning "OpenTofu destroy had issues"
     else
         # Execute destruction
         log "Destroying VMs..."
-        terraform apply destroy.tfplan || warning "Some VMs may not have been destroyed"
+        tofu apply destroy.tfplan || warning "Some VMs may not have been destroyed"
     fi
 
     # Clean up Terraform files
@@ -136,7 +136,7 @@ verify_cleanup() {
     if [[ -f "$TERRAFORM_DIR/terraform.tfstate" ]]; then
         local resources=$(grep -c '"instances"' "$TERRAFORM_DIR/terraform.tfstate" 2>/dev/null || echo "0")
         if [[ $resources -gt 0 ]]; then
-            warning "Terraform state indicates $resources resources may still exist"
+            warning "OpenTofu state indicates $resources resources may still exist"
         fi
     fi
 }
@@ -191,7 +191,7 @@ main() {
             echo "  --force        Force cleanup of stuck resources"
             echo ""
             echo "This script will:"
-            echo "1. Destroy all test VMs via Terraform"
+            echo "1. Destroy all test VMs via OpenTofu"
             echo "2. Clean up generated configuration files"
             echo "3. Archive validation results"
             echo "4. Verify cleanup completion"

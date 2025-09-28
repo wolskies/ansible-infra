@@ -39,7 +39,7 @@ error() {
 check_prerequisites() {
     log "Checking prerequisites..."
 
-    command -v terraform >/dev/null 2>&1 || error "Terraform not found. Please install terraform."
+    command -v tofu >/dev/null 2>&1 || error "OpenTofu not found. Please install opentofu."
     command -v ansible-playbook >/dev/null 2>&1 || error "Ansible not found. Please install ansible."
     command -v virsh >/dev/null 2>&1 || error "libvirt not found. Please install libvirt."
 
@@ -73,20 +73,20 @@ provision_vms() {
 
     cd "$TERRAFORM_DIR"
 
-    # Initialize Terraform
-    terraform init -upgrade
+    # Initialize OpenTofu
+    tofu init -upgrade
 
     # Plan deployment
     log "Planning VM deployment..."
-    terraform plan -out=tfplan
+    tofu plan -out=tfplan
 
     # Apply deployment
     log "Creating VMs (this may take several minutes)..."
-    terraform apply tfplan
+    tofu apply tfplan
 
     # Display VM information
     log "VM deployment complete. Getting VM information..."
-    terraform output -json > vm_output.json
+    tofu output -json > vm_output.json
 
     success "VMs provisioned successfully"
 
@@ -242,7 +242,7 @@ case "${1:-}" in
         echo "6. Generate comprehensive test report"
         echo ""
         echo "Prerequisites:"
-        echo "- Terraform"
+        echo "- OpenTofu (tofu command)"
         echo "- Ansible"
         echo "- libvirt/KVM"
         echo "- SSH key at ~/.ssh/id_ed25519"

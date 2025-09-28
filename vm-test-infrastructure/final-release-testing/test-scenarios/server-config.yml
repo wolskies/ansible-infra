@@ -19,50 +19,48 @@ domain_timezone: "America/New_York"
 # =============================================================================
 
 # Package Management (from manage_packages role testing)
-# Using proven packages.present.{all|group|host}.{Distribution} format
-packages:
-  present:
-    all:
-      Ubuntu:
-        - curl
-        - wget
-        - git
-        - vim
-        - htop
-        - fail2ban
-        - ufw
-        - build-essential
-        - python3-pip
-        - tree
-        - rsync
-        - unzip
-      Debian:
-        - curl
-        - wget
-        - git
-        - vim
-        - htop
-        - fail2ban
-        - ufw
-        - build-essential
-        - python3-pip
-        - tree
-        - rsync
-        - unzip
-    group:
-      # Server-specific packages
-      Ubuntu:
-        - nginx
-        - postgresql
-        - docker.io
-        - docker-compose
-        - certbot
-      Debian:
-        - nginx
-        - postgresql
-        - docker.io
-        - docker-compose
-        - certbot
+manage_packages_all:
+  Ubuntu:
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - fail2ban
+    - ufw
+    - build-essential
+    - python3-pip
+    - tree
+    - rsync
+    - unzip
+  Debian:
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - fail2ban
+    - ufw
+    - build-essential
+    - python3-pip
+    - tree
+    - rsync
+    - unzip
+
+manage_packages_group:
+  # Server-specific packages
+  Ubuntu:
+    - nginx
+    - postgresql
+    - docker.io
+    - docker-compose
+    - certbot
+  Debian:
+    - nginx
+    - postgresql
+    - docker.io
+    - docker-compose
+    - certbot
 
 # =============================================================================
 # SECURITY CONFIGURATION

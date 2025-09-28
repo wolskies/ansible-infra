@@ -18,43 +18,42 @@ host_locale: en_US.UTF-8
 host_timezone: America/New_York
 
 # Package management (from manage_packages role testing)
-# CRITICAL: Use packages.present.{all|group|host}.{Distribution} format
-packages:
-  present:
-    all:
-      Ubuntu:
-        - curl
-        - wget
-        - git
-        - vim
-        - htop
-        - fail2ban
-        - ufw
-        - build-essential
-        - python3-pip
-        - tree
-      Debian:
-        - curl
-        - wget
-        - git
-        - vim
-        - htop
-        - fail2ban
-        - ufw
-        - build-essential
-        - python3-pip
-        - tree
-    host:
-      Ubuntu:
-        - jq
-        - rsync
-        - neovim
-        - tmux
-      Debian:
-        - jq
-        - rsync
-        - neovim
-        - tmux
+# CRITICAL: Use manage_packages_{all|group|host}.{Distribution} format
+manage_packages_all:
+  Ubuntu:
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - fail2ban
+    - ufw
+    - build-essential
+    - python3-pip
+    - tree
+  Debian:
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - fail2ban
+    - ufw
+    - build-essential
+    - python3-pip
+    - tree
+
+manage_packages_host:
+  Ubuntu:
+    - jq
+    - rsync
+    - neovim
+    - tmux
+  Debian:
+    - jq
+    - rsync
+    - neovim
+    - tmux
 
 # User management (from configure_user role testing + collection defaults)
 users:
@@ -145,7 +144,7 @@ flatpak:
 # =============================================================================
 # These were the incorrect formats found in VM test scenarios:
 #
-# ❌ host_packages.debian → ✅ packages.present.host.Debian
+# ❌ host_packages.debian → ✅ manage_packages_host.Debian
 # ❌ host_security.firewall → ✅ firewall.enabled
 # ❌ dev_nodejs.install → ✅ node_user, node_packages
 # ❌ security_services.fail2ban → ✅ fail2ban.enabled
