@@ -10,7 +10,7 @@
 3. **Test setup complexity**: VM testing revealed the complexity of maintaining consistent test configurations
 
 ### Examples of Configuration Issues Found
-- `host_packages.debian` → should be `packages.present.host.Debian`
+- `host_packages.debian` → should be `manage_packages_host.Debian`
 - `host_security.firewall` → should be `ufw.enabled` (correct role variables)
 - `dev_nodejs.install` → should be `node_user`, `node_packages` (individual role variables)
 

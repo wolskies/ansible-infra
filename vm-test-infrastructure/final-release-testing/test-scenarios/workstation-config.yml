@@ -19,72 +19,71 @@ domain_timezone: "America/Los_Angeles" # Different from servers
 # =============================================================================
 
 # Package Management (from manage_packages role testing)
-packages:
-  present:
-    all:
-      Ubuntu:
-        - curl
-        - wget
-        - git
-        - vim
-        - htop
-        - build-essential
-        - python3-pip
-        - tree
-        - jq
-        - tmux
-        - neovim
-      Debian:
-        - curl
-        - wget
-        - git
-        - vim
-        - htop
-        - build-essential
-        - python3-pip
-        - tree
-        - jq
-        - tmux
-        - neovim
-      Archlinux:
-        - curl
-        - wget
-        - git
-        - vim
-        - htop
-        - base-devel
-        - python-pip
-        - tree
-        - jq
-        - tmux
-        - neovim
-    group:
-      # Development tools
-      Ubuntu:
-        - code
-        - docker.io
-        - docker-compose
-        - nodejs
-        - npm
-        - golang
-        - rustc
-        - cargo
-      Debian:
-        - docker.io
-        - docker-compose
-        - nodejs
-        - npm
-        - golang
-        - rustc
-        - cargo
-      Archlinux:
-        - docker
-        - docker-compose
-        - nodejs
-        - npm
-        - go
-        - rust
-        - cargo
+manage_packages_all:
+  Ubuntu:
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - build-essential
+    - python3-pip
+    - tree
+    - jq
+    - tmux
+    - neovim
+  Debian:
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - build-essential
+    - python3-pip
+    - tree
+    - jq
+    - tmux
+    - neovim
+  Archlinux:
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - base-devel
+    - python-pip
+    - tree
+    - jq
+    - tmux
+    - neovim
+
+manage_packages_group:
+  # Development tools
+  Ubuntu:
+    - code
+    - docker.io
+    - docker-compose
+    - nodejs
+    - npm
+    - golang
+    - rustc
+    - cargo
+  Debian:
+    - docker.io
+    - docker-compose
+    - nodejs
+    - npm
+    - golang
+    - rustc
+    - cargo
+  Archlinux:
+    - docker
+    - docker-compose
+    - nodejs
+    - npm
+    - go
+    - rust
+    - cargo
 
 # =============================================================================
 # DEVELOPMENT ENVIRONMENTS

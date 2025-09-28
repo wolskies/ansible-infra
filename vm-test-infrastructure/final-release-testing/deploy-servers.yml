@@ -29,7 +29,7 @@
           - "Platform: {{ ansible_architecture }}"
           - "Test Type: Server Configuration"
           - "Target User: {{ target_user.name }}"
-          - "Packages: {{ packages.present.all[ansible_distribution] | length }} base + {{ packages.present.group[ansible_distribution] | length }} server"
+          - "Packages: {{ manage_packages_all[ansible_distribution] | length }} base + {{ manage_packages_group[ansible_distribution] | length }} server"
           - "Security: Firewall enabled, Fail2ban enabled"
 
   roles:
