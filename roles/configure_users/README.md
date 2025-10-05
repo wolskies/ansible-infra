@@ -103,29 +103,32 @@ users:
 
 ### macOS-Specific Configuration
 ```yaml
-target_user:
-  name: developer
-  Darwin:
-    dock:
-      tile_size: 48
-      autohide: true
-      minimize_to_application: false
-      show_recents: false
-    finder:
-      show_extensions: true
-      show_hidden: true
-      show_pathbar: true
-      show_statusbar: true
-    screenshots:
-      directory: "Screenshots"
-      format: "png"
-    iterm2:
-      prompt_on_quit: false
+users:
+  - name: developer
+    password: "{{ vault_developer_password }}"
+    Darwin:
+      dock:
+        tile_size: 48
+        autohide: true
+        minimize_to_application: false
+        show_recents: false
+      finder:
+        show_extensions: true
+        show_hidden: true
+        show_pathbar: true
+        show_statusbar: true
+      screenshots:
+        directory: "Screenshots"
+        format: "png"
+      iterm2:
+        prompt_on_quit: false
 ```
 
 ## Variables
 
-### target_user Object Schema
+### User Object Schema
+
+The role processes the `users` list variable. Each user object in the list has the following schema:
 | Field                    | Type         | Required | Default       | Description                                                                  |
 |--------------------------|--------------|----------|---------------|------------------------------------------------------------------------------|
 | `name`                   | string       | Yes      | -             | Username (alphanumeric + underscore/hyphen, max 32 chars)                    |

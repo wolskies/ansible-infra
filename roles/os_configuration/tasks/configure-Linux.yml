@@ -27,7 +27,7 @@
   tags:
     - security
 
-- name: Configure system locale
+- name: Configure system locale (Debian/Ubuntu)
   community.general.locale_gen:
     name: "{{ domain_locale }}"
     state: present
@@ -35,6 +35,22 @@
   when:
     - domain_locale is defined
     - domain_locale | length > 0
+    - ansible_os_family == 'Debian'
+  tags:
+    - locale
+
+- name: Configure system locale (Arch Linux)
+  ansible.builtin.lineinfile:
+    path: /etc/locale.gen
+    regexp: "^#?{{ domain_locale | regex_escape }}"
+    line: "{{ domain_locale }}"
+    state: present
+  become: true
+  notify: Generate locales
+  when:
+    - domain_locale is defined
+    - domain_locale | length > 0
+    - ansible_os_family == 'Archlinux'
   tags:
     - locale
 

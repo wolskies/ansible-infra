@@ -1,10 +1,10 @@
-# CONFIGURE_USER_VALIDATION_PLAN.md
+# CONFIGURE_USERS_VALIDATION_PLAN.md
 
 Validation plan for the `configure_users` role based on Software Requirements Document (SRD) Section 3.6.
 
 ## Overview
 
-This validation plan covers all requirements for the `configure_users` role, which configures a single user and their preferences. The role acts as a thin wrapper around `ansible.builtin.user` for core functionality while orchestrating SSH keys, sudo configuration, development environments, platform preferences, and dotfiles deployment.
+This validation plan covers all requirements for the `configure_users` role, which manages multiple user accounts and their preferences. The role acts as a thin wrapper around `ansible.builtin.user` for core functionality while orchestrating SSH keys, sudo configuration, development environments, platform preferences, and dotfiles deployment. The role processes the collection-wide `users` list variable, configuring each user sequentially.
 
 ## Requirements Coverage
 

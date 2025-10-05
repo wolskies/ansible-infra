@@ -89,70 +89,55 @@ manage_packages_group:
 # DEVELOPMENT ENVIRONMENTS
 # =============================================================================
 
-# NodeJS Configuration (from nodejs role testing)
-node_user: devuser
-nodejs_version: "20" # LTS version
-npm_config_prefix: "~/.npm-global"
-npm_config_unsafe_perm: "true"
-node_packages:
-  - typescript
-  - eslint
-  - prettier
-  - "@vue/cli"
-  - nodemon
-  - pm2
-
-# Rust Configuration (from rust role testing)
-rust_user: devuser
-rust_packages:
-  - cargo-watch
-  - ripgrep
-  - fd-find
-  - bat
-  - exa
-  - tokei
-
-# Go Configuration (from go role testing)
-go_user: devuser
-go_packages:
-  - "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
-  - "golang.org/x/tools/cmd/goimports@latest"
-  - "github.com/cosmtrek/air@latest"
-
-# Neovim Configuration (from neovim role testing)
-neovim_user: devuser
-neovim_config_enabled: true
+# Development environment configuration is now part of the users variable above
+# Individual role variables are set automatically by configure_users role
 
 # =============================================================================
 # USER MANAGEMENT
 # =============================================================================
 
 # User Management (from configure_users role testing)
-target_user:
-  name: devuser
-  uid: 1001
-  groups: [sudo, docker]
-  shell: /bin/bash
-  comment: "Development User"
-  state: present
-  create_home: true
-  ssh_keys:
-    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestDevKeyForVMTesting devuser@dev"
-    - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... devuser@dev-backup"
-  dotfiles:
-    enabled: true
-    repository: "https://github.com/example/dotfiles.git" # Example - would be real repo
+users:
+  - name: devuser
+    password: "{{ vault_devuser_password | default('!') }}" # Locked if no vault password
+    groups: [sudo, docker]
+    shell: /bin/bash
+    comment: "Development User"
+    state: present
+    ssh_keys:
+      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestDevKeyForVMTesting devuser@dev"
+      - key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... devuser@dev-backup"
+    git:
+      user_name: "Dev User"
+      user_email: "devuser@example.com"
+      editor: "nvim"
+    nodejs:
+      packages:
+        - typescript
+        - eslint
+        - prettier
+    rust:
+      packages:
+        - ripgrep
+        - bat
+    go:
+      packages:
+        - "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+    neovim:
+      enabled: true
+    terminal_entries:
+      - alacritty
+      - kitty
+    dotfiles:
+      enable: true
+      repository: "https://github.com/example/dotfiles.git" # Example - would be real repo
 
 # =============================================================================
 # TERMINAL CONFIGURATION
 # =============================================================================
 
-# Terminal Configuration (from terminal_config role testing)
-terminal_user: devuser
-terminal_entries:
-  - alacritty
-  - kitty
-  - wezterm
+# Terminal configuration is now part of the users variable above
+# terminal_user and terminal_entries are set automatically by configure_users role
 
 # =============================================================================
 # SECURITY CONFIGURATION

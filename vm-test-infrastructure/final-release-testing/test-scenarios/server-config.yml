@@ -124,18 +124,21 @@ fail2ban:
 # =============================================================================
 
 # User Management (from configure_users role testing + collection defaults)
-target_user:
-  name: serveradmin
-  uid: 1001
-  groups: [sudo]
-  shell: /bin/bash
-  comment: "Server Administrator"
-  state: present
-  create_home: true
-  ssh_keys:
-    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestServerKeyForVMTesting serveradmin@test"
-  dotfiles:
-    enabled: false # Minimal server setup
+users:
+  - name: serveradmin
+    password: "{{ vault_serveradmin_password | default('!') }}" # Locked if no vault password
+    groups: [sudo]
+    shell: /bin/bash
+    comment: "Server Administrator"
+    state: present
+    superuser: true
+    ssh_keys:
+      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestServerKeyForVMTesting serveradmin@test"
+    git:
+      user_name: "Server Admin"
+      user_email: "serveradmin@test.local"
+    dotfiles:
+      enable: false # Minimal server setup
 
 # =============================================================================
 # SYSTEM SERVICES

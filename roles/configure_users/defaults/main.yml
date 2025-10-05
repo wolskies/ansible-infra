@@ -36,6 +36,6 @@ users: []
 #       enable: true
 #       repository: "https://github.com/user/dotfiles.git"
 
-# Target User Configuration
-# Note: This role requires the target_user variable to be provided
-# The target_user structure matches individual user objects from the collection-wide users[] variable
+# Role Operation
+# This role processes the collection-wide 'users' variable (list of user objects)
+# Each user object follows the structure shown in the example above

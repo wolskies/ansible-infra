@@ -1084,15 +1084,15 @@ Tasks managing individual flatpak packages. Skip to configure flatpak system wit
 
 #### 3.6.1 Role Description
 
-The `configure_users` role configures a single user and their preferences. For core user account management, this role acts as a thin wrapper around `ansible.builtin.user`, passing variables directly through without adding or removing functionality. Beyond the core user account, this role orchestrates SSH key management, sudo configuration, development environment setup (via other collection roles), platform-specific preferences, and dotfiles deployment using GNU stow. The role operates on a single user configuration passed via the `target_user` variable.
+The `configure_users` role manages multiple user accounts and their preferences. For core user account management, this role acts as a thin wrapper around `ansible.builtin.user`, passing variables directly through without adding or removing functionality. Beyond the core user account, this role orchestrates SSH key management, sudo configuration, development environment setup (via other collection roles), platform-specific preferences, and dotfiles deployment using GNU stow. The role processes the collection-wide `users` list variable, configuring each user sequentially.
 
 **Dependencies**: This role calls nodejs, rust, go, neovim, and terminal_config roles from the same collection. These dependencies are declared in the collection's meta/requirements.yml for ansible-galaxy installation.
 
 #### 3.6.2 Variables
 
-This role configures a single user via the `target_user` variable. This is a standalone role that requires the `target_user` variable structure to be identical to individual user objects from the collection-wide `users[]` variable (section 2.2.1) for integration compatibility.
+This role uses the collection-wide `users` variable (section 2.2.1), which is a list of user objects. Each user object in the list follows the schema below.
 
-**target_user Object Schema:**
+**User Object Schema:**
 
 | Field                    | Type         | Required | Default       | Description                                                                  |
 | ------------------------ | ------------ | -------- | ------------- | ---------------------------------------------------------------------------- |
@@ -1175,13 +1175,13 @@ This role configures a single user via the `target_user` variable. This is a sta
 
 **REQ-CU-001**: The system SHALL create and configure user accounts using ansible.builtin.user
 
-**Implementation**: Simplified pass-through to `ansible.builtin.user` module. Maps the following `target_user` fields to module parameters: `name`, `comment`, `shell`, `groups`, `password`, and `state`. The `create_home`, `uid`, `gid`, `home`, and `system` parameters have been removed to focus on basic user account creation. Advanced functionality requiring these parameters should use dedicated user management roles.
+**Implementation**: Simplified pass-through to `ansible.builtin.user` module. For each user in the `users` list, maps the following fields to module parameters: `name`, `comment`, `shell`, `groups`, `password`, and `state`. The `create_home`, `uid`, `gid`, `home`, and `system` parameters have been removed to focus on basic user account creation. Advanced functionality requiring these parameters should use dedicated user management roles.
 
 **Critical Implementation Detail**: When using the `groups` parameter, `append: true` is automatically set when groups are defined and non-empty. This prevents inadvertently replacing the user's existing group memberships. If `groups` is undefined or empty, the parameter is omitted entirely to avoid changing the user's current group configuration.
 
 **REQ-CU-002**: The system SHALL remove user accounts when state is absent
 
-**Implementation**: Simple call to `ansible.builtin.user` module with `name: target_user.name` and `state: absent`. Uses default Ansible behavior (keeps home directory). Advanced removal options like force removal or home directory deletion should use dedicated user management roles.
+**Implementation**: Simple call to `ansible.builtin.user` module with `name: <username>` and `state: absent` for each user in the `users` list. Uses default Ansible behavior (keeps home directory). Advanced removal options like force removal or home directory deletion should use dedicated user management roles.
 
 ###### 3.6.3.1.2 Privilege Management
 
@@ -1191,11 +1191,11 @@ _Removed: Legacy requirement was overly restrictive. Users can specify admin gro
 
 **REQ-CU-004**: The system SHALL grant cross-platform sudo access through platform admin group membership
 
-**Implementation**: When `target_user.superuser` is true, automatically adds the user to the platform-appropriate admin group: `sudo` for Debian/Ubuntu, `wheel` for Arch Linux, `admin` for macOS. This is additive to any groups already specified in `target_user.groups`. Grants sudo access through existing system sudoers rules with password authentication.
+**Implementation**: When a user's `superuser` field is true, automatically adds the user to the platform-appropriate admin group: `sudo` for Debian/Ubuntu, `wheel` for Arch Linux, `admin` for macOS. This is additive to any groups already specified in the user's `groups` field. Grants sudo access through existing system sudoers rules with password authentication.
 
 **REQ-CU-005**: The system SHALL support passwordless sudo configuration for superusers
 
-**Implementation**: When both `target_user.superuser` is true AND `target_user.superuser_passwordless` is true, creates `/etc/sudoers.d/{{ target_user.name }}` file with rule `{{ target_user.name }} ALL=(ALL) NOPASSWD: ALL` using `ansible.builtin.template` with `owner: root`, `group: root`, `mode: '0440'`, and `validate: /usr/sbin/visudo -cf %s`. This grants passwordless sudo for all commands.
+**Implementation**: When both a user's `superuser` field is true AND `superuser_passwordless` is true, creates `/etc/sudoers.d/<username>` file with rule `<username> ALL=(ALL) NOPASSWD: ALL` using `ansible.builtin.template` with `owner: root`, `group: root`, `mode: '0440'`, and `validate: /usr/sbin/visudo -cf %s`. This grants passwordless sudo for all commands.
 
 **Security Note**: Requires explicit `superuser: true` flag to prevent stealth superusers. Complex sudo rule management requires a dedicated sudoers management role.
 
@@ -1205,7 +1205,7 @@ _Removed: Legacy requirement was overly restrictive. Users can specify admin gro
 
 **REQ-CU-006**: The system SHALL be capable of managing SSH authorized keys for users
 
-**Implementation**: Uses `ansible.posix.authorized_key` module with variable mappings: `user: target_user.name`, `key: ssh_key.key`, `comment: ssh_key.comment`, `key_options: ssh_key.options`, `exclusive: ssh_key.exclusive`, and `state: ssh_key.state | default('present')`. Uses `with_subelements` to iterate through `target_user.ssh_keys` list. Loop variable name: `ssh_key`.
+**Implementation**: Uses `ansible.posix.authorized_key` module with variable mappings: `user: <username>`, `key: ssh_key.key`, `comment: ssh_key.comment`, `key_options: ssh_key.options`, `exclusive: ssh_key.exclusive`, and `state: ssh_key.state | default('present')`. Iterates through each user's `ssh_keys` list using nested loops. Loop variable name: `ssh_key`.
 
 ##### 3.6.3.3 User Preference Configuration
 
@@ -1213,43 +1213,43 @@ _Removed: Legacy requirement was overly restrictive. Users can specify admin gro
 
 **REQ-CU-007**: The system SHALL configure Node.js development environment for users
 
-**Implementation**: Passes the following variables to the nodejs role (see section 3.7): `node_user: target_user.name` and `node_packages: target_user.nodejs.packages` when `target_user.nodejs.packages` is defined and non-empty.
+**Implementation**: For each user where `nodejs.packages` is defined and non-empty, passes the following variables to the nodejs role (see section 3.7): `node_user: <username>` and `node_packages: <user's nodejs.packages>`.
 
 ###### 3.6.3.3.2 Rust Development Environment
 
 **REQ-CU-008**: The system SHALL configure Rust development environment for users
 
-**Implementation**: Passes the following variables to the rust role (see section 3.8): `rust_user: target_user.name` and `rust_packages: target_user.rust.packages` when `target_user.rust.packages` is defined and non-empty.
+**Implementation**: For each user where `rust.packages` is defined and non-empty, passes the following variables to the rust role (see section 3.8): `rust_user: <username>` and `rust_packages: <user's rust.packages>`.
 
 ###### 3.6.3.3.3 Go Development Environment
 
 **REQ-CU-009**: The system SHALL configure Go development environment for users
 
-**Implementation**: Passes the following variables to the go role (see section 3.9): `go_user: target_user.name` and `go_packages: target_user.go.packages` when `target_user.go.packages` is defined and non-empty.
+**Implementation**: For each user where `go.packages` is defined and non-empty, passes the following variables to the go role (see section 3.9): `go_user: <username>` and `go_packages: <user's go.packages>`.
 
 ###### 3.6.3.3.4 Neovim Configuration
 
 **REQ-CU-010**: The system SHALL configure Neovim for users
 
-**Implementation**: Passes the following variables to the neovim role (see section 3.10): `neovim_user: target_user.name` when `target_user.neovim.enabled` is true.
+**Implementation**: For each user where `neovim.enabled` is true, passes the following variables to the neovim role (see section 3.10): `neovim_user: <username>`.
 
 ###### 3.6.3.3.5 Terminal Configuration
 
 **REQ-CU-011**: The system SHALL configure terminal emulators for users
 
-**Implementation**: Passes the following variables to the terminal_config role (see section 3.11): `terminal_user: target_user.name` and `terminal_entries: target_user.terminal_entries` when `target_user.terminal_entries` is defined and non-empty.
+**Implementation**: For each user where `terminal_entries` is defined and non-empty, passes the following variables to the terminal_config role (see section 3.11): `terminal_user: <username>` and `terminal_entries: <user's terminal_entries>`.
 
 ###### 3.6.3.3.6 Git Configuration
 
 **REQ-CU-012**: The system SHALL be capable of configuring Git settings for users
 
-**Implementation**: Uses `community.general.git_config` to set `user.name` from `target_user.git.user_name`, `user.email` from `target_user.git.user_email`, and `core.editor` from `target_user.git.editor` with global scope when `target_user.git` is defined.
+**Implementation**: For each user where `git` is defined, uses `community.general.git_config` to set `user.name` from the user's `git.user_name`, `user.email` from the user's `git.user_email`, and `core.editor` from the user's `git.editor` with global scope.
 
 ###### 3.6.3.3.7 Dotfiles Management
 
 **REQ-CU-019**: The system SHALL deploy user dotfiles using GNU stow
 
-**Implementation**: When `target_user.dotfiles.enable` is true and `target_user.dotfiles.repository` is defined, clones the git repository to `~/{{ dotfiles.dest }}`, installs the `stow` package, performs conflict detection with `stow --no`, backs up conflicting files with timestamp suffix, and deploys dotfiles using `stow .` from the repository directory.
+**Implementation**: For each user where `dotfiles.enable` is true and `dotfiles.repository` is defined, clones the git repository to `~/{{ dotfiles.dest }}`, installs the `stow` package, performs conflict detection with `stow --no`, backs up conflicting files with timestamp suffix, and deploys dotfiles using `stow .` from the repository directory.
 
 ##### 3.6.3.4 Linux Shell Configuration
 
@@ -1263,25 +1263,25 @@ _Removed: Redundant with REQ-CU-001. Shell configuration is handled by the `shel
 
 **REQ-CU-014**: The system SHALL configure Homebrew PATH for macOS users
 
-**Implementation**: Uses `ansible.builtin.stat` to check `/opt/homebrew/bin/brew` existence and `ansible.builtin.lineinfile` to add `eval "$(/opt/homebrew/bin/brew shellenv)"` to `~/.zprofile` when Homebrew is detected.
+**Implementation**: For each user on macOS, uses `ansible.builtin.stat` to check `/opt/homebrew/bin/brew` existence and `ansible.builtin.lineinfile` to add `eval "$(/opt/homebrew/bin/brew shellenv)"` to `~/.zprofile` when Homebrew is detected.
 
 ###### 3.6.3.5.2 macOS Application Preferences
 
 **REQ-CU-015**: The system SHALL configure Dock preferences for macOS users
 
-**Implementation**: Uses `community.general.osx_defaults` with `domain: com.apple.dock`, conditional loops over defined values: `target_user.Darwin.dock.tile_size` → `key: tilesize, type: int`, `target_user.Darwin.dock.autohide` → `key: autohide, type: bool`, `target_user.Darwin.dock.minimize_to_application` → `key: minimize-to-application, type: bool`, `target_user.Darwin.dock.show_recents` → `key: show-recents, type: bool`. Notifies `Restart Dock` handler.
+**Implementation**: For each user on macOS where `Darwin.dock` preferences are defined, uses `community.general.osx_defaults` with `domain: com.apple.dock`, conditional loops over defined values: `Darwin.dock.tile_size` → `key: tilesize, type: int`, `Darwin.dock.autohide` → `key: autohide, type: bool`, `Darwin.dock.minimize_to_application` → `key: minimize-to-application, type: bool`, `Darwin.dock.show_recents` → `key: show-recents, type: bool`. Notifies `Restart Dock` handler.
 
 **REQ-CU-016**: The system SHALL configure Finder preferences for macOS users
 
-**Implementation**: Uses `community.general.osx_defaults` with `domain: com.apple.finder`, conditional loops over defined values: `target_user.Darwin.finder.show_extensions` → `key: AppleShowAllExtensions, type: bool`, `target_user.Darwin.finder.show_hidden` → `key: AppleShowAllFiles, type: bool`, `target_user.Darwin.finder.show_pathbar` → `key: ShowPathbar, type: bool`, `target_user.Darwin.finder.show_statusbar` → `key: ShowStatusBar, type: bool`, `target_user.Darwin.finder.show_external_drives` → `key: ShowExternalHardDrivesOnDesktop, type: bool`, `target_user.Darwin.finder.show_removable_media` → `key: ShowRemovableMediaOnDesktop, type: bool`, `target_user.Darwin.finder.show_posix_path` → `key: _FXShowPosixPathInTitle, type: bool`. Notifies `Restart Finder` handler.
+**Implementation**: For each user on macOS where `Darwin.finder` preferences are defined, uses `community.general.osx_defaults` with `domain: com.apple.finder`, conditional loops over defined values: `Darwin.finder.show_extensions` → `key: AppleShowAllExtensions, type: bool`, `Darwin.finder.show_hidden` → `key: AppleShowAllFiles, type: bool`, `Darwin.finder.show_pathbar` → `key: ShowPathbar, type: bool`, `Darwin.finder.show_statusbar` → `key: ShowStatusBar, type: bool`, `Darwin.finder.show_external_drives` → `key: ShowExternalHardDrivesOnDesktop, type: bool`, `Darwin.finder.show_removable_media` → `key: ShowRemovableMediaOnDesktop, type: bool`, `Darwin.finder.show_posix_path` → `key: _FXShowPosixPathInTitle, type: bool`. Notifies `Restart Finder` handler.
 
 **REQ-CU-017**: The system SHALL configure screenshot preferences for macOS users
 
-**Implementation**: Creates directory `/Users/{{ target_user.name }}/{{ target_user.Darwin.screenshots.directory | default('Screenshots') }}` using `ansible.builtin.file`, then uses `community.general.osx_defaults` with `domain: com.apple.screencapture` for `target_user.Darwin.screenshots.directory` → `key: location, type: string` and `target_user.Darwin.screenshots.format` → `key: type, type: string`.
+**Implementation**: For each user on macOS where `Darwin.screenshots` preferences are defined, creates directory `/Users/<username>/{{ Darwin.screenshots.directory | default('Screenshots') }}` using `ansible.builtin.file`, then uses `community.general.osx_defaults` with `domain: com.apple.screencapture` for `Darwin.screenshots.directory` → `key: location, type: string` and `Darwin.screenshots.format` → `key: type, type: string`.
 
 **REQ-CU-018**: The system SHALL configure iTerm2 preferences for macOS users
 
-**Implementation**: Uses `community.general.osx_defaults` with `domain: com.googlecode.iterm2`, `key: PromptOnQuit, type: bool`, and `value: target_user.Darwin.iterm2.prompt_on_quit` when `target_user.Darwin.iterm2` is defined.
+**Implementation**: For each user on macOS where `Darwin.iterm2` is defined, uses `community.general.osx_defaults` with `domain: com.googlecode.iterm2`, `key: PromptOnQuit, type: bool`, and `value: Darwin.iterm2.prompt_on_quit`.
 
 ### 3.7 nodejs
 

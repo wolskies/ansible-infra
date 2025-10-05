@@ -1,14 +1,14 @@
-Configure User Role
-===================
+Configure Users Role
+====================
 
-Configure a single user and their preferences
+Manage multiple user accounts and their preferences
 
 * Creates and configures user accounts using ansible.builtin.user
 * Manages SSH authorized keys and sudo configuration
 * Orchestrates development environment setup via collection roles
 * Configures platform-specific preferences (macOS dock, finder, etc.)
 * Deploys dotfiles using GNU stow when configured
-* Uses single target_user variable for complete user configuration
+* Processes the collection-wide users list variable
 
 .. contents::
    :local:
@@ -21,7 +21,7 @@ Overview
 :License: MIT
 :Minimum Ansible Version: 2.12
 
-This role provides configure a single user and their preferences.
+This role manages multiple user accounts and their preferences.
 
 Variables
 =========
@@ -32,7 +32,7 @@ Role Variables
 ==================== =============== ========== =============== ====================================================================================================
 Name                 Type            Required   Default         Description
 ==================== =============== ========== =============== ====================================================================================================
-target_user          object          Yes        *(required)*    Complete user configuration object Contains all user account, preference, and environment settings
+users                list[object]    Yes        *(required)*    List of user configuration objects. Each object contains all user account, preference, and environment settings
 ==================== =============== ========== =============== ====================================================================================================
 
 

@@ -127,6 +127,7 @@ fail2ban:
 # group_vars/workstations.yml
 users:
   - name: developer
+    password: "{{ vault_developer_password }}"
     state: present
     groups: [sudo]
     superuser: true
@@ -135,22 +136,19 @@ users:
       - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
         comment: "developer@workstation"
         state: present
-
-target_user:
-  name: developer
-  git:
-    user_name: "Developer Name"
-    user_email: "dev@company.com"
-    editor: "nvim"
-  nodejs:
-    packages: [typescript, eslint, prettier]
-  rust:
-    packages: [ripgrep, bat, fd-find]
-  neovim:
-    enabled: true
-  dotfiles:
-    enable: true
-    repository: "https://github.com/developer/dotfiles"
+    git:
+      user_name: "Developer Name"
+      user_email: "dev@company.com"
+      editor: "nvim"
+    nodejs:
+      packages: [typescript, eslint, prettier]
+    rust:
+      packages: [ripgrep, bat, fd-find]
+    neovim:
+      enabled: true
+    dotfiles:
+      enable: true
+      repository: "https://github.com/developer/dotfiles"
 ```
 
 ### Complete Playbook
@@ -272,33 +270,30 @@ manage_casks:
 ```yaml
 users:
   - name: developer
-    uid: 1000
+    password: "{{ vault_developer_password }}"
     groups: [sudo, docker]
     shell: /bin/bash
     ssh_keys:
       - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
         comment: "developer@workstation"
         state: present
-
-target_user:
-  name: developer
-  git:
-    user_name: "Developer Name"
-    user_email: "developer@company.com"
-    editor: "nvim"
-  nodejs:
-    packages: [typescript, eslint, "@vue/cli"]
-  rust:
-    packages: [ripgrep, bat, fd-find]
-  go:
-    packages: [github.com/charmbracelet/glow@latest]
-  neovim:
-    enabled: true
-  dotfiles:
-    enable: true
-    repository: "https://github.com/developer/dotfiles"
-    branch: main
-    dest: ".dotfiles"
+    git:
+      user_name: "Developer Name"
+      user_email: "developer@company.com"
+      editor: "nvim"
+    nodejs:
+      packages: [typescript, eslint, "@vue/cli"]
+    rust:
+      packages: [ripgrep, bat, fd-find]
+    go:
+      packages: [github.com/charmbracelet/glow@latest]
+    neovim:
+      enabled: true
+    dotfiles:
+      enable: true
+      repository: "https://github.com/developer/dotfiles"
+      branch: main
+      dest: ".dotfiles"
 ```
 
 ### Security Configuration

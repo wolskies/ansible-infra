@@ -43,3 +43,9 @@
     - ansible_os_family == 'Debian'
     - ansible_virtualization_type | default('') != 'docker'
   failed_when: false
+
+- name: Generate locales
+  ansible.builtin.command: locale-gen
+  become: true
+  when: ansible_os_family == 'Archlinux'
+  failed_when: false
