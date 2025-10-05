@@ -76,7 +76,7 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
-        test_password_hash: "!"  # Locked account for testing
+        test_password_hash: "!" # Locked account for testing
 
     host_vars:
       # REQ-CU-007-012,019: Complete user preferences testing
