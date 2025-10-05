@@ -1,7 +1,6 @@
 ---
 # Configure user preferences for a single user
 # Expects target_user variable to be passed in
-# NOTE: This role assumes users already exist (created via ansible.builtin.user)
 
 - name: Validate required target_user variable
   ansible.builtin.assert:

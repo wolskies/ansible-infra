@@ -13,8 +13,6 @@ Configures a complete system from OS-level settings through user preferences:
 5. **manage_flatpak** - Flatpak package management (optional)
 6. **configure_users** - User preference configuration (dotfiles, development tools)
 
-**NOTE**: This role does NOT create users. Use `ansible.builtin.user` to create users before running this role.
-
 ## Usage
 
 ### Basic Configuration
@@ -26,9 +24,8 @@ Configures a complete system from OS-level settings through user preferences:
   vars:
     domain_timezone: "America/New_York"
     host_hostname: "{{ inventory_hostname }}"
-    # NOTE: Users must already exist
     users:
-      - name: admin  # Must already exist
+      - name: admin
         git:
           user_name: "Admin User"
           user_email: "admin@example.com"
@@ -49,9 +46,8 @@ Configures a complete system from OS-level settings through user preferences:
 domain_timezone: "America/New_York"
 domain_locale: "en_US.UTF-8"
 
-# NOTE: Users must already exist
 users:
-  - name: developer  # Must already exist
+  - name: developer
     git:
       user_name: "Developer Name"
       user_email: "developer@example.com"

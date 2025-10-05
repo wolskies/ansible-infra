@@ -125,9 +125,8 @@ fail2ban:
 ### Development Workstation Configuration
 ```yaml
 # group_vars/workstations.yml
-# NOTE: Users must already exist before configuring preferences
 users:
-  - name: developer  # Must already exist
+  - name: developer
     git:
       user_name: "Developer Name"
       user_email: "dev@company.com"

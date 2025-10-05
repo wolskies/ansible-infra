@@ -2,15 +2,14 @@
 # =============================================================================
 # CONFIGURE USER ROLE DEFAULTS
 # =============================================================================
-# This role configures user preferences (development tools, dotfiles, etc.)
-# NOTE: Users must already exist - use ansible.builtin.user to create them first
+# Configures user preferences for existing users
 # =============================================================================
 
 # User Preferences (Collection-wide)
 users: []
 # Example:
 # users:
-#   - name: developer  # MUST already exist on target system
+#   - name: developer
 #     git:
 #       user_name: "John Doe"
 #       user_email: "john@example.com"
@@ -29,9 +28,3 @@ users: []
 #       repository: "https://github.com/user/dotfiles.git"
 #       dest: ".dotfiles"
 #       branch: "main"
-
-# Role Operation
-# This role processes the collection-wide 'users' variable (list of user objects)
-# Each user object configures preferences for an EXISTING user
-# User creation, password management, SSH keys, and sudo access should be
-# handled separately using ansible.builtin.user and related modules

@@ -1,25 +1,20 @@
 ---
 # Configure Users Role Argument Specification
-# This role configures user preferences and development environments
-# NOTE: Users must already exist - use ansible.builtin.user to create them first
 
 argument_specs:
   main:
     short_description: Configure user preferences and development environments
     description:
-      - Configures user preferences for EXISTING users (does not create users)
+      - Configures user preferences for existing users
       - Orchestrates development environment setup via collection roles
       - Configures platform-specific preferences (macOS dock, finder, etc.)
       - Deploys dotfiles using GNU stow when configured
-      - Accepts a users list and configures preferences for each user
-      - User creation, SSH keys, and sudo access managed separately with ansible.builtin.user
 
     options:
       # User List
       users:
         description:
           - List of user preference configuration objects
-          - Each user must already exist on the target system
           - Configures development tools, git settings, dotfiles, and platform preferences
         type: list
         elements: dict
@@ -27,7 +22,7 @@ argument_specs:
         default: []
         options:
           name:
-            description: Username (must already exist on target system)
+            description: Username
             type: str
             required: true
 
