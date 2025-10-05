@@ -246,7 +246,7 @@
       failed_when: false
       when:
         - timesyncd_config_stat.stat.exists
-        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases', 'arch-ntp-test']
 
     - name: Verify time synchronization configuration file created (enabled cases)
       ansible.builtin.assert:
