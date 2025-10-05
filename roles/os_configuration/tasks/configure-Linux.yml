@@ -42,7 +42,7 @@
 - name: Configure system locale (Arch Linux)
   ansible.builtin.lineinfile:
     path: /etc/locale.gen
-    regexp: "^#?{{ domain_locale | regex_escape }}"
+    regexp: "^#?{{ domain_locale | regex_escape }}\\s*$"
     line: "{{ domain_locale }}"
     state: present
   become: true

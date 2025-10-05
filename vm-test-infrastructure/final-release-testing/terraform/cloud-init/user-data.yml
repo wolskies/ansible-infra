@@ -12,7 +12,7 @@ users:
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILGVTKRzOQtyBFYST4LI7KKmVLmnQDtQz4w3cQGy8IwH ed@testing-vm
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIH1BwJeplbo35HPEpc3r4n0opHKKUKXLiwDJ6H3G02j ed@xeon
 
 # Enable SSH
 ssh_pwauth: false

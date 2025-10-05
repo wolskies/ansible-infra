@@ -28,7 +28,7 @@
           - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
           - "Platform: {{ ansible_architecture }}"
           - "Test Type: Server Configuration"
-          - "Target User: {{ target_user.name }}"
+          - "Users: {{ users | map(attribute='name') | list | join(', ') }}"
           - "Packages: {{ manage_packages_all[ansible_distribution] | length }} base + {{ manage_packages_group[ansible_distribution] | length }} server"
           - "Security: Firewall enabled, Fail2ban enabled"
 
@@ -65,7 +65,7 @@
         msg:
           - "=== Server Configuration Deployment Complete ==="
           - "Host: {{ inventory_hostname }}"
-          - "User created: {{ target_user.name }}"
+          - "Users configured: {{ users | map(attribute='name') | list | join(', ') }}"
           - "Firewall status: {{ 'enabled' if firewall.enabled else 'disabled' }}"
           - "Fail2ban status: {{ 'enabled' if fail2ban.enabled else 'disabled' }}"
           - "Services checked: {{ service_check.results | map(attribute='name') | list }}"

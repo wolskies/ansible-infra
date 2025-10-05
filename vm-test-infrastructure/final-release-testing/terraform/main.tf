@@ -32,7 +32,7 @@ locals {
       test_type = "workstation"
     }
     debian12-server = {
-      image_url = "https://cloud-images.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
+      image_url = "https://cdimage.debian.org/cdimage/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
       os_family = "Debian"
       memory    = 4096
       vcpu      = 2
@@ -89,9 +89,8 @@ resource "libvirt_domain" "test_vms" {
 
   # Network configuration
   network_interface {
-    bridge         = "br0"
+    network_name   = "default"
     wait_for_lease = true
-    addresses      = []
   }
 
   # Disk configuration

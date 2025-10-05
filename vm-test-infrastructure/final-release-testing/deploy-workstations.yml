@@ -28,9 +28,8 @@
           - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
           - "Platform: {{ ansible_architecture }}"
           - "Test Type: Workstation Configuration"
-          - "Target User: {{ target_user.name }}"
+          - "Users: {{ users | map(attribute='name') | list | join(', ') }}"
           - "Development Tools: Node.js, Rust, Go, Neovim"
-          - "Terminals: {{ terminal_entries | join(', ') }}"
 
   roles:
     # Core system configuration
@@ -39,18 +38,9 @@
     # Package management
     - wolskies.infrastructure.manage_packages
 
-    # User management (must come before language roles)
+    # User management (handles dev tools automatically)
+    # configure_users will call nodejs, rust, go, neovim, terminal_config internally
     - wolskies.infrastructure.configure_users
-
-    # Development environments
-    - wolskies.infrastructure.nodejs
-    - wolskies.infrastructure.rust
-    - wolskies.infrastructure.go
-    - wolskies.infrastructure.neovim
-
-    # Terminal configuration
-    - role: wolskies.infrastructure.terminal_config
-      tags: [terminal]
 
     # Package system management
     - wolskies.infrastructure.manage_snap_packages
@@ -66,7 +56,7 @@
         - "cargo --version"
         - "go version"
         - "nvim --version"
-      become_user: "{{ target_user.name }}"
+      become_user: "{{ users[0].name }}"
       ignore_errors: yes
       register: dev_tools_check
 
@@ -75,9 +65,6 @@
         msg:
           - "=== Workstation Configuration Deployment Complete ==="
           - "Host: {{ inventory_hostname }}"
-          - "User created: {{ target_user.name }}"
-          - "Node.js packages: {{ node_packages | length }}"
-          - "Rust packages: {{ rust_packages | length }}"
-          - "Go packages: {{ go_packages | length }}"
-          - "Terminal configs: {{ terminal_entries | length }}"
+          - "Users configured: {{ users | map(attribute='name') | list | join(', ') }}"
+          - "Development tools installed per user configuration"
           - "Ready for discovery validation"
