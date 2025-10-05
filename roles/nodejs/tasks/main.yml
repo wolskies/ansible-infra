@@ -1,7 +1,4 @@
 ---
-# Install Node.js system dependencies and user packages
-# Expects: node_user (target user) and node_packages (list of npm packages)
-
 - name: Validate required variables
   ansible.builtin.assert:
     that:

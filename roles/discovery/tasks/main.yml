@@ -1,6 +1,4 @@
 ---
-# Simplified Discovery Role - trust Ansible's built-ins
-
 - name: Set output paths
   ansible.builtin.set_fact:
     discovery_paths:

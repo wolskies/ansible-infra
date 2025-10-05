@@ -1,7 +1,4 @@
 ---
-# Configure user accounts and preferences
-# Accepts a 'users' list and configures each user
-
 - name: Ensure ACL package is installed for privilege escalation
   ansible.builtin.package:
     name: acl

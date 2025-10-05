@@ -1,7 +1,4 @@
 ---
-# Configure terminal emulators with proper terminfo entries
-# Expects: terminal_user (target user) and terminal_entries (list of terminals)
-
 - name: Validate required variables
   ansible.builtin.assert:
     that:

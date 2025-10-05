@@ -1,7 +1,4 @@
 ---
-# Install neovim and configure user-level settings
-# Expects: neovim_user (target user) and neovim_config_enabled (optional)
-
 - name: Validate required variables
   ansible.builtin.assert:
     that:
@@ -40,7 +37,6 @@
     state: present
   when: ansible_system == 'Darwin'
 
-# User-level vim alias setup (always installed per REQ-NEOVIM-003)
 - name: Setup vim compatibility alias for {{ neovim_user }}
   block:
     - name: Ensure local bin directory exists
@@ -57,7 +53,6 @@
   become: true
   become_user: "{{ neovim_user }}"
 
-# User-level configuration (run as target user)
 - name: Configure neovim for {{ neovim_user }}
   block:
     - name: Install lazy.nvim plugin manager

@@ -1,7 +1,4 @@
 ---
-# Configure user preferences for a single user
-# Expects target_user variable to be passed in
-
 - name: Validate required target_user variable
   ansible.builtin.assert:
     that:
@@ -10,9 +7,6 @@
       - target_user.name | length > 0
     fail_msg: "configure_users role requires target_user variable with name field"
 
-# =================================================================
-# Check if user exists
-# =================================================================
 - name: Check if user exists
   ansible.builtin.getent:
     database: passwd
@@ -26,7 +20,7 @@
 
 - name: Skip configuration for non-existent users
   ansible.builtin.debug:
-    msg: "User '{{ target_user.name }}' does not exist. Skipping configuration. Create user with ansible.builtin.user first."
+    msg: "User '{{ target_user.name }}' does not exist. Skipping configuration."
   when: not user_exists
 
 - name: Stop processing if user does not exist

@@ -1,7 +1,4 @@
 ---
-# Install Go toolchain and user packages
-# Expects: go_user (target user) and go_packages (list of go packages)
-
 - name: Validate required variables
   ansible.builtin.assert:
     that:

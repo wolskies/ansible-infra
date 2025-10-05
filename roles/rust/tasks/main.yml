@@ -1,7 +1,4 @@
 ---
-# Install Rust toolchain and user packages
-# Expects: rust_user (target user) and rust_packages (list of cargo packages)
-
 - name: Validate required variables
   ansible.builtin.assert:
     that:

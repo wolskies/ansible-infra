@@ -1,6 +1,4 @@
 ---
-# configure_system role main tasks
-
 - name: Configure Operating System
   ansible.builtin.include_role:
     name: "wolskies.infrastructure.os_configuration"
@@ -14,9 +12,6 @@
   tags:
     - security-services
     - core
-
-# User management now handled by os_configuration role
-# Users are created as part of OS configuration above
 
 - name: Manage System Packages
   ansible.builtin.include_role:

@@ -1,6 +1,4 @@
 ---
-# Flatpak package management for Linux systems
-
 - name: Install flatpak package (Debian/Ubuntu)
   ansible.builtin.apt:
     name: flatpak

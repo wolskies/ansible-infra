@@ -1,6 +1,4 @@
 ---
-# manage_snap_packages role main tasks
-
 - name: Disable and remove snap system (primary use case)
   ansible.builtin.include_tasks: disable-snap.yml
   when:
