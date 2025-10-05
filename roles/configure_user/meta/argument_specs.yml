@@ -171,9 +171,13 @@ argument_specs:
           terminal_entries:
             description: Terminal emulator configuration entries
             type: list
-            elements: dict
+            elements: str
             required: false
             default: []
+            choices:
+              - alacritty
+              - kitty
+              - wezterm
 
           # Dotfiles Configuration
           dotfiles:

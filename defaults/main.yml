@@ -171,13 +171,15 @@ users: []
 # users:
 #   - name: developer
 #     comment: "Development User"
-#     group: developer
 #     groups: [docker, sudo]
 #     shell: /bin/bash
-#     ssh_keys:
-#       - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
 #     state: present
-#     sudo_no_password: false       # Allow passwordless sudo
+#     superuser: true                    # Grant sudo/wheel/admin access
+#     superuser_passwordless: false      # Enable passwordless sudo
+#     ssh_keys:
+#       - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
+#         comment: "developer@workstation"
+#         state: present
 #     # Language toolchains and development tools
 #     nodejs:
 #       packages: [eslint, prettier, typescript]
@@ -192,14 +194,12 @@ users: []
 #     # Dotfiles and shell configuration
 #     dotfiles:
 #       enable: true
-#       repo: ""
+#       repository: ""
 #       dest: ""
 #   - name: deploy
 #     comment: "Deployment User"
-#     group: deploy
 #     groups: [docker]
 #     shell: /bin/bash
-#     system: true
 #     state: present
 users_absent: []
 # Example: users_absent: [olduser, tempuser]

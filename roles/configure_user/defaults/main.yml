@@ -13,7 +13,13 @@ users: []
 #   - name: developer
 #     shell: "/bin/bash"
 #     groups: ["sudo", "docker"]
-#     ssh_keys: ["ssh-ed25519 AAAA... user@example.com"]
+#     state: present
+#     superuser: true
+#     superuser_passwordless: false
+#     ssh_keys:
+#       - key: "ssh-ed25519 AAAA... user@example.com"
+#         comment: "developer@workstation"
+#         state: present
 #     git:
 #       user_name: "John Doe"
 #       user_email: "john@example.com"
@@ -25,10 +31,10 @@ users: []
 #       packages: ["github.com/user/package@latest"]
 #     neovim:
 #       enabled: true
-#     terminal_entries: []
+#     terminal_entries: [kitty, alacritty]
 #     dotfiles:
 #       enable: true
-#       repo: "https://github.com/user/dotfiles.git"
+#       repository: "https://github.com/user/dotfiles.git"
 
 # Target User Configuration
 # Note: This role requires the target_user variable to be provided
