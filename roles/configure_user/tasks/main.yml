@@ -1,6 +1,5 @@
 ---
 # Configure user preferences for a single user
-# Follows SRD requirements REQ-CU-001 through REQ-CU-019
 # Expects target_user variable to be passed in
 
 - name: Validate required target_user variable
@@ -18,9 +17,6 @@
   become: true
   when: ansible_os_family != 'Darwin'
 
-# =================================================================
-# REQ-CU-002: User Account Removal (simple removal first)
-# =================================================================
 - name: Remove user account
   ansible.builtin.user:
     name: "{{ target_user.name }}"
@@ -32,9 +28,6 @@
     - user-removal
     - user-config
 
-# =================================================================
-# REQ-CU-001: User Account Creation and Configuration
-# =================================================================
 - name: Create user account
   ansible.builtin.user:
     name: "{{ target_user.name }}"
@@ -50,9 +43,6 @@
     - user-creation
     - user-config
 
-# =================================================================
-# REQ-CU-004: Cross-Platform Sudo Access
-# =================================================================
 - name: Configure platform-specific superuser access
   ansible.builtin.user:
     name: "{{ target_user.name }}"
@@ -73,9 +63,6 @@
     - sudo-access
     - user-config
 
-# =================================================================
-# REQ-CU-005: Passwordless Sudo Configuration
-# =================================================================
 - name: Configure passwordless sudo
   ansible.builtin.template:
     src: sudoers.j2
@@ -106,9 +93,6 @@
     - passwordless-sudo
     - user-config
 
-# =================================================================
-# REQ-CU-006: SSH Key Management
-# =================================================================
 - name: Manage SSH authorized keys
   ansible.posix.authorized_key:
     user: "{{ target_user.name }}"
@@ -136,9 +120,6 @@
   ansible.builtin.meta: end_play
   when: target_user.state | default('present') == 'absent'
 
-# =================================================================
-# REQ-CU-007-011: Development Environment Orchestration
-# =================================================================
 - name: Configure language toolchains for {{ target_user.name }}
   block:
     - name: Install Node.js and packages
@@ -189,9 +170,6 @@
     - user-config
     - language-packages
 
-# =================================================================
-# REQ-CU-012: Git Configuration
-# =================================================================
 - name: Configure Git settings for {{ target_user.name }}
   block:
     - name: Set Git user name
@@ -223,9 +201,6 @@
     - git-config
     - user-config
 
-# =================================================================
-# REQ-CU-014-018: macOS-specific Configuration (if applicable)
-# =================================================================
 - name: Configure macOS-specific user preferences
   ansible.builtin.include_tasks: configure-Darwin.yml
   when:
@@ -236,9 +211,6 @@
     - macos-config
     - user-config
 
-# =================================================================
-# REQ-CU-019: Dotfiles Management
-# =================================================================
 - name: Configure dotfiles
   ansible.builtin.include_tasks: configure-dotfiles.yml
   when:

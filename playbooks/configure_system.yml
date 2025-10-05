@@ -2,8 +2,7 @@
 # =============================================================================
 # COMPLETE SYSTEM CONFIGURATION PLAYBOOK
 # =============================================================================
-# This playbook demonstrates using the unified variable structure to configure
-# an entire system using all roles in the collection
+# This playbook demonstrates the complete collection workflow
 # =============================================================================
 
 - name: Configure infrastructure and users
@@ -12,7 +11,7 @@
 
   tasks:
     # ---------------------------------------------------------------------
-    # INFRASTRUCTURE CONFIGURATION (system-level, requires sudo)
+    # INFRASTRUCTURE CONFIGURATION (OS, PACKAGES, SECURITY)
     # ---------------------------------------------------------------------
 
     - name: Configure operating system
@@ -53,8 +52,6 @@
     # ---------------------------------------------------------------------
     # USER CONFIGURATION
     # ---------------------------------------------------------------------
-
-    # User account management now handled by os_configuration role above
 
     - name: Configure user preferences
       ansible.builtin.include_role:

@@ -212,8 +212,10 @@ manage_packages_group:
 manage_packages_host:
   Ubuntu: [redis-server]
 
-# APT Configuration
+# APT Configuration (Debian/Ubuntu)
 apt:
+  proxy: ""                          # APT proxy URL
+  no_recommends: false               # Disable recommended packages
   repositories:
     Ubuntu:
       - name: nodejs
@@ -224,14 +226,45 @@ apt:
         signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
   unattended_upgrades:
     enabled: true
+  system_upgrade:
+    enable: false
+    type: "safe"                     # Options: safe, dist, full, yes
+
+# Pacman Configuration (Arch Linux)
+pacman:
+  proxy: ""                          # Pacman proxy URL
+  no_confirm: false                  # Skip confirmation prompts
+  multilib:
+    enabled: false                   # Enable 32-bit packages
+  enable_aur: false                  # Enable AUR with paru
+
+# macOS Configuration
+macosx:
+  updates:
+    auto_check: true
+    auto_download: true
+  gatekeeper:
+    enabled: true
+  system_preferences:
+    natural_scroll: true
+    measurement_units: "Inches"
+    use_metric: false
+    show_all_extensions: false
+  airdrop:
+    ethernet_enabled: false
 
 # Homebrew Configuration (macOS)
 homebrew:
+  install: true
+  update_homebrew: true
+  cleanup_cache: true
   taps: [homebrew/cask-fonts]
 manage_casks:
   Darwin:
     - name: visual-studio-code
+      state: present
     - name: docker
+      state: present
 ```
 
 ### User Configuration

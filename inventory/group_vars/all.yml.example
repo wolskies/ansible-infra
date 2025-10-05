@@ -1,206 +1,256 @@
 ---
 # =============================================================================
-# UNIFIED INFRASTRUCTURE CONFIGURATION
+# WOLSKIES.INFRASTRUCTURE COLLECTION - EXAMPLE CONFIGURATION
 # =============================================================================
-# This example shows how to configure all infrastructure settings in one place
-# Each role will pick out the settings it needs from this unified structure
+# Complete example showing all collection variables
+# See README.md for detailed documentation
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# SYSTEM-LEVEL CONFIGURATION (requires sudo/admin)
+# DOMAIN-WIDE CONFIGURATION (os_configuration role)
 # -----------------------------------------------------------------------------
-infrastructure:
-  Ubuntu:
-    # OS Configuration (os_configuration role)
-    hostname: ""
-    domain: "example.com"
-    timezone: "America/New_York"
-    locale: "en_US.UTF-8"
-    language: "en_US.UTF-8"
-    update_hosts: true
+domain_name: "example.com"
+domain_timezone: "America/New_York"
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
 
-    # Time synchronization
-    ntp:
-      enabled: true
-      servers:
-        - 0.pool.ntp.org
-        - 1.pool.ntp.org
+# NTP Configuration
+domain_ntp:
+  enabled: true
+  servers:
+    - 0.pool.ntp.org
+    - 1.pool.ntp.org
+    - 2.pool.ntp.org
+    - 3.pool.ntp.org
 
-    # System logging
-    journal:
-      configure: true
-      max_size: "500M"
-      max_retention: "30d"
+# -----------------------------------------------------------------------------
+# HOST-SPECIFIC CONFIGURATION (os_configuration role)
+# -----------------------------------------------------------------------------
+host_hostname: "{{ inventory_hostname }}"
+host_update_hosts: true
 
-    # Service management
-    services:
-      enable: [systemd-timesyncd]
-      disable: [bluetooth, cups]
+# Systemd Services (Linux)
+host_services:
+  enable: [systemd-timesyncd, docker]
+  disable: [bluetooth, cups]
+  mask: [snapd]
 
-    # Kernel parameters
-    sysctl:
-      parameters:
-        vm.swappiness: 10
-        net.core.default_qdisc: "fq"
+# Kernel Modules (Linux)
+host_modules:
+  load: [br_netfilter, overlay]
+  blacklist: [pcspkr, nouveau]
 
-    # Resource limits
-    limits:
-      limits:
-        - domain: '*'
-          limit_type: soft
-          limit_item: nofile
-          value: 65536
+# Sysctl Parameters (Linux)
+host_sysctl:
+  parameters:
+    vm.swappiness: 10
+    net.ipv4.ip_forward: 1  # Required for Docker/Kubernetes
+    net.core.default_qdisc: "fq"
 
-    # Package Management (manage_packages role)
-    packages:
-      all: [git, vim, htop, curl, wget]
-      remove: [snap, snapd]
-      repositories:
-        all:
-          - name: docker
-            types: deb
-            uris: "https://download.docker.com/linux/ubuntu"
-            suites: "{{ ansible_distribution_release }}"
-            components: stable
-            signed_by: "https://download.docker.com/linux/ubuntu/gpg"
-      settings:
-        apt_cache:
-          update_cache: true
-          valid_time: 3600
+# Udev Rules (Linux)
+host_udev:
+  rules:
+    - name: usb-permissions
+      content: 'SUBSYSTEM=="usb", MODE="0666"'
+      priority: 99
+      state: present
 
-    # Security Services (manage_security_services role)
-    firewall:
-      enabled: false
-      prevent_ssh_lockout: true
-      package: "ufw"
-      rules:
-        - rule: allow
-          port: 22
-          proto: tcp
-          comment: "SSH"
-        - rule: allow
-          port: 80
-          proto: tcp
-          comment: "HTTP"
-        - rule: allow
-          port: 443
-          proto: tcp
-          comment: "HTTPS"
+# Journal Configuration (Linux)
+journal:
+  configure: true
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
 
-    fail2ban:
-      enabled: false
-      sender: "root@localhost"
-      dest_email: "admin@example.com"
-      services:
-        - name: sshd
-          enabled: true
-          maxretry: 3
-          bantime: 3600
+# Security Hardening (Linux)
+host_security:
+  hardening_enabled: true
+  ssh_hardening_enabled: true
 
-    # Ubuntu-specific settings
-    snap:
-      remove_completely: true
-    unattended_upgrades:
-      enabled: true
-      email: "admin@example.com"
-      auto_reboot: false
-    apt:
-      no_recommends: true
+# -----------------------------------------------------------------------------
+# PACKAGE MANAGER CONFIGURATION (os_configuration role)
+# -----------------------------------------------------------------------------
 
-  Debian:
-    # Similar structure to Ubuntu
-    hostname: ""
-    domain: "example.com"
-    timezone: "America/New_York"
-    # ... rest of Debian settings
+# APT Configuration (Debian/Ubuntu)
+apt:
+  proxy: ""  # Example: "http://user:pass@proxy.example.com:8080"
+  no_recommends: false
+  unattended_upgrades:
+    enabled: true
+  system_upgrade:
+    enable: false
+    type: "safe"  # Options: safe, dist, full, yes
 
-  Archlinux:
-    # Arch-specific structure
-    hostname: ""
-    domain: "example.com"
-    timezone: "America/New_York"
-    # ... Arch settings
-    packages:
-      all: [git, vim, htop]
-      settings:
-        enable_aur: true
-    pacman:
-      multilib: true
-      no_confirms: false
+# Pacman Configuration (Arch Linux)
+pacman:
+  proxy: ""  # Example: "http://proxy.example.com:3128"
+  no_confirm: false
+  multilib:
+    enabled: false
+  enable_aur: false
 
+# macOS Configuration
+macosx:
+  updates:
+    auto_check: true
+    auto_download: true
+  gatekeeper:
+    enabled: true
+  system_preferences:
+    natural_scroll: true
+    measurement_units: "Inches"
+    use_metric: false
+    show_all_extensions: false
+  airdrop:
+    ethernet_enabled: false
+
+# -----------------------------------------------------------------------------
+# PACKAGE MANAGEMENT (manage_packages role)
+# -----------------------------------------------------------------------------
+
+# Base packages for all hosts
+manage_packages_all:
+  Ubuntu: [git, curl, vim, htop, wget]
+  Debian: [git, curl, vim, htop, wget]
+  Archlinux: [git, curl, vim, htop, wget]
+  Darwin: [git, curl, vim, htop, wget]
+
+# Group-specific packages
+manage_packages_group:
+  Ubuntu: [nginx, postgresql-client]
+  Debian: [nginx, postgresql-client]
+
+# Host-specific packages
+manage_packages_host:
+  Ubuntu: [redis-tools]
+
+# APT Repositories (Debian/Ubuntu)
+apt:
+  repositories:
+    Ubuntu:
+      - name: docker
+        types: [deb]
+        uris: "https://download.docker.com/linux/ubuntu"
+        suites: "{{ ansible_distribution_release }}"
+        components: [stable]
+        signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+      - name: nodejs
+        types: [deb]
+        uris: "https://deb.nodesource.com/node_20.x"
+        suites: [nodistro]
+        components: [main]
+        signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+
+# Homebrew Configuration (macOS)
+homebrew:
+  install: true
+  update_homebrew: true
+  cleanup_cache: true
+  taps:
+    - homebrew/cask-fonts
+
+# Homebrew Casks (macOS)
+manage_casks:
   Darwin:
-    # macOS-specific structure
-    hostname: ""
-    domain: "local"
-    timezone: "America/New_York"
+    - name: visual-studio-code
+      state: present
+    - name: docker
+      state: present
+    - name: firefox
+      state: present
 
-    # macOS updates
-    updates:
-      auto_check: true
-      auto_download: false
+# Snap Packages (Ubuntu/Debian)
+snap:
+  remove_completely: false
 
-    # Security
-    gatekeeper:
-      enabled: true
-
-    # Packages via Homebrew
-    packages:
-      all: [git, vim, htop, wget]
-      casks:
-        all: [visual-studio-code, docker, firefox]
-      settings:
-        update_homebrew: true
-        cleanup_cache: false
-        taps: [homebrew/cask-fonts]
-
-# -----------------------------------------------------------------------------
-# USER CONFIGURATION (user-scope, including account management)
-# -----------------------------------------------------------------------------
-users:
-  - username: alice
+snap_packages:
+  - name: code
+    classic: true
     state: present
+
+# Flatpak Packages
+flatpak:
+  enabled: true
+  flathub: true
+  method: system
+
+flatpak_packages:
+  - name: org.mozilla.firefox
+    state: present
+
+# -----------------------------------------------------------------------------
+# SECURITY SERVICES (manage_security_services role)
+# -----------------------------------------------------------------------------
+
+# Firewall Configuration
+firewall:
+  enabled: true
+  prevent_ssh_lockout: true
+  rules:
+    - rule: allow
+      port: 22
+      protocol: tcp
+      comment: "SSH"
+    - rule: allow
+      port: 80
+      protocol: tcp
+      comment: "HTTP"
+    - rule: allow
+      port: 443
+      protocol: tcp
+      comment: "HTTPS"
+    - rule: allow
+      from_ip: 192.168.1.0/24
+      port: 3000
+      protocol: tcp
+      comment: "Dev server (local network only)"
+
+# Fail2ban Configuration
+fail2ban:
+  enabled: true
+  bantime: "10m"
+  findtime: "10m"
+  maxretry: 5
+  jails:
+    - name: sshd
+      enabled: true
+      maxretry: 3
+      bantime: "1h"
+
+# -----------------------------------------------------------------------------
+# USER CONFIGURATION (configure_user role)
+# -----------------------------------------------------------------------------
+
+# User Account Management
+users:
+  - name: developer
+    uid: 1000
     groups: [sudo, docker]
     shell: /bin/bash
-    ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@example.com"
-    password: "$6$salt$encryptedhash"  # or plaintext to be hashed
-
-    # User preferences per distribution
-    Ubuntu:
-      git:
-        name: "Alice Smith"
-        email: "alice@example.com"
-        editor: "vim"
-      dotfiles:
-        - src: bashrc.j2
-          dest: .bashrc
-        - src: vimrc.j2
-          dest: .vimrc
-
-    Darwin:
-      git:
-        name: "Alice Smith"
-        email: "alice@example.com"
-      dock:
-        tile_size: 48
-        autohide: true
-        minimize_to_application: true
-      finder:
-        ShowExtensions: true
-        ShowHidden: true
-        ShowPathbar: true
-      system:
-        KeyRepeat: 2
-        InitialKeyRepeat: 15
-
-  - username: bob
     state: present
-    groups: [users]
-    ssh_pubkey: "ssh-rsa AAAAB3NzaC1yc2... bob@example.com"
+    ssh_keys:
+      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... developer@workstation"
+        comment: "Developer workstation key"
+        state: present
 
-    Ubuntu:
-      git:
-        name: "Bob Jones"
-        email: "bob@example.com"
-
-  - username: olduser
-    state: absent  # This user will be removed
+# Per-User Development Configuration
+target_user:
+  name: developer
+  git:
+    user_name: "Developer Name"
+    user_email: "developer@example.com"
+    editor: "nvim"
+  nodejs:
+    packages: [typescript, eslint, prettier, "@vue/cli"]
+  rust:
+    packages: [ripgrep, bat, fd-find]
+  go:
+    packages: [github.com/charmbracelet/glow@latest]
+  neovim:
+    enabled: true
+  dotfiles:
+    enable: true
+    repository: "https://github.com/developer/dotfiles"
+    branch: main
+    dest: ".dotfiles"
