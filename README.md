@@ -1,8 +1,8 @@
 # Ansible Collection - wolskies.infrastructure
 
-Infrastructure management automation for cross-platform development and production environments. Focuses on configuration management, security hardening, and development environment setup.
+Cross-platform system configuration, package management, and development environment setup.
 
-**Supported Operating Systems:**
+**Supported Platforms:**
 - Ubuntu 22.04+, 24.04+
 - Debian 12+, 13+
 - Arch Linux (Rolling)
@@ -11,60 +11,40 @@ Infrastructure management automation for cross-platform development and producti
 ## Included Roles
 
 ### Core System Management
-- **configure_system**: Meta-role orchestrating complete system configuration including OS settings, packages, security, and initial user setup
-- **os_configuration**: System settings (timezone, hostname, locale, services, kernel parameters) with comprehensive security hardening
-- **manage_packages**: Cross-platform package management (APT, Pacman, Homebrew) with repository configuration
-- **manage_security_services**: Firewall (UFW/macOS ALF) and fail2ban configuration for intrusion prevention
+- **configure_system**: Meta-role orchestrating OS settings, packages, security, and user preferences
+- **os_configuration**: System settings (timezone, hostname, locale, services, kernel parameters)
+- **manage_packages**: Package management (APT, Pacman, Homebrew) with repository configuration
+- **manage_security_services**: Firewall (UFW/macOS ALF) and fail2ban configuration
 
 ### User and Development Environment
-- **configure_users**: User-specific configuration including dotfiles, development tools, and language environments
-- **nodejs**: Node.js installation and user-level package management with npm
-- **rust**: Rust/Cargo installation and user-level package management
-- **go**: Go installation and user-level package management
-- **neovim**: Neovim installation and basic configuration
+- **configure_users**: User preferences (dotfiles, development tools, language environments)
+- **nodejs**: Node.js and user-level npm package management
+- **rust**: Rust/Cargo and user-level package management
+- **go**: Go and user-level package management
+- **neovim**: Neovim installation and configuration
 
 ### Package Systems
-- **manage_snap_packages**: Snap package management with option to completely remove snapd system
-- **manage_flatpak**: Flatpak runtime and package management with Flathub integration
+- **manage_snap_packages**: Snap package management
+- **manage_flatpak**: Flatpak package management
 
 ### Utilities
-- **discovery**: System state discovery and documentation for validation and auditing
-
-### Coming in 1.0.3
-The following roles are under development for the next release:
-- **terminal_config**: Terminal and shell configuration (bash, zsh, tmux)
-- **docker_compose_generic**: Generic Docker Compose service management
-- **install_docker**: Docker Engine installation and configuration
+- **discovery**: System state discovery
+- **terminal_config**: Terminal configuration (kitty, alacritty, wezterm)
+- **docker_compose_generic**: Docker Compose service management
+- **install_docker**: Docker Engine installation
 
 ## Platform Support
 
-This collection categorizes platform support into the following tiers:
+- **Tier 1** (CI tested): Ubuntu 22.04+/24.04+, Debian 12+/13+, Arch Linux
+- **Tier 2** (No CI): macOS 13+
 
-- **Tier 1 (Fully Tested)**: These platforms are automatically tested in CI on every change. They are considered fully supported and stable.
-- **Tier 2 (Best Effort)**: Functionality has been developed and is expected to work, but lacks automated CI testing. We welcome contributions to expand CI coverage for these platforms.
+## Installation Model
 
-### Supported Platforms by Tier
+- System packages: Installed via native package managers (APT, Pacman, Homebrew)
+- User packages: Installed to user home directories (npm, cargo, go)
+- macOS Homebrew: Managed under ansible user account
 
-- **Tier 1**:
-  - Ubuntu 22.04+, 24.04+
-  - Debian 12+, 13+
-  - Arch Linux (Rolling)
-- **Tier 2**:
-  - macOS 13+ (Ventura) - *Lacks automated CI testing*
-
-**Note on Development Tools**:
-Language runtimes (Node.js, Rust, Go) are installed via system package managers when available. For older Debian/Ubuntu versions that lack system packages, manual installation is required before running collection roles.
-
-## Privilege and Execution Model
-
-The collection supports multi-user configuration with appropriate privilege separation:
-
-- **System packages**: Installed with elevated privileges via native package managers
-- **User-level packages**: Installed to user home directories without elevation
-- **Development tools**: Language runtimes installed system-wide, packages installed per-user
-- **macOS Homebrew**: Installed and managed under the Ansible user account
-
-**Important for Container Users**: Security hardening disables IP forwarding by default. Enable for Docker/Kubernetes:
+**Container Usage**: Security hardening disables IP forwarding. Enable for Docker/Kubernetes:
 
 ```yaml
 host_sysctl:

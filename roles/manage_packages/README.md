@@ -1,13 +1,6 @@
 # manage_packages
 
-Cross-platform package management for Ubuntu, Debian, Arch Linux, and macOS.
-
-## What It Does
-
-Manages system packages using the appropriate package manager:
-- **Ubuntu/Debian** - APT with repository management and unattended upgrades
-- **Arch Linux** - Pacman with AUR support (optional)
-- **macOS** - Homebrew with cask support for GUI applications
+Package management for APT (Ubuntu/Debian), Pacman (Arch), and Homebrew (macOS).
 
 ## Usage
 

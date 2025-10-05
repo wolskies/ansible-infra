@@ -1,17 +1,14 @@
 # configure_system
 
-Meta-role that orchestrates complete system configuration by calling multiple collection roles in the correct order.
+Meta-role orchestrating system configuration via collection roles.
 
-## What It Does
-
-Configures a complete system from OS-level settings through user preferences:
-
-1. **os_configuration** - System settings (hostname, timezone, locale, services)
-2. **manage_packages** - Package installation and repository management
-3. **manage_security_services** - Firewall and fail2ban configuration
-4. **manage_snap_packages** - Snap package management (optional)
-5. **manage_flatpak** - Flatpak package management (optional)
-6. **configure_users** - User preference configuration (dotfiles, development tools)
+**Execution order:**
+1. `os_configuration` - System settings
+2. `manage_packages` - Package management
+3. `manage_security_services` - Firewall/fail2ban
+4. `manage_snap_packages` - Snap packages
+5. `manage_flatpak` - Flatpak packages
+6. `configure_users` - User preferences
 
 ## Usage
 
@@ -82,43 +79,17 @@ packages:
 
 ## Variables
 
-Uses collection-wide variables. See collection README for complete variable reference.
-
-Key variables:
-- `domain_timezone` - System timezone
-- `host_hostname` - System hostname
-- `users` - User account definitions
-- `packages` - Package management configuration
-- `firewall` - Firewall rules and settings
-- `snap` - Snap package management settings
-- `flatpak` - Flatpak package management settings
+Uses collection-wide variables. See collection README for reference.
 
 ## Tags
 
-Control which components run:
-
-- `os-configuration` - OS settings only
-- `packages` - Package management only
-- `security-services` - Firewall/fail2ban only
-- `snap-packages` - Snap packages only
-- `flatpak-packages` - Flatpak packages only
-- `user-configuration` - User preferences only
-
-Example:
-```bash
-# Skip optional package systems
-ansible-playbook --skip-tags snap-packages,flatpak-packages playbook.yml
-
-# Run only core system setup
-ansible-playbook -t os-configuration,packages,security-services playbook.yml
-```
+- `os-configuration` - OS settings
+- `packages` - Package management
+- `security-services` - Firewall/fail2ban
+- `snap-packages` - Snap packages
+- `flatpak-packages` - Flatpak packages
+- `user-configuration` - User preferences
 
 ## Dependencies
 
-All required roles are included in the collection:
-- `wolskies.infrastructure.os_configuration`
-- `wolskies.infrastructure.manage_packages`
-- `wolskies.infrastructure.manage_security_services`
-- `wolskies.infrastructure.manage_snap_packages`
-- `wolskies.infrastructure.manage_flatpak`
-- `wolskies.infrastructure.configure_users`
+Orchestrates: `os_configuration`, `manage_packages`, `manage_security_services`, `manage_snap_packages`, `manage_flatpak`, `configure_users`

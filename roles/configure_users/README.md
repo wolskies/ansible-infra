@@ -1,20 +1,12 @@
 # configure_users
 
-Configure user preferences and development environments.
+Configures user preferences and development environments for existing users.
 
-## What It Does
-
-Configures preferences and development environments for existing users:
-- **Development Environment** - Git, Node.js, Rust, Go, Neovim
-- **Platform-Specific** - Dock/Finder preferences (macOS), Homebrew PATH
-- **Dotfiles** - Automatic deployment using GNU Stow
-
-## Key Features
-
-- **Mass Configuration** - Configure preferences for multiple users
-- **Skips Missing Users** - No errors if user doesn't exist
-- **Root User Protection** - Skips root user automatically
-- **Development Tools** - Orchestrates language toolchain installation per user
+**Features:**
+- Development environments: Git, Node.js, Rust, Go, Neovim
+- Platform preferences: macOS Dock/Finder, Homebrew PATH
+- Dotfiles deployment via GNU Stow
+- Skips non-existent users and root automatically
 
 ## Usage
 
@@ -129,21 +121,16 @@ See `defaults/main.yml` for the complete variable structure. Key variables:
   - `dotfiles` - Dotfiles deployment settings
   - `Darwin` - macOS-specific preferences
 
-## Role Behavior
+## Behavior
 
-- **Skips Missing Users** - If user doesn't exist, skips configuration (no error)
-- **Skips Root** - Root user automatically skipped
-- **Idempotent** - Safe to run multiple times
-- **Per-User Installation** - Language tools installed to user home directories
+- Skips non-existent users (no error)
+- Skips root user automatically
+- Idempotent
+- Language tools installed to user home directories
 
 ## Dependencies
 
-This role orchestrates other collection roles:
-- `wolskies.infrastructure.nodejs` - Node.js environment
-- `wolskies.infrastructure.rust` - Rust environment
-- `wolskies.infrastructure.go` - Go environment
-- `wolskies.infrastructure.neovim` - Neovim configuration
-- `wolskies.infrastructure.terminal_config` - Terminal configuration
+Orchestrates: `nodejs`, `rust`, `go`, `neovim`, `terminal_config` roles
 
 ## Example Playbook
 
