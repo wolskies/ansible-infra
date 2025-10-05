@@ -125,17 +125,9 @@ fail2ban:
 ### Development Workstation Configuration
 ```yaml
 # group_vars/workstations.yml
+# NOTE: Users must already exist before configuring preferences
 users:
-  - name: developer
-    password: "{{ vault_developer_password }}"
-    state: present
-    groups: [sudo]
-    superuser: true
-    superuser_passwordless: false
-    ssh_keys:
-      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
-        comment: "developer@workstation"
-        state: present
+  - name: developer  # Must already exist
     git:
       user_name: "Developer Name"
       user_email: "dev@company.com"
@@ -153,16 +145,11 @@ users:
 
 ### Complete Playbook
 ```yaml
-# site.yml
+# site.yml - Complete infrastructure setup
 - hosts: all
   become: true
   roles:
     - wolskies.infrastructure.configure_system
-
-- hosts: all
-  become: true
-  roles:
-    - wolskies.infrastructure.configure_users
 ```
 
 ## Variable Reference
