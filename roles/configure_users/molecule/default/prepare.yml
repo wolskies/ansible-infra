@@ -58,16 +58,64 @@
         - /tmp/ansible-tmp
       when: ansible_os_family == 'Archlinux'
 
-    # ===== REQ-CU-002: Pre-create user for removal testing =====
-    - name: Create edge case user for removal testing (REQ-CU-002)
+    # ===== Pre-create all test users =====
+    # NOTE: configure_users role now only configures preferences,
+    # so we must create users first with ansible.builtin.user
+
+    - name: Create fulluser for comprehensive testing
       ansible.builtin.user:
-        name: edgeuser
+        name: fulluser
         shell: /bin/bash
+        password: "{{ test_password_hash }}"
+        groups: [sudo]
+        append: true
         create_home: true
         state: present
-      when: inventory_hostname == 'ubuntu-user-edge-cases'
+      when: inventory_hostname == 'ubuntu-user-full'
 
-    - name: Create existing user for preference-only configuration testing
+    - name: Add SSH keys for fulluser
+      ansible.posix.authorized_key:
+        user: fulluser
+        key: "{{ item.key }}"
+        comment: "{{ item.comment | default(omit) }}"
+        key_options: "{{ item.options | default(omit) }}"
+        state: present
+      loop:
+        - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+          comment: "fulluser@example.com"
+        - key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC5H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+          comment: "fulluser-backup@example.com"
+          options: 'from="192.168.1.0/24",no-port-forwarding'
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Configure passwordless sudo for fulluser
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/fulluser
+        content: "fulluser ALL=(ALL) NOPASSWD: ALL\n"
+        mode: "0440"
+        owner: root
+        group: root
+        validate: "visudo -cf %s"
+      when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: Create basicuser for minimal testing
+      ansible.builtin.user:
+        name: basicuser
+        shell: /bin/bash
+        password: "{{ test_password_hash }}"
+        create_home: true
+        state: present
+      when: inventory_hostname == 'ubuntu-user-basic'
+
+    - name: Add SSH key for basicuser
+      ansible.posix.authorized_key:
+        user: basicuser
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+        comment: "basicuser@example.com"
+        state: present
+      when: inventory_hostname == 'ubuntu-user-basic'
+
+    - name: Create existinguser for preference-only testing
       ansible.builtin.user:
         name: existinguser
         shell: /bin/bash
@@ -75,6 +123,38 @@
         create_home: true
         state: present
       when: inventory_hostname == 'ubuntu-user-basic'
+
+    - name: Create privilegeduser for sudo testing
+      ansible.builtin.user:
+        name: privilegeduser
+        shell: /bin/bash
+        password: "{{ test_password_hash }}"
+        groups: [sudo]
+        append: true
+        create_home: true
+        state: present
+      when: inventory_hostname == 'ubuntu-user-privileged'
+
+    - name: Configure passwordless sudo for privilegeduser
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/privilegeduser
+        content: "privilegeduser ALL=(ALL) NOPASSWD: ALL\n"
+        mode: "0440"
+        owner: root
+        group: root
+        validate: "visudo -cf %s"
+      when: inventory_hostname == 'ubuntu-user-privileged'
+
+    - name: Create archuser for Arch Linux testing
+      ansible.builtin.user:
+        name: archuser
+        shell: /bin/bash
+        password: "{{ test_password_hash }}"
+        groups: [wheel]
+        append: true
+        create_home: true
+        state: present
+      when: inventory_hostname == 'arch-user-basic'
 
     # ===== Mock External Role Dependencies =====
     # Note: These roles will be called by configure_users but we need to mock them

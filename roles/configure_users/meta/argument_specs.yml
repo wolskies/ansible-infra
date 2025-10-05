@@ -1,111 +1,35 @@
 ---
 # Configure Users Role Argument Specification
-# This role configures user accounts and their preferences
+# This role configures user preferences and development environments
+# NOTE: Users must already exist - use ansible.builtin.user to create them first
 
 argument_specs:
   main:
-    short_description: Configure user accounts and their preferences
+    short_description: Configure user preferences and development environments
     description:
-      - Creates and configures user accounts using ansible.builtin.user
-      - Manages SSH authorized keys and sudo configuration
+      - Configures user preferences for EXISTING users (does not create users)
       - Orchestrates development environment setup via collection roles
       - Configures platform-specific preferences (macOS dock, finder, etc.)
       - Deploys dotfiles using GNU stow when configured
-      - Accepts a users list and configures each user
+      - Accepts a users list and configures preferences for each user
+      - User creation, SSH keys, and sudo access managed separately with ansible.builtin.user
 
     options:
       # User List
       users:
         description:
-          - List of user configuration objects
-          - Each user contains complete account, preference, and environment settings
+          - List of user preference configuration objects
+          - Each user must already exist on the target system
+          - Configures development tools, git settings, dotfiles, and platform preferences
         type: list
         elements: dict
         required: false
         default: []
         options:
           name:
-            description: Username (alphanumeric + underscore/hyphen, max 32 chars)
+            description: Username (must already exist on target system)
             type: str
             required: true
-          groups:
-            description: Secondary groups (automatically uses append=true when defined)
-            type: list
-            elements: str
-            required: false
-            default: []
-          shell:
-            description: Login shell
-            type: str
-            required: false
-            default: "/bin/bash"
-          comment:
-            description: GECOS field (user description)
-            type: str
-            required: false
-            default: ""
-          password:
-            description: Password hash (use ansible-vault for security)
-            type: str
-            required: false
-          state:
-            description: User state
-            type: str
-            required: false
-            default: "present"
-            choices: ["present", "absent"]
-          superuser:
-            description: Automatically assign platform-appropriate admin groups (sudo/wheel/admin)
-            type: bool
-            required: false
-            default: false
-          superuser_passwordless:
-            description: Enable passwordless sudo (requires superuser=true)
-            type: bool
-            required: false
-            default: false
-          manage_ansible_user:
-            description: Allow managing the ansible_user account (safety flag - defaults to false)
-            type: bool
-            required: false
-            default: false
-          append:
-            description: When adding groups, append to existing groups instead of replacing (defaults to true)
-            type: bool
-            required: false
-            default: true
-
-          # SSH Configuration
-          ssh_keys:
-            description: SSH authorized keys for this user
-            type: list
-            elements: dict
-            required: false
-            default: []
-            options:
-              key:
-                description: SSH public key content (full key string)
-                type: str
-                required: true
-              comment:
-                description: Override key comment
-                type: str
-                required: false
-              options:
-                description: Key options (e.g., "no-port-forwarding,from='10.0.0.0/8'")
-                type: str
-                required: false
-              exclusive:
-                description: Remove all other keys if true
-                type: bool
-                required: false
-                default: false
-              state:
-                description: Key state
-                type: str
-                required: false
-                default: "present"
-                choices: ["present", "absent"]
 
           # Git Configuration
           git:

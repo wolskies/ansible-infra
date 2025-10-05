@@ -1,26 +1,10 @@
 ---
-- name: Configure users across all test scenarios
+- name: Configure user preferences across all test scenarios
   hosts: all
   become: true
   gather_facts: true
   tasks:
-    # REQ-CU-001,002,004-012,014-019: Test configure_users role
-    - name: Configure user with role
+    # REQ-CU-007-012,019: Test configure_users role
+    - name: Configure user preferences with role
       ansible.builtin.include_role:
         name: wolskies.infrastructure.configure_users
-      when: inventory_hostname != 'ubuntu-user-edge-cases'
-
-    # REQ-CU-002: Additional test for user removal (edge-cases only)
-    - name: Test user removal functionality
-      when: inventory_hostname == 'ubuntu-user-edge-cases'
-      tags:
-        - user-removal-test
-      block:
-        - name: Remove test user (REQ-CU-002)
-          ansible.builtin.include_role:
-            name: wolskies.infrastructure.configure_users
-          vars:
-            users:
-              - name: edgeuser
-                state: absent
-                # Uses default Ansible behavior (keeps home directory) per REQ-CU-002

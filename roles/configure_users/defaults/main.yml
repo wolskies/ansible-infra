@@ -2,27 +2,19 @@
 # =============================================================================
 # CONFIGURE USER ROLE DEFAULTS
 # =============================================================================
-# This role uses collection-wide variables from SRD section 2.2.1
-# All variables defined exactly as specified in the SRD
+# This role configures user preferences (development tools, dotfiles, etc.)
+# NOTE: Users must already exist - use ansible.builtin.user to create them first
 # =============================================================================
 
-# User Management (Collection-wide)
+# User Preferences (Collection-wide)
 users: []
 # Example:
 # users:
-#   - name: developer
-#     shell: "/bin/bash"
-#     groups: ["sudo", "docker"]
-#     state: present
-#     superuser: true
-#     superuser_passwordless: false
-#     ssh_keys:
-#       - key: "ssh-ed25519 AAAA... user@example.com"
-#         comment: "developer@workstation"
-#         state: present
+#   - name: developer  # MUST already exist on target system
 #     git:
 #       user_name: "John Doe"
 #       user_email: "john@example.com"
+#       editor: "nvim"
 #     nodejs:
 #       packages: ["typescript", "@angular/cli"]
 #     rust:
@@ -35,7 +27,11 @@ users: []
 #     dotfiles:
 #       enable: true
 #       repository: "https://github.com/user/dotfiles.git"
+#       dest: ".dotfiles"
+#       branch: "main"
 
 # Role Operation
 # This role processes the collection-wide 'users' variable (list of user objects)
-# Each user object follows the structure shown in the example above
+# Each user object configures preferences for an EXISTING user
+# User creation, password management, SSH keys, and sudo access should be
+# handled separately using ansible.builtin.user and related modules

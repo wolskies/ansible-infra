@@ -71,9 +71,6 @@ provisioner:
       stdout_callback_format: yaml
   playbooks:
     converge: converge.yml
-  idempotence:
-    run_options:
-      skip_tags: user-removal-test
   inventory:
     group_vars:
       all:
@@ -82,24 +79,10 @@ provisioner:
         test_password_hash: "!"  # Locked account for testing
 
     host_vars:
-      # REQ-CU-001,006-012,019: Complete user with all features
+      # REQ-CU-007-012,019: Complete user preferences testing
       ubuntu-user-full:
         users:
           - name: fulluser
-            password: "{{ test_password_hash }}"
-            shell: /bin/bash
-            groups: [sudo]
-            append: true
-            superuser: true
-            superuser_passwordless: true
-            ssh_keys:
-              - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
-                comment: "fulluser@example.com"
-                state: present
-              - key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC5H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
-                comment: "fulluser-backup@example.com"
-                options: 'from="192.168.1.0/24",no-port-forwarding'
-                state: present
             nodejs:
               packages: ["@angular/cli", "typescript"]
             rust:
@@ -118,46 +101,29 @@ provisioner:
               dest: ".dotfiles"
               branch: "main"
 
-      # REQ-CU-001,006: Minimal user creation and SSH key management
-      # Also tests: ansible_user protection, existing user preferences without password
+      # Minimal user preferences and existing user testing
       ubuntu-user-basic:
         users:
-          - name: basicuser
-            password: "{{ test_password_hash }}"
-            shell: /bin/bash
-            ssh_keys:
-              - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
-                comment: "basicuser@example.com"
-                state: present
-          - name: root  # Test: ansible_user protection (should skip account creation but allow preferences)
-            manage_ansible_user: false  # Default - should skip
+          - name: root
             git:
               user_name: "Root User"
               user_email: "root@test.local"
-          - name: existinguser  # Test: existing user preferences without password (created in prepare)
-            # No password - account creation skipped, preferences configured
+          - name: existinguser
             git:
               user_name: "Existing User"
               user_email: "existing@test.local"
 
-      # REQ-CU-004,005: Superuser flag and passwordless sudo testing
+      # Basic user (no special preferences)
       ubuntu-user-privileged:
         users:
           - name: privilegeduser
-            password: "{{ test_password_hash }}"
-            shell: /bin/bash
-            superuser: true
-            superuser_passwordless: true
 
-      # REQ-CU-001,004: Cross-platform group assignment (wheel vs sudo)
+      # Arch Linux user preferences
       arch-user-basic:
         users:
           - name: archuser
-            password: "{{ test_password_hash }}"
-            shell: /bin/bash
-            superuser: true
 
-      # REQ-CU-002: User removal and edge cases (no default user config - only removal test)
+      # No users configured (testing no-op behavior)
       ubuntu-user-edge-cases: {}
 
 verifier:

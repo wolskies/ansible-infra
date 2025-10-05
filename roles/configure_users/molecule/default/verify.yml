@@ -4,246 +4,6 @@
   become: true
   gather_facts: true
   tasks:
-    # ===== Gather System State Information =====
-    - name: Gather user information for verification
-      ansible.builtin.getent:
-        database: passwd
-        key: "{{ expected_username }}"
-      register: user_info_check
-      failed_when: false
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
-          {%- elif inventory_hostname == 'arch-user-basic' -%}archuser
-          {%- elif inventory_hostname == 'ubuntu-user-edge-cases' -%}edgeuser
-          {%- endif -%}
-
-    - name: Gather group membership information
-      ansible.builtin.command: groups {{ expected_username }}
-      register: user_groups_check
-      failed_when: false
-      changed_when: false
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
-          {%- elif inventory_hostname == 'arch-user-basic' -%}archuser
-          {%- elif inventory_hostname == 'ubuntu-user-edge-cases' -%}edgeuser
-          {%- endif -%}
-
-    # ===== REQ-CU-001: User Account Creation and Configuration =====
-    - name: REQ-CU-001 - Verify user account creation (positive cases)
-      ansible.builtin.assert:
-        that:
-          - user_info_check.ansible_facts.getent_passwd[expected_username] is defined
-          - user_info_check.ansible_facts.getent_passwd[expected_username][5] == expected_shell
-        fail_msg: "❌ REQ-CU-001: User account not created correctly"
-        success_msg: "✅ REQ-CU-001: User account successfully created"
-      when: inventory_hostname != 'ubuntu-user-edge-cases'
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
-          {%- elif inventory_hostname == 'arch-user-basic' -%}archuser
-          {%- endif -%}
-        expected_shell: "/bin/bash"
-
-    - name: REQ-CU-001 - Verify home directory creation
-      ansible.builtin.stat:
-        path: "/home/{{ expected_username }}"
-      register: home_dir_check
-      when: inventory_hostname != 'ubuntu-user-edge-cases'
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
-          {%- elif inventory_hostname == 'arch-user-basic' -%}archuser
-          {%- endif -%}
-
-    - name: REQ-CU-001 - Assert home directory exists
-      ansible.builtin.assert:
-        that:
-          - home_dir_check.stat.exists
-          - home_dir_check.stat.isdir
-        fail_msg: "❌ REQ-CU-001: Home directory not created"
-        success_msg: "✅ REQ-CU-001: Home directory created successfully"
-      when: inventory_hostname != 'ubuntu-user-edge-cases'
-
-    # ===== REQ-CU-002: User Account Removal =====
-    - name: REQ-CU-002 - Verify user removal (negative case)
-      ansible.builtin.assert:
-        that:
-          - user_info_check.ansible_facts.getent_passwd is not defined or user_info_check.ansible_facts.getent_passwd.edgeuser is not defined
-        fail_msg: "❌ REQ-CU-002: User not properly removed"
-        success_msg: "✅ REQ-CU-002: User successfully removed"
-      when: inventory_hostname == 'ubuntu-user-edge-cases'
-
-    - name: REQ-CU-002 - Verify home directory behavior (kept per default Ansible behavior)
-      ansible.builtin.stat:
-        path: /home/edgeuser
-      register: removed_home_check
-      when: inventory_hostname == 'ubuntu-user-edge-cases'
-
-    - name: REQ-CU-002 - Assert home directory kept (per SRD default behavior)
-      ansible.builtin.assert:
-        that:
-          - removed_home_check.stat.exists
-        fail_msg: "❌ REQ-CU-002: Home directory unexpectedly removed (should use default Ansible behavior)"
-        success_msg: "✅ REQ-CU-002: Home directory correctly preserved per SRD requirements"
-      when: inventory_hostname == 'ubuntu-user-edge-cases'
-
-    # ===== REQ-CU-004: Cross-Platform Sudo Access =====
-    - name: REQ-CU-004 - Verify platform admin group membership (Ubuntu)
-      ansible.builtin.assert:
-        that:
-          - "'sudo' in user_groups_check.stdout"
-        fail_msg: "❌ REQ-CU-004: User not added to sudo group on Ubuntu"
-        success_msg: "✅ REQ-CU-004: User correctly added to sudo group on Ubuntu"
-      when:
-        - ansible_os_family == "Debian"
-        - inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-privileged']
-        - user_groups_check.rc == 0
-
-    - name: REQ-CU-004 - Verify platform admin group membership (Arch Linux)
-      ansible.builtin.assert:
-        that:
-          - "'wheel' in user_groups_check.stdout"
-        fail_msg: "❌ REQ-CU-004: User not added to wheel group on Arch Linux"
-        success_msg: "✅ REQ-CU-004: User correctly added to wheel group on Arch Linux"
-      when:
-        - ansible_os_family == "Archlinux"
-        - inventory_hostname == 'arch-user-basic'
-        - user_groups_check.rc == 0
-
-    # ===== REQ-CU-005: Passwordless Sudo Configuration =====
-    - name: REQ-CU-005 - Check sudoers file exists
-      ansible.builtin.stat:
-        path: "/etc/sudoers.d/{{ expected_username }}"
-      register: sudoers_file_check
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-privileged']
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
-          {%- endif -%}
-
-    - name: REQ-CU-005 - Verify sudoers file permissions and content
-      ansible.builtin.assert:
-        that:
-          - sudoers_file_check.stat.exists
-          - sudoers_file_check.stat.mode == "0440"
-          - sudoers_file_check.stat.pw_name == "root"
-          - sudoers_file_check.stat.gr_name == "root"
-        fail_msg: "❌ REQ-CU-005: Sudoers file not configured correctly"
-        success_msg: "✅ REQ-CU-005: Sudoers file correctly configured"
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-privileged']
-
-    - name: REQ-CU-005 - Verify sudoers content
-      ansible.builtin.command: "grep 'NOPASSWD: ALL' /etc/sudoers.d/{{ expected_username }}"
-      register: sudoers_content_check
-      failed_when: false
-      changed_when: false
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-privileged']
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
-          {%- endif -%}
-
-    - name: REQ-CU-005 - Assert passwordless sudo configured
-      ansible.builtin.assert:
-        that:
-          - sudoers_content_check.rc == 0
-          - expected_username in sudoers_content_check.stdout
-        fail_msg: "❌ REQ-CU-005: Passwordless sudo not configured"
-        success_msg: "✅ REQ-CU-005: Passwordless sudo correctly configured"
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-privileged']
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
-          {%- endif -%}
-
-    # ===== REQ-CU-006: SSH Key Management =====
-    - name: REQ-CU-006 - Check SSH directory
-      ansible.builtin.stat:
-        path: "/home/{{ expected_username }}/.ssh"
-      register: ssh_dir_check
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-basic']
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- endif -%}
-
-    - name: REQ-CU-006 - Verify SSH directory permissions
-      ansible.builtin.assert:
-        that:
-          - ssh_dir_check.stat.exists
-          - ssh_dir_check.stat.isdir
-          - ssh_dir_check.stat.mode == "0700"
-          - ssh_dir_check.stat.pw_name == expected_username
-        fail_msg: "❌ REQ-CU-006: SSH directory not configured correctly"
-        success_msg: "✅ REQ-CU-006: SSH directory correctly configured"
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-basic']
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- endif -%}
-
-    - name: REQ-CU-006 - Check authorized_keys file
-      ansible.builtin.stat:
-        path: "/home/{{ expected_username }}/.ssh/authorized_keys"
-      register: auth_keys_check
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-basic']
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- endif -%}
-
-    - name: REQ-CU-006 - Verify authorized_keys permissions and content
-      ansible.builtin.assert:
-        that:
-          - auth_keys_check.stat.exists
-          - auth_keys_check.stat.mode == "0600"
-          - auth_keys_check.stat.pw_name == expected_username
-        fail_msg: "❌ REQ-CU-006: authorized_keys file not configured correctly"
-        success_msg: "✅ REQ-CU-006: authorized_keys file correctly configured"
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-basic']
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- endif -%}
-
-    - name: REQ-CU-006 - Verify SSH key content
-      ansible.builtin.command: "grep 'ssh-ed25519' /home/{{ expected_username }}/.ssh/authorized_keys"
-      register: ssh_key_content_check
-      failed_when: false
-      changed_when: false
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-basic']
-      vars:
-        expected_username: >-
-          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
-          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}basicuser
-          {%- endif -%}
-
-    - name: REQ-CU-006 - Assert SSH keys deployed
-      ansible.builtin.assert:
-        that:
-          - ssh_key_content_check.rc == 0
-          - "'ssh-ed25519' in ssh_key_content_check.stdout"
-        fail_msg: "❌ REQ-CU-006: SSH keys not deployed correctly"
-        success_msg: "✅ REQ-CU-006: SSH keys correctly deployed"
-      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-basic']
-
     # ===== REQ-CU-007: Node.js Development Environment =====
     - name: REQ-CU-007 - Verify Node.js role orchestration was called
       ansible.builtin.debug:
@@ -280,20 +40,26 @@
       register: git_name_check
       failed_when: false
       changed_when: false
-      when: inventory_hostname == 'ubuntu-user-full'
+      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-basic']
       vars:
-        expected_username: fulluser
+        expected_username: >-
+          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
+          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}existinguser
+          {%- endif -%}
 
     - name: REQ-CU-012 - Verify git email configuration
       ansible.builtin.command: "sudo -u {{ expected_username }} git config --global user.email"
       register: git_email_check
       failed_when: false
       changed_when: false
-      when: inventory_hostname == 'ubuntu-user-full'
+      when: inventory_hostname in ['ubuntu-user-full', 'ubuntu-user-basic']
       vars:
-        expected_username: fulluser
+        expected_username: >-
+          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
+          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}existinguser
+          {%- endif -%}
 
-    - name: REQ-CU-012 - Assert git configuration
+    - name: REQ-CU-012 - Assert git configuration for fulluser
       ansible.builtin.assert:
         that:
           - git_name_check.rc == 0
@@ -303,6 +69,32 @@
         fail_msg: "❌ REQ-CU-012: Git configuration not applied correctly"
         success_msg: "✅ REQ-CU-012: Git configuration correctly applied"
       when: inventory_hostname == 'ubuntu-user-full'
+
+    - name: REQ-CU-012 - Assert git configuration for existinguser
+      ansible.builtin.assert:
+        that:
+          - git_name_check.rc == 0
+          - git_email_check.rc == 0
+          - "'Existing User' in git_name_check.stdout"
+          - "'existing@test.local' in git_email_check.stdout"
+        fail_msg: "❌ REQ-CU-012: Git configuration not applied correctly for existing user"
+        success_msg: "✅ REQ-CU-012: Git configuration correctly applied for existing user"
+      when: inventory_hostname == 'ubuntu-user-basic'
+
+    - name: REQ-CU-012 - Verify git configuration NOT applied for root user (should be skipped)
+      ansible.builtin.command: "git config --global user.name"
+      register: git_root_name_check
+      failed_when: false
+      changed_when: false
+      when: inventory_hostname == 'ubuntu-user-basic'
+
+    - name: REQ-CU-012 - Assert git configuration skipped for root
+      ansible.builtin.assert:
+        that:
+          - git_root_name_check.rc != 0 or "'Root User' not in git_root_name_check.stdout"
+        fail_msg: "❌ REQ-CU-012: Git configuration should not be applied for root user"
+        success_msg: "✅ REQ-CU-012: Git configuration correctly skipped for root user"
+      when: inventory_hostname == 'ubuntu-user-basic'
 
     # ===== REQ-CU-014-018: macOS Requirements (Deferred) =====
     - name: REQ-CU-014-018 - macOS requirements deferred to VM testing
@@ -335,17 +127,42 @@
         success_msg: "✅ REQ-CU-019: Dotfiles correctly deployed"
       when: inventory_hostname == 'ubuntu-user-full'
 
+    # ===== User existence verification =====
+    - name: Verify users exist (created in prepare phase)
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ expected_username }}"
+      register: user_check
+      when: inventory_hostname != 'ubuntu-user-edge-cases'
+      vars:
+        expected_username: >-
+          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
+          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}existinguser
+          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
+          {%- elif inventory_hostname == 'arch-user-basic' -%}archuser
+          {%- endif -%}
+
+    - name: Assert users exist
+      ansible.builtin.assert:
+        that:
+          - user_check.ansible_facts.getent_passwd[expected_username] is defined
+        fail_msg: "❌ User does not exist (should be created in prepare phase)"
+        success_msg: "✅ User exists and preferences configured"
+      when: inventory_hostname != 'ubuntu-user-edge-cases'
+      vars:
+        expected_username: >-
+          {%- if inventory_hostname == 'ubuntu-user-full' -%}fulluser
+          {%- elif inventory_hostname == 'ubuntu-user-basic' -%}existinguser
+          {%- elif inventory_hostname == 'ubuntu-user-privileged' -%}privilegeduser
+          {%- elif inventory_hostname == 'arch-user-basic' -%}archuser
+          {%- endif -%}
+
     # ===== Validation Summary =====
     - name: Complete configure_users validation summary
       ansible.builtin.debug:
         msg:
           - "👤 CONFIGURE_USER VALIDATION COMPLETE 👤"
           - ""
-          - "✅ REQ-CU-001: User account creation and configuration verified"
-          - "✅ REQ-CU-002: User account removal verified"
-          - "✅ REQ-CU-004: Cross-platform sudo access verified"
-          - "✅ REQ-CU-005: Passwordless sudo configuration verified"
-          - "✅ REQ-CU-006: SSH authorized keys management verified"
           - "✅ REQ-CU-007: Node.js environment orchestration verified"
           - "✅ REQ-CU-008: Rust environment orchestration verified"
           - "✅ REQ-CU-009: Go environment orchestration verified"
@@ -355,4 +172,5 @@
           - "ℹ️ REQ-CU-014-018: macOS requirements deferred to VM testing"
           - "✅ REQ-CU-019: Dotfiles management verified"
           - ""
-          - "Configure_user requirements successfully validated!"
+          - "Configure_user preferences successfully validated!"
+          - "NOTE: User creation, SSH keys, and sudo are now managed separately with ansible.builtin.user"

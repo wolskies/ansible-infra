@@ -1,6 +1,7 @@
 ---
 # Configure user preferences for a single user
 # Expects target_user variable to be passed in
+# NOTE: This role assumes users already exist (created via ansible.builtin.user)
 
 - name: Validate required target_user variable
   ansible.builtin.assert:
@@ -11,21 +12,7 @@
     fail_msg: "configure_users role requires target_user variable with name field"
 
 # =================================================================
-# User removal
-# =================================================================
-- name: Remove user accounts marked for deletion
-  ansible.builtin.user:
-    name: "{{ target_user.name }}"
-    state: absent
-    # Uses default Ansible behavior (keeps home directory) per REQ-CU-002
-  become: true
-  when: target_user.state | default('present') == 'absent'
-  tags:
-    - user-removal
-    - user-config
-
-# =================================================================
-# Check if user exists and determine skip flags
+# Check if user exists
 # =================================================================
 - name: Check if user exists
   ansible.builtin.getent:
@@ -33,149 +20,22 @@
     key: "{{ target_user.name }}"
     fail_key: false
   register: user_exists_check
-  when: target_user.state | default('present') == 'present'
 
 - name: Set user existence fact
   ansible.builtin.set_fact:
     user_exists: "{{ user_exists_check.ansible_facts is defined and user_exists_check.ansible_facts.getent_passwd[target_user.name] is defined }}"
-  when: target_user.state | default('present') == 'present'
 
-- name: Set skip flag for ansible_user account creation
-  ansible.builtin.set_fact:
-    skip_user_creation: true
-  when:
-    - target_user.state | default('present') == 'present'
-    - target_user.name == ansible_user
-    - not (target_user.manage_ansible_user | default(false))
-
-- name: Set skip flag for users without password
-  ansible.builtin.set_fact:
-    skip_user_creation: true
-  when:
-    - target_user.state | default('present') == 'present'
-    - target_user.password is not defined
-
-- name: Warn when skipping ansible_user account creation
+- name: Skip configuration for non-existent users
   ansible.builtin.debug:
-    msg: "WARNING: Skipping account creation for ansible_user '{{ target_user.name }}' - set manage_ansible_user: true to allow management"
-  when:
-    - skip_user_creation | default(false)
-    - target_user.name == ansible_user
+    msg: "User '{{ target_user.name }}' does not exist. Skipping configuration. Create user with ansible.builtin.user first."
+  when: not user_exists
 
-- name: Warn when skipping users without password
-  ansible.builtin.debug:
-    msg: "WARNING: Skipping account creation for user '{{ target_user.name }}' - password is required. Preferences will be configured if user exists."
-  when:
-    - skip_user_creation | default(false)
-    - target_user.password is not defined
-
-# =================================================================
-# Create/update user account
-# =================================================================
-- name: Create or update user account
-  ansible.builtin.user:
-    name: "{{ target_user.name }}"
-    state: present
-    shell: "{{ target_user.shell | default('/bin/bash') }}"
-    groups: "{{ target_user.groups | default(omit) }}"
-    append: "{{ target_user.append | default(true) }}"
-    password: "{{ target_user.password }}"
-    comment: "{{ target_user.comment | default(omit) }}"
-  become: true
-  when:
-    - target_user.state | default('present') == 'present'
-    - not (skip_user_creation | default(false))
-  tags:
-    - user-creation
-    - user-config
-
-- name: Configure platform-specific superuser access
-  ansible.builtin.user:
-    name: "{{ target_user.name }}"
-    groups: "{{ platform_admin_group }}"
-    append: true
-  become: true
-  vars:
-    platform_admin_group: >-
-      {%- if ansible_os_family == 'Debian' -%}sudo
-      {%- elif ansible_os_family == 'Archlinux' -%}wheel
-      {%- elif ansible_os_family == 'Darwin' -%}admin
-      {%- else -%}wheel
-      {%- endif -%}
-  when:
-    - target_user.state | default('present') == 'present'
-    - not (skip_user_creation | default(false))
-    - target_user.superuser | default(false)
-  tags:
-    - sudo-access
-    - user-config
-
-- name: Configure passwordless sudo
-  ansible.builtin.template:
-    src: sudoers.j2
-    dest: "/etc/sudoers.d/{{ target_user.name }}"
-    mode: "0440"
-    owner: root
-    group: root
-    validate: "visudo -cf %s"
-  become: true
-  when:
-    - target_user.state | default('present') == 'present'
-    - user_exists | default(false)
-    - target_user.superuser | default(false)
-    - target_user.superuser_passwordless | default(false)
-  tags:
-    - passwordless-sudo
-    - user-config
-
-- name: Remove passwordless sudo configuration
-  ansible.builtin.file:
-    path: "/etc/sudoers.d/{{ target_user.name }}"
-    state: absent
-  become: true
-  when:
-    - target_user.state | default('present') == 'absent' or
-      not target_user.superuser | default(false) or
-      not target_user.superuser_passwordless | default(false)
-  tags:
-    - passwordless-sudo
-    - user-config
-
-# =================================================================
-# SSH key management
-# =================================================================
-- name: Manage SSH authorized keys
-  ansible.posix.authorized_key:
-    user: "{{ target_user.name }}"
-    key: "{{ ssh_key.key }}"
-    comment: "{{ ssh_key.comment | default(omit) }}"
-    key_options: "{{ ssh_key.options | default(omit) }}"
-    state: "{{ ssh_key.state | default('present') }}"
-    exclusive: "{{ ssh_key.exclusive | default(false) }}"
-  become: true
-  loop: "{{ target_user.ssh_keys | default([]) }}"
-  loop_control:
-    loop_var: ssh_key
-  when:
-    - target_user.state | default('present') == 'present'
-    - not (skip_user_creation | default(false))
-    - target_user.ssh_keys is defined
-    - target_user.ssh_keys | length > 0
-  tags:
-    - ssh-keys
-    - user-config
-
-# =================================================================
-# Stop here if user is being removed
-# =================================================================
-- name: Skip remaining configuration for removed users
-  ansible.builtin.meta: end_play
-  when: target_user.state | default('present') == 'absent'
+- name: Stop processing if user does not exist
+  ansible.builtin.meta: end_host
+  when: not user_exists
 
 - name: Configure language toolchains for {{ target_user.name }}
-  when:
-    - user_exists | default(false)
-    - target_user.name != 'root'
+  when: target_user.name != 'root'
   block:
     - name: Install Node.js and packages
       ansible.builtin.include_role:
@@ -226,7 +86,6 @@
 
 - name: Configure Git settings for {{ target_user.name }}
   when:
-    - user_exists | default(false)
     - target_user.git is defined
     - target_user.name != 'root'
   block:
@@ -259,7 +118,6 @@
 - name: Configure macOS-specific user preferences
   ansible.builtin.include_tasks: configure-Darwin.yml
   when:
-    - user_exists | default(false)
     - ansible_system == 'Darwin'
     - target_user.Darwin is defined
     - target_user.name != 'root'
@@ -270,7 +128,6 @@
 - name: Configure dotfiles
   ansible.builtin.include_tasks: configure-dotfiles.yml
   when:
-    - user_exists | default(false)
     - target_user.dotfiles is defined
     - target_user.dotfiles.enable | default(true)
     - target_user.name != 'root'
