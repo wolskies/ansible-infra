@@ -53,14 +53,9 @@
     # USER CONFIGURATION
     # ---------------------------------------------------------------------
 
-    - name: Configure user preferences
+    - name: Configure user accounts and preferences
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.configure_user
-      vars:
-        target_user: "{{ user_item }}"
-      loop: "{{ users | selectattr('state', 'equalto', 'present') | list }}"
-      loop_control:
-        loop_var: user_item
+        name: wolskies.infrastructure.configure_users
       tags:
         - users
         - preferences

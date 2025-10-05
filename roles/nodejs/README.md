@@ -40,7 +40,7 @@ node_packages:
     version: "^5.0.0"
 ```
 
-### Integration with configure_user
+### Integration with configure_users
 ```yaml
 target_user:
   name: developer

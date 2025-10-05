@@ -43,7 +43,7 @@
     - wolskies.infrastructure.manage_security_services
 
     # User management
-    - wolskies.infrastructure.configure_user
+    - wolskies.infrastructure.configure_users
 
     # Package system management
     - wolskies.infrastructure.manage_snap_packages

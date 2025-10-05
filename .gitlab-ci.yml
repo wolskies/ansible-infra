@@ -170,7 +170,7 @@ test-role-discovery:
 # MOVED: test-minimal - moved to validate stage as validate-minimal-config
 # Minimal configuration safety is a validation concern, not a functional test
 
-# REMOVED: test-dotfiles - functionality consolidated into configure_user role
+# REMOVED: test-dotfiles - functionality consolidated into configure_users role
 # Dotfiles deployment is now handled as part of per-user configuration
 
 # Individual role-level tests (run in parallel for faster feedback)
@@ -235,7 +235,7 @@ test-role-configure-user:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/configure_user && molecule test
+    - cd roles/configure_users && molecule test
     - echo "✅ User configuration role tests passed"
 
 test-role-manage-flatpak:

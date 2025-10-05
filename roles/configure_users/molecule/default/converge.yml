@@ -4,10 +4,10 @@
   become: true
   gather_facts: true
   tasks:
-    # REQ-CU-001,002,004-012,014-019: Test configure_user role
+    # REQ-CU-001,002,004-012,014-019: Test configure_users role
     - name: Configure user with role
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.configure_user
+        name: wolskies.infrastructure.configure_users
       when: inventory_hostname != 'ubuntu-user-edge-cases'
 
     # REQ-CU-002: Additional test for user removal (edge-cases only)
@@ -18,9 +18,9 @@
       block:
         - name: Remove test user (REQ-CU-002)
           ansible.builtin.include_role:
-            name: wolskies.infrastructure.configure_user
+            name: wolskies.infrastructure.configure_users
           vars:
-            target_user:
-              name: edgeuser
-              state: absent
-              # Uses default Ansible behavior (keeps home directory) per REQ-CU-002
+            users:
+              - name: edgeuser
+                state: absent
+                # Uses default Ansible behavior (keeps home directory) per REQ-CU-002

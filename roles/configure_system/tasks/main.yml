@@ -44,16 +44,7 @@
 
 - name: Configure User Preferences
   ansible.builtin.include_role:
-    name: "wolskies.infrastructure.configure_user"
-  vars:
-    target_user: "{{ user_item }}"
-  loop: "{{ users | default([]) }}"
-  loop_control:
-    loop_var: user_item
-  when:
-    - user_item.name is defined
-    - user_item.name != 'root' # Skip system accounts
-    - user_item.state | default('present') == 'present'
+    name: "wolskies.infrastructure.configure_users"
   tags:
     - user-preferences
     - optional

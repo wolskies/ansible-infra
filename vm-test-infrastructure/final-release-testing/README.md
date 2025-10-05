@@ -27,7 +27,7 @@ Testing across core supported platforms:
 
 ### Workstation Configuration
 - **Target**: Development environment setup
-- **Roles**: configure_user, nodejs, rust, go, neovim, terminal_config
+- **Roles**: configure_users, nodejs, rust, go, neovim, terminal_config
 - **Validation**: User accounts, development tools, terminal setup
 
 ### Server Configuration

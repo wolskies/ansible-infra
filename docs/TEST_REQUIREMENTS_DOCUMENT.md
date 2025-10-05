@@ -871,7 +871,7 @@ failure_record:
 
   reproduction_steps:
     - "Set macos.keyboard.layout: 'dvorak'"
-    - "Run configure_user role"
+    - "Run configure_users role"
     - "Observe failure in osx_defaults module"
 
   workaround: "Manually set keyboard layout post-deployment"
@@ -948,7 +948,7 @@ flaky_test_policy:
 
 | Task | SRD Requirements | Status | Blocker |
 |------|------------------|--------|---------|
-| Fix configure_user role tests | REQ-CU-001 to REQ-CU-013 | 🔄 In Progress | None |
+| Fix configure_users role tests | REQ-CU-001 to REQ-CU-013 | 🔄 In Progress | None |
 | Update os_configuration tests for new requirements | REQ-OS-001 to REQ-OS-008 | 🔄 Planned | None |
 | Add test scenario files | Test scenarios | 🔄 Planned | None |
 | Create verify.yml templates | All roles | 🔄 Planned | None |
@@ -1042,7 +1042,7 @@ graph TD
 | macOS testing complexity | Medium | Defer to v1.3.0 if needed |
 | Test flakiness | High | Implement retry mechanism early |
 | CI performance | Medium | Parallelize aggressively |
-| configure_user complexity | High | Prioritize this role first |
+| configure_users complexity | High | Prioritize this role first |
 
 ---
 

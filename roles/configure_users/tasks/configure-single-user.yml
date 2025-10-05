@@ -8,16 +8,12 @@
       - target_user is defined
       - target_user.name is defined
       - target_user.name | length > 0
-    fail_msg: "configure_user role requires target_user variable with name field"
+    fail_msg: "configure_users role requires target_user variable with name field"
 
-- name: Ensure ACL package is installed for privilege escalation
-  ansible.builtin.package:
-    name: acl
-    state: present
-  become: true
-  when: ansible_os_family != 'Darwin'
-
-- name: Remove user account
+# =================================================================
+# User removal
+# =================================================================
+- name: Remove user accounts marked for deletion
   ansible.builtin.user:
     name: "{{ target_user.name }}"
     state: absent
@@ -28,17 +24,67 @@
     - user-removal
     - user-config
 
-- name: Create user account
+# =================================================================
+# Check if user exists and determine skip flags
+# =================================================================
+- name: Check if user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ target_user.name }}"
+    fail_key: false
+  register: user_exists_check
+  when: target_user.state | default('present') == 'present'
+
+- name: Set user existence fact
+  ansible.builtin.set_fact:
+    user_exists: "{{ user_exists_check.ansible_facts is defined and user_exists_check.ansible_facts.getent_passwd[target_user.name] is defined }}"
+  when: target_user.state | default('present') == 'present'
+
+- name: Set skip flag for ansible_user account creation
+  ansible.builtin.set_fact:
+    skip_user_creation: true
+  when:
+    - target_user.state | default('present') == 'present'
+    - target_user.name == ansible_user
+    - not (target_user.manage_ansible_user | default(false))
+
+- name: Set skip flag for users without password
+  ansible.builtin.set_fact:
+    skip_user_creation: true
+  when:
+    - target_user.state | default('present') == 'present'
+    - target_user.password is not defined
+
+- name: Warn when skipping ansible_user account creation
+  ansible.builtin.debug:
+    msg: "WARNING: Skipping account creation for ansible_user '{{ target_user.name }}' - set manage_ansible_user: true to allow management"
+  when:
+    - skip_user_creation | default(false)
+    - target_user.name == ansible_user
+
+- name: Warn when skipping users without password
+  ansible.builtin.debug:
+    msg: "WARNING: Skipping account creation for user '{{ target_user.name }}' - password is required. Preferences will be configured if user exists."
+  when:
+    - skip_user_creation | default(false)
+    - target_user.password is not defined
+
+# =================================================================
+# Create/update user account
+# =================================================================
+- name: Create or update user account
   ansible.builtin.user:
     name: "{{ target_user.name }}"
     state: present
     shell: "{{ target_user.shell | default('/bin/bash') }}"
     groups: "{{ target_user.groups | default(omit) }}"
-    append: "{{ target_user.groups is defined }}"
-    password: "{{ target_user.password | default(omit) }}"
+    append: "{{ target_user.append | default(true) }}"
+    password: "{{ target_user.password }}"
     comment: "{{ target_user.comment | default(omit) }}"
   become: true
-  when: target_user.state | default('present') == 'present'
+  when:
+    - target_user.state | default('present') == 'present'
+    - not (skip_user_creation | default(false))
   tags:
     - user-creation
     - user-config
@@ -58,6 +104,7 @@
       {%- endif -%}
   when:
     - target_user.state | default('present') == 'present'
+    - not (skip_user_creation | default(false))
     - target_user.superuser | default(false)
   tags:
     - sudo-access
@@ -74,6 +121,7 @@
   become: true
   when:
     - target_user.state | default('present') == 'present'
+    - user_exists | default(false)
     - target_user.superuser | default(false)
     - target_user.superuser_passwordless | default(false)
   tags:
@@ -93,6 +141,9 @@
     - passwordless-sudo
     - user-config
 
+# =================================================================
+# SSH key management
+# =================================================================
 - name: Manage SSH authorized keys
   ansible.posix.authorized_key:
     user: "{{ target_user.name }}"
@@ -107,6 +158,7 @@
     loop_var: ssh_key
   when:
     - target_user.state | default('present') == 'present'
+    - not (skip_user_creation | default(false))
     - target_user.ssh_keys is defined
     - target_user.ssh_keys | length > 0
   tags:
@@ -121,6 +173,9 @@
   when: target_user.state | default('present') == 'absent'
 
 - name: Configure language toolchains for {{ target_user.name }}
+  when:
+    - user_exists | default(false)
+    - target_user.name != 'root'
   block:
     - name: Install Node.js and packages
       ansible.builtin.include_role:
@@ -165,12 +220,15 @@
         terminal_entries: "{{ target_user.terminal_entries }}"
       when: target_user.terminal_entries | default([]) | length > 0
       tags: terminal
-  when: target_user.name != 'root'
   tags:
     - user-config
     - language-packages
 
 - name: Configure Git settings for {{ target_user.name }}
+  when:
+    - user_exists | default(false)
+    - target_user.git is defined
+    - target_user.name != 'root'
   block:
     - name: Set Git user name
       community.general.git_config:
@@ -194,9 +252,6 @@
       when: target_user.git.editor is defined
   become: true
   become_user: "{{ target_user.name }}"
-  when:
-    - target_user.git is defined
-    - target_user.name != 'root'
   tags:
     - git-config
     - user-config
@@ -204,6 +259,7 @@
 - name: Configure macOS-specific user preferences
   ansible.builtin.include_tasks: configure-Darwin.yml
   when:
+    - user_exists | default(false)
     - ansible_system == 'Darwin'
     - target_user.Darwin is defined
     - target_user.name != 'root'
@@ -214,6 +270,7 @@
 - name: Configure dotfiles
   ansible.builtin.include_tasks: configure-dotfiles.yml
   when:
+    - user_exists | default(false)
     - target_user.dotfiles is defined
     - target_user.dotfiles.enable | default(true)
     - target_user.name != 'root'

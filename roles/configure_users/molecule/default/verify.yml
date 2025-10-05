@@ -1,5 +1,5 @@
 ---
-- name: Verify configure_user role implementation
+- name: Verify configure_users role implementation
   hosts: all
   become: true
   gather_facts: true
@@ -336,7 +336,7 @@
       when: inventory_hostname == 'ubuntu-user-full'
 
     # ===== Validation Summary =====
-    - name: Complete configure_user validation summary
+    - name: Complete configure_users validation summary
       ansible.builtin.debug:
         msg:
           - "👤 CONFIGURE_USER VALIDATION COMPLETE 👤"

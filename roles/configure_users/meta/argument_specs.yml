@@ -1,26 +1,28 @@
 ---
-# Configure User Role Argument Specification
-# This role configures a single user and their preferences
+# Configure Users Role Argument Specification
+# This role configures user accounts and their preferences
 
 argument_specs:
   main:
-    short_description: Configure a single user and their preferences
+    short_description: Configure user accounts and their preferences
     description:
       - Creates and configures user accounts using ansible.builtin.user
       - Manages SSH authorized keys and sudo configuration
       - Orchestrates development environment setup via collection roles
       - Configures platform-specific preferences (macOS dock, finder, etc.)
       - Deploys dotfiles using GNU stow when configured
-      - Uses single target_user variable for complete user configuration
+      - Accepts a users list and configures each user
 
     options:
-      # Core User Configuration
-      target_user:
+      # User List
+      users:
         description:
-          - Complete user configuration object
-          - Contains all user account, preference, and environment settings
-        type: dict
-        required: true
+          - List of user configuration objects
+          - Each user contains complete account, preference, and environment settings
+        type: list
+        elements: dict
+        required: false
+        default: []
         options:
           name:
             description: Username (alphanumeric + underscore/hyphen, max 32 chars)
@@ -62,6 +64,16 @@ argument_specs:
             type: bool
             required: false
             default: false
+          manage_ansible_user:
+            description: Allow managing the ansible_user account (safety flag - defaults to false)
+            type: bool
+            required: false
+            default: false
+          append:
+            description: When adding groups, append to existing groups instead of replacing (defaults to true)
+            type: bool
+            required: false
+            default: true
 
           # SSH Configuration
           ssh_keys:

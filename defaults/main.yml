@@ -171,11 +171,14 @@ users: []
 # users:
 #   - name: developer
 #     comment: "Development User"
+#     password: "{{ vault_developer_password }}"  # REQUIRED - password hash from ansible-vault
 #     groups: [docker, sudo]
+#     append: true                       # Append groups instead of replacing (default: true)
 #     shell: /bin/bash
 #     state: present
 #     superuser: true                    # Grant sudo/wheel/admin access
 #     superuser_passwordless: false      # Enable passwordless sudo
+#     manage_ansible_user: false         # Safety: skip ansible_user unless true (default: false)
 #     ssh_keys:
 #       - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
 #         comment: "developer@workstation"

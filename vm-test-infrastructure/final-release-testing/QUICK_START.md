@@ -36,7 +36,7 @@ ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
    - `arch-workstation` - Arch development testing
 
 2. **Deploys Configurations**:
-   - **Servers**: os_configuration, manage_packages, manage_security_services, configure_user
+   - **Servers**: os_configuration, manage_packages, manage_security_services, configure_users
    - **Workstations**: All roles including nodejs, rust, go, neovim, terminal_config
 
 3. **Validates Results**:

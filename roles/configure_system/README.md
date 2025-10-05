@@ -11,7 +11,7 @@ Configures a complete system from OS-level settings through user preferences:
 3. **manage_security_services** - Firewall and fail2ban configuration
 4. **manage_snap_packages** - Snap package management (optional)
 5. **manage_flatpak** - Flatpak package management (optional)
-6. **configure_user** - User-specific configuration (dotfiles, development tools)
+6. **configure_users** - User-specific configuration (dotfiles, development tools)
 
 ## Usage
 
@@ -119,4 +119,4 @@ All required roles are included in the collection:
 - `wolskies.infrastructure.manage_security_services`
 - `wolskies.infrastructure.manage_snap_packages`
 - `wolskies.infrastructure.manage_flatpak`
-- `wolskies.infrastructure.configure_user`
+- `wolskies.infrastructure.configure_users`

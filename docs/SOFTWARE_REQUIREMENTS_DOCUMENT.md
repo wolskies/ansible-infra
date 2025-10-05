@@ -19,7 +19,7 @@
    - [3.3 manage_packages](#33-manage_packages)
    - [3.4 manage_snap_packages](#34-manage_snap_packages)
    - [3.5 manage_flatpak](#35-manage_flatpak)
-   - [3.6 configure_user](#36-configure_user)
+   - [3.6 configure_users](#36-configure_users)
    - [3.7 nodejs](#37-nodejs)
    - [3.8 rust](#38-rust)
    - [3.9 go](#39-go)
@@ -1080,11 +1080,11 @@ Tasks installing desktop environment plugins (GNOME Software, Plasma Discover). 
 
 Tasks managing individual flatpak packages. Skip to configure flatpak system without installing specific packages.
 
-### 3.6 configure_user
+### 3.6 configure_users
 
 #### 3.6.1 Role Description
 
-The `configure_user` role configures a single user and their preferences. For core user account management, this role acts as a thin wrapper around `ansible.builtin.user`, passing variables directly through without adding or removing functionality. Beyond the core user account, this role orchestrates SSH key management, sudo configuration, development environment setup (via other collection roles), platform-specific preferences, and dotfiles deployment using GNU stow. The role operates on a single user configuration passed via the `target_user` variable.
+The `configure_users` role configures a single user and their preferences. For core user account management, this role acts as a thin wrapper around `ansible.builtin.user`, passing variables directly through without adding or removing functionality. Beyond the core user account, this role orchestrates SSH key management, sudo configuration, development environment setup (via other collection roles), platform-specific preferences, and dotfiles deployment using GNU stow. The role operates on a single user configuration passed via the `target_user` variable.
 
 **Dependencies**: This role calls nodejs, rust, go, neovim, and terminal_config roles from the same collection. These dependencies are declared in the collection's meta/requirements.yml for ansible-galaxy installation.
 
@@ -1291,7 +1291,7 @@ The `nodejs` role handles Node.js installation and npm package management for in
 
 #### 3.7.2 Variables
 
-This role uses role-specific variables passed from calling roles (e.g., configure_user):
+This role uses role-specific variables passed from calling roles (e.g., configure_users):
 
 | Variable                 | Type   | Required | Default           | Description                                                               |
 | ------------------------ | ------ | -------- | ----------------- | ------------------------------------------------------------------------- |
@@ -1342,7 +1342,7 @@ The `rust` role handles Rust toolchain installation and cargo package management
 
 #### 3.8.2 Variables
 
-This role uses role-specific variables passed from calling roles (e.g., configure_user):
+This role uses role-specific variables passed from calling roles (e.g., configure_users):
 
 | Variable        | Type         | Required | Default | Description                                                   |
 | --------------- | ------------ | -------- | ------- | ------------------------------------------------------------- |
@@ -1376,7 +1376,7 @@ Don
 
 #### 3.9.2 Variables
 
-This role uses role-specific variables passed from calling roles (e.g., configure_user):
+This role uses role-specific variables passed from calling roles (e.g., configure_users):
 
 | Variable      | Type         | Required | Default | Description                                                           |
 | ------------- | ------------ | -------- | ------- | --------------------------------------------------------------------- |
@@ -1411,7 +1411,7 @@ The `neovim` role handles comprehensive Neovim installation and development-read
 
 #### 3.10.2 Variables
 
-This role uses role-specific variables passed from calling roles (e.g., configure_user):
+This role uses role-specific variables passed from calling roles (e.g., configure_users):
 
 | Variable | Type | Required | Default | Description |
 | -------- | ---- | -------- | ------- | ----------- |
@@ -1450,7 +1450,7 @@ The `terminal_config` role installs terminfo entries for modern terminal emulato
 
 #### 3.11.2 Variables
 
-This role uses role-specific variables passed from calling roles (e.g., configure_user):
+This role uses role-specific variables passed from calling roles (e.g., configure_users):
 
 | Variable           | Type         | Required | Default | Description                                       |
 | ------------------ | ------------ | -------- | ------- | ------------------------------------------------- |
@@ -1476,7 +1476,7 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 - **Issue**: Users with package-dependent groups (e.g., `docker`) fail when groups don't exist yet
 - **Impact**: User creation fails in `os_configuration` when packages haven't been installed
 - **Workaround**: Remove package-dependent groups from user definitions
-- **Resolution**: Moving user management to `configure_user` role (v1.2.0)
+- **Resolution**: Moving user management to `configure_users` role (v1.2.0)
 
 #### 4.1.2 External Repository Management
 
@@ -1523,7 +1523,7 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 #### 5.2.1 Platform Expansion
 
 - Move services enable/disable to package management
-- Nerd Fonts functionality moved to configure_user role or dedicated role (removed from os_configuration due to role boundary violation - fonts are user preferences, not system configuration, and implementation was platform-specific stopgap)
+- Nerd Fonts functionality moved to configure_users role or dedicated role (removed from os_configuration due to role boundary violation - fonts are user preferences, not system configuration, and implementation was platform-specific stopgap)
 - Configuration of NTP server
 
 - Configuration of Remote logging (rsyslog)

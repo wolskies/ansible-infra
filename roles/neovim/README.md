@@ -23,7 +23,7 @@ Installs and configures Neovim for development:
     neovim_user: developer
 ```
 
-### Integration with configure_user
+### Integration with configure_users
 ```yaml
 target_user:
   name: developer

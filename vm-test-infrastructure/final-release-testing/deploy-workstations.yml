@@ -40,7 +40,7 @@
     - wolskies.infrastructure.manage_packages
 
     # User management (must come before language roles)
-    - wolskies.infrastructure.configure_user
+    - wolskies.infrastructure.configure_users
 
     # Development environments
     - wolskies.infrastructure.nodejs

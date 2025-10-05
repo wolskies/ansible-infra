@@ -22,8 +22,8 @@
   hosts: workstations
   become: true
   tasks:
-    - name: Include configure_user role for workstations
+    - name: Include configure_users role for workstations
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.configure_user
+        name: wolskies.infrastructure.configure_users
       when:
         - install_development_tools | default(false)

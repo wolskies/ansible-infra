@@ -10,7 +10,7 @@
   ansible.builtin.lineinfile:
     path: "{{ ansible_env.HOME }}/.zprofile"
     line: 'eval "$(/opt/homebrew/bin/brew shellenv)"'
-    create: yes
+    create: true
   when: homebrew_check.stat.exists
 
 - name: Configure macOS Dock preferences for {{ target_user.name }}

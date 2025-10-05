@@ -1,59 +1,104 @@
-# configure_user
+# configure_users
 
-User account management and development environment configuration.
+Mass user account management and development environment configuration.
 
 ## What It Does
 
-Configures a single user account and their preferences:
-- **User Account** - Create/manage user with groups, shell, SSH keys
+Manages multiple user accounts and their preferences:
+- **User Account** - Create/manage users with passwords, groups, shell, SSH keys
 - **Development Environment** - Git, Node.js, Rust, Go, Neovim
 - **Platform-Specific** - Dock/Finder preferences (macOS), Homebrew PATH
 - **Dotfiles** - Automatic deployment using GNU Stow
 
+## Key Features
+
+- **Mass Management** - Configure rosters of users in one playbook run
+- **Password Required** - Users must have passwords defined (prevents lockouts)
+- **ansible_user Protection** - Skips ansible_user by default (set `manage_ansible_user: true` to override)
+- **Existing User Support** - Configures preferences for existing users without touching authentication
+- **Safe Group Management** - Groups append by default (`append: true`)
+
 ## Usage
 
-### Basic User Configuration
+### Basic User Roster
 ```yaml
 - hosts: all
   become: true
-  tasks:
-    - name: Configure user account
-      include_role:
-        name: wolskies.infrastructure.configure_user
-      vars:
-        target_user:
-          name: developer
-          comment: "Developer Account"
-          groups: [sudo, docker]
-          shell: /bin/bash
-          ssh_keys:
-            - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
-              comment: "developer@workstation"
-      become_user: developer
+  roles:
+    - name: wolskies.infrastructure.configure_users
+
+  vars:
+    users:
+      - name: developer
+        password: "{{ vault_developer_password }}"  # REQUIRED
+        comment: "Developer Account"
+        groups: [sudo, docker]
+        append: true  # Default: append groups instead of replacing
+        shell: /bin/bash
+        ssh_keys:
+          - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+            comment: "developer@workstation"
+
+      - name: deployment
+        password: "{{ vault_deployment_password }}"  # REQUIRED
+        shell: /bin/bash
+        superuser: true
+        ssh_keys:
+          - key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB..."
+            comment: "deployment@ci"
 ```
 
 ### Development Environment Setup
 ```yaml
-target_user:
-  name: developer
-  superuser: true
-  superuser_passwordless: true
-  git:
-    user_name: "Developer Name"
-    user_email: "developer@company.com"
-    editor: "nvim"
-  nodejs:
-    packages: [typescript, eslint, prettier]
-  rust:
-    packages: [ripgrep, bat, fd-find]
-  go:
-    packages: [github.com/charmbracelet/glow@latest]
-  neovim:
-    enabled: true
-  dotfiles:
-    enable: true
-    repository: "https://github.com/developer/dotfiles"
-    dest: ".dotfiles"
+users:
+  - name: developer
+    password: "{{ vault_developer_password }}"  # REQUIRED
+    superuser: true
+    superuser_passwordless: true
+    git:
+      user_name: "Developer Name"
+      user_email: "developer@company.com"
+      editor: "nvim"
+    nodejs:
+      packages: [typescript, eslint, prettier]
+    rust:
+      packages: [ripgrep, bat, fd-find]
+    go:
+      packages: [github.com/charmbracelet/glow@latest]
+    neovim:
+      enabled: true
+    dotfiles:
+      enable: true
+      repository: "https://github.com/developer/dotfiles"
+      dest: ".dotfiles"
+```
+
+### Managing ansible_user
+```yaml
+users:
+  - name: "{{ ansible_user }}"  # e.g., "ubuntu" or "root"
+    manage_ansible_user: true  # REQUIRED to manage ansible_user
+    password: "{{ vault_ansible_user_password }}"
+    git:
+      user_name: "System Admin"
+      user_email: "admin@example.com"
+    dotfiles:
+      enable: true
+      repository: "https://github.com/admin/dotfiles"
+```
+
+### Configuring Existing Users (No Password Needed)
+```yaml
+# Configure preferences for users that already exist on the system
+# Password not required - only preferences will be configured
+users:
+  - name: existinguser  # Already exists on system
+    # No password - account creation skipped
+    git:
+      user_name: "Existing User"
+      user_email: "existing@example.com"
+    neovim:
+      enabled: true
 ```
 
 ### macOS-Specific Configuration

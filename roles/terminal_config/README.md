@@ -70,9 +70,9 @@ terminal_entries:
     - wolskies.infrastructure.terminal_config
 ```
 
-### Integration with configure_user
+### Integration with configure_users
 
-This role integrates with the configure_user role when terminal configuration is specified:
+This role integrates with the configure_users role when terminal configuration is specified:
 
 ```yaml
 users:
@@ -127,9 +127,9 @@ terminal_configs:
 
 ## Integration Notes
 
-### With configure_user Role
+### With configure_users Role
 
-This role integrates seamlessly with configure_user for complete development environment setup:
+This role integrates seamlessly with configure_users for complete development environment setup:
 
 ```yaml
 users:

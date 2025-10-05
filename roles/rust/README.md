@@ -26,7 +26,7 @@ Installs Rust toolchain and user-level cargo packages:
       - fd-find
 ```
 
-### Integration with configure_user
+### Integration with configure_users
 ```yaml
 target_user:
   name: developer

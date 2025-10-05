@@ -127,7 +127,7 @@ neovim_config_enabled: true
 # USER MANAGEMENT
 # =============================================================================
 
-# User Management (from configure_user role testing)
+# User Management (from configure_users role testing)
 target_user:
   name: devuser
   uid: 1001

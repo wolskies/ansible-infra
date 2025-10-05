@@ -94,10 +94,10 @@
     #     - go
     #     - development
 
-    # 4. User configuration (configure_user role)
-    # - role: configure_user
+    # 4. User configuration (configure_users role)
+    # - role: configure_users
     #   become: false
-    #   when: configure_user is defined
+    #   when: configure_users is defined
     #   tags:
     #     - dotfiles
     #     - user-config

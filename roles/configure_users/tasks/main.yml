@@ -1,0 +1,16 @@
+---
+# Configure user accounts and preferences
+# Accepts a 'users' list and configures each user
+
+- name: Ensure ACL package is installed for privilege escalation
+  ansible.builtin.package:
+    name: acl
+    state: present
+  become: true
+  when: ansible_os_family != 'Darwin'
+
+- name: Configure user accounts
+  ansible.builtin.include_tasks: configure-single-user.yml
+  loop: "{{ users | default([]) }}"
+  loop_control:
+    loop_var: target_user

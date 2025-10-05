@@ -123,7 +123,7 @@ fail2ban:
 # USER MANAGEMENT
 # =============================================================================
 
-# User Management (from configure_user role testing + collection defaults)
+# User Management (from configure_users role testing + collection defaults)
 target_user:
   name: serveradmin
   uid: 1001

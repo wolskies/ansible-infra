@@ -122,7 +122,7 @@ provisioner:
           disable_and_remove: true
 
         # Users are created in prepare.yml with proper groups for each OS
-        # Here we define the user configurations for configure_user role
+        # Here we define the user configurations for configure_users role
         users:
           - name: developer
             uid: 1001

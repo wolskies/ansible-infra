@@ -25,7 +25,7 @@ Installs Go toolchain and user-level packages:
       - github.com/junegunn/fzf@latest
 ```
 
-### Integration with configure_user
+### Integration with configure_users
 ```yaml
 target_user:
   name: developer

@@ -1,5 +1,5 @@
 ---
-- name: Prepare containers for configure_user testing
+- name: Prepare containers for configure_users testing
   hosts: all
   become: true
   gather_facts: true
@@ -67,8 +67,17 @@
         state: present
       when: inventory_hostname == 'ubuntu-user-edge-cases'
 
+    - name: Create existing user for preference-only configuration testing
+      ansible.builtin.user:
+        name: existinguser
+        shell: /bin/bash
+        password: "!"
+        create_home: true
+        state: present
+      when: inventory_hostname == 'ubuntu-user-basic'
+
     # ===== Mock External Role Dependencies =====
-    # Note: These roles will be called by configure_user but we need to mock them
+    # Note: These roles will be called by configure_users but we need to mock them
     # The actual functionality is tested in individual role molecule tests
 
     - name: Create mock nodejs role directory structure
@@ -83,7 +92,7 @@
         dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/nodejs/tasks/main.yml"
         content: |
           ---
-          # Mock nodejs role for testing configure_user orchestration
+          # Mock nodejs role for testing configure_users orchestration
           - name: Mock nodejs installation (REQ-CU-007)
             ansible.builtin.debug:
               msg: "Mock nodejs role called with user: {{ node_user | default('undefined') }}, packages: {{ node_packages | default([]) }}"
@@ -102,7 +111,7 @@
         dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/rust/tasks/main.yml"
         content: |
           ---
-          # Mock rust role for testing configure_user orchestration
+          # Mock rust role for testing configure_users orchestration
           - name: Mock rust installation (REQ-CU-008)
             ansible.builtin.debug:
               msg: "Mock rust role called with user: {{ rust_user | default('undefined') }}, packages: {{ rust_packages | default([]) }}"
@@ -121,7 +130,7 @@
         dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/go/tasks/main.yml"
         content: |
           ---
-          # Mock go role for testing configure_user orchestration
+          # Mock go role for testing configure_users orchestration
           - name: Mock go installation (REQ-CU-009)
             ansible.builtin.debug:
               msg: "Mock go role called with user: {{ go_user | default('undefined') }}, packages: {{ go_packages | default([]) }}"
@@ -140,7 +149,7 @@
         dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/neovim/tasks/main.yml"
         content: |
           ---
-          # Mock neovim role for testing configure_user orchestration
+          # Mock neovim role for testing configure_users orchestration
           - name: Mock neovim configuration (REQ-CU-010)
             ansible.builtin.debug:
               msg: "Mock neovim role called with user: {{ neovim_user | default('undefined') }}"
@@ -159,7 +168,7 @@
         dest: "{{ ansible_env.HOME }}/.ansible/collections/ansible_collections/wolskies/infrastructure/roles/terminal_config/tasks/main.yml"
         content: |
           ---
-          # Mock terminal_config role for testing configure_user orchestration
+          # Mock terminal_config role for testing configure_users orchestration
           - name: Mock terminal configuration (REQ-CU-011)
             ansible.builtin.debug:
               msg: "Mock terminal_config role called with user: {{ terminal_user | default('undefined') }}, entries: {{ terminal_entries | default([]) }}"
@@ -247,9 +256,9 @@
           ansible.builtin.command:
             cmd: git config --global --add safe.directory /tmp/mock-dotfiles
 
-        - name: Update dotfiles repository URL in molecule variables
-          ansible.builtin.set_fact:
-            target_user: "{{ target_user | combine({'dotfiles': target_user.dotfiles | combine({'repository': 'file:///tmp/mock-dotfiles'})}) }}"
+        - name: Display dotfiles repository location
+          ansible.builtin.debug:
+            msg: "Dotfiles repository created at: file:///tmp/mock-dotfiles"
 
     - name: Display preparation summary
       ansible.builtin.debug:
@@ -257,5 +266,5 @@
           - "=== Configure User Test Preparation Complete ==="
           - "✅ Base container setup (acl, git, stow)"
           - "✅ Mock external role dependencies created"
-          - "✅ {{ inventory_hostname }}: Ready for {{ target_user.name if target_user is defined else 'undefined user' }} testing"
+          - "✅ {{ inventory_hostname }}: Ready for {{ users[0].name if users is defined and users | length > 0 else 'undefined user' }} testing"
           - "✅ Requirements coverage: {{ 'REQ-CU-001,002,004-012,014-019' if inventory_hostname == 'ubuntu-user-full' else 'Subset per container strategy' }}"

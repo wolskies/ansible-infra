@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  role_name: configure_user
+  role_name: configure_users
   author: wolskies.infrastructure
   description: Configure a single user and their preferences
   license: MIT

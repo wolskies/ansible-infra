@@ -102,7 +102,7 @@ implement REQ-XX-NNN [requirement description]
 ## Current Implementation Status (Sept 2025)
 
 **Individual role tests completed**: nodejs, rust, go, neovim, terminal_config
-**Phase II target**: Extract os_configuration, manage_packages, manage_security_services, configure_user to individual role tests
+**Phase II target**: Extract os_configuration, manage_packages, manage_security_services, configure_users to individual role tests
 **CI pipeline**: 5 parallel role tests + test-integration + test-discovery + test-minimal
 
 ## VM Testing Infrastructure Plan

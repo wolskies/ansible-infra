@@ -17,7 +17,7 @@ Infrastructure management automation for cross-platform development and producti
 - **manage_security_services**: Firewall (UFW/macOS ALF) and fail2ban configuration for intrusion prevention
 
 ### User and Development Environment
-- **configure_user**: User-specific configuration including dotfiles, development tools, and language environments
+- **configure_users**: User-specific configuration including dotfiles, development tools, and language environments
 - **nodejs**: Node.js installation and user-level package management with npm
 - **rust**: Rust/Cargo installation and user-level package management
 - **go**: Go installation and user-level package management
@@ -163,10 +163,8 @@ target_user:
 
 - hosts: all
   become: true
-  become_user: "{{ target_user.name }}"
   roles:
-    - wolskies.infrastructure.configure_user
-  when: target_user is defined
+    - wolskies.infrastructure.configure_users
 ```
 
 ## Variable Reference
@@ -397,21 +395,16 @@ Apply specific functionality as needed:
     - wolskies.infrastructure.neovim
 ```
 
-### User-Specific Configuration
-Configure individual users with their preferences:
+### User Configuration
+Configure user accounts with their preferences:
 ```yaml
 - hosts: all
   become: true
-  tasks:
-    - name: Configure each user
-      include_role:
-        name: wolskies.infrastructure.configure_user
-      vars:
-        target_user: "{{ item }}"
-      loop: "{{ users }}"
-      when: item.name != 'root'
-      become_user: "{{ item.name }}"
+  roles:
+    - wolskies.infrastructure.configure_users
 ```
+
+The role automatically iterates over the `users` list from your inventory.
 
 ## Dependencies and Credits
 

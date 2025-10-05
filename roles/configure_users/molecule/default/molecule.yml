@@ -79,66 +79,83 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
+        test_password_hash: "!"  # Locked account for testing
 
     host_vars:
       # REQ-CU-001,006-012,019: Complete user with all features
       ubuntu-user-full:
-        target_user:
-          name: fulluser
-          shell: /bin/bash
-          groups: [sudo]
-          superuser: true
-          superuser_passwordless: true
-          ssh_keys:
-            - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
-              comment: "fulluser@example.com"
-              state: present
-            - key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC5H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
-              comment: "fulluser-backup@example.com"
-              options: 'from="192.168.1.0/24",no-port-forwarding'
-              state: present
-          nodejs:
-            packages: ["@angular/cli", "typescript"]
-          rust:
-            packages: ["cargo-watch", "ripgrep"]
-          go:
-            packages: []
-          neovim:
-            enabled: true
-          git:
-            user_name: "Full User"
-            user_email: "fulluser@example.com"
-            editor: "nvim"
-          dotfiles:
-            enable: true
-            repository: "file:///tmp/mock-dotfiles"
-            dest: ".dotfiles"
-            branch: "main"
+        users:
+          - name: fulluser
+            password: "{{ test_password_hash }}"
+            shell: /bin/bash
+            groups: [sudo]
+            append: true
+            superuser: true
+            superuser_passwordless: true
+            ssh_keys:
+              - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+                comment: "fulluser@example.com"
+                state: present
+              - key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC5H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+                comment: "fulluser-backup@example.com"
+                options: 'from="192.168.1.0/24",no-port-forwarding'
+                state: present
+            nodejs:
+              packages: ["@angular/cli", "typescript"]
+            rust:
+              packages: ["cargo-watch", "ripgrep"]
+            go:
+              packages: []
+            neovim:
+              enabled: true
+            git:
+              user_name: "Full User"
+              user_email: "fulluser@example.com"
+              editor: "nvim"
+            dotfiles:
+              enable: true
+              repository: "file:///tmp/mock-dotfiles"
+              dest: ".dotfiles"
+              branch: "main"
 
       # REQ-CU-001,006: Minimal user creation and SSH key management
+      # Also tests: ansible_user protection, existing user preferences without password
       ubuntu-user-basic:
-        target_user:
-          name: basicuser
-          shell: /bin/bash
-          ssh_keys:
-            - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
-              comment: "basicuser@example.com"
-              state: present
+        users:
+          - name: basicuser
+            password: "{{ test_password_hash }}"
+            shell: /bin/bash
+            ssh_keys:
+              - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGKwK4L3KL9H8K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8"
+                comment: "basicuser@example.com"
+                state: present
+          - name: root  # Test: ansible_user protection (should skip account creation but allow preferences)
+            manage_ansible_user: false  # Default - should skip
+            git:
+              user_name: "Root User"
+              user_email: "root@test.local"
+          - name: existinguser  # Test: existing user preferences without password (created in prepare)
+            # No password - account creation skipped, preferences configured
+            git:
+              user_name: "Existing User"
+              user_email: "existing@test.local"
 
       # REQ-CU-004,005: Superuser flag and passwordless sudo testing
       ubuntu-user-privileged:
-        target_user:
-          name: privilegeduser
-          shell: /bin/bash
-          superuser: true
-          superuser_passwordless: true
+        users:
+          - name: privilegeduser
+            password: "{{ test_password_hash }}"
+            shell: /bin/bash
+            superuser: true
+            superuser_passwordless: true
 
       # REQ-CU-001,004: Cross-platform group assignment (wheel vs sudo)
       arch-user-basic:
-        target_user:
-          name: archuser
-          shell: /bin/bash
-          superuser: true
+        users:
+          - name: archuser
+            password: "{{ test_password_hash }}"
+            shell: /bin/bash
+            superuser: true
 
       # REQ-CU-002: User removal and edge cases (no default user config - only removal test)
       ubuntu-user-edge-cases: {}

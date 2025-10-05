@@ -1,6 +1,6 @@
 ---
 # Snap and Flatpak discovery for system-level package management
-# Language packages moved to configure_user role
+# Language packages moved to configure_users role
 
 # Snap packages
 - name: Discover Snap packages
