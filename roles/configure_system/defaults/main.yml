@@ -57,33 +57,24 @@ packages:
   casks_remove: []
 
 apt:
-  apt_cache:
-    update_cache: false
-    valid_time: 3600
   no_recommends: false
+  proxy: ""
   unattended_upgrades:
     enabled: false
-    email: ""
-    auto_reboot: false
-    reboot_with_users: false
-    reboot_time: "02:00"
   system_upgrade:
     enable: false
-    type: safe
-  proxy: ""
+    type: "safe"
   repositories: {}
 
 pacman:
-  no_confirms: false
+  no_confirm: false
   proxy: ""
-  multilib: false
+  multilib:
+    enabled: false
   enable_aur: false
-  config_reflector: true
 
 homebrew:
-  install: true
-  update_homebrew: true
-  cleanup_cache: false
+  cleanup_cache: true
   taps: []
 
 macosx:

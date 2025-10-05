@@ -66,11 +66,21 @@
 
 - name: Configure NTP time synchronization
   block:
-    - name: Ensure systemd-timesyncd package is installed
+    - name: Check if timedatectl is available
+      ansible.builtin.command:
+        cmd: timedatectl --version
+      register: timedatectl_check
+      changed_when: false
+      failed_when: false
+
+    - name: Ensure systemd-timesyncd package is installed (Debian/Ubuntu)
       ansible.builtin.package:
         name: systemd-timesyncd
         state: present
       become: true
+      when:
+        - timedatectl_check.rc == 0
+        - ansible_os_family == "Debian"
 
     - name: Ensure systemd-timesyncd service is enabled and started
       ansible.builtin.systemd:
@@ -78,6 +88,7 @@
         enabled: true
         state: started
       become: true
+      when: timedatectl_check.rc == 0
       tags:
         - ntp
         - no-container
@@ -92,6 +103,7 @@
         backup: true
       become: true
       notify: restart timesyncd
+      when: timedatectl_check.rc == 0
   when:
     - domain_ntp is defined
     - domain_ntp.enabled | default(false)

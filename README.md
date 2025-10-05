@@ -255,8 +255,6 @@ macosx:
 
 # Homebrew Configuration (macOS)
 homebrew:
-  install: true
-  update_homebrew: true
   cleanup_cache: true
   taps: [homebrew/cask-fonts]
 manage_casks:

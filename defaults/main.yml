@@ -77,11 +77,10 @@ apt:
   no_recommends: false
   proxy: ""
   unattended_upgrades:
-    enabled: true
-    email: ""
-    auto_reboot: false
-    reboot_with_users: false
-    reboot_time: "02:00"
+    enabled: false
+  system_upgrade:
+    enable: false
+    type: "safe"
   repositories: {}
   # Example:
   # repositories:
@@ -94,9 +93,11 @@ apt:
   #     signed_by: "https://download.docker.com/linux/ubuntu/gpg"
 
 pacman:
-  no_confirms: false
+  no_confirm: false
   proxy: ""
-  multilib: false
+  multilib:
+    enabled: false
+  enable_aur: false
 
 # macOS specific
 macosx:
@@ -161,9 +162,7 @@ packages:
   casks_remove: []
 
 homebrew:
-  install: true
-  update_homebrew: true
-  cleanup_cache: false
+  cleanup_cache: true
   taps: []
 
 # User management

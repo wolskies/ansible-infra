@@ -256,7 +256,7 @@
         fail_msg: "Time synchronization configuration not created correctly"
         success_msg: "✅ REQ-OS-008: Time synchronization configuration correctly created with specified servers"
       when:
-        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases', 'arch-ntp-test']
         - domain_ntp is defined
         - domain_ntp.enabled | default(false)
 
@@ -264,7 +264,7 @@
       ansible.builtin.debug:
         msg: "⚠️ REQ-OS-008: systemd service management skipped in containers via tags - configuration files validated"
       when:
-        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases']
+        - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases', 'arch-ntp-test']
         - domain_ntp is defined
         - domain_ntp.enabled | default(false)
 
