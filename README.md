@@ -127,9 +127,14 @@ fail2ban:
 # group_vars/workstations.yml
 users:
   - name: developer
+    state: present
     groups: [sudo]
+    superuser: true
+    superuser_passwordless: false
     ssh_keys:
-      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5..."
+        comment: "developer@workstation"
+        state: present
 
 target_user:
   name: developer

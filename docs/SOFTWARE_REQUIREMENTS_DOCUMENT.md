@@ -263,10 +263,10 @@ firewall:
 | `nodejs.packages`  | list[string] | No       | `[]`           | npm package names to install globally (e.g., ["typescript", "@angular/cli"])   |
 | `rust.packages`    | list[string] | No       | `[]`           | Cargo package names to install (e.g., ["ripgrep", "fd-find"])                  |
 | `go.packages`      | list[string] | No       | `[]`           | Go package URLs to install (e.g., ["github.com/user/package@latest"])          |
-| `neovim.enabled`   | boolean      | No       | `false`        | Install and configure Neovim for this user                                     |
-| `terminal_entries` | list[object] | No       | `[]`           | Terminal emulator configuration entries (see schema below)                     |
-| `dotfiles.enable`  | boolean      | No       | `true`         | Enable dotfiles configuration                                                  |
-| `dotfiles.repo`    | string       | No       | none           | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles.git") |
+| `neovim.enabled`        | boolean      | No       | `false`        | Install and configure Neovim for this user                                     |
+| `terminal_entries`      | list[string] | No       | `[]`           | Terminal emulator names (e.g., ["kitty", "alacritty", "wezterm"])              |
+| `dotfiles.enable`       | boolean      | No       | `true`         | Enable dotfiles configuration                                                  |
+| `dotfiles.repository`   | string       | No       | none           | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles.git") |
 | `dotfiles.dest`    | string       | No       | `~/.dotfiles`  | Destination directory path for dotfiles (absolute or ~/ relative)              |
 
 **Package Management Schema:**
@@ -1110,7 +1110,7 @@ This role configures a single user via the `target_user` variable. This is a sta
 | `rust.packages`          | list[string] | No       | `[]`          | Cargo package names to install (e.g., ["ripgrep", "fd-find"])                |
 | `go.packages`            | list[string] | No       | `[]`          | Go package URLs to install (e.g., ["github.com/user/package@latest"])        |
 | `neovim.enabled`         | boolean      | No       | `false`       | Install and configure Neovim for this user                                   |
-| `terminal_entries`       | list[object] | No       | `[]`          | Terminal emulator configuration entries (see schema below)                   |
+| `terminal_entries`       | list[string] | No       | `[]`          | Terminal emulator names (e.g., ["kitty", "alacritty", "wezterm"])            |
 | `dotfiles.enable`        | boolean      | No       | `true`        | Enable dotfiles deployment using stow                                        |
 | `dotfiles.repository`    | string       | No       | none          | Git repository URL for dotfiles (e.g., "https://github.com/user/dotfiles")   |
 | `dotfiles.dest`          | string       | No       | `".dotfiles"` | Directory name for dotfiles repository                                       |
@@ -1166,9 +1166,6 @@ This role configures a single user via the `target_user` variable. This is a sta
 | Field            | Type    | Required | Default | Description                   |
 | ---------------- | ------- | -------- | ------- | ----------------------------- |
 | `prompt_on_quit` | boolean | No       | none    | Prompt before quitting iTerm2 |
-
-**Terminal Entry Object Schema** (for items in `terminal_entries` list):
-See terminal_config role documentation (section 3.11) for full schema.
 
 #### 3.6.3 Features and Functionality
 
