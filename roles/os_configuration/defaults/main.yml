@@ -1,46 +1,23 @@
 ---
-# =============================================================================
-# OS CONFIGURATION ROLE DEFAULTS
-# =============================================================================
-# This role uses collection-wide variables from SRD section 2.2.1
-# All variables defined exactly as specified in the SRD
-# =============================================================================
-
-# Domain Configuration
 domain_name: ""
 domain_timezone: ""
 domain_locale: "en_US.UTF-8"
 domain_language: "en_US.UTF-8"
+domain_timesync:
+  enabled: false
+  servers: []
 
-# Host Configuration
 host_hostname: ""
 host_update_hosts: true
-
-# Host Services (Linux)
 host_services:
   enable: []
   disable: []
   mask: []
-
-# Host Modules (Linux)
 host_modules:
   load: []
   blacklist: []
+host_udev_rules: []
 
-# Host Udev Rules (Linux)
-host_udev:
-  rules: []
-
-# Host Sysctl Parameters (Linux)
-host_sysctl:
-  parameters: {}
-
-# NTP Configuration (Linux)
-domain_ntp:
-  enabled: false
-  servers: []
-
-# Journal Configuration (Linux)
 journal:
   configure: false
   max_size: "500M"
@@ -48,12 +25,10 @@ journal:
   forward_to_syslog: false
   compress: true
 
-# Security Configuration
-host_security:
-  hardening_enabled: false
+hardening:
+  os_hardening_enabled: false
   ssh_hardening_enabled: false
 
-# APT Configuration (Debian/Ubuntu)
 apt:
   proxy: ""
   no_recommends: false
@@ -63,7 +38,6 @@ apt:
     enable: false
     type: "safe"
 
-# Pacman Configuration (Arch Linux)
 pacman:
   proxy: ""
   no_confirm: false
@@ -71,7 +45,6 @@ pacman:
     enabled: false
   enable_aur: false
 
-# macOS Configuration
 macosx:
   updates:
     auto_check: true

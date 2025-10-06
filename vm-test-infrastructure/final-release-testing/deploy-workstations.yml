@@ -8,6 +8,7 @@
   gather_facts: true
   vars_files:
     - test-scenarios/workstation-config.yml
+    - ../inventory/group_vars/all/vault.yml # Vault-encrypted passwords
 
   pre_tasks:
     - name: Wait for system to be ready

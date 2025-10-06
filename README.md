@@ -47,8 +47,9 @@ Cross-platform system configuration, package management, and development environ
 **Container Usage**: Security hardening disables IP forwarding. Enable for Docker/Kubernetes:
 
 ```yaml
-host_sysctl:
-  parameters:
+hardening:
+  os_hardening_enabled: true
+  sysctl_overwrite:
     net.ipv4.ip_forward: 1 # Required for Docker/Kubernetes
 ```
 
@@ -138,7 +139,7 @@ users:
 domain_timezone: "America/New_York"    # IANA timezone
 domain_locale: "en_US.UTF-8"          # System locale
 domain_language: "en_US.UTF-8"        # System language
-domain_ntp:
+domain_timesync:
   enabled: true                       # Enable NTP sync
   servers: ["pool.ntp.org"]           # NTP servers
 ```
@@ -151,12 +152,7 @@ host_update_hosts: true               # Update /etc/hosts
 host_services:
   enable: [nginx, postgresql]         # Enable services
   disable: [apache2, sendmail]        # Disable services
-  mask: [snapd, telnet]              # Mask services
-
-host_sysctl:
-  parameters:
-    vm.swappiness: 10                 # Kernel parameters
-    net.ipv4.ip_forward: 1
+  mask: [snapd, telenet]              # Mask services
 
 host_modules:
   load: [br_netfilter, overlay]       # Load modules
@@ -165,27 +161,25 @@ host_modules:
 
 ### Package Management
 ```yaml
-# Base packages for all hosts
-manage_packages_all:
-  Ubuntu: [git, curl, vim]
-  Debian: [git, curl, vim]
-  Archlinux: [git, curl, vim]
+packages:
+  present:
+    all:
+      Ubuntu: [git, curl, vim]
+      Debian: [git, curl, vim]
+    group:
+      Ubuntu: [nginx, postgresql]
+    host:
+      Ubuntu: [redis-server]
 
-# Group-specific packages
-manage_packages_group:
-  Ubuntu: [nginx, postgresql]
-
-# Host-specific packages
-manage_packages_host:
-  Ubuntu: [redis-server]
-
-# APT Configuration (Debian/Ubuntu)
 apt:
-  proxy: ""                          # APT proxy URL
-  no_recommends: false               # Disable recommended packages
-  repositories:
-    Ubuntu:
-      - name: nodejs
+  proxy: ""
+  no_recommends: false
+  unattended_upgrades:
+    enabled: false
+
+apt_repositories_host:
+  Ubuntu:
+    - name: nodejs
         types: [deb]
         uris: "https://deb.nodesource.com/node_20.x"
         suites: ["nodistro"]
@@ -403,19 +397,80 @@ python3 scripts/generate_collection_docs.py
   - **Arch Linux**: `base-devel` group for AUR support
   - **Debian/Ubuntu**: `python3-debian` for repository management
 
+## Development
+
+This collection uses modern Python tooling for development:
+
+- **uv**: Fast Python package manager
+- **just**: Command runner (modern Make alternative)
+- **molecule**: Role testing with Docker
+- **ansible-lint**: Linting
+- **pytest**: Unit testing
+
+### Prerequisites
+
+Before setting up the development environment, ensure you have:
+
+1. **Python 3.13+** installed
+2. **Docker** installed and running (required for molecule tests)
+3. **just** - Command runner (see: https://github.com/casey/just#installation)
+4. **uv** - Python package manager
+
+### Setup Development Environment
+
+```bash
+# 1. Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Install just (if not already installed)
+# Linux/macOS:
+curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
+# Or use your package manager (Arch: pacman -S just, macOS: brew install just)
+
+# 3. Clone and initialize the project
+git clone https://github.com/wolskinet/ansible-infrastructure
+cd ansible-infrastructure
+just init
+# This will:
+# - Install all Python dependencies via uv
+# - Set up pre-commit hooks
+
+# 4. View available commands
+just --list
+```
+
+### Common Development Tasks
+
+```bash
+# Run linters
+just lint-all
+
+# Run tests
+just test
+
+# Run molecule tests for a role
+just molecule-test <role-name>
+
+# Build collection
+just build
+
+# Generate documentation
+just docs-build
+```
+
 ## Testing and Validation
 
 The collection includes comprehensive testing:
 - **Molecule tests** for individual roles
 - **CI/CD integration** with GitLab
-- **Cross-platform validation** on Ubuntu, Debian, Arch, macOS
-- **VM-based end-to-end testing** with 4-VM test matrix
+- **Cross-platform validation** on Ubuntu, Debian, Arch Linux
+- **VM-based end-to-end testing** with multi-VM test matrix
 
 For local testing:
 ```bash
 # Test individual role
-cd roles/role_name && molecule test
+just molecule-test <role-name>
 
 # Run collection-wide tests
-make test
+just test
 ```

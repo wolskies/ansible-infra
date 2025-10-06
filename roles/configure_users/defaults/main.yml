@@ -6,24 +6,26 @@
 # =============================================================================
 
 # User Preferences (Collection-wide)
+# Note: This role does NOT create users - it only configures preferences for existing users
 users: []
 # Example:
 # users:
-#   - name: developer
-#     git:
+#   - name: developer                    # Must be an existing user
+#     shell: /bin/bash                   # Optional: Set user shell (Linux only)
+#     git:                               # Optional: Git configuration
 #       user_name: "John Doe"
 #       user_email: "john@example.com"
 #       editor: "nvim"
-#     nodejs:
+#     nodejs:                            # Optional: Node.js packages
 #       packages: ["typescript", "@angular/cli"]
-#     rust:
+#     rust:                              # Optional: Rust packages
 #       packages: ["ripgrep", "fd-find"]
-#     go:
+#     go:                                # Optional: Go packages
 #       packages: ["github.com/user/package@latest"]
-#     neovim:
+#     neovim:                            # Optional: Install Neovim
 #       enabled: true
-#     terminal_entries: [kitty, alacritty]
-#     dotfiles:
+#     terminal_entries: [kitty, alacritty]  # Optional: Terminal configs
+#     dotfiles:                          # Optional: Dotfiles repository
 #       enable: true
 #       repository: "https://github.com/user/dotfiles.git"
 #       dest: ".dotfiles"

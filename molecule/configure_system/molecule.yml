@@ -50,7 +50,7 @@ provisioner:
         domain_timezone: "America/New_York"
         domain_locale: "en_US.UTF-8"
         domain_language: "en_US.UTF-8"
-        domain_ntp:
+        domain_timesync:
           enabled: true
           servers:
             - 0.pool.ntp.org

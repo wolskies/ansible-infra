@@ -79,61 +79,45 @@ argument_specs:
             description: Kernel modules to blacklist (e.g., ["pcspkr", "snd_pcsp"])
 
       # Udev Rules
-      host_udev:
-        type: dict
-        default: {}
-        description: Custom udev rules management
+      host_udev_rules:
+        type: list
+        elements: dict
+        default: []
+        description: Custom udev rules definitions
         options:
-          rules:
-            type: list
-            elements: dict
-            default: []
-            description: Custom udev rules definitions
-            options:
-              name:
-                type: str
-                required: true
-                description: Rule identifier (alphanumeric + hyphens, used in filename)
-              content:
-                type: str
-                required: true
-                description: 'Udev rule content (e.g., ''SUBSYSTEM=="usb", MODE="0666"'')'
-              priority:
-                type: int
-                default: 99
-                description: Rule priority (10-99, lower executes first)
-              state:
-                type: str
-                default: "present"
-                choices: ["present", "absent"]
-                description: Rule state ("present" to deploy, "absent" to remove)
+          name:
+            type: str
+            required: true
+            description: Rule identifier (alphanumeric + hyphens, used in filename)
+          content:
+            type: str
+            required: true
+            description: 'Udev rule content (e.g., ''SUBSYSTEM=="usb", MODE="0666"'')'
+          priority:
+            type: int
+            default: 99
+            description: Rule priority (10-99, lower executes first)
+          state:
+            type: str
+            default: "present"
+            choices: ["present", "absent"]
+            description: Rule state ("present" to deploy, "absent" to remove)
 
-      # Sysctl Parameters
-      host_sysctl:
+      # Time Synchronization Configuration
+      domain_timesync:
         type: dict
         default: {}
-        description: Kernel parameter configuration
-        options:
-          parameters:
-            type: dict
-            default: {}
-            description: "Kernel parameter definitions (key: sysctl name, value: setting)"
-
-      # NTP Configuration
-      domain_ntp:
-        type: dict
-        default: {}
-        description: NTP time synchronization configuration
+        description: Time synchronization configuration via systemd-timesyncd
         options:
           enabled:
             type: bool
             default: false
-            description: Enable NTP time synchronization configuration
+            description: Enable time synchronization configuration
           servers:
             type: list
             elements: str
             default: []
-            description: NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])
+            description: Time server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])
 
       # Journal Configuration
       journal:
@@ -163,19 +147,19 @@ argument_specs:
             description: Enable journal file compression
 
       # Security Configuration
-      host_security:
+      hardening:
         type: dict
         default: {}
         description: Security hardening configuration
         options:
-          hardening_enabled:
+          os_hardening_enabled:
             type: bool
             default: false
-            description: Enable devsec.hardening security baseline
+            description: Enable devsec.hardening.os_hardening security baseline
           ssh_hardening_enabled:
             type: bool
             default: false
-            description: Enable SSH-specific security hardening
+            description: Enable devsec.hardening.ssh_hardening security hardening
 
       # APT Configuration (Debian/Ubuntu)
       apt:

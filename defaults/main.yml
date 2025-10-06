@@ -1,105 +1,108 @@
 ---
-# =============================================================================
-# WOLSKIES.INFRASTRUCTURE COLLECTION - MASTER VARIABLE REFERENCE
-# =============================================================================
-# This file serves as both collection-wide defaults AND the complete variable
-# reference for the entire collection. All possible variables are documented
-# here with their default values and descriptions.
-#
-# Usage:
-# - Collection defaults: These values are used across all roles
-# - Variable reference: Use this file to see all available variables
-# - Individual role defaults only contain role-specific overrides
-#
-# Variable precedence: playbook vars > role vars > role defaults > collection defaults
-# =============================================================================
-
-# Domain-level configuration
 domain_name: ""
 domain_timezone: ""
 domain_locale: "en_US.UTF-8"
 domain_language: "en_US.UTF-8"
-domain_ntp:
-  enabled: false
+# Time synchronization via systemd-timesyncd
+domain_timesync:
+  enabled: true
   servers: []
-
-# Host-level configuration
 host_hostname: ""
 host_update_hosts: true
-host_services: {}
-host_sysctl:
-  parameters: {}
-  # Example:
-  # parameters:
-  #   net.ipv4.ip_forward: 1
-  #   vm.swappiness: 10
-  #   fs.file-max: 65536
-host_modules: {}
-host_udev: {}
-  # Example:
-  # rules:
-  #   - name: pico-usb
-  #     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
-  #     priority: 99
-  #     state: present
-  #   - name: dialout-tty
-  #     content: 'KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"'
-  #     priority: 99
-  #     state: present
-host_security:
-  hardening_enabled: true
-  disable_ctrl_alt_del: false
-  users_allow: []
-  remove_additional_root_users: false
-  enforce_password_aging: true
+# Names of services to be passed to ansible.builtin.systemd_service to enable/disable/mask
+host_services:
+  enable: []
+  disable: []
+  mask: []
+# Linux kernel modules to load/blacklist
+host_modules:
+  load: []
+  blacklist: []
+host_udev_rules: []
+# Example:
+# host_udev_rules:
+#   - name: pico-usb
+#     content: 'SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000c", MODE="0666"'
+#     priority: 99
+#     state: present
+#   - name: dialout-tty
+#     content: 'KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"'
+#     priority: 99
+#     state: present
+hardening:
+  # Triggers devsec.hardening.os_hardening role (Linux only)
+  # All devsec.hardening.os_hardening variables can be set directly
+  # See: https://github.com/dev-sec/ansible-collection-hardening/tree/master/roles/os_hardening
+  os_hardening_enabled: false
+  # Example devsec.hardening.os_hardening variables:
+  # os_auth_pw_max_age: 90                    # Password expiration (days)
+  # os_auth_pw_min_age: 7                     # Minimum password age (days)
+  # os_users_without_password_ageing: []      # Users exempt from password aging
+  # os_ctrlaltdel_disabled: false             # Disable Ctrl+Alt+Del reboot
+  # os_security_users_allow: []               # Users with special privileges
+  # os_remove_additional_root_users: false    # Remove duplicate UID=0 accounts
+  # sysctl_overwrite:                         # Override/add sysctl parameters
+  #   vm.swappiness: 10                       # Swappiness (default: not set)
+  #   net.ipv4.ip_forward: 1                  # Enable IP forwarding (for Docker/K8s)
+  #   fs.file-max: 65536                      # Max open files
+  # SSH hardening via devsec.hardening.ssh_hardening (Linux only)
+  # All devsec.hardening.ssh_hardening variables can be set directly
+  # See: https://github.com/dev-sec/ansible-collection-hardening/tree/master/roles/ssh_hardening
   ssh_hardening_enabled: false
-  ssh_server_ports: ["22"]
-  ssh_client_port: "22"
-  ssh_listen_to: ["0.0.0.0"]
-  sftp_enabled: true
-
-# System logging
+  # Example devsec.hardening.ssh_hardening variables:
+  # ssh_server_ports: ["22"]
+  # ssh_client_port: "22"
+  # ssh_listen_to: ["0.0.0.0"]
+  # sftp_enabled: true
 journal:
   configure: false
   max_size: "500M"
   max_retention: "30d"
   forward_to_syslog: false
   compress: true
-
 rsyslog:
   enabled: false
   remote_host: ""
   remote_port: 514
   protocol: "udp"
-
-# Package manager configuration
 apt:
-  no_recommends: false
   proxy: ""
+  no_recommends: false
   unattended_upgrades:
     enabled: false
   system_upgrade:
     enable: false
     type: "safe"
-  repositories: {}
-  # Example:
-  # repositories:
-  #   docker:
-  #     name: docker
-  #     types: [deb]
-  #     uris: "https://download.docker.com/linux/ubuntu"
-  #     suites: ["{{ ansible_distribution_release }}"]
-  #     components: [stable]
-  #     signed_by: "https://download.docker.com/linux/ubuntu/gpg"
-
+apt_repositories_all: {}
+apt_repositories_group: {}
+apt_repositories_host: {}
+# Example:
+# apt_repositories_host:
+#   Ubuntu:
+#     - name: docker
+#       types: [deb]
+#       uris: "https://download.docker.com/linux/ubuntu"
+#       suites: "{{ ansible_distribution_release }}"
+#       components: "stable"
+#       signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+#     - name: nodejs
+#       uris: "https://deb.nodesource.com/node_20.x"
+#       suites: "nodistro"
+#       components: "main"
+#       signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+#   Debian:
+#     - name: docker
+#       types: [deb]
+#       uris: "https://download.docker.com/linux/debian"
+#       suites: "{{ ansible_distribution_release }}"
+#       components: "stable"
+#       signed_by: "https://download.docker.com/linux/debian/gpg"
 pacman:
-  no_confirm: false
   proxy: ""
+  no_confirm: false
   multilib:
     enabled: false
-  enable_aur: false
-
-# macOS specific
+  enable_aur: true
 macosx:
   updates:
     auto_check: true
@@ -113,24 +116,9 @@ macosx:
     show_all_extensions: false
   airdrop:
     ethernet_enabled: false
-
-# Docker services configuration
-docker_services_root: "/srv/docker"
-service_name: ""
-service_enabled: true
-service_env_vars: {}
-compose_file_content: ""
-service_image: ""
-service_volumes: []
-service_command: ""
-service_environment: []
-service_use_proxy: false
-proxy_network_name: "proxy"
-proxy_network_external: true
-service_ports: []
-service_labels: {}
-
-# Package management
+homebrew:
+  cleanup_cache: true
+  taps: []
 packages:
   present: {}
   # Example:
@@ -160,71 +148,40 @@ packages:
   #   group: [docker, postman]
   #   host: [slack, spotify]
   casks_remove: []
-
-homebrew:
-  cleanup_cache: true
-  taps: []
-
-# User management
+snap:
+  remove_completely: false
+  packages:
+    install: []
+    remove: []
+flatpak:
+  enabled: false
+  remotes: []
+  packages:
+    install: []
+    remove: []
 users: []
 # Example:
 # users:
-#   - name: developer
-#     comment: "Development User"
-#     password: "{{ vault_developer_password }}"  # REQUIRED - password hash from ansible-vault
-#     groups: [docker, sudo]
-#     append: true                       # Append groups instead of replacing (default: true)
-#     shell: /bin/bash
-#     state: present
-#     superuser: true                    # Grant sudo/wheel/admin access
-#     superuser_passwordless: false      # Enable passwordless sudo
-#     manage_ansible_user: false         # Safety: skip ansible_user unless true (default: false)
-#     ssh_keys:
-#       - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
-#         comment: "developer@workstation"
-#         state: present
-#     # Language toolchains and development tools
-#     nodejs:
+#   - name: developer               # Must be an existing user
+#     shell: /bin/bash              # Optional: Set user shell (Linux only)
+#     git:                          # Optional: Git configuration
+#       user_name: "John Doe"
+#       user_email: "john@example.com"
+#       editor: "nvim"
+#     nodejs:                       # Optional: Node.js packages
 #       packages: [eslint, prettier, typescript]
-#     rust:
+#     rust:                         # Optional: Rust packages
 #       packages: [cargo-watch, ripgrep]
-#     go:
+#     go:                           # Optional: Go packages
 #       packages: [github.com/golangci/golangci-lint/cmd/golangci-lint]
-#     neovim:
+#     neovim:                       # Optional: Neovim installation
 #       enabled: true
-#     # Terminal emulator configuration
-#     terminal_entries: [alacritty, kitty]
-#     # Dotfiles and shell configuration
-#     dotfiles:
+#     terminal_entries: [alacritty, kitty]  # Optional: Terminal emulator configs
+#     dotfiles:                     # Optional: Dotfiles repository
 #       enable: true
-#       repository: ""
-#       dest: ""
-#   - name: deploy
-#     comment: "Deployment User"
-#     groups: [docker]
-#     shell: /bin/bash
-#     state: present
-users_absent: []
-# Example: users_absent: [olduser, tempuser]
-
-# Language toolchains
-node_user: ""
-node_packages: []
-nodejs_version: "20"
-nodejs_update_cache: true
-
-rust_user: ""
-rust_packages: []
-
-go_user: ""
-go_packages: []
-
-# System optimization
-optimizations:
-  tune_swappiness: false
-  swappiness: 60
-
-# Security services
+#       repository: "https://github.com/user/dotfiles.git"
+#       dest: ".dotfiles"
+#       branch: "main"
 firewall:
   enabled: false
   prevent_ssh_lockout: true
@@ -232,11 +189,8 @@ firewall:
   stealth_mode: false
   block_all: false
   logging: false
-  rules:
-    - rule: allow
-      port: 22
-      proto: tcp
-      comment: "SSH access (prevent lockout)"
+  rules: []
+  # SSH is automatically allowed when prevent_ssh_lockout is true
   # Additional rules can be added:
   # rules:
   #   - rule: allow
@@ -249,7 +203,6 @@ firewall:
   #     from_ip: 192.168.1.0/24
   #     port: 3000
   #     proto: tcp
-
 fail2ban:
   enabled: false
   sender: "root@localhost"
@@ -268,18 +221,3 @@ fail2ban:
   ignoreips:
     - "127.0.0.1/8"
     - "::1"
-
-# Snap configuration
-snap:
-  remove_completely: false
-  packages:
-    install: []
-    remove: []
-
-# Flatpak configuration
-flatpak:
-  enabled: false
-  remotes: []
-  packages:
-    install: []
-    remove: []

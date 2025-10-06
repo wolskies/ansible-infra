@@ -16,3 +16,11 @@
         state: present
         update_cache: true
       when: ansible_os_family == 'Archlinux'
+
+    - name: Install auditd for service management testing (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: auditd
+        state: present
+      when:
+        - ansible_os_family == 'Debian'
+        - inventory_hostname == 'ubuntu-full-positive'

@@ -1,61 +1,29 @@
 ---
-# =============================================================================
-# WOLSKIES.INFRASTRUCTURE COLLECTION - EXAMPLE CONFIGURATION
-# =============================================================================
-# Complete example showing all collection variables
-# See README.md for detailed documentation
-# =============================================================================
-
-# -----------------------------------------------------------------------------
-# DOMAIN-WIDE CONFIGURATION (os_configuration role)
-# -----------------------------------------------------------------------------
 domain_name: "example.com"
 domain_timezone: "America/New_York"
 domain_locale: "en_US.UTF-8"
 domain_language: "en_US.UTF-8"
-
-# NTP Configuration
-domain_ntp:
+domain_timesync:
   enabled: true
   servers:
     - 0.pool.ntp.org
     - 1.pool.ntp.org
-    - 2.pool.ntp.org
-    - 3.pool.ntp.org
 
-# -----------------------------------------------------------------------------
-# HOST-SPECIFIC CONFIGURATION (os_configuration role)
-# -----------------------------------------------------------------------------
 host_hostname: "{{ inventory_hostname }}"
 host_update_hosts: true
-
-# Systemd Services (Linux)
 host_services:
-  enable: [systemd-timesyncd, docker]
+  enable: [docker]
   disable: [bluetooth, cups]
   mask: [snapd]
-
-# Kernel Modules (Linux)
 host_modules:
   load: [br_netfilter, overlay]
   blacklist: [pcspkr, nouveau]
+host_udev_rules:
+  - name: usb-permissions
+    content: 'SUBSYSTEM=="usb", MODE="0666"'
+    priority: 99
+    state: present
 
-# Sysctl Parameters (Linux)
-host_sysctl:
-  parameters:
-    vm.swappiness: 10
-    net.ipv4.ip_forward: 1  # Required for Docker/Kubernetes
-    net.core.default_qdisc: "fq"
-
-# Udev Rules (Linux)
-host_udev:
-  rules:
-    - name: usb-permissions
-      content: 'SUBSYSTEM=="usb", MODE="0666"'
-      priority: 99
-      state: present
-
-# Journal Configuration (Linux)
 journal:
   configure: true
   max_size: "500M"
@@ -63,34 +31,41 @@ journal:
   forward_to_syslog: false
   compress: true
 
-# Security Hardening (Linux)
-host_security:
-  hardening_enabled: true
+hardening:
+  os_hardening_enabled: true
   ssh_hardening_enabled: true
 
-# -----------------------------------------------------------------------------
-# PACKAGE MANAGER CONFIGURATION (os_configuration role)
-# -----------------------------------------------------------------------------
+rsyslog:
+  enabled: false
+  remote_host: ""
+  remote_port: 514
+  protocol: "udp"
 
-# APT Configuration (Debian/Ubuntu)
 apt:
-  proxy: ""  # Example: "http://user:pass@proxy.example.com:8080"
+  proxy: ""
   no_recommends: false
   unattended_upgrades:
     enabled: true
   system_upgrade:
     enable: false
-    type: "safe"  # Options: safe, dist, full, yes
+    type: "safe"
 
-# Pacman Configuration (Arch Linux)
+apt_repositories_host:
+  Ubuntu:
+    - name: docker
+      types: [deb]
+      uris: "https://download.docker.com/linux/ubuntu"
+      suites: "{{ ansible_distribution_release }}"
+      components: [stable]
+      signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+
 pacman:
-  proxy: ""  # Example: "http://proxy.example.com:3128"
+  proxy: ""
   no_confirm: false
   multilib:
     enabled: false
-  enable_aur: false
+  enable_aur: true
 
-# macOS Configuration
 macosx:
   updates:
     auto_check: true
@@ -105,150 +80,74 @@ macosx:
   airdrop:
     ethernet_enabled: false
 
-# -----------------------------------------------------------------------------
-# PACKAGE MANAGEMENT (manage_packages role)
-# -----------------------------------------------------------------------------
-
-# Base packages for all hosts
-manage_packages_all:
-  Ubuntu: [git, curl, vim, htop, wget]
-  Debian: [git, curl, vim, htop, wget]
-  Archlinux: [git, curl, vim, htop, wget]
-  Darwin: [git, curl, vim, htop, wget]
-
-# Group-specific packages
-manage_packages_group:
-  Ubuntu: [nginx, postgresql-client]
-  Debian: [nginx, postgresql-client]
-
-# Host-specific packages
-manage_packages_host:
-  Ubuntu: [redis-tools]
-
-# APT Repositories (Debian/Ubuntu)
-apt:
-  repositories:
-    Ubuntu:
-      - name: docker
-        types: [deb]
-        uris: "https://download.docker.com/linux/ubuntu"
-        suites: "{{ ansible_distribution_release }}"
-        components: [stable]
-        signed_by: "https://download.docker.com/linux/ubuntu/gpg"
-      - name: nodejs
-        types: [deb]
-        uris: "https://deb.nodesource.com/node_20.x"
-        suites: [nodistro]
-        components: [main]
-        signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
-
-# Homebrew Configuration (macOS)
 homebrew:
   cleanup_cache: true
-  taps:
-    - homebrew/cask-fonts
+  taps: []
 
-# Homebrew Casks (macOS)
-manage_casks:
-  Darwin:
-    - name: visual-studio-code
-      state: present
-    - name: docker
-      state: present
-    - name: firefox
-      state: present
+packages:
+  present:
+    all:
+      Ubuntu: [git, curl, vim, htop]
+      Debian: [git, curl, vim, htop]
+      Archlinux: [git, curl, vim, htop]
+      Darwin: [git, curl, vim]
+  casks_present:
+    all: []
+    group: []
+    host: []
 
-# Snap Packages (Ubuntu/Debian)
 snap:
   remove_completely: false
+  packages:
+    install: []
+    remove: []
 
-snap_packages:
-  - name: code
-    classic: true
-    state: present
-
-# Flatpak Packages
 flatpak:
-  enabled: true
-  flathub: true
-  method: system
+  enabled: false
+  remotes: []
+  packages:
+    install: []
+    remove: []
 
-flatpak_packages:
-  - name: org.mozilla.firefox
-    state: present
+users:
+  - name: developer
+    shell: /bin/bash
+    git:
+      user_name: "John Doe"
+      user_email: "john@example.com"
+      editor: "vim"
+    dotfiles:
+      enable: true
+      repository: "git@github.com:user/dotfiles.git"
+      dest: ".dotfiles"
+      branch: "main"
 
-# -----------------------------------------------------------------------------
-# SECURITY SERVICES (manage_security_services role)
-# -----------------------------------------------------------------------------
-
-# Firewall Configuration
 firewall:
   enabled: true
   prevent_ssh_lockout: true
   rules:
     - rule: allow
-      port: 22
-      protocol: tcp
-      comment: "SSH"
-    - rule: allow
       port: 80
-      protocol: tcp
+      proto: tcp
       comment: "HTTP"
     - rule: allow
       port: 443
-      protocol: tcp
+      proto: tcp
       comment: "HTTPS"
-    - rule: allow
-      from_ip: 192.168.1.0/24
-      port: 3000
-      protocol: tcp
-      comment: "Dev server (local network only)"
 
-# Fail2ban Configuration
 fail2ban:
   enabled: true
-  bantime: "10m"
-  findtime: "10m"
-  maxretry: 5
-  jails:
+  sender: "root@localhost"
+  dest_email: ""
+  defaults:
+    bantime: 3600
+    findtime: 600
+    maxretry: 5
+  services:
     - name: sshd
       enabled: true
       maxretry: 3
-      bantime: "1h"
-
-# -----------------------------------------------------------------------------
-# USER CONFIGURATION (configure_user role)
-# -----------------------------------------------------------------------------
-
-# User Account Management
-users:
-  - name: developer
-    uid: 1000
-    groups: [sudo, docker]
-    shell: /bin/bash
-    state: present
-    ssh_keys:
-      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... developer@workstation"
-        comment: "Developer workstation key"
-        state: present
-
-# Per-User Development Configuration
-target_user:
-  name: developer
-  git:
-    user_name: "Developer Name"
-    user_email: "developer@example.com"
-    editor: "nvim"
-  nodejs:
-    packages: [typescript, eslint, prettier, "@vue/cli"]
-  rust:
-    packages: [ripgrep, bat, fd-find]
-  go:
-    packages: [github.com/charmbracelet/glow@latest]
-  neovim:
-    enabled: true
-  dotfiles:
-    enable: true
-    repository: "https://github.com/developer/dotfiles"
-    branch: main
-    dest: ".dotfiles"
+      bantime: 3600
+  ignoreips:
+    - "127.0.0.1/8"
+    - "::1"

@@ -1,27 +1,28 @@
 ---
-# =============================================================================
-# MANAGE SECURITY SERVICES ROLE DEFAULTS
-# =============================================================================
-# This role handles firewall configuration and intrusion prevention services
-# Uses collection-wide variables from section 2.2.1 - no role-specific variables
-#
-# All variables are defined in the collection interface (docs/source/api/variables.rst)
-# and documented in meta/argument_specs.yml
-# =============================================================================
-
-# Firewall Configuration
 firewall:
   enabled: false
   prevent_ssh_lockout: true
-  rules: []
+  package: "ufw"
   stealth_mode: false
   block_all: false
   logging: false
+  rules: []
 
-# Fail2ban Configuration
 fail2ban:
   enabled: false
-  bantime: "10m"
-  findtime: "10m"
-  maxretry: 5
-  jails: []
+  sender: "root@localhost"
+  dest_email: ""
+  defaults:
+    bantime: 3600
+    findtime: 600
+    maxretry: 5
+  services:
+    - name: sshd
+      enabled: true
+      maxretry: 5
+      bantime: 3600
+      findtime: 600
+      logpath: /var/log/auth.log
+  ignoreips:
+    - "127.0.0.1/8"
+    - "::1"

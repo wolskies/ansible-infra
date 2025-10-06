@@ -19,6 +19,7 @@
     dest: "~/{{ target_user.dotfiles.dest | default('.dotfiles') }}"
     version: "{{ target_user.dotfiles.branch | default('main') }}"
     update: true
+    accept_newhostkey: true
   become: true
   become_user: "{{ target_user.name }}"
   when: not (target_user.dotfiles.disable_clone | default(false))

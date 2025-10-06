@@ -19,9 +19,9 @@ domain_locale: {{ discovery_domain_locale | to_json }}
 {% if discovery_domain_language -%}
 domain_language: {{ discovery_domain_language | to_json }}
 {% endif -%}
-{% if discovery_domain_ntp_enabled is not none %}
+{% if discovery_domain_timesync_enabled is not none %}
 domain_ntp:
-  enabled: {{ discovery_domain_ntp_enabled | lower }}
+  enabled: {{ discovery_domain_timesync_enabled | lower }}
   servers:
     - "0.pool.ntp.org"
     - "1.pool.ntp.org"
@@ -49,10 +49,10 @@ host_services:
 {% endif %}
 
 {% if discovery_sysctl_current | length > 0 %}
-host_sysctl:
-  parameters:
+# Discovered sysctl parameters (set via sysctl_overwrite in host_security)
+# sysctl_overwrite:
 {% for key, value in discovery_sysctl_current.items() %}
-    {{ key }}: {{ value | to_json }}
+#   {{ key }}: {{ value | to_json }}
 {% endfor %}
 {% endif %}
 

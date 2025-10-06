@@ -49,8 +49,8 @@ provisioner:
         ansible_user: root
         molecule_test: true
         # Disable OS hardening in containers (auditd package not available)
-        host_security:
-          hardening_enabled: false
+        hardening:
+          os_hardening_enabled: false
     host_vars:
       ubuntu-nodejs-test:
         # Test user for nodejs installation

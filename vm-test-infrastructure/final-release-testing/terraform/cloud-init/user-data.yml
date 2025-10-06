@@ -19,6 +19,8 @@ ssh_pwauth: false
 disable_root: true
 
 # Basic packages for Ansible
+package_update: false
+package_upgrade: false
 packages:
   - python3
   - python3-pip

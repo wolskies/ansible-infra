@@ -23,6 +23,7 @@ locals {
       memory    = 4096
       vcpu      = 2
       test_type = "server"
+      ip        = "192.168.122.10"
     }
     ubuntu2404-workstation = {
       image_url = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
@@ -30,6 +31,7 @@ locals {
       memory    = 4096
       vcpu      = 2
       test_type = "workstation"
+      ip        = "192.168.122.11"
     }
     debian12-server = {
       image_url = "https://cdimage.debian.org/cdimage/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
@@ -37,6 +39,7 @@ locals {
       memory    = 4096
       vcpu      = 2
       test_type = "server"
+      ip        = "192.168.122.12"
     }
     arch-workstation = {
       image_url = "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2"
@@ -44,6 +47,7 @@ locals {
       memory    = 4096
       vcpu      = 2
       test_type = "workstation"
+      ip        = "192.168.122.13"
     }
   }
 }
@@ -74,7 +78,9 @@ resource "libvirt_cloudinit_disk" "vm_cloudinit" {
   user_data = templatefile("${path.module}/cloud-init/user-data.yml", {
     hostname = each.key
   })
-  network_config = file("${path.module}/cloud-init/network-config.yml")
+  network_config = templatefile("${path.module}/cloud-init/network-config.yml", {
+    ip_address = each.value.ip
+  })
 }
 
 # Create VMs
@@ -87,10 +93,10 @@ resource "libvirt_domain" "test_vms" {
   # Boot configuration
   cloudinit = libvirt_cloudinit_disk.vm_cloudinit[each.key].id
 
-  # Network configuration
+  # Network configuration - static IP
   network_interface {
-    network_name   = "default"
-    wait_for_lease = true
+    network_name = "default"
+    addresses    = [local.vms[each.key].ip]
   }
 
   # Disk configuration
@@ -128,26 +134,28 @@ resource "libvirt_domain" "test_vms" {
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/templates/inventory.tpl", {
     vms = {
-      for name, vm in libvirt_domain.test_vms : name => {
-        ip_address = vm.network_interface[0].addresses[0]
-        os_family  = local.vms[name].os_family
-        test_type  = local.vms[name].test_type
+      for name, vm_config in local.vms : name => {
+        ip_address = vm_config.ip
+        os_family  = vm_config.os_family
+        test_type  = vm_config.test_type
       }
     }
   })
   filename        = "${path.module}/../inventory/hosts.ini"
   file_permission = "0644"
+  depends_on      = [libvirt_domain.test_vms]
 }
 
 # SSH configuration helper
 resource "local_file" "ssh_config" {
   content = templatefile("${path.module}/templates/ssh-config.tpl", {
     vms = {
-      for name, vm in libvirt_domain.test_vms : name => {
-        ip_address = vm.network_interface[0].addresses[0]
+      for name, vm_config in local.vms : name => {
+        ip_address = vm_config.ip
       }
     }
   })
   filename        = "${path.module}/../ssh-config"
   file_permission = "0644"
+  depends_on      = [libvirt_domain.test_vms]
 }

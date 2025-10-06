@@ -136,7 +136,7 @@ domain_name: ""
 domain_timezone: "America/New_York"
 domain_locale: "en_US.UTF-8"
 domain_language: "en_US.UTF-8"
-domain_ntp:
+domain_timesync:
   enabled: true
   servers:
     - "0.pool.ntp.org"
@@ -169,15 +169,11 @@ host_services:
   enable: []
   disable: []
 
-host_sysctl:
-  parameters: {}
-
 host_modules:
   load: []
   blacklist: []
 
-host_udev:
-  rules: []
+host_udev_rules: []
 
 # =============================================================================
 # SECURITY SERVICES

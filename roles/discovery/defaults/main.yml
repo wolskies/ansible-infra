@@ -17,7 +17,7 @@ discovery_domain_name: ""
 discovery_domain_timezone: ""
 discovery_domain_locale: ""
 discovery_domain_language: ""
-discovery_domain_ntp_enabled: null
+discovery_domain_timesync_enabled: null
 
 discovery_users: []
 discovery_hostname: ""

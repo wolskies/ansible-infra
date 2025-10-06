@@ -252,21 +252,21 @@
       ansible.builtin.assert:
         that:
           - timesyncd_config_stat.stat.exists
-          - timesyncd_config_check.stdout == ("NTP=" + (domain_ntp.servers | join(' ')))
+          - timesyncd_config_check.stdout == ("NTP=" + (domain_timesync.servers | join(' ')))
         fail_msg: "Time synchronization configuration not created correctly"
         success_msg: "✅ REQ-OS-008: Time synchronization configuration correctly created with specified servers"
       when:
         - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases', 'arch-ntp-test']
-        - domain_ntp is defined
-        - domain_ntp.enabled | default(false)
+        - domain_timesync is defined
+        - domain_timesync.enabled | default(false)
 
     - name: Document systemd service limitation in containers
       ansible.builtin.debug:
         msg: "⚠️ REQ-OS-008: systemd service management skipped in containers via tags - configuration files validated"
       when:
         - inventory_hostname in ['ubuntu-full-positive', 'ubuntu-negative-empty', 'ubuntu-edge-cases', 'arch-ntp-test']
-        - domain_ntp is defined
-        - domain_ntp.enabled | default(false)
+        - domain_timesync is defined
+        - domain_timesync.enabled | default(false)
 
     - name: Verify time synchronization disabled correctly (disabled/undefined cases)
       ansible.builtin.debug:
@@ -584,26 +584,26 @@
     - name: Check deployed udev rules files
       ansible.builtin.stat:
         path: "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
-      loop: "{{ host_udev.rules | default([]) }}"
+      loop: "{{ host_udev_rules_rules | default([]) }}"
       loop_control:
         loop_var: udev_rule
       register: udev_rules_check
       when:
-        - host_udev is defined
-        - host_udev.rules is defined
+        - host_udev_rules_rules is defined
+        - host_udev_rules_rules | length > 0
         - udev_rule.state | default('present') == 'present'
 
     - name: Verify udev rules content
       ansible.builtin.command: cat "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
-      loop: "{{ host_udev.rules | default([]) }}"
+      loop: "{{ host_udev_rules_rules | default([]) }}"
       loop_control:
         loop_var: udev_rule
       register: udev_rules_content
       changed_when: false
       failed_when: false
       when:
-        - host_udev is defined
-        - host_udev.rules is defined
+        - host_udev_rules_rules is defined
+        - host_udev_rules_rules | length > 0
         - udev_rule.state | default('present') == 'present'
 
     - name: Verify udev rules are deployed correctly (positive test)
@@ -616,33 +616,33 @@
       loop: "{{ udev_rules_check.results | default([]) }}"
       when:
         - inventory_hostname == 'ubuntu-full-positive'
-        - host_udev is defined
+        - host_udev_rules is defined
         - item.skipped is not defined
 
     - name: Verify udev rules content matches specification
       ansible.builtin.assert:
         that:
-          - item.stdout == host_udev.rules[loop_index].content
-        fail_msg: "❌ REQ-OS-016: udev rule content mismatch in {{ host_udev.rules[loop_index].name }}"
-        success_msg: "✅ REQ-OS-016: udev rule content correct for {{ host_udev.rules[loop_index].name }}"
+          - item.stdout == host_udev_rules[loop_index].content
+        fail_msg: "❌ REQ-OS-016: udev rule content mismatch in {{ host_udev_rules[loop_index].name }}"
+        success_msg: "✅ REQ-OS-016: udev rule content correct for {{ host_udev_rules[loop_index].name }}"
       loop: "{{ udev_rules_content.results | default([]) }}"
       loop_control:
         index_var: loop_index
       when:
         - inventory_hostname == 'ubuntu-full-positive'
-        - host_udev is defined
+        - host_udev_rules is defined
         - item.skipped is not defined
 
     - name: Check removed udev rules are absent
       ansible.builtin.stat:
         path: "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
-      loop: "{{ host_udev.rules | default([]) }}"
+      loop: "{{ host_udev_rules | default([]) }}"
       loop_control:
         loop_var: udev_rule
       register: udev_removed_rules_check
       when:
-        - host_udev is defined
-        - host_udev.rules is defined
+        - host_udev_rules is defined
+        - host_udev_rules is defined
         - udev_rule.state | default('present') == 'absent'
 
     - name: Verify udev rules are removed correctly (removal test)
@@ -654,15 +654,15 @@
       loop: "{{ udev_removed_rules_check.results | default([]) }}"
       when:
         - inventory_hostname == 'ubuntu-edge-cases'
-        - host_udev is defined
+        - host_udev_rules is defined
         - item.skipped is not defined
 
     - name: Verify udev rules conditional logic (undefined test)
       ansible.builtin.debug:
-        msg: "✅ REQ-OS-016: udev rules skipped when host_udev undefined - conditional logic working"
+        msg: "✅ REQ-OS-016: udev rules skipped when host_udev_rules undefined - conditional logic working"
       when:
         - inventory_hostname in ['ubuntu-negative-empty', 'ubuntu-negative-undefined', 'ubuntu-partial-enabled']
-        - host_udev is not defined or host_udev.rules is not defined or host_udev.rules | length == 0
+        - host_udev_rules is not defined or host_udev_rules is not defined or host_udev_rules | length == 0
 
     # ===== REQ-OS-017: APT Proxy Validation =====
     - name: Check APT proxy configuration file

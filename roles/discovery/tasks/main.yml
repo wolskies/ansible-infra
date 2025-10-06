@@ -81,7 +81,7 @@
     discovery_domain_timezone: "{{ ansible_date_time.tz }}"
     discovery_domain_locale: "{{ ansible_env.LANG | default('') }}"
     discovery_domain_language: "{{ ansible_env.LANG | default('') }}"
-    discovery_domain_ntp_enabled: >-
+    discovery_domain_timesync_enabled: >-
       {{
         (current_ntp_cmd is defined and
          current_ntp_cmd.rc is defined and

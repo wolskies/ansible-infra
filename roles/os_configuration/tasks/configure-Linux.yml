@@ -3,13 +3,8 @@
   ansible.builtin.include_role:
     name: devsec.hardening.os_hardening
   vars:
-    os_hardening_enabled: "{{ host_security.hardening_enabled | default(true) }}"
-    sysctl_overwrite: "{{ host_sysctl.parameters | default({}) }}"
-    os_ctrlaltdel_disabled: "{{ host_security.disable_ctrl_alt_del | default(false) }}"
-    os_security_users_allow: "{{ host_security.users_allow | default([]) }}"
-    os_remove_additional_root_users: "{{ host_security.remove_additional_root_users | default(false) }}"
-    os_user_pw_ageing: "{{ host_security.enforce_password_aging | default(true) }}"
-  when: host_security.hardening_enabled | default(true)
+    os_hardening_enabled: "{{ hardening.os_hardening_enabled | default(false) }}"
+  when: hardening.os_hardening_enabled | default(false)
   tags:
     - security
 
@@ -18,12 +13,7 @@
     name: devsec.hardening.ssh_hardening
   vars:
     ssh_server_enabled: true
-    ssh_server_ports: "{{ host_security.ssh_server_ports | default(['22']) }}"
-    ssh_client_port: "{{ host_security.ssh_client_port | default('22') }}"
-    ssh_listen_to: "{{ host_security.ssh_listen_to | default(['0.0.0.0']) }}"
-    sftp_enabled: "{{ host_security.sftp_enabled | default(true) }}"
-    network_ipv6_enable: "{{ ':' in (host_security.ssh_listen_to | default(['0.0.0.0']) | join('')) }}"
-  when: host_security.ssh_hardening_enabled | default(false)
+  when: hardening.ssh_hardening_enabled | default(false)
   tags:
     - security
 
@@ -80,7 +70,7 @@
   tags:
     - locale
 
-- name: Configure NTP time synchronization
+- name: Configure time synchronization via systemd-timesyncd
   block:
     - name: Check if timedatectl is available
       ansible.builtin.command:
@@ -106,7 +96,7 @@
       become: true
       when: timedatectl_check.rc == 0
       tags:
-        - ntp
+        - timesync
         - no-container
 
     - name: Configure systemd-timesyncd
@@ -121,10 +111,10 @@
       notify: restart timesyncd
       when: timedatectl_check.rc == 0
   when:
-    - domain_ntp is defined
-    - domain_ntp.enabled | default(false)
+    - domain_timesync is defined
+    - domain_timesync.enabled | default(false)
   tags:
-    - ntp
+    - timesync
 
 - name: Configure systemd journal
   block:
@@ -250,7 +240,7 @@
         group: root
         mode: "0644"
       become: true
-      loop: "{{ host_udev.rules }}"
+      loop: "{{ host_udev_rules }}"
       loop_control:
         loop_var: udev_rule
       when: udev_rule.state | default('present') == 'present'
@@ -261,14 +251,14 @@
         path: "/etc/udev/rules.d/{{ udev_rule.priority | default(99) }}-{{ udev_rule.name }}.rules"
         state: absent
       become: true
-      loop: "{{ host_udev.rules }}"
+      loop: "{{ host_udev_rules }}"
       loop_control:
         loop_var: udev_rule
       when: udev_rule.state | default('present') == 'absent'
       notify: reload udev
   when:
-    - host_udev.rules is defined
-    - host_udev.rules | length > 0
+    - host_udev_rules is defined
+    - host_udev_rules | length > 0
   tags:
     - udev
 

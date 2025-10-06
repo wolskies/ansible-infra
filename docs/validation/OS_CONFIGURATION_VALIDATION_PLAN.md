@@ -770,7 +770,7 @@ verify:
 ### REQ-OS-008: Basic Time Synchronization (Linux)
 
 **Requirement**: The system SHALL be capable of configuring basic time synchronization on Linux systems
-**Implementation**: Uses systemd-timesyncd for client-side time synchronization via SNTP. Steps: 1) `ansible.builtin.package` ensures systemd-timesyncd is installed, 2) `ansible.builtin.systemd` ensures service is enabled, 3) `ansible.builtin.template` configures `/etc/systemd/timesyncd.conf` when `domain_ntp.enabled` is true
+**Implementation**: Uses systemd-timesyncd for client-side time synchronization via SNTP. Steps: 1) `ansible.builtin.package` ensures systemd-timesyncd is installed, 2) `ansible.builtin.systemd` ensures service is enabled, 3) `ansible.builtin.template` configures `/etc/systemd/timesyncd.conf` when `domain_timesync.enabled` is true
 **Production Code**: `roles/os_configuration/tasks/configure-Linux.yml` - "Configure NTP time synchronization" task block
 
 #### State Validation Specifications
@@ -780,7 +780,7 @@ verify:
 
 - systemd-timesyncd package installed
 - systemd-timesyncd service enabled and running
-- `/etc/systemd/timesyncd.conf` configured with specified NTP servers when `domain_ntp.enabled` is true
+- `/etc/systemd/timesyncd.conf` configured with specified NTP servers when `domain_timesync.enabled` is true
 
 #### Validation Test Scenarios
 
@@ -790,7 +790,7 @@ verify:
 test_case: "Configure time synchronization with multiple servers"
 platform: ubuntu-ntp-enabled
 input_variables:
-  domain_ntp:
+  domain_timesync:
     enabled: true
     servers:
       - "0.pool.ntp.org"
@@ -817,9 +817,9 @@ verification_commands:
     expected_output: "NTP=0.pool.ntp.org 1.pool.ntp.org"
 validation_logic:
   positive_case:
-    - domain_ntp is defined ✓
-    - domain_ntp.enabled is true ✓
-    - domain_ntp.servers is defined ✓
+    - domain_timesync is defined ✓
+    - domain_timesync.enabled is true ✓
+    - domain_timesync.servers is defined ✓
     - All three tasks should execute (package, service, template)
 success_criteria:
   - "✅ systemd-timesyncd package is installed"
@@ -835,7 +835,7 @@ success_criteria:
 test_case: "Skip when NTP disabled"
 platform: ubuntu-ntp-disabled
 input_variables:
-  domain_ntp:
+  domain_timesync:
     enabled: false
     servers:
       - "pool.ntp.org"
@@ -848,8 +848,8 @@ verification_commands:
     expected_behavior: "file state unchanged from baseline"
 validation_logic:
   negative_case:
-    - domain_ntp is defined ✓
-    - domain_ntp.enabled is false ✗
+    - domain_timesync is defined ✓
+    - domain_timesync.enabled is false ✗
     - Task should be skipped
 success_criteria:
   - "✅ No changes to /etc/systemd/timesyncd.conf"
@@ -862,7 +862,7 @@ success_criteria:
 test_case: "Skip when NTP undefined"
 platform: ubuntu-ntp-undefined
 input_variables:
-  # domain_ntp not defined
+  # domain_timesync not defined
 initial_state:
   config_file: "default or missing"
 expected_final_state:
@@ -872,7 +872,7 @@ verification_commands:
     expected_behavior: "file state unchanged from baseline"
 validation_logic:
   negative_case:
-    - domain_ntp is not defined ✗
+    - domain_timesync is not defined ✗
     - Task should be skipped
 success_criteria:
   - "✅ No changes to /etc/systemd/timesyncd.conf"
@@ -1361,14 +1361,14 @@ success_criteria:
 - Uses `ansible.builtin.copy` to deploy rules to `/etc/udev/rules.d/{priority}-{name}.rules` when `item.state` is 'present' (default)
 - Uses `ansible.builtin.file` with `state: absent` to remove rules when `item.state` is 'absent'
 - Triggers handler to reload udev via `udevadm control --reload-rules && udevadm trigger`
-- Loop variable: `item` (from `host_udev.rules`)
+- Loop variable: `item` (from `host_udev_rules.rules`)
 
 **Positive Validation**:
 
 ```yaml
 test_case: "Deploy custom udev rules with priority"
 input:
-  host_udev:
+  host_udev_rules:
     rules:
       - name: "test-usb-device"
         priority: 50
@@ -1392,7 +1392,7 @@ verify:
 ```yaml
 test_case: "Remove udev rules"
 input:
-  host_udev:
+  host_udev_rules:
     rules:
       - name: "test-remove-rule"
         priority: 70
@@ -1405,12 +1405,12 @@ verify:
 **Conditional Logic Validation**:
 
 ```yaml
-test_case: "Skip when host_udev undefined"
+test_case: "Skip when host_udev_rules undefined"
 input:
-  # host_udev not defined
+  # host_udev_rules not defined
 verify:
   - no_changes_made
-  - debug_message: "udev rules skipped when host_udev undefined"
+  - debug_message: "udev rules skipped when host_udev_rules undefined"
 ```
 
 **Environment**: Container (can verify file operations, but udev daemon may not reload properly)
@@ -1603,7 +1603,7 @@ verify:
 ```yaml
 test_case: "Configure NTP on macOS"
 input:
-  domain_ntp:
+  domain_timesync:
     enabled: true
     servers: ["time.apple.com"]
 verify:

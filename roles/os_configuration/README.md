@@ -44,18 +44,18 @@ host_services:
   disable: [apache2, sendmail]
   mask: [snapd]
 
-host_sysctl:
-  parameters:
-    vm.swappiness: 10
-    net.ipv4.ip_forward: 1
-
 host_modules:
   load: [br_netfilter]
   blacklist: [pcspkr]
 
-host_security:
-  hardening_enabled: true
+hardening:
+  os_hardening_enabled: true
   ssh_hardening_enabled: true
+  # All devsec.hardening variables can be set directly:
+  os_auth_pw_max_age: 90
+  os_ctrlaltdel_disabled: true
+  ssh_server_ports: ["22"]
+  sftp_enabled: true
 
 journal:
   configure: true
@@ -79,12 +79,29 @@ Uses collection-wide variables - see collection README for complete reference.
 - `host_services.mask` - Services to mask
 - `host_modules.load` - Kernel modules to load
 - `host_modules.blacklist` - Kernel modules to blacklist
-- `host_sysctl.parameters` - Kernel parameters
+
+### Security Hardening
+- `hardening.os_hardening_enabled` - Enable OS hardening (Linux, via devsec.hardening.os_hardening)
+- `hardening.ssh_hardening_enabled` - Enable SSH hardening (Linux, via devsec.hardening.ssh_hardening)
+
+All [devsec.hardening.os_hardening](https://github.com/dev-sec/ansible-collection-hardening/tree/master/roles/os_hardening) and [devsec.hardening.ssh_hardening](https://github.com/dev-sec/ansible-collection-hardening/tree/master/roles/ssh_hardening) variables can be set directly in your inventory:
+
+```yaml
+hardening:
+  os_hardening_enabled: true
+  ssh_hardening_enabled: true
+  # devsec.hardening.os_hardening variables:
+  os_auth_pw_max_age: 90
+  os_ctrlaltdel_disabled: true
+  os_security_users_allow: []
+  # devsec.hardening.ssh_hardening variables:
+  ssh_server_ports: ["22"]
+  ssh_listen_to: ["0.0.0.0"]
+  sftp_enabled: true
+```
 
 ### Optional Features
-- `host_security.hardening_enabled` - Enable OS hardening
-- `host_security.ssh_hardening_enabled` - Enable SSH hardening
-- `domain_ntp.enabled` - Enable NTP configuration
+- `domain_timesync.enabled` - Enable NTP configuration
 - `journal.configure` - Enable journal configuration
 - `apt.proxy` - APT proxy URL (Ubuntu/Debian)
 - `pacman.proxy` - Pacman proxy URL (Arch Linux)

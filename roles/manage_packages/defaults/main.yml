@@ -22,9 +22,6 @@ apt:
   no_recommends: false
   unattended_upgrades:
     enabled: false
-  repositories:
-    Ubuntu: []
-    Debian: []
   system_upgrade:
     enable: false
     type: "safe"

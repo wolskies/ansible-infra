@@ -1,0 +1,82 @@
+[project]
+name = "wolskies-infrastructure"
+version = "1.1.1"
+description = "Infrastructure management for Ubuntu, Debian, Arch (fully tested), and macOS (best-effort support)"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Ed Wolski", email = "ed@wolskinet.com" }]
+
+dependencies = [
+    "ansible-core>=2.15",
+    "ansible-lint>=6.22",
+    "molecule>=6.0",
+    "molecule-plugins[docker]>=23.5",
+    "pytest>=7.4",
+    "pytest-testinfra>=10.0",
+    "jmespath>=1.0",
+    "passlib>=1.7.4",
+]
+
+[project.optional-dependencies]
+docs = [
+    "sphinx>=7.2",
+    "sphinx-rtd-theme>=2.0",
+    "myst-parser>=2.0",
+    "ansible-doc-extractor>=0.1.0",
+]
+dev = [
+    "yamllint>=1.33",
+    "pre-commit>=3.5",
+    "black>=23.12",
+    "flake8>=6.1",
+    "pytest-xdist>=3.5",
+    "pytest-cov>=4.1",
+    "bandit>=1.7.5",
+    "docker>=7.0",
+]
+
+[dependency-groups]
+dev = [
+    "yamllint>=1.33",
+    "pre-commit>=3.5",
+    "black>=23.12",
+    "flake8>=6.1",
+    "pytest-xdist>=3.5",
+    "pytest-cov>=4.1",
+    "bandit>=1.7.5",
+    "docker>=7.0",
+]
+
+[tool.ansible-lint]
+profile = "production"
+exclude_paths = [
+    ".cache/",
+    ".github/",
+    ".gitlab/",
+    "tests/output/",
+    "build/",
+    ".venv/",
+    "molecule/",
+]
+skip_list = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.black]
+line-length = 120
+target-version = ['py312']
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

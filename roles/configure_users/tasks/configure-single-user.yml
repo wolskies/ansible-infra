@@ -108,6 +108,15 @@
     - git-config
     - user-config
 
+- name: Configure Linux-specific user preferences
+  ansible.builtin.include_tasks: configure-Linux.yml
+  when:
+    - ansible_system == 'Linux'
+    - target_user.name != 'root'
+  tags:
+    - linux-config
+    - user-config
+
 - name: Configure macOS-specific user preferences
   ansible.builtin.include_tasks: configure-Darwin.yml
   when:

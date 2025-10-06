@@ -1,10 +1,2 @@
 ---
-# =============================================================================
-# GO ROLE DEFAULTS
-# =============================================================================
-# This role uses collection-wide variables from SRD section 2.2.1
-# All variables defined exactly as specified in the SRD
-# =============================================================================
-
-# Package Management
 go_packages: []

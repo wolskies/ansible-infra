@@ -185,10 +185,9 @@ firewall:
 | `host_services.mask`                            | list[string]              | `[]`            | Systemd service names to mask (e.g., ["snapd", "telnet"])                                                |
 | `host_modules.load`                             | list[string]              | `[]`            | Kernel modules to load persistently (e.g., ["br_netfilter", "overlay"])                                  |
 | `host_modules.blacklist`                        | list[string]              | `[]`            | Kernel modules to blacklist (e.g., ["pcspkr", "snd_pcsp"])                                               |
-| `host_udev.rules`                               | list[object]              | `[]`            | Custom udev rules definitions (see schema below)                                                         |
-| `host_sysctl.parameters`                        | dict[string, string\|int] | `{}`            | Kernel parameter definitions (see schema below)                                                          |
-| `domain_ntp.enabled`                            | boolean                   | `false`         | Enable NTP time synchronization configuration                                                            |
-| `domain_ntp.servers`                            | list[string]              | `[]`            | NTP server hostnames/IPs (e.g., ["pool.ntp.org", "time.google.com"])                                     |
+| `host_udev_rules`                               | list[object]              | `[]`            | Custom udev rules definitions (see schema below)                                                         |
+| `domain_timesync.enabled`                            | boolean                   | `false`         | Enable time synchronization time synchronization configuration                                                            |
+| `domain_timesync.servers`                            | list[string]              | `[]`            | time synchronization server hostnames/IPs (e.g., ["pool.timesync.org", "time.google.com"])                                     |
 | `journal.configure`                             | boolean                   | `false`         | Enable systemd journal configuration management                                                          |
 | `journal.max_size`                              | string                    | `"500M"`        | Maximum disk space for journal files (e.g., "500M", "1G", "2G")                                         |
 | `journal.max_retention`                         | string                    | `"30d"`         | Maximum journal retention time (e.g., "7d", "30d", "1y")                                                |
@@ -197,8 +196,8 @@ firewall:
 | `firewall.enabled`                              | boolean                   | `false`         | Enable firewall rule management                                                                          |
 | `firewall.prevent_ssh_lockout`                  | boolean                   | `true`          | Automatically allow SSH during firewall configuration                                                    |
 | `firewall.rules`                                | list[object]              | `[]`            | Firewall rule definitions (see schema below)                                                             |
-| `host_security.hardening_enabled`               | boolean                   | `false`         | Enable devsec.hardening security baseline                                                                |
-| `host_security.ssh_hardening_enabled`           | boolean                   | `false`         | Enable SSH-specific security hardening                                                                   |
+| `hardening.os_hardening_enabled`                | boolean                   | `false`         | Enable devsec.hardening.os_hardening security baseline                                                   |
+| `hardening.ssh_hardening_enabled`               | boolean                   | `false`         | Enable devsec.hardening.ssh_hardening security hardening                                                 |
 | `apt.proxy`                                     | string                    | `""`            | APT proxy URL (format: http[s]://[user:pass@]host:port, e.g., "http://user:pass@proxy.company.com:8080") |
 | `apt.no_recommends`                             | boolean                   | `false`         | Disable APT automatic installation of recommended and suggested packages                                 |
 | `apt.unattended_upgrades.enabled`               | boolean                   | `false`         | Enable APT unattended security upgrades on Debian/Ubuntu systems                                         |
@@ -504,7 +503,7 @@ Tasks that require capabilities unavailable in containers (hostname changes, sys
 - `hostname` - System hostname and /etc/hosts management
 - `timezone` - System timezone configuration
 - `locale` - System locale/language settings
-- `ntp` - Network time synchronization
+- `timesync` - Network time synchronization
 - `apt` - APT proxy, no-recommends, and unattended-upgrades (Debian/Ubuntu)
 - `pacman` - Pacman proxy, no-confirm, and multilib repository (Arch Linux)
 - `services` - Systemd service enable/disable/mask operations
@@ -558,11 +557,11 @@ This approach resolves the tension between comprehensive configuration managemen
 
 **REQ-OS-004**: The system SHALL be capable of applying OS security hardening on Linux systems
 
-**Implementation**: Uses `devsec.hardening.os_hardening` role with variables from `host_security.*` and `host_sysctl.parameters` when `host_security.hardening_enabled` is true.
+**Implementation**: Uses `devsec.hardening.os_hardening` role with variables from `hardening.*` when `hardening.os_hardening_enabled` is true. Users can set `sysctl_overwrite` to override/add sysctl parameters.
 
 **REQ-OS-005**: The system SHALL be capable of applying SSH security hardening on Linux systems
 
-**Implementation**: Uses `devsec.hardening.ssh_hardening` role when `host_security.ssh_hardening_enabled` is true.
+**Implementation**: Uses `devsec.hardening.ssh_hardening` role when `hardening.ssh_hardening_enabled` is true.
 
 ###### 3.1.4.2.2 Locale and Language Configuration
 
@@ -572,13 +571,13 @@ This approach resolves the tension between comprehensive configuration managemen
 
 **REQ-OS-007**: DELETED - Merged into REQ-OS-006 (locale and language are part of same locale configuration)
 
-###### 3.1.4.2.3 NTP Time Synchronization
+###### 3.1.4.2.3 time synchronization Time Synchronization
 
 **REQ-OS-008**: The system SHALL be capable of configuring basic time synchronization on Linux systems
 
-**Implementation**: Uses systemd-timesyncd for client-side time synchronization via SNTP. Steps: 1) `ansible.builtin.package` ensures systemd-timesyncd is installed, 2) `ansible.builtin.systemd` ensures service is enabled, 3) `ansible.builtin.template` configures `/etc/systemd/timesyncd.conf` when `domain_ntp.enabled` is true. Loop variable name: `ntp_server`.
+**Implementation**: Uses systemd-timesyncd for client-side time synchronization via SNTP. Steps: 1) `ansible.builtin.package` ensures systemd-timesyncd is installed, 2) `ansible.builtin.systemd` ensures service is enabled, 3) `ansible.builtin.template` configures `/etc/systemd/timesyncd.conf` when `domain_timesync.enabled` is true. Loop variable name: `timesync_server`.
 
-**Note**: This implements basic SNTP client functionality only. Full NTP server/client capabilities require a dedicated NTP role (future work).
+**Note**: This implements basic SNTP client functionality only. Full time synchronization server/client capabilities require a dedicated time synchronization role (future work).
 
 ###### 3.1.4.2.4 Journal and Logging Configuration
 
@@ -625,7 +624,7 @@ This approach resolves the tension between comprehensive configuration managemen
 - Uses `ansible.builtin.copy` to deploy rules to `/etc/udev/rules.d/{priority}-{name}.rules` when `item.state` is 'present' (default)
 - Uses `ansible.builtin.file` with `state: absent` to remove rules when `item.state` is 'absent'
 - Triggers handler to reload udev via `udevadm control --reload-rules && udevadm trigger`
-- Loop variable name: `udev_rule` (from `host_udev.rules`)
+- Loop variable name: `udev_rule` (from `host_udev_rules`)
 - Rule format: `name` (rule identifier), `content` (rule text), `priority` (default 99), `state` (present/absent)
 
 ###### 3.1.4.2.8 Debian/Ubuntu Specific Configuration
@@ -697,11 +696,11 @@ This approach resolves the tension between comprehensive configuration managemen
 
 **Implementation**: Uses `community.general.osx_defaults` with NSGlobalDomain/AppleLanguages when `domain_language` is defined.
 
-###### 3.1.4.3.2 NTP Time Synchronization
+###### 3.1.4.3.2 time synchronization Time Synchronization
 
-**REQ-OS-024**: The system SHALL be capable of configuring NTP time synchronization on macOS systems
+**REQ-OS-024**: The system SHALL be capable of configuring time synchronization time synchronization on macOS systems
 
-**Implementation**: Uses `ansible.builtin.command` with `systemsetup` utility for NTP configuration. Enables network time synchronization with `systemsetup -setusingnetworktime on` and configures the first server from `domain_ntp.servers` when `domain_ntp.enabled` is true. Disables network time synchronization with `systemsetup -setusingnetworktime off` when `domain_ntp.enabled` is false.
+**Implementation**: Uses `ansible.builtin.command` with `systemsetup` utility for time synchronization configuration. Enables network time synchronization with `systemsetup -setusingnetworktime on` and configures the first server from `domain_timesync.servers` when `domain_timesync.enabled` is true. Disables network time synchronization with `systemsetup -setusingnetworktime off` when `domain_timesync.enabled` is false.
 
 ###### 3.1.4.3.3 Software Updates
 
@@ -1524,7 +1523,7 @@ This role uses role-specific variables passed from calling roles (e.g., configur
 
 - Move services enable/disable to package management
 - Nerd Fonts functionality moved to configure_users role or dedicated role (removed from os_configuration due to role boundary violation - fonts are user preferences, not system configuration, and implementation was platform-specific stopgap)
-- Configuration of NTP server
+- Configuration of time synchronization server
 
 - Configuration of Remote logging (rsyslog)
 - Additional Linux distributions (RHEL, CentOS Stream, Fedora)

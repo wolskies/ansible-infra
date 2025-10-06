@@ -1,8 +1,13 @@
 version: 2
 ethernets:
-  enp1s0:
-    dhcp4: true
-    dhcp4-overrides:
-      use-dns: false
+  id0:
+    match:
+      name: "en*"
+    dhcp4: false
+    addresses:
+      - ${ip_address}/24
+    routes:
+      - to: default
+        via: 192.168.122.1
     nameservers:
       addresses: [8.8.8.8, 8.8.4.4, 1.1.1.1]

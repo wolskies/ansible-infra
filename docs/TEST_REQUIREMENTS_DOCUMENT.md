@@ -320,12 +320,10 @@ firewall:
       from_ip: "192.168.1.0/24"
       comment: "PostgreSQL local"
 
-host_security:
-  hardening_enabled: true
+hardening:
+  os_hardening_enabled: true
   ssh_hardening_enabled: true
-
-host_sysctl:
-  parameters:
+  sysctl_overwrite:
     net.ipv4.ip_forward: 1
     vm.swappiness: 10
 ```
