@@ -81,26 +81,23 @@ provisioner:
         firewall:
           enabled: false # Disabled in containers
           prevent_ssh_lockout: true
-          package: "ufw"
           rules:
             - rule: allow
               port: 22
-              proto: tcp
+              protocol: tcp
             - rule: allow
               port: 80
-              proto: tcp
+              protocol: tcp
             - rule: allow
               port: 443
-              proto: tcp
+              protocol: tcp
 
         fail2ban:
           enabled: false # Disabled in containers
-          sender: "root@localhost"
-          defaults:
-            bantime: 600
-            findtime: 600
-            maxretry: 3
-          services:
+          bantime: "10m"
+          findtime: "10m"
+          maxretry: 3
+          jails:
             - name: sshd
               enabled: true
               logpath: /var/log/auth.log
@@ -176,7 +173,7 @@ provisioner:
           rules:
             - rule: allow
               port: 8080
-              proto: tcp
+              protocol: tcp
         # Ubuntu-specific user addition
         users:
           - name: ubuntuuser
@@ -197,8 +194,7 @@ provisioner:
         # Different fail2ban config for Arch
         fail2ban:
           enabled: false
-          defaults:
-            maxretry: 5 # Different from group default
+          maxretry: 5 # Different from group default
         # Arch does not have additional users
 verifier:
   name: ansible

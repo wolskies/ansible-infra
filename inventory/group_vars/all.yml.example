@@ -128,26 +128,21 @@ firewall:
   rules:
     - rule: allow
       port: 80
-      proto: tcp
+      protocol: tcp
       comment: "HTTP"
     - rule: allow
       port: 443
-      proto: tcp
+      protocol: tcp
       comment: "HTTPS"
 
 fail2ban:
   enabled: true
-  sender: "root@localhost"
-  dest_email: ""
-  defaults:
-    bantime: 3600
-    findtime: 600
-    maxretry: 5
-  services:
+  bantime: "1h"
+  findtime: "10m"
+  maxretry: 5
+  jails:
     - name: sshd
       enabled: true
       maxretry: 3
-      bantime: 3600
-  ignoreips:
-    - "127.0.0.1/8"
-    - "::1"
+      bantime: "1h"
+      logpath: /var/log/auth.log

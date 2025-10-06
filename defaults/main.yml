@@ -185,7 +185,6 @@ users: []
 firewall:
   enabled: false
   prevent_ssh_lockout: true
-  package: "ufw"
   stealth_mode: false
   block_all: false
   logging: false
@@ -195,29 +194,23 @@ firewall:
   # rules:
   #   - rule: allow
   #     port: 22
-  #     proto: tcp
+  #     protocol: tcp
   #   - rule: allow
-  #     port: 80,443
-  #     proto: tcp
+  #     port: 80
+  #     protocol: tcp
   #   - rule: allow
-  #     from_ip: 192.168.1.0/24
+  #     source: 192.168.1.0/24
   #     port: 3000
-  #     proto: tcp
+  #     protocol: tcp
 fail2ban:
   enabled: false
-  sender: "root@localhost"
-  dest_email: ""
-  defaults:
-    bantime: 3600
-    findtime: 600
-    maxretry: 5
-  services:
+  bantime: "1h"
+  findtime: "10m"
+  maxretry: 5
+  jails:
     - name: sshd
       enabled: true
       maxretry: 5
-      bantime: 3600
-      findtime: 600
+      bantime: "1h"
+      findtime: "10m"
       logpath: /var/log/auth.log
-  ignoreips:
-    - "127.0.0.1/8"
-    - "::1"

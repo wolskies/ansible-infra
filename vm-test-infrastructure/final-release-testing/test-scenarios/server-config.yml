@@ -70,54 +70,47 @@ manage_packages_group:
 firewall:
   enabled: true
   prevent_ssh_lockout: true
-  package: "ufw"
   stealth_mode: false
   block_all: false
   logging: true
   rules:
     - rule: allow
       port: 22
-      proto: tcp
+      protocol: tcp
       comment: "SSH access"
     - rule: allow
       port: 80
-      proto: tcp
+      protocol: tcp
       comment: "HTTP"
     - rule: allow
       port: 443
-      proto: tcp
+      protocol: tcp
       comment: "HTTPS"
     - rule: allow
       port: 5432
-      proto: tcp
-      src: "192.168.0.0/16"
+      protocol: tcp
+      source: "192.168.0.0/16"
       comment: "PostgreSQL internal"
 
 # Fail2ban Configuration (from manage_security_services role testing)
 fail2ban:
   enabled: true
-  sender: "root@{{ inventory_hostname }}.test.local"
-  dest_email: ""
-  defaults:
-    bantime: 3600
-    findtime: 600
-    maxretry: 5
-  services:
+  bantime: "1h"
+  findtime: "10m"
+  maxretry: 5
+  jails:
     - name: sshd
       enabled: true
       maxretry: 3
-      bantime: 3600
-      findtime: 600
+      bantime: "1h"
+      findtime: "10m"
       logpath: /var/log/auth.log
     - name: nginx-http-auth
       enabled: true
       maxretry: 5
-      bantime: 1800
-      findtime: 600
-  ignoreips:
-    - "127.0.0.1/8"
-    - "::1"
-    - "192.168.0.0/16"
+      bantime: "30m"
+      findtime: "10m"
+      logpath: /var/log/nginx/error.log
 
 # =============================================================================
 # USER MANAGEMENT

@@ -181,11 +181,10 @@ host_udev_rules: []
 firewall:
   enabled: true
   prevent_ssh_lockout: true
-  package: "ufw"
   rules:
     - rule: allow
       port: 22
-      proto: tcp
+      protocol: tcp
 
 fail2ban:
   enabled: false

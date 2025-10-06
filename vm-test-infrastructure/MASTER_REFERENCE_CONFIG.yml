@@ -91,39 +91,32 @@ go_packages:
 firewall:
   enabled: true
   prevent_ssh_lockout: true
-  package: "ufw"
   stealth_mode: false
   block_all: false
   logging: false
   rules:
     - rule: allow
       port: 22
-      proto: tcp
+      protocol: tcp
       comment: "SSH access"
     - rule: allow
       port: 80
-      proto: tcp
+      protocol: tcp
       comment: "HTTP"
 
 # Fail2ban configuration (from manage_security_services role testing)
 fail2ban:
   enabled: true
-  sender: "root@localhost"
-  dest_email: ""
-  defaults:
-    bantime: 3600
-    findtime: 600
-    maxretry: 5
-  services:
+  bantime: "1h"
+  findtime: "10m"
+  maxretry: 5
+  jails:
     - name: sshd
       enabled: true
       maxretry: 3
-      bantime: 3600
-      findtime: 600
+      bantime: "1h"
+      findtime: "10m"
       logpath: /var/log/auth.log
-  ignoreips:
-    - "127.0.0.1/8"
-    - "::1"
 
 # Terminal configuration (from terminal_config role testing)
 terminal_config:

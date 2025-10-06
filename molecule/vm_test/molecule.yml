@@ -60,10 +60,10 @@ provisioner:
           rules:
             - rule: allow
               port: 80
-              proto: tcp
+              protocol: tcp
             - rule: allow
               port: 443
-              proto: tcp
+              protocol: tcp
 
     host_vars:
       # Workstations

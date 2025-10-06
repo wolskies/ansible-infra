@@ -15,6 +15,7 @@ provider "libvirt" {
 }
 
 # VM Configuration Matrix
+# Static IPs: 192.168.100.50-59 on br0 bridge
 locals {
   vms = {
     ubuntu2204-server = {
@@ -23,7 +24,7 @@ locals {
       memory    = 4096
       vcpu      = 2
       test_type = "server"
-      ip        = "192.168.122.10"
+      ip        = "192.168.100.50"
     }
     ubuntu2404-workstation = {
       image_url = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
@@ -31,7 +32,7 @@ locals {
       memory    = 4096
       vcpu      = 2
       test_type = "workstation"
-      ip        = "192.168.122.11"
+      ip        = "192.168.100.51"
     }
     debian12-server = {
       image_url = "https://cdimage.debian.org/cdimage/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
@@ -39,7 +40,7 @@ locals {
       memory    = 4096
       vcpu      = 2
       test_type = "server"
-      ip        = "192.168.122.12"
+      ip        = "192.168.100.52"
     }
     arch-workstation = {
       image_url = "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2"
@@ -47,9 +48,15 @@ locals {
       memory    = 4096
       vcpu      = 2
       test_type = "workstation"
-      ip        = "192.168.122.13"
+      ip        = "192.168.100.53"
     }
   }
+
+  # Network configuration for br0 bridge
+  bridge_name    = "br0"
+  network_cidr   = "192.168.100.0/24"
+  gateway_ip     = "192.168.100.1"
+  dns_servers    = ["192.168.100.1", "8.8.8.8", "1.1.1.1"]
 }
 
 # Download and cache VM images
@@ -93,10 +100,11 @@ resource "libvirt_domain" "test_vms" {
   # Boot configuration
   cloudinit = libvirt_cloudinit_disk.vm_cloudinit[each.key].id
 
-  # Network configuration - static IP
+  # Network configuration - bridged to br0 with static IP
   network_interface {
-    network_name = "default"
-    addresses    = [local.vms[each.key].ip]
+    bridge = local.bridge_name
+    # Static IP configured via cloud-init, not libvirt
+    wait_for_lease = false
   }
 
   # Disk configuration
