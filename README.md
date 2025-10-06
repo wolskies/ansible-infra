@@ -1,128 +1,38 @@
 # Ansible Collection - wolskies.infrastructure
 
-Cross-platform system configuration, package management, and development environment setup.
+Automated scripts for system configuration, package management, and user environment configuration.
 
 **Supported Platforms:**
 - Ubuntu 22.04+, 24.04+
 - Debian 12+, 13+
 - Arch Linux (Rolling)
+
+**Limited Support:** (due to lack of readily available test resources)
 - macOS 13+ (Ventura)
 
-## Included Roles
+## Roles
 
-### Core System Management
-- **configure_system**: Meta-role orchestrating OS settings, packages, security, and user preferences
+- **configure_system**: Meta-role for convenience (calls multiple roles in order)
 - **os_configuration**: System settings (timezone, hostname, locale, services, kernel parameters)
 - **manage_packages**: Package management (APT, Pacman, Homebrew) with repository configuration
 - **manage_security_services**: Firewall (UFW/macOS ALF) and fail2ban configuration
-
-### User and Development Environment
 - **configure_users**: User preferences (dotfiles, development tools, language environments)
 - **nodejs**: Node.js and user-level npm package management
 - **rust**: Rust/Cargo and user-level package management
 - **go**: Go and user-level package management
 - **neovim**: Neovim installation and configuration
-
-### Package Systems
 - **manage_snap_packages**: Snap package management
 - **manage_flatpak**: Flatpak package management
-
-### Utilities
-- **discovery**: System state discovery
 - **terminal_config**: Terminal configuration (kitty, alacritty, wezterm)
-- **docker_compose_generic**: Docker Compose service management
-- **install_docker**: Docker Engine installation
 
-## Platform Support
+### Utility Role
+- **discovery**: provides a convenient method to generate compatible host_vars that capture the state of an existing system.
 
-- **Tier 1** (CI tested): Ubuntu 22.04+/24.04+, Debian 12+/13+, Arch Linux
-- **Tier 2** (No CI): macOS 13+
-
-## Installation Model
-
-- System packages: Installed via native package managers (APT, Pacman, Homebrew)
-- User packages: Installed to user home directories (npm, cargo, go)
-- macOS Homebrew: Managed under ansible user account
-
-**Container Usage**: Security hardening disables IP forwarding. Enable for Docker/Kubernetes:
-
-```yaml
-host_sysctl:
-  parameters:
-    net.ipv4.ip_forward: 1 # Required for Docker/Kubernetes
-```
 
 ## Installation
 
 Install the collection and its dependencies:
 
-```bash
-# Install all dependencies (collections and roles)
-ansible-galaxy install -r requirements.yml
-
-# Install the collection
-ansible-galaxy collection install wolskies.infrastructure
-```
-
-Or install from a local clone:
-
-```bash
-git clone https://github.com/wolskinet/ansible-infrastructure
-cd ansible-infrastructure
-ansible-galaxy install -r requirements.yml
-ansible-galaxy collection install . --force
-```
-
-## Quick Start
-
-### Basic Server Configuration
-```yaml
-# group_vars/all.yml
-domain_timezone: "America/New_York"
-domain_locale: "en_US.UTF-8"
-
-# host_vars/web01.yml
-host_hostname: "web01"
-manage_packages_host:
-  Ubuntu: [nginx, git, curl]
-  Debian: [nginx, git, curl]
-
-firewall:
-  enabled: true
-  rules:
-    - rule: allow
-      port: 22
-      protocol: tcp
-    - rule: allow
-      port: 80,443
-      protocol: tcp
-
-fail2ban:
-  enabled: true
-  maxretry: 3
-```
-
-### Development Workstation Configuration
-```yaml
-# group_vars/workstations.yml
-users:
-  - name: developer
-    git:
-      user_name: "Developer Name"
-      user_email: "dev@company.com"
-      editor: "nvim"
-    nodejs:
-      packages: [typescript, eslint, prettier]
-    rust:
-      packages: [ripgrep, bat, fd-find]
-    neovim:
-      enabled: true
-    dotfiles:
-      enable: true
-      repository: "https://github.com/developer/dotfiles"
-```
-
-### Complete Playbook
 ```yaml
 # site.yml - Complete infrastructure setup
 - hosts: all
