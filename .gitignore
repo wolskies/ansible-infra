@@ -89,3 +89,11 @@ node_modules/
 .ci/
 linux-config/
 test-data/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+vm_output.json
+tfplan
