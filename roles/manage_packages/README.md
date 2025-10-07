@@ -15,7 +15,7 @@ Package management for APT (Ubuntu/Debian), Pacman (Arch), and Homebrew (macOS).
       Ubuntu: [git, curl, vim]
       Debian: [git, curl, vim]
       Archlinux: [git, curl, vim]
-      Darwin: [git, curl, vim]
+      MacOSX: [git, curl, vim]
 ```
 
 ### Layered Package Management
@@ -23,7 +23,7 @@ Package management for APT (Ubuntu/Debian), Pacman (Arch), and Homebrew (macOS).
 # group_vars/all.yml - Base packages for all hosts
 manage_packages_all:
   Ubuntu: [git, curl, vim, htop]
-  Darwin: [git, curl, vim, htop]
+  MacOSX: [git, curl, vim, htop]
 
 # group_vars/webservers.yml - Group-specific packages
 manage_packages_group:
@@ -57,7 +57,7 @@ homebrew:
   cleanup_cache: true
 
 manage_casks:
-  Darwin:
+  MacOSX:
     - name: visual-studio-code
     - name: docker
     - name: firefox
@@ -84,7 +84,7 @@ manage_packages_all:
   Ubuntu: [package1, package2]
   Debian: [package1, package2]
   Archlinux: [package1, package2]
-  Darwin: [package1, package2]
+  MacOSX: [package1, package2]
 
 # Group-level packages (merged second)
 manage_packages_group:
@@ -110,7 +110,7 @@ manage_packages_host:
 ### Homebrew Configuration (macOS)
 - `homebrew.taps` - Additional tap repositories
 - `homebrew.cleanup_cache` - Clean download cache after operations
-- `manage_casks.Darwin` - macOS GUI applications
+- `manage_casks.MacOSX` - macOS GUI applications
 
 ### Pacman Configuration (Arch Linux)
 - `pacman.enable_aur` - Enable AUR package support

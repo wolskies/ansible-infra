@@ -1,0 +1,20 @@
+#cloud-config
+# Arch Linux specific cloud-init configuration
+
+hostname: ${hostname}
+fqdn: ${hostname}.test.local
+
+# Create ed user (overrides default arch user)
+users:
+  - name: ed
+    lock_passwd: true
+    gecos: Ed User
+    groups: [wheel, adm]
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIH1BwJeplbo35HPEpc3r4n0opHKKUKXLiwDJ6H3G02j ed@xeon
+
+# Disable SSH password auth
+ssh_pwauth: false
+disable_root: true

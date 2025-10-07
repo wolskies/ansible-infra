@@ -1,0 +1,103 @@
+---
+# Workstation Configuration for Final Release Testing
+# Aligned with collection v1.2.0 SRD variable formats
+
+# =============================================================================
+# BASE SYSTEM CONFIGURATION
+# =============================================================================
+
+# OS Configuration (os_configuration role)
+# host_hostname is set per-host in inventory, validated against actual hostname
+domain_name: "dev.local"
+host_update_hosts: true
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_timezone: "America/Los_Angeles"
+
+# System Services
+host_services:
+  enable:
+    - ssh
+    - docker
+  disable:
+    - snapd
+  mask: []
+
+# =============================================================================
+# PACKAGE MANAGEMENT
+# =============================================================================
+
+# Package Management (manage_packages role)
+# Uses current manage_packages_all/group/host format with ansible_distribution keys
+# Using packages that are NOT in minimal cloud images to test package installation
+# Note: firefox is snap-only on Ubuntu 24.04, so using emacs-nox instead
+manage_packages_all:
+  Ubuntu:
+    - { name: mc }
+    - { name: emacs-nox }
+  Archlinux:
+    - { name: firefox }
+    - { name: mc }
+
+manage_packages_group:
+  Ubuntu:
+    - { name: lynx }
+  Archlinux:
+    - { name: lynx }
+
+# =============================================================================
+# USER MANAGEMENT
+# =============================================================================
+
+# User Configuration (configure_users role)
+# Note: configure_users only configures preferences for existing users
+# The 'ed' user is created by cloud-init
+users:
+  - name: ed
+    shell: /bin/bash
+    git:
+      user_name: "Ed Wolski"
+      user_email: "ed@dev.local"
+      editor: "vim"
+    nodejs:
+      packages:
+        - typescript
+        - eslint
+        - prettier
+    rust:
+      packages:
+        - ripgrep
+        - bat
+    go:
+      packages:
+        - "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+    neovim:
+      enabled: true
+    terminal_entries:
+      - alacritty
+      - kitty
+    dotfiles:
+      enable: false # Disabled for testing
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Minimal security for development (manage_security_services role)
+firewall:
+  enabled: false # Workstations need open access for development
+
+fail2ban:
+  enabled: false # Not needed on workstations
+
+# =============================================================================
+# PACKAGE SYSTEM CONFIGURATION
+# =============================================================================
+
+# Snap Configuration (manage_snap_packages role)
+snap:
+  remove_completely: false # Keep snap for development tools
+
+# Flatpak Configuration (manage_flatpak role)
+flatpak:
+  enabled: false # Disabled for VM testing (GUI not needed)

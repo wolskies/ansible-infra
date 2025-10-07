@@ -120,11 +120,13 @@ ansible-playbook -i inventory/hosts.ini run-discovery.yml --limit ubuntu2204-ser
 
 ## Integration with Development
 
-This testing infrastructure validates the collection using the same proven variable formats from CI molecule tests, ensuring:
+This testing infrastructure validates the collection using variables aligned with the SRD and role defaults, ensuring:
 
-1. **Configuration consistency** - Same variables work in CI and real VMs
+1. **Configuration consistency** - Variables match current role interfaces
 2. **Platform coverage** - Tests across Ubuntu, Debian, Arch Linux
 3. **Scenario coverage** - Both server and workstation configurations
 4. **End-to-end validation** - Full collection deployment + discovery verification
 
-Perfect for final validation before v1.2.0 release!
+## Network Configuration
+
+VMs use bridged networking (br0) with static IPs (192.168.100.50-53) for direct SSH access. Host bridge must be configured before provisioning - see BRIDGE_SETUP.md.

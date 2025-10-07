@@ -42,7 +42,7 @@ Testing across core supported platforms:
 
 ## Configuration Source
 
-Uses **MASTER_REFERENCE_CONFIG.yml** as authoritative source for variable formats. This prevents the configuration mistakes found in previous VM testing phases.
+Test scenarios in `test-scenarios/` are aligned with collection v1.2.0 SRD variable formats and role defaults. All variables match the current production role interfaces.
 
 ## Validation Method
 
@@ -110,10 +110,13 @@ cd ..
 ## Directory Structure
 
 ```
-final-release-testing/
-├── terraform/              # VM provisioning
-├── test-scenarios/          # Configuration per scenario
+vm-test-infrastructure/
+├── terraform/               # VM provisioning (libvirt + cloud-init)
+├── test-scenarios/          # Test configuration files
+│   ├── server-config.yml    # Server test scenario
+│   └── workstation-config.yml # Workstation test scenario
 ├── validation/              # Discovery comparison scripts
-├── run-comprehensive-test.sh
-└── cleanup.sh
+├── inventory/               # Generated Ansible inventory
+├── run-comprehensive-test.sh # Full test workflow
+└── cleanup.sh               # VM cleanup
 ```

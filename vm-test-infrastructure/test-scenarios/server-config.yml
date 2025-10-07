@@ -7,7 +7,7 @@
 # =============================================================================
 
 # OS Configuration (from os_configuration role testing)
-host_hostname: "{{ inventory_hostname }}"
+# host_hostname is set per-host in inventory, validated against actual hostname
 domain_name: "test.local"
 host_update_hosts: true
 domain_locale: "en_US.UTF-8"
@@ -18,49 +18,49 @@ domain_timezone: "America/New_York"
 # PACKAGE MANAGEMENT
 # =============================================================================
 
-# Package Management (from manage_packages role testing)
+# Package Management (manage_packages role)
+# Uses current manage_packages_all/group/host format with ansible_distribution keys
 manage_packages_all:
   Ubuntu:
-    - curl
-    - wget
-    - git
-    - vim
-    - htop
-    - fail2ban
-    - ufw
-    - build-essential
-    - python3-pip
-    - tree
-    - rsync
-    - unzip
+    - { name: curl }
+    - { name: wget }
+    - { name: git }
+    - { name: vim }
+    - { name: htop }
+    - { name: fail2ban }
+    - { name: ufw }
+    - { name: build-essential }
+    - { name: python3-pip }
+    - { name: tree }
+    - { name: rsync }
+    - { name: unzip }
   Debian:
-    - curl
-    - wget
-    - git
-    - vim
-    - htop
-    - fail2ban
-    - ufw
-    - build-essential
-    - python3-pip
-    - tree
-    - rsync
-    - unzip
+    - { name: curl }
+    - { name: wget }
+    - { name: git }
+    - { name: vim }
+    - { name: htop }
+    - { name: fail2ban }
+    - { name: ufw }
+    - { name: build-essential }
+    - { name: python3-pip }
+    - { name: tree }
+    - { name: rsync }
+    - { name: unzip }
 
 manage_packages_group:
-  # Server-specific packages
   Ubuntu:
-    - nginx
-    - postgresql
-    - docker.io
-    - docker-compose
-    - certbot
+    - { name: nginx }
+    - { name: postgresql }
+    - { name: docker.io }
+    - { name: docker-compose-v2 }
+    - { name: certbot }
   Debian:
-    - nginx
-    - postgresql
-    - docker.io
-    - docker-compose
-    - certbot
+    - { name: nginx }
+    - { name: postgresql }
+    - { name: docker.io }
+    - { name: docker-compose }
+    - { name: certbot }
 
 # =============================================================================
 # SECURITY CONFIGURATION
@@ -116,20 +116,16 @@ fail2ban:
 # USER MANAGEMENT
 # =============================================================================
 
-# User Management (from configure_users role testing + collection defaults)
+# User Configuration (configure_users role)
+# Note: configure_users only configures preferences for existing users
+# The 'ed' user is created by cloud-init
 users:
-  - name: serveradmin
-    password: "{{ vault_serveradmin_password | default('!') }}" # Locked if no vault password
-    groups: [sudo]
+  - name: ed
     shell: /bin/bash
-    comment: "Server Administrator"
-    state: present
-    superuser: true
-    ssh_keys:
-      - key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestServerKeyForVMTesting serveradmin@test"
     git:
-      user_name: "Server Admin"
-      user_email: "serveradmin@test.local"
+      user_name: "Ed Wolski"
+      user_email: "ed@test.local"
+      editor: "vim"
     dotfiles:
       enable: false # Minimal server setup
 
@@ -137,16 +133,13 @@ users:
 # SYSTEM SERVICES
 # =============================================================================
 
-# System Services Configuration
+# System Services Configuration (os_configuration role)
 host_services:
-  enabled:
-    - nginx
-    - postgresql
-    - docker
-    - fail2ban
-    - ufw
-  disabled:
+  enable:
+    - ssh
+  disable:
     - snapd # Disable snap on servers
+  mask: []
 
 # =============================================================================
 # PACKAGE SYSTEM CONFIGURATION

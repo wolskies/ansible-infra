@@ -8,7 +8,7 @@ fqdn: ${hostname}.test.local
 # Create ed user with sudo access and SSH key
 users:
   - name: ed
-    groups: [sudo]
+    groups: [wheel, sudo, adm]
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh_authorized_keys:
@@ -36,8 +36,8 @@ timezone: UTC
 
 # Enable services
 runcmd:
-  - systemctl enable ssh
-  - systemctl start ssh
+  - systemctl enable sshd || systemctl enable ssh
+  - systemctl start sshd || systemctl start ssh
   - systemctl enable systemd-resolved
   - systemctl start systemd-resolved
 

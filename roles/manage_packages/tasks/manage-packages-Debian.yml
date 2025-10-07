@@ -90,9 +90,9 @@
     state: "{{ item.state | default('present') }}"
     update_cache: true
     cache_valid_time: 3600
-  loop: "{{ _final_packages[ansible_os_family] | default([]) }}"
+  loop: "{{ _final_packages[ansible_distribution] | default([]) }}"
   become: true
-  when: _final_packages[ansible_os_family] | default([]) | length > 0
+  when: _final_packages[ansible_distribution] | default([]) | length > 0
   tags:
     - packages
 

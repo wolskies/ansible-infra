@@ -26,6 +26,11 @@ argument_specs:
             type: str
             required: true
 
+          shell:
+            description: User's login shell (e.g., "/bin/bash", "/bin/zsh")
+            type: str
+            required: false
+
           # Git Configuration
           git:
             description: Git global configuration settings

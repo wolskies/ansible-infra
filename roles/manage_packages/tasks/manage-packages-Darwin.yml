@@ -14,29 +14,29 @@
   ansible.builtin.set_fact:
     homebrew_packages_install: >-
       {{
-        _final_packages[ansible_os_family] | default([])
+        _final_packages[ansible_distribution] | default([])
         | selectattr('state', 'undefined') | map(attribute='name') | list +
-        _final_packages[ansible_os_family] | default([])
+        _final_packages[ansible_distribution] | default([])
         | selectattr('state', 'defined') | selectattr('state', 'eq', 'present')
         | map(attribute='name') | list
       }}
     homebrew_packages_remove: >-
       {{
-        _final_packages[ansible_os_family] | default([])
+        _final_packages[ansible_distribution] | default([])
         | selectattr('state', 'defined') | selectattr('state', 'eq', 'absent')
         | map(attribute='name') | list
       }}
     homebrew_casks_install: >-
       {{
-        manage_casks[ansible_os_family] | default([])
+        manage_casks[ansible_distribution] | default([])
         | selectattr('state', 'undefined') | map(attribute='name') | list +
-        manage_casks[ansible_os_family] | default([])
+        manage_casks[ansible_distribution] | default([])
         | selectattr('state', 'defined') | selectattr('state', 'eq', 'present')
         | map(attribute='name') | list
       }}
     homebrew_casks_remove: >-
       {{
-        manage_casks[ansible_os_family] | default([])
+        manage_casks[ansible_distribution] | default([])
         | selectattr('state', 'defined') | selectattr('state', 'eq', 'absent')
         | map(attribute='name') | list
       }}

@@ -4,10 +4,10 @@ output "vm_info" {
   description = "VM connection information"
   value = {
     for name, vm in libvirt_domain.test_vms : name => {
-      ip_address = vm.network_interface[0].addresses[0]
-      os_family  = local.vms[name].os_family
-      test_type  = local.vms[name].test_type
-      ssh_command = "ssh -F ../ssh-config ed@${vm.network_interface[0].addresses[0]}"
+      ip_address  = local.vms[name].ip
+      os_family   = local.vms[name].os_family
+      test_type   = local.vms[name].test_type
+      ssh_command = "ssh -F ../ssh-config ed@${local.vms[name].ip}"
     }
   }
 }

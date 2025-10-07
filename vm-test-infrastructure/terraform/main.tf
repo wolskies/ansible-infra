@@ -42,6 +42,9 @@ locals {
       test_type = "server"
       ip        = "192.168.100.52"
     }
+  }
+
+  arch_vms = {
     arch-workstation = {
       image_url = "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2"
       os_family = "Archlinux"
@@ -52,6 +55,8 @@ locals {
     }
   }
 
+  all_vms = merge(local.vms, local.arch_vms)
+
   # Network configuration for br0 bridge
   bridge_name    = "br0"
   network_cidr   = "192.168.100.0/24"
@@ -61,7 +66,7 @@ locals {
 
 # Download and cache VM images
 resource "libvirt_volume" "base_images" {
-  for_each = local.vms
+  for_each = local.all_vms
   name     = "${each.key}-base.qcow2"
   source   = each.value.image_url
   pool     = "default"
@@ -70,11 +75,11 @@ resource "libvirt_volume" "base_images" {
 
 # Create VM disk volumes
 resource "libvirt_volume" "vm_disks" {
-  for_each       = local.vms
+  for_each       = local.all_vms
   name           = "${each.key}-disk.qcow2"
   base_volume_id = libvirt_volume.base_images[each.key].id
   pool           = "default"
-  size           = 21474836480 # 20GB
+  size           = 32212254720 # 30GB
 }
 
 # Cloud-init configuration
@@ -97,7 +102,7 @@ resource "libvirt_domain" "test_vms" {
   memory   = each.value.memory
   vcpu     = each.value.vcpu
 
-  # Boot configuration
+  # Boot configuration with cloud-init
   cloudinit = libvirt_cloudinit_disk.vm_cloudinit[each.key].id
 
   # Network configuration - bridged to br0 with static IP
@@ -138,11 +143,68 @@ resource "libvirt_domain" "test_vms" {
   }
 }
 
+# Cloud-init configuration for Arch VMs
+resource "libvirt_cloudinit_disk" "arch_cloudinit" {
+  for_each  = local.arch_vms
+  name      = "${each.key}-cloudinit.iso"
+  pool      = "default"
+  user_data = templatefile("${path.module}/cloud-init/arch-user-data.yml", {
+    hostname = each.key
+  })
+  network_config = templatefile("${path.module}/cloud-init/network-config.yml", {
+    ip_address = each.value.ip
+  })
+  depends_on = [libvirt_domain.test_vms]
+}
+
+# Create Arch VMs after Debian/Ubuntu VMs are up
+resource "libvirt_domain" "arch_vms" {
+  for_each = local.arch_vms
+  name     = each.key
+  memory   = each.value.memory
+  vcpu     = each.value.vcpu
+
+  cloudinit = libvirt_cloudinit_disk.arch_cloudinit[each.key].id
+
+  network_interface {
+    bridge = local.bridge_name
+    wait_for_lease = false
+  }
+
+  disk {
+    volume_id = libvirt_volume.vm_disks[each.key].id
+  }
+
+  console {
+    type        = "pty"
+    target_port = "0"
+    target_type = "serial"
+  }
+
+  console {
+    type        = "pty"
+    target_type = "virtio"
+    target_port = "1"
+  }
+
+  graphics {
+    type        = "spice"
+    listen_type = "address"
+    autoport    = true
+  }
+
+  xml {
+    xslt = file("${path.module}/domain.xsl")
+  }
+
+  depends_on = [libvirt_domain.test_vms]
+}
+
 # Generate Ansible inventory
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/templates/inventory.tpl", {
     vms = {
-      for name, vm_config in local.vms : name => {
+      for name, vm_config in local.all_vms : name => {
         ip_address = vm_config.ip
         os_family  = vm_config.os_family
         test_type  = vm_config.test_type
@@ -151,19 +213,19 @@ resource "local_file" "ansible_inventory" {
   })
   filename        = "${path.module}/../inventory/hosts.ini"
   file_permission = "0644"
-  depends_on      = [libvirt_domain.test_vms]
+  depends_on      = [libvirt_domain.test_vms, libvirt_domain.arch_vms]
 }
 
 # SSH configuration helper
 resource "local_file" "ssh_config" {
   content = templatefile("${path.module}/templates/ssh-config.tpl", {
     vms = {
-      for name, vm_config in local.vms : name => {
+      for name, vm_config in local.all_vms : name => {
         ip_address = vm_config.ip
       }
     }
   })
   filename        = "${path.module}/../ssh-config"
   file_permission = "0644"
-  depends_on      = [libvirt_domain.test_vms]
+  depends_on      = [libvirt_domain.test_vms, libvirt_domain.arch_vms]
 }

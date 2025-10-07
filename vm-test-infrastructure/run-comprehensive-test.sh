@@ -114,7 +114,7 @@ wait_for_vms() {
         fi
 
         sleep 10
-        ((attempt++))
+        attempt=$((attempt + 1))
     done
 
     error "VMs not accessible after $max_attempts attempts"

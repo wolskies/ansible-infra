@@ -23,10 +23,10 @@
     name: "{{ item.name }}"
     state: "{{ item.state | default('present') }}"
     update_cache: true
-  loop: "{{ _final_packages[ansible_os_family] | default([]) }}"
+  loop: "{{ _final_packages[ansible_distribution] | default([]) }}"
   become: true
   when:
-    - _final_packages[ansible_os_family] | default([]) | length > 0
+    - _final_packages[ansible_distribution] | default([]) | length > 0
     - not (pacman.enable_aur | default(false))
 
 - name: Install packages (AUR enabled)
@@ -62,16 +62,16 @@
         name: "{{ item.name }}"
         state: "{{ item.state | default('present') }}"
         use: paru # Use paru for both official and AUR packages
-      loop: "{{ _final_packages[ansible_os_family] | default([]) }}"
+      loop: "{{ _final_packages[ansible_distribution] | default([]) }}"
       become: false # Run as ansible_user, not root
       tags:
         - no-container
         - aur
   when:
-    - _final_packages[ansible_os_family] | default([]) | length > 0
+    - _final_packages[ansible_distribution] | default([]) | length > 0
     - pacman.enable_aur | default(false)
 
 - name: Gather package facts (Arch Linux)
   ansible.builtin.package_facts:
     manager: pacman
-  when: manage_packages[ansible_os_family] | default([]) | length > 0
+  when: _final_packages[ansible_distribution] | default([]) | length > 0

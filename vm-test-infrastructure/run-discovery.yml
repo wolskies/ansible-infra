@@ -6,6 +6,9 @@
   hosts: test_vms
   become: true
   gather_facts: true
+  vars:
+    discovery_output_dir: "/tmp/discovery_results"
+    discovery_detailed: true
 
   pre_tasks:
     - name: Display discovery phase info
@@ -21,9 +24,6 @@
     - name: Execute discovery role
       ansible.builtin.include_role:
         name: wolskies.infrastructure.discovery
-      vars:
-        discovery_output_dir: "discovery_results"
-        discovery_detailed: true
 
   post_tasks:
     - name: Save discovery results locally
@@ -43,7 +43,7 @@
 # Validation phase - compare discovery results vs expected configuration
 - name: Validate Configuration Results
   hosts: localhost
-  gather_facts: false
+  gather_facts: true
   vars:
     validation_results: []
 

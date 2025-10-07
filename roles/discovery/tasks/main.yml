@@ -74,11 +74,30 @@
   failed_when: false
   when: ansible_system == "Darwin"
 
+- name: Get IANA timezone (Linux)
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: timezone_cmd
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Linux"
+
+- name: Get IANA timezone (macOS)
+  ansible.builtin.command: readlink /etc/localtime
+  register: timezone_macos_cmd
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Darwin"
+
 - name: Set discovered system variables
   ansible.builtin.set_fact:
     discovery_hostname: "{{ ansible_hostname }}"
     discovery_domain_name: "{{ ansible_domain | default('') }}"
-    discovery_domain_timezone: "{{ ansible_date_time.tz }}"
+    discovery_domain_timezone: >-
+      {{
+        (timezone_cmd.stdout | default('')) if ansible_system == "Linux"
+        else (timezone_macos_cmd.stdout | default('') | regex_replace('.*/zoneinfo/', '')) if ansible_system == "Darwin"
+        else ansible_date_time.tz
+      }}
     discovery_domain_locale: "{{ ansible_env.LANG | default('') }}"
     discovery_domain_language: "{{ ansible_env.LANG | default('') }}"
     discovery_domain_timesync_enabled: >-

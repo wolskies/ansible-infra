@@ -20,7 +20,7 @@ domain_locale: {{ discovery_domain_locale | to_json }}
 domain_language: {{ discovery_domain_language | to_json }}
 {% endif -%}
 {% if discovery_domain_timesync_enabled is not none %}
-domain_ntp:
+domain_timesync:
   enabled: {{ discovery_domain_timesync_enabled | lower }}
   servers:
     - "0.pool.ntp.org"
@@ -58,13 +58,12 @@ host_services:
 
 
 {% if discovery_udev_rules | length > 0 %}
-host_udev:
-  rules:
+host_udev_rules:
 {% for rule in discovery_udev_rules %}
-    - name: {{ rule.name | to_json }}
-      content: {{ rule.content | to_json }}
-      priority: {{ rule.priority }}
-      state: present
+  - name: {{ rule.name | to_json }}
+    content: {{ rule.content | to_json }}
+    priority: {{ rule.priority }}
+    state: present
 {% endfor %}
 {% endif %}
 
@@ -105,21 +104,24 @@ packages:
   present:
     host:
       {{ ansible_distribution }}:
-        {{ discovery_packages_host | to_nice_yaml(indent=8) | indent(8, first=false) }}
-{%- endif %}
-{%- if ansible_system == "Darwin" and discovery_homebrew_casks | length > 0 %}
+{% for pkg in discovery_packages_host %}
+        - { name: {{ pkg }} }
+{% endfor %}
+{% endif %}
+{% if ansible_system == "Darwin" and discovery_homebrew_casks | length > 0 %}
   casks_present:
-    host: {{ discovery_homebrew_casks | to_json }}
-{%- endif %}
+    host:
+{% for cask in discovery_homebrew_casks %}
+      - {{ cask }}
+{% endfor %}
+{% endif %}
 {% endif %}
 
 {% if ansible_os_family == "Debian" and discovery_repositories | length > 0 %}
-apt:
-  repositories:
-    host:
-      {{ ansible_distribution }}:
+apt_repositories_host:
+  {{ ansible_distribution }}:
 {% for repo in discovery_repositories %}
-        - {{ repo | to_json }}
+    - {{ repo | to_json }}
 {% endfor %}
 {% elif ansible_system == "Darwin" and discovery_homebrew_taps | length > 0 %}
 homebrew:
