@@ -1,325 +1,177 @@
 Development Workflow
 ====================
 
-Systematic process for implementing and validating requirements.
+Guidelines for contributing code to the collection.
 
 .. contents::
    :local:
    :depth: 2
 
-Core Principles
+Getting Started
 ---------------
 
-1. **Requirements-driven development** - All changes trace to specific requirements
-2. **Incremental validation** - Each change is tested before proceeding
-3. **No broken states** - Every commit must pass all tests
-4. **Systematic approach** - Work role-by-role, requirement-by-requirement
-
-Role Validation Workflow
--------------------------
-
-Phase 1: Analysis
-~~~~~~~~~~~~~~~~~
-
-Before writing any code:
-
-1. **Extract requirements** from documentation for the target role
-2. **Create validation plan** with specific test cases (positive + negative)
-3. **Review current implementation** (production code and tests)
-4. **Identify gaps** between requirements and current implementation
-
-Phase 2: Planning
-~~~~~~~~~~~~~~~~~
-
-Document your approach:
-
-1. **Gap analysis** - What's missing, what's wrong, what's good
-2. **Implementation plan** - Ordered list of specific changes needed
-3. **Estimate effort** - Simple vs complex changes
-4. **Success criteria** - How to know each change is complete
-
-Phase 3: Implementation
-~~~~~~~~~~~~~~~~~~~~~~~
-
-For each requirement (one at a time):
-
-**1. Start Clean**
-
-Ensure current state passes all tests:
+Setup
+~~~~~
 
 .. code-block:: bash
 
-   cd roles/manage_packages
-   molecule test  # Must pass before starting
+   # Clone repository
+   git clone https://gitlab.wolskinet.com/ansible/collections/infrastructure.git
+   cd infrastructure
 
-**2. Make Targeted Change**
+   # Install dependencies
+   ansible-galaxy collection install -r requirements.yml
+   pip install molecule[docker] molecule-plugins[docker] pytest-testinfra
 
-Implement ONE requirement:
+   # Install pre-commit hooks
+   pre-commit install
 
-* Update production code if needed
-* Update/add molecule tests to validate
-* Update verification tasks
+Contribution Process
+--------------------
 
-**3. Validate Change**
+1. Find or Create an Issue
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Test the specific change:
+* Browse `GitLab Issues <https://gitlab.wolskinet.com/ansible/collections/infrastructure/-/issues>`_
+* Comment to claim the issue
+* Discuss approach if needed
+
+2. Make Your Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+**Write tests first:**
 
 .. code-block:: bash
 
-   molecule test  # Must pass after change
+   cd roles/my_role
 
-**4. Commit Change**
+   # Edit molecule/default/verify.yml - add test
+   # Run test to see it fail
+   molecule test
 
-Document what was implemented:
+   # Edit tasks/main.yml - implement feature
+   # Run test to see it pass
+   molecule test
+
+**Ensure quality:**
+
+.. code-block:: bash
+
+   # Validate changes
+   ansible-lint
+   pre-commit run --all-files
+
+3. Commit Your Work
+~~~~~~~~~~~~~~~~~~~
+
+Use descriptive commit messages:
 
 .. code-block:: bash
 
    git add .
-   git commit -m "implement REQ-XX-YYY: requirement description"
-   git push origin main
+   git commit -m "implement feature: description of what changed"
+   git push
 
-**5. Verify CI**
+4. Create Merge Request
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Ensure CI pipeline passes.
+* Push your branch
+* Create MR on GitLab
+* Fill out MR template
+* Wait for CI and review
 
-**6. Move to Next Requirement**
+Required Checks
+---------------
 
-Repeat for each requirement.
+Before Committing
+~~~~~~~~~~~~~~~~~
 
-Phase 4: Completion
-~~~~~~~~~~~~~~~~~~~
+All of these must pass:
 
-After all requirements:
+.. code-block:: bash
 
-1. **Final validation** - Run complete test suite for the role
-2. **Documentation update** - Update README/docs if needed
-3. **Gap closure verification** - Confirm all requirements implemented
-4. **Move to next role**
+   # 1. Role tests
+   cd roles/my_role
+   molecule test
 
-Branching Strategy
-------------------
+   # 2. Linting
+   ansible-lint
 
-Direct Commits to Main
+   # 3. Pre-commit hooks
+   pre-commit run --all-files
+
+CI Pipeline
+~~~~~~~~~~~
+
+GitLab CI automatically runs:
+
+* ``ansible-lint`` - Code quality checks
+* ``molecule test`` - All role tests
+* Integration tests
+* Documentation build
+
+All checks must pass before merge.
+
+Code Standards
+--------------
+
+Ansible Best Practices
 ~~~~~~~~~~~~~~~~~~~~~~
 
-We use direct commits to ``main`` branch:
+* Use ``ansible.builtin.*`` modules for core functionality
+* Use ``community.general.*`` for extended functionality
+* Follow `Ansible best practices <https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html>`_
+* Write idempotent tasks
 
-* Single-developer workflow with disciplined testing
-* Each commit is small, focused, and fully tested
-* Immediate CI feedback on every change
-* Forces better discipline (no broken commits allowed)
+YAML Style
+~~~~~~~~~~
 
-**Why not feature branches?**
+* 2-space indentation
+* Use ``---`` document start marker
+* Quote strings with special characters
+* Use meaningful variable names
 
-* No collaboration conflicts (single developer)
-* Overhead not justified for systematic approach
-* ``molecule test`` requirement ensures quality
-* ``git revert`` available if needed
+Variable Naming
+~~~~~~~~~~~~~~~
+
+* Prefix role variables: ``rolename_variable``
+* Use descriptive names: ``manage_packages_all`` not ``pkgs``
+* Document all variables in ``meta/argument_specs.yml``
 
 Testing Requirements
 --------------------
 
-Before Any Changes
-~~~~~~~~~~~~~~~~~~
-
-Verify current state is clean:
-
-.. code-block:: bash
-
-   cd roles/manage_packages
-   molecule test
-   ansible-lint
-
-After Each Change
-~~~~~~~~~~~~~~~~~
-
-Validate the specific change:
-
-.. code-block:: bash
-
-   # Role-specific tests
-   molecule test
-
-   # Broader validation
-   cd ../../
-   ansible-lint
-   pre-commit run --all-files
-
-Commit Requirements
-~~~~~~~~~~~~~~~~~~~
-
-Before committing, ensure:
-
-* ✅ All molecule tests pass
-* ✅ No ansible-lint errors
-* ✅ No pre-commit hook failures
-* ✅ Commit message references specific requirement
-
-Commit Message Format
----------------------
-
-Standard Format
-~~~~~~~~~~~~~~~
-
-.. code-block:: text
-
-   implement REQ-{ROLE}-{NUM}: {requirement description}
-
-   - Add/update {specific change made}
-   - Test coverage: {what tests validate this}
-   - Platform: {Ubuntu/Arch/macOS/All}
-
-   Validates: {specific validation criteria met}
-
-Examples
-~~~~~~~~
-
-**System Configuration**
-
-.. code-block:: text
-
-   implement REQ-OS-001: system hostname configuration
-
-   - Add hostname task with proper conditionals
-   - Test coverage: verify hostname command and /etc/hostname file
-   - Platform: All (VM-only due to container limitations)
-
-   Validates: hostname set when host_hostname defined and non-empty
-
-**Package Management**
-
-.. code-block:: text
-
-   implement REQ-MP-003: layered package installation
-
-   - Add package merging from all/group/host levels
-   - Test coverage: verify all three levels combine correctly
-   - Platform: All
-
-   Validates: packages merged from all inventory levels
-
-Error Handling
---------------
-
-When Tests Fail
-~~~~~~~~~~~~~~~
-
-1. **Do not commit** - Fix the issue first
-2. **Understand the failure** - Is it the code or the test?
-3. **Fix incrementally** - Make minimal changes to resolve
-4. **Re-test** - Ensure fix works and doesn't break other things
-
-When CI Fails
+Test Coverage
 ~~~~~~~~~~~~~
 
-1. **Investigate immediately** - Don't proceed to next change
-2. **Fix in separate commit** - Don't mix CI fixes with feature work
-3. **Verify fix** - Ensure CI passes before continuing
+* Add tests for all new features
+* Update tests when changing behavior
+* Test both success and failure cases
+* Verify idempotence
 
-When Molecule is Flaky
-~~~~~~~~~~~~~~~~~~~~~~
+Test Quality
+~~~~~~~~~~~~
 
-1. **Retry once** - Some tests have timing issues
-2. **If consistent failure** - Investigate and fix the test
-3. **Document workarounds** - If container limitations require VM testing
+* Test outcomes, not implementation
+* Use realistic test data
+* Keep tests focused and simple
+* Write clear failure messages
 
-Documentation Updates
----------------------
-
-When to Update
-~~~~~~~~~~~~~~
-
-* New requirements implemented
-* Test procedures change
-* Workflow improvements identified
-
-What to Update
-~~~~~~~~~~~~~~
-
-* Role README files (if behavior changes significantly)
-* This workflow document (if process improvements identified)
-* User-facing documentation (if user interface changes)
-
-Quality Gates
+Documentation
 -------------
 
-Before Moving to Next Requirement
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Update When Needed
+~~~~~~~~~~~~~~~~~~
 
-.. list-table::
-   :header-rows: 0
-   :widths: 5 95
-
-   * - ☐
-     - Molecule tests pass
-   * - ☐
-     - Ansible-lint clean
-   * - ☐
-     - Pre-commit hooks pass
-   * - ☐
-     - CI pipeline green
-   * - ☐
-     - Requirement fully validated (positive + negative tests)
-
-Before Moving to Next Role
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-   :header-rows: 0
-   :widths: 5 95
-
-   * - ☐
-     - All role requirements implemented
-   * - ☐
-     - Complete role test suite passes
-   * - ☐
-     - Integration tests pass (if applicable)
-   * - ☐
-     - Documentation updated
-   * - ☐
-     - Gap analysis complete and closed
-
-Development Cycle Example
--------------------------
-
-Complete Example
-~~~~~~~~~~~~~~~~
-
-Working on the ``manage_packages`` role:
-
-.. code-block:: bash
-
-   # 1. Start with clean state
-   cd roles/manage_packages
-   molecule test  # ✅ Passes
-
-   # 2. Implement REQ-MP-001 (basic package installation)
-   # Edit tasks/main.yml, add package installation logic
-   # Edit molecule/default/verify.yml, add package verification
-
-   # 3. Test the change
-   molecule test  # ✅ Passes
-
-   # 4. Commit
-   git add tasks/main.yml molecule/default/verify.yml
-   git commit -m "implement REQ-MP-001: basic package installation"
-   git push
-
-   # 5. Verify CI passes
-   # Check GitLab CI pipeline
-
-   # 6. Move to REQ-MP-002 (layered configuration)
-   # Repeat steps 2-5
-
-   # 7. After all requirements
-   molecule test  # Final validation
-   ansible-lint   # Final check
-   # Update README if needed
-   # Move to next role
+* Role README for behavior changes
+* ``docs/roles/{role}.rst`` for user-facing changes
+* ``meta/argument_specs.yml`` for variable changes
+* Add examples for new features
 
 See Also
 --------
 
-* :doc:`tdd-process` - Test-Driven Development approach
+* :doc:`tdd-process` - Test-driven development
 * :doc:`contributing` - Contribution guidelines
 * :doc:`../testing/running-tests` - Testing guide
+* :doc:`../testing/writing-tests` - Writing tests

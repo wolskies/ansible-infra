@@ -31,6 +31,24 @@ Arch Linux
 macOS
 ~~~~~
 
+**Status**: Limited automated testing
+
+**Supported Features:**
+
 * Homebrew package management
-* Application Layer Firewall
-* launchd services
+* Application Layer Firewall (ALF)
+* Basic system configuration (hostname, timezone)
+* Development environments (Node.js, Rust, Go, Neovim)
+* User preference configuration (Dock, Finder, screenshots)
+
+**Not Supported:**
+
+* Port-based firewall rules (ALF is application-based only)
+* fail2ban intrusion prevention (Linux-only)
+* Security hardening via devsec.hardening (Linux-only)
+* systemd service management (macOS uses launchd)
+* Locale configuration (handled differently on macOS)
+
+**Testing Status:**
+
+macOS support is functional but lacks automated testing in CI. The collection's Phase III VM testing plan includes comprehensive macOS validation when licensing constraints allow. Current macOS support relies on manual testing.

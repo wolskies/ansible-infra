@@ -26,7 +26,7 @@ System Configuration
     Firewall (UFW/ALF) and intrusion prevention (fail2ban) configuration across Linux and macOS.
 
 :doc:`manage_flatpak`
-    Flatpak package system management for Linux distributions.
+    Flatpak package system management for Linux distributions. (Experimental)
 
 :doc:`manage_snap_packages`
     Snap package system management and optional complete removal on Ubuntu/Debian.

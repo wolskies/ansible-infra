@@ -16,9 +16,7 @@ from pathlib import Path
 
 def load_srd_content() -> str:
     """Load the SRD content for processing."""
-    srd_file = (
-        Path(__file__).parent.parent / "docs" / "SOFTWARE_REQUIREMENTS_DOCUMENT.md"
-    )
+    srd_file = Path(__file__).parent.parent / "docs" / "archive" / "SOFTWARE_REQUIREMENTS_DOCUMENT.md"
 
     if not srd_file.exists():
         raise FileNotFoundError(f"SRD not found at {srd_file}")
@@ -27,9 +25,7 @@ def load_srd_content() -> str:
         return f.read()
 
 
-def extract_section_content(
-    content: str, section_title: str, subsection_level: int = 2
-) -> str:
+def extract_section_content(content: str, section_title: str, subsection_level: int = 2) -> str:
     """Extract a specific section from markdown content."""
     # Create pattern for section header
     header_pattern = "#" * subsection_level + r"\s+" + re.escape(section_title)
@@ -155,21 +151,15 @@ def generate_collection_overview() -> str:
 
     # Extract key sections
     overview_section = extract_section_content(srd_content, "1. Collection Overview")
-    requirements_section = extract_section_content(
-        srd_content, "2. Collection-Wide Requirements"
-    )
+    requirements_section = extract_section_content(srd_content, "2. Collection-Wide Requirements")
 
     # Extract known issues and future requirements
-    issues_section = extract_section_content(
-        srd_content, "4. Known Issues and Limitations"
-    )
+    issues_section = extract_section_content(srd_content, "4. Known Issues and Limitations")
     future_section = extract_section_content(srd_content, "5. Future Requirements")
 
     # Convert to RST
     overview_rst = markdown_to_rst(overview_section) if overview_section else ""
-    requirements_rst = (
-        markdown_to_rst(requirements_section) if requirements_section else ""
-    )
+    requirements_rst = markdown_to_rst(requirements_section) if requirements_section else ""
     issues_rst = markdown_to_rst(issues_section) if issues_section else ""
     future_rst = markdown_to_rst(future_section) if future_section else ""
 

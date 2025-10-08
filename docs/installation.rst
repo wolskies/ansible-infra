@@ -7,17 +7,8 @@ Prerequisites
 -------------
 
 * Ansible 2.12 or higher
-* Python 3.8 or higher (for control node)
+* Python 3.9 or higher (for control node)
 * Supported target platforms (see :doc:`user-guide/platform-support`)
-
-.. Right now, I don't intent to publish to Ansible Galaxy.. this might not be a usefule section. COMMENT
-
-Installing from Ansible Galaxy
--------------------------------
-
-.. code-block:: bash
-
-   ansible-galaxy collection install wolskies.infrastructure
 
 Installing from Git Repository
 -------------------------------
@@ -76,38 +67,13 @@ You should see output like:
 
    wolskies.infrastructure  1.2.0
 
-.. Isn't "Testing the Installation" redundant with Quickstart? COMMENT
-
-Testing the Installation
--------------------------
-
-Create a simple test playbook:
-
-.. code-block:: yaml
-
-   # test-playbook.yml
-   - hosts: localhost
-     connection: local
-     roles:
-       - role: wolskies.infrastructure.manage_packages
-         vars:
-           manage_packages_all:
-             Ubuntu: [curl]
-             MacOSX: [curl]
-
-Run the test:
-
-.. code-block:: bash
-
-   ansible-playbook test-playbook.yml --check
-
 Platform-Specific Setup
 ------------------------
 
 Ubuntu/Debian
 ~~~~~~~~~~~~~
 
-No additional setup required. APT package manager is supported out of the box.
+No additional setup required.
 
 Arch Linux
 ~~~~~~~~~~
@@ -121,13 +87,10 @@ For AUR support, ensure your user has passwordless sudo for pacman:
 
 macOS
 ~~~~~
-.. don't we install homebrew by default?  COMMENT
 
-Install Homebrew if not already installed:
+No additional setup required.
 
-.. code-block:: bash
-
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+**Homebrew** will be automatically installed by the ``manage_packages`` role if not already present. The collection uses `geerlingguy.mac.homebrew <https://github.com/geerlingguy/ansible-collection-mac>`_ for macOS package management.
 
 Next Steps
 ----------

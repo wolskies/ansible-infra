@@ -24,7 +24,7 @@ Prerequisites
 ~~~~~~~~~~~~~
 
 * Ansible 2.12+
-* Python 3.8+
+* Python 3.9+
 * Docker (for testing)
 * Git
 

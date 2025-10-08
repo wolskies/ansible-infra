@@ -16,23 +16,14 @@ The collection uses a multi-layered testing approach:
 * **VM Tests** - Full-platform validation on real VMs
 * **CI Pipeline** - Automated testing on every commit
 
-Test Philosophy
----------------
+Testing Approach
+----------------
 
-Core Principles
-~~~~~~~~~~~~~~~
+The collection uses a progressive testing strategy where each phase validates different aspects:
 
-1. **Individual role tests are authoritative** - Each role must have comprehensive tests
-2. **No test-specific production code** - Never add ``when: not molecule_test`` conditionals
-3. **Semantic failures over masking** - Let roles fail properly rather than hiding issues
-4. **Progressive testing** - Each phase catches issues before the next
-
-Testing Contract
-~~~~~~~~~~~~~~~~
-
-    Individual role tests are the definitive validation of functionality.
-    If role tests pass but integration fails, this indicates missing role
-    test coverage, not integration code issues.
+1. **Individual role tests** - Role-specific functionality and idempotence
+2. **Integration tests** - Role interactions and orchestration
+3. **VM tests** - Full platform validation on real systems
 
 Test Hierarchy
 --------------

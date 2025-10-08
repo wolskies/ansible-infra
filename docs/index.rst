@@ -24,10 +24,10 @@ The ``wolskies.infrastructure`` collection provides a complete solution for:
 
 **Supported Platforms:**
 
-* Ubuntu 22.04+, 24.04+
-* Debian 12+, 13+
-* Arch Linux (Rolling)
-* macOS 13+ (Ventura)
+* Ubuntu 22.04+, 24.04+ - fully tested
+* Debian 12+, 13+ - fully tested
+* Arch Linux (Rolling) - fully tested
+* macOS 13+ (Ventura) - limited testing (see :doc:`user-guide/platform-support`)
 
 Quick Links
 -----------
@@ -100,52 +100,6 @@ Table of Contents
    reference/index
    reference/requirements
    reference/variables-reference
-
-Key Features
-------------
-
-Layered Configuration
-~~~~~~~~~~~~~~~~~~~~~
-
-Apply configuration at multiple inventory levels:
-
-.. code-block:: yaml
-
-   # group_vars/all.yml - Base level
-   manage_packages_all:
-     Ubuntu: [git, curl, vim]
-
-   # group_vars/webservers.yml - Group level
-   manage_packages_group:
-     Ubuntu: [nginx, postgresql]
-
-   # host_vars/web01.yml - Host level
-   manage_packages_host:
-     Ubuntu: [redis-server]
-
-Multi-Platform Support
-~~~~~~~~~~~~~~~~~~~~~~
-
-Single configuration works across platforms:
-
-.. code-block:: yaml
-
-   # Use the collection's configure_system playbook
-   - import_playbook: wolskies.infrastructure.configure_system
-
-   # With collection-wide variables in group_vars/all.yml
-   manage_packages_all:
-     Ubuntu: [git, vim]
-     Archlinux: [git, vim]
-     MacOSX: [git, vim]
-
-Comprehensive Testing
-~~~~~~~~~~~~~~~~~~~~~
-
-* Individual role tests via Molecule
-* Integration tests for role interactions
-* VM-based testing across distributions
-* Continuous integration via GitLab CI
 
 Indices and Search
 ------------------
