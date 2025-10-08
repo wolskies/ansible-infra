@@ -1,0 +1,31 @@
+# Gitleaks configuration for wolskies.infrastructure collection
+# https://github.com/gitleaks/gitleaks
+
+[extend]
+# Use default gitleaks rules
+useDefault = true
+
+[allowlist]
+description = "Allowlist for template files and documentation examples"
+
+# Allow secrets in template and example files
+paths = [
+  '''utilities/templates/.*''',
+  '''utilities/examples/.*''',
+  '''roles/.*/templates/.*\.j2''',
+  '''examples/.*\.example''',
+  '''docs/.*-guide\.md''',
+]
+
+# Allow specific placeholder patterns that look like secrets
+regexes = [
+  '''REPLACE_WITH_YOUR_.*''',
+  '''REPLACE_WITH_DOTFILES_.*''',
+  '''REPLACE_WITH_.*_KEY''',
+  '''glpat-REPLACE_WITH_YOUR_.*''',
+]
+
+# Commit-level allowlist
+commits = [
+  # Add specific commit SHAs here if needed
+]
