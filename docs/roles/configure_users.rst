@@ -435,8 +435,8 @@ Development tools are installed to user directories:
 
 Tools are installed per-user, not system-wide, allowing different users to have different versions and configurations.
 
-Dotfiles Deployment with GNU Stow
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Dotfiles Deployment
+~~~~~~~~~~~~~~~~~~~
 
 When ``dotfiles.enable: true``:
 
@@ -445,8 +445,6 @@ When ``dotfiles.enable: true``:
 3. **Dry Run Check** - Verify no conflicts with existing files
 4. **Package Deployment** - Use ``stow`` to symlink specified packages
 5. **Idempotent** - Safe to run multiple times
-
-The role uses GNU Stow to create symlinks from your dotfiles repository into your home directory.
 
 Tags
 ----

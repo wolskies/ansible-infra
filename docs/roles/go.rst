@@ -456,44 +456,6 @@ Install collection dependencies:
 
 - ``golang`` / ``go`` - Go programming language toolchain
 
-Go vs Other Languages
----------------------
-
-Comparison with Node.js and Rust:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 25 25 30
-
-   * - Feature
-     - Go
-     - Node.js
-     - Rust
-   * - Package Location
-     - ``~/go/``
-     - ``~/.npm-global/``
-     - ``~/.cargo/``
-   * - Binary Location
-     - ``~/go/bin/``
-     - ``~/.npm-global/bin/``
-     - ``~/.cargo/bin/``
-   * - Package Manager
-     - ``go install``
-     - ``npm``
-     - ``cargo``
-   * - Compilation
-     - Fast
-     - Interpreted
-     - Slow (first time)
-   * - Binary Size
-     - Large (static)
-     - N/A
-     - Medium
-   * - Cross-compilation
-     - Excellent
-     - N/A
-     - Good
-
 See Also
 --------
 
