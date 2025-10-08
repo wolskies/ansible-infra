@@ -1,17 +1,23 @@
 Roles
 =====
 
-The ``wolskies.infrastructure`` collection provides these roles for system and user configuration.
+The ``wolskies.infrastructure`` collection includes the following roles.
 
 .. contents::
    :local:
    :depth: 1
 
+Meta-Role
+---------
+
+:doc:`configure_system`
+    High-level role that Orchestrates other roles for a full setup.  Provided as a convenience, but not required to use any role in this collection.
+
 System Configuration
 --------------------
 
 :doc:`os_configuration`
-    Core operating system configuration including hostname, timezone, locale, NTP, systemd services, and OS-specific settings. Foundation for system setup.
+    Core operating system configuration including hostname, timezone, locale, time syncronization, systemd services, and OS-specific settings.
 
 :doc:`manage_packages`
     Cross-platform package management (APT, Pacman, Homebrew) with repository management and layered configuration.

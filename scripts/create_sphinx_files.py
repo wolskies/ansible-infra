@@ -1,124 +1,83 @@
 #!/usr/bin/env python3
 """
-Create Sphinx configuration files for GitLab Pages documentation.
+Create Sphinx configuration file for GitLab Pages documentation.
+
+This script generates conf.py in the docs/ directory. All other
+documentation is hand-written RST files.
 """
 
-import json
 import os
-from datetime import datetime, timezone
 from pathlib import Path
-
-
-def create_index_rst(output_dir: Path):
-    """Create index.rst for Sphinx documentation."""
-    index_content = """wolskies.infrastructure Collection Documentation
-===============================================
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   collection_overview
-   role_configure_users
-   role_go
-   role_manage_flatpak
-   role_manage_packages
-   role_manage_security_services
-   role_manage_snap_packages
-   role_neovim
-   role_nodejs
-   role_os_configuration
-   role_rust
-   role_terminal_config
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-"""
-
-    with open(output_dir / "index.rst", "w") as f:
-        f.write(index_content)
 
 
 def create_conf_py(output_dir: Path):
     """Create conf.py for Sphinx documentation."""
-    conf_content = """project = 'wolskies.infrastructure'
+    conf_content = """# Configuration file for Sphinx documentation builder.
+# For the full list of built-in configuration values, see:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+# -- Project information -----------------------------------------------------
+project = 'wolskies.infrastructure'
 copyright = '2025, wolskies infrastructure team'
 author = 'wolskies infrastructure team'
 
 release = '1.2.0'
 version = '1.2.0'
 
+# -- General configuration ---------------------------------------------------
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
 ]
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'generated']
 
+# -- Options for HTML output -------------------------------------------------
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 # Theme options
 html_theme_options = {
-    'navigation_depth': 3,
+    'navigation_depth': 4,
     'collapse_navigation': False,
     'sticky_navigation': True,
     'includehidden': True,
-    'titles_only': False
+    'titles_only': False,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': True,
 }
+
+# -- Extension configuration -------------------------------------------------
+
+# intersphinx: Refer to other Sphinx documentation
+intersphinx_mapping = {
+    'ansible': ('https://docs.ansible.com/ansible/latest/', None),
+}
+
+# todo: Show TODO items
+todo_include_todos = True
 """
 
     with open(output_dir / "conf.py", "w") as f:
         f.write(conf_content)
 
 
-def create_manifest_json(output_dir: Path):
-    """Create manifest.json with build metadata."""
-    manifest = {
-        "collection": "wolskies.infrastructure",
-        "version": "1.2.0",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "commit": os.environ.get("CI_COMMIT_SHA", "unknown"),
-        "pipeline": os.environ.get("CI_PIPELINE_ID", "unknown"),
-        "roles": [
-            "configure_users",
-            "go",
-            "manage_flatpak",
-            "manage_packages",
-            "manage_security_services",
-            "manage_snap_packages",
-            "neovim",
-            "nodejs",
-            "os_configuration",
-            "rust",
-            "terminal_config",
-        ],
-    }
-
-    with open(output_dir / "manifest.json", "w") as f:
-        json.dump(manifest, f, indent=2)
-
-
 def main():
-    """Create all Sphinx files in the public directory."""
+    """Create Sphinx conf.py in the docs/ directory."""
     if len(os.sys.argv) > 1:
         output_dir = Path(os.sys.argv[1])
     else:
-        output_dir = Path("public")
+        output_dir = Path("docs")
 
     output_dir.mkdir(exist_ok=True)
 
-    create_index_rst(output_dir)
     create_conf_py(output_dir)
-    create_manifest_json(output_dir)
 
-    print(f"✅ Sphinx files created in {output_dir}")
+    print(f"✅ Sphinx conf.py created in {output_dir}")
 
 
 if __name__ == "__main__":

@@ -10,6 +10,8 @@ Prerequisites
 * Python 3.8 or higher (for control node)
 * Supported target platforms (see :doc:`user-guide/platform-support`)
 
+.. Right now, I don't intent to publish to Ansible Galaxy.. this might not be a usefule section. COMMENT
+
 Installing from Ansible Galaxy
 -------------------------------
 
@@ -74,6 +76,8 @@ You should see output like:
 
    wolskies.infrastructure  1.2.0
 
+.. Isn't "Testing the Installation" redundant with Quickstart? COMMENT
+
 Testing the Installation
 -------------------------
 
@@ -117,6 +121,7 @@ For AUR support, ensure your user has passwordless sudo for pacman:
 
 macOS
 ~~~~~
+.. don't we install homebrew by default?  COMMENT
 
 Install Homebrew if not already installed:
 

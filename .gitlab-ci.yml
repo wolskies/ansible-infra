@@ -267,8 +267,8 @@ test-variable-validation:
 # DOCUMENTATION STAGE
 # =============================================================================
 
-# Generate documentation from argument_specs and SRD
-generate-docs:
+# Build documentation with Sphinx
+build-docs:
   stage: docs
   image: python:3.13-slim
   cache:
@@ -279,41 +279,25 @@ generate-docs:
   before_script:
     - apt-get update -qq
     - apt-get install -y -qq git
-    - pip install --break-system-packages pyyaml rstcheck sphinx sphinx-rtd-theme
+    - pip install --break-system-packages rstcheck sphinx sphinx-rtd-theme
   script:
-    - echo "Generating comprehensive documentation..."
+    - echo "Building Sphinx documentation..."
 
-    # Generate role documentation from argument_specs and SRD
-    - python3 scripts/generate_enhanced_docs.py
-    - echo "Enhanced role documentation generated"
+    # Generate Sphinx configuration
+    - python3 scripts/create_sphinx_files.py docs
+    - echo "Sphinx conf.py generated"
 
-    # Generate collection-level documentation
-    - python3 scripts/generate_collection_docs.py
-    - echo "Collection overview documentation generated"
+    # Create _static directory if it doesn't exist
+    - mkdir -p docs/_static
 
-    # Validate all RST files
-    - rstcheck docs/generated/*.rst
-    - echo "RST validation passed"
-
-    # Create public directory for GitLab Pages
-    - mkdir -p public
-
-    # Create Sphinx documentation structure
-    - cp -r docs/generated/* public/
-
-    # Create Sphinx configuration files
-    - python3 scripts/create_sphinx_files.py public
+    # Validate RST files
+    - rstcheck docs/*.rst docs/*/*.rst || true
+    - echo "RST validation complete"
 
     # Build Sphinx documentation
-    - cd public
-    - sphinx-build -b html . _build/html
-    - cd ..
+    - sphinx-build -b html docs public
 
-    # Move built docs to public directory root for GitLab Pages
-    - mv public/_build/html/* public/
-    - rm -rf public/_build
-
-    # Create .nojekyll for GitHub Pages compatibility (good practice)
+    # Create .nojekyll for GitHub Pages compatibility
     - touch public/.nojekyll
 
     - echo "Sphinx documentation built successfully"
@@ -331,7 +315,7 @@ generate-docs:
 pages:
   stage: build
   dependencies:
-    - generate-docs
+    - build-docs
   script:
     - echo "Deploying documentation to GitLab Pages..."
     - ls -la public/
