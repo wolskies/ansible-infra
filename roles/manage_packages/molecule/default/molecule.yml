@@ -75,7 +75,7 @@ provisioner:
         molecule_test: true
         # Base packages using new layered approach (REQ-MP-001)
         manage_packages_all:
-          Debian:
+          Ubuntu:
             - name: curl
             - name: git
           Archlinux:
@@ -88,10 +88,10 @@ provisioner:
       # REQ-MP-003: Complete repository + package management
       ubuntu-packages-full:
         manage_packages_group:
-          Debian:
+          Ubuntu:
             - name: nginx
         manage_packages_host:
-          Debian:
+          Ubuntu:
             - name: docker-ce
             - name: telnet
               state: absent
@@ -114,9 +114,9 @@ provisioner:
       # Basic package management without repositories
       ubuntu-packages-basic:
         manage_packages_group:
-          Debian: []
+          Ubuntu: []
         manage_packages_host:
-          Debian:
+          Ubuntu:
             - name: vim
             - name: nano
               state: absent
@@ -128,10 +128,10 @@ provisioner:
       # REQ-MP-001: Demonstrates layered package combining (using default Ubuntu packages only)
       ubuntu-packages-layered:
         manage_packages_group:
-          Debian:
+          Ubuntu:
             - name: nginx # From group level (available in default repos)
         manage_packages_host:
-          Debian:
+          Ubuntu:
             - name: htop # From host level (available in default repos)
             - name: nano # Host adds another package (different from all level)
               state: absent
@@ -143,9 +143,9 @@ provisioner:
       # REQ-MP-002: Demonstrates layered repository combining (Docker repository only, per SRD example)
       ubuntu-repos-layered:
         manage_packages_group:
-          Debian: []
+          Ubuntu: []
         manage_packages_host:
-          Debian:
+          Ubuntu:
             - name: docker-ce
         apt_repositories_group:
           Ubuntu: [] # Empty group level for this test
@@ -172,9 +172,9 @@ provisioner:
       # Edge cases: empty configurations
       ubuntu-edge-cases:
         manage_packages_group:
-          Debian: []
+          Ubuntu: []
         manage_packages_host:
-          Debian: []
+          Ubuntu: []
         apt_repositories_group:
           Ubuntu: []
         apt_repositories_host:
