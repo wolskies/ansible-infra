@@ -166,7 +166,9 @@ Each orchestrated role can be targeted independently:
 Dependencies
 ------------
 
-This role orchestrates the following roles:
+**Role Dependencies:**
+
+This role orchestrates the following roles from this collection:
 
 - :doc:`os_configuration` - Core system configuration
 - :doc:`manage_packages` - Package management
@@ -174,6 +176,14 @@ This role orchestrates the following roles:
 - :doc:`manage_snap_packages` - Snap packages
 - :doc:`manage_flatpak` - Flatpak applications
 - :doc:`configure_users` - User environments
+
+**Ansible Collections:**
+
+All Ansible collection dependencies are installed via:
+
+.. code-block:: bash
+
+   ansible-galaxy collection install -r requirements.yml
 
 Platform Support
 ----------------

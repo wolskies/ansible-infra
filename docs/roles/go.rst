@@ -440,22 +440,21 @@ If package version conflicts occur:
 Dependencies
 ------------
 
-**Required:**
+**Ansible Collections:**
 
-- ``ansible.builtin.apt`` - Package installation (Ubuntu/Debian)
-- ``community.general.pacman`` - Package installation (Arch Linux)
-- ``community.general.homebrew`` - Package installation (macOS)
-- ``ansible.builtin.command`` - Go package installation
+This role uses modules from the following collections:
 
-**System Packages (installed automatically):**
+- ``community.general`` - Included with Ansible package
 
-- ``golang`` / ``go`` - Go programming language toolchain
-
-Install Ansible dependencies:
+Install collection dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
+
+**System Packages (installed automatically by role):**
+
+- ``golang`` / ``go`` - Go programming language toolchain
 
 Go vs Other Languages
 ---------------------

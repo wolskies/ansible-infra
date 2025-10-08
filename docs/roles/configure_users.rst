@@ -579,7 +579,9 @@ macOS Developer Workstation
 Dependencies
 ------------
 
-This role orchestrates the following roles:
+**Role Dependencies:**
+
+This role orchestrates the following roles from this collection:
 
 - :doc:`nodejs` - Node.js and npm packages
 - :doc:`rust` - Rust and cargo packages
@@ -587,7 +589,13 @@ This role orchestrates the following roles:
 - :doc:`neovim` - Neovim configuration
 - :doc:`terminal_config` - Terminal emulator terminfo
 
-All dependencies are automatically installed via the collection's ``requirements.yml``.
+**Ansible Collections:**
+
+All Ansible collection dependencies are installed via:
+
+.. code-block:: bash
+
+   ansible-galaxy collection install -r requirements.yml
 
 Limitations
 -----------

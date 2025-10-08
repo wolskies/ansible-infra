@@ -372,24 +372,23 @@ Use Snap when:
 Dependencies
 ------------
 
-**Required:**
+**Ansible Collections:**
 
-- ``ansible.builtin.apt`` - Ubuntu/Debian package installation
-- ``community.general.pacman`` - Arch Linux package installation
-- ``community.general.flatpak_remote`` - Repository management
-- ``community.general.flatpak`` - Package management
+This role uses modules from the following collections:
 
-**System Packages (installed automatically):**
+- ``community.general`` - Included with Ansible package
 
-- ``flatpak`` - Flatpak runtime
-- ``gnome-software-plugin-flatpak`` - GNOME integration (Ubuntu/Debian)
-- ``plasma-discover-backend-flatpak`` - KDE integration (Ubuntu/Debian)
-
-Install Ansible dependencies:
+Install collection dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
+
+**System Packages (installed automatically by role):**
+
+- ``flatpak`` - Flatpak runtime
+- ``gnome-software-plugin-flatpak`` - GNOME integration (Ubuntu/Debian)
+- ``plasma-discover-backend-flatpak`` - KDE integration (Ubuntu/Debian)
 
 Limitations
 -----------

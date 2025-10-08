@@ -479,20 +479,13 @@ Requirements
 - Internet access for downloading terminfo sources
 - Write access to user's home directory
 
-**Dependencies:**
-
-- ``ansible.builtin.command`` - Execute tic and infocmp
-- ``ansible.builtin.get_url`` - Download terminfo sources
-- ``ansible.builtin.file`` - Directory creation
-- ``ansible.builtin.tempfile`` - Temporary file handling
-
 **System Packages (must be present):**
 
 - ``ncurses-bin`` (Ubuntu/Debian)
 - ``ncurses`` (Arch Linux)
 - ``ncurses`` (macOS - pre-installed)
 
-Install system packages:
+Install system packages if needed:
 
 .. code-block:: bash
 
@@ -501,6 +494,8 @@ Install system packages:
 
    # Arch Linux
    sudo pacman -S ncurses
+
+**Note:** This role only uses ``ansible.builtin`` modules (no external collection dependencies)
 
 Limitations
 -----------

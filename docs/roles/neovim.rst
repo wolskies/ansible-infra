@@ -503,27 +503,24 @@ If configuration has errors:
 Dependencies
 ------------
 
-**Required:**
+**Ansible Collections:**
 
-- ``ansible.builtin.apt`` - Package installation (Ubuntu/Debian)
-- ``ansible.builtin.package`` - Package installation (Arch Linux)
-- ``community.general.homebrew`` - Package installation (macOS)
-- ``ansible.builtin.git`` - Plugin manager installation
-- ``ansible.builtin.file`` - Directory and alias creation
-- ``ansible.builtin.copy`` - Configuration deployment
+This role uses modules from the following collections:
 
-**System Packages (installed automatically):**
+- ``community.general`` - Included with Ansible package
+
+Install collection dependencies:
+
+.. code-block:: bash
+
+   ansible-galaxy collection install -r requirements.yml
+
+**System Packages (installed automatically by role):**
 
 - ``neovim`` - Neovim editor
 - ``git`` - Version control (required by plugin manager)
 - ``lua-language-server`` - Lua LSP (Arch/macOS only)
 - ``pyright`` - Python LSP (Arch/macOS only)
-
-Install Ansible dependencies:
-
-.. code-block:: bash
-
-   ansible-galaxy collection install -r requirements.yml
 
 See Also
 --------

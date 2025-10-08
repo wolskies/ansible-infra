@@ -565,21 +565,23 @@ Firewall configuration requires host capabilities not available in containers. U
 Dependencies
 ------------
 
-**Required:**
+**Ansible Collections:**
 
-- ``community.general`` - UFW module
-- ``ansible.posix`` - Service management
+This role uses modules from the following collections:
 
-**System Packages (installed automatically):**
+- ``community.general`` - Included with Ansible package
+- ``ansible.posix`` - Included with Ansible package
 
-- ``ufw`` - Uncomplicated Firewall (Linux)
-- ``fail2ban`` - Intrusion prevention (Linux)
-
-Install Ansible dependencies:
+Install collection dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
+
+**System Packages (installed automatically by role):**
+
+- ``ufw`` - Uncomplicated Firewall (Linux)
+- ``fail2ban`` - Intrusion prevention (Linux)
 
 See Also
 --------

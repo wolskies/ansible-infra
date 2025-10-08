@@ -477,25 +477,22 @@ After removing snap, consider:
 Dependencies
 ------------
 
-**Required:**
+**Ansible Collections:**
 
-- ``ansible.builtin.apt`` - Package installation and removal
-- ``ansible.builtin.systemd`` - Service management
-- ``community.general.snap`` - Snap package management
-- ``ansible.builtin.command`` - System operations
-- ``ansible.builtin.file`` - Directory cleanup
-- ``ansible.builtin.copy`` - APT preferences creation
+This role uses modules from the following collections:
 
-**System Packages (managed automatically):**
+- ``community.general`` - Included with Ansible package
 
-- ``snapd`` - Snap daemon (installed if managing packages, removed if purging)
-- ``squashfuse`` - Snap filesystem support
-
-Install Ansible dependencies:
+Install collection dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
+
+**System Packages (managed automatically by role):**
+
+- ``snapd`` - Snap daemon (installed if managing packages, removed if purging)
+- ``squashfuse`` - Snap filesystem support
 
 Limitations
 -----------

@@ -464,16 +464,14 @@ Custom Udev Rules
 Dependencies
 ------------
 
-**Required:**
+**Ansible Collections:**
 
-- ``community.general`` - Ansible collection for various OS tasks
+This role uses modules from the following collections:
 
-**Optional (for security hardening):**
+- ``community.general`` - Included with Ansible package
+- ``devsec.hardening`` - Optional, for security hardening features
 
-- ``devsec.hardening.os_hardening`` - OS hardening role
-- ``devsec.hardening.ssh_hardening`` - SSH hardening role
-
-Install dependencies:
+Install collection dependencies:
 
 .. code-block:: bash
 
