@@ -19,7 +19,7 @@ def create_index_rst(output_dir: Path):
    :caption: Contents:
 
    collection_overview
-   role_configure_user
+   role_configure_users
    role_go
    role_manage_flatpak
    role_manage_packages
@@ -87,7 +87,7 @@ def create_manifest_json(output_dir: Path):
         "commit": os.environ.get("CI_COMMIT_SHA", "unknown"),
         "pipeline": os.environ.get("CI_PIPELINE_ID", "unknown"),
         "roles": [
-            "configure_user",
+            "configure_users",
             "go",
             "manage_flatpak",
             "manage_packages",

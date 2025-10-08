@@ -119,35 +119,47 @@ macosx:
 homebrew:
   cleanup_cache: true
   taps: []
-packages:
-  present: {}
-  # Example:
-  # present:
-  #   all:
-  #     Ubuntu: [curl, git, vim]
-  #     Debian: [curl, git, vim]
-  #     Archlinux: [curl, git, neovim]
-  #     MacOSX: [curl, git]
-  #   group:
-  #     Ubuntu: [docker.io, nginx]
-  #     Archlinux: [docker, nginx]
-  #   host:
-  #     Ubuntu: [postgresql, redis]
-  remove: {}
-  # Example:
-  # remove:
-  #   all:
-  #     Ubuntu: [snapd, whoopsie]
-  casks_present:
-    all: []
-    group: []
-    host: []
-  # Example:
-  # casks_present:
-  #   all: [firefox, visual-studio-code]
-  #   group: [docker, postman]
-  #   host: [slack, spotify]
-  casks_remove: []
+# Package management - layered by inventory level (all → group → host)
+manage_packages_all: {}
+# Example:
+# manage_packages_all:
+#   Ubuntu:
+#     - name: git
+#     - name: curl
+#     - name: vim
+#   Debian:
+#     - name: git
+#     - name: curl
+#   Archlinux:
+#     - name: git
+#     - name: curl
+#   MacOSX:
+#     - name: git
+#     - name: curl
+
+manage_packages_group: {}
+# Example:
+# manage_packages_group:
+#   Ubuntu:
+#     - name: nginx
+#     - name: postgresql
+
+manage_packages_host: {}
+# Example:
+# manage_packages_host:
+#   Ubuntu:
+#     - name: redis-server
+#     - name: telnet
+#       state: absent
+
+# macOS Homebrew casks (GUI applications)
+manage_casks: {}
+# Example:
+# manage_casks:
+#   MacOSX:
+#     - name: visual-studio-code
+#     - name: docker
+#     - name: firefox
 snap:
   remove_completely: false
   packages:
