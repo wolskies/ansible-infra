@@ -510,24 +510,23 @@ If NodeSource repository configuration fails:
 Dependencies
 ------------
 
-**Required:**
+**Ansible Collections:**
 
-- ``community.general.npm`` - npm package management
-- ``ansible.builtin.deb822_repository`` - NodeSource repository (Ubuntu/Debian)
-- ``community.general.pacman`` - Package installation (Arch Linux)
-- ``community.general.homebrew`` - Package installation (macOS)
+This role uses modules from the following collections:
 
-**System Packages (installed automatically):**
+- ``community.general`` - Included with Ansible package
 
-- ``nodejs`` - Node.js runtime
-- ``npm`` - Node package manager
-- ``python3-debian`` - deb822 repository support (Ubuntu/Debian)
-
-Install Ansible dependencies:
+Install collection dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
+
+**System Packages (installed automatically by role):**
+
+- ``nodejs`` - Node.js runtime
+- ``npm`` - Node package manager
+- ``python3-debian`` - deb822 repository support (Ubuntu/Debian)
 
 See Also
 --------

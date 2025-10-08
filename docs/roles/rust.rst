@@ -446,23 +446,22 @@ Cargo packages compile from source, which can be slow:
 Dependencies
 ------------
 
-**Required:**
+**Ansible Collections:**
 
-- ``ansible.builtin.apt`` - Package installation (Ubuntu/Debian)
-- ``community.general.pacman`` - Package installation (Arch Linux)
-- ``community.general.homebrew`` - Package installation (macOS)
-- ``ansible.builtin.command`` - Rustup and cargo operations
+This role uses modules from the following collections:
 
-**System Packages (installed automatically):**
+- ``community.general`` - Included with Ansible package
 
-- ``rustup`` - Rust toolchain installer
-- ``base-devel`` - Build essentials (Arch Linux only)
-
-Install Ansible dependencies:
+Install collection dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
+
+**System Packages (installed automatically by role):**
+
+- ``rustup`` - Rust toolchain installer
+- ``base-devel`` - Build essentials (Arch Linux only)
 
 Platform Limitations
 --------------------

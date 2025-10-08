@@ -352,15 +352,21 @@ Example usage:
 Dependencies
 ------------
 
-External Collections
-~~~~~~~~~~~~~~~~~~~~
+**Ansible Collections:**
 
-* ``community.general`` - For APT repository management
-* ``geerlingguy.mac.homebrew`` - For macOS Homebrew support
-* ``kewlfft.aur`` - For Arch Linux AUR support
+This role uses modules from the following collections:
 
-System Requirements
-~~~~~~~~~~~~~~~~~~~
+- ``community.general`` - Included with Ansible package
+- ``geerlingguy.mac.homebrew`` - macOS Homebrew support
+- ``kewlfft.aur`` - Arch Linux AUR support
+
+Install collection dependencies:
+
+.. code-block:: bash
+
+   ansible-galaxy collection install -r requirements.yml
+
+**System Requirements:**
 
 * **Ubuntu/Debian**: ``python3-debian`` (installed automatically)
 * **Arch Linux**: ``base-devel`` (for AUR building)
