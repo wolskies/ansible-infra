@@ -99,30 +99,32 @@ Package lists use ``ansible_distribution`` as keys:
 
 This allows different package names across platforms in a single configuration.
 
-Usage Examples
---------------
+Usage
+-----
 
-Package Installation
-~~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
-Simple package list (short form):
+Package list with default state (present):
 
 .. code-block:: yaml
 
    manage_packages_all:
-     Ubuntu: [git, curl, vim, htop]
+     Ubuntu:
+       - name: git
+       - name: curl
+       - name: vim
 
-Detailed package specification (object form):
+Remove packages with state: absent:
 
 .. code-block:: yaml
 
    manage_packages_all:
      Ubuntu:
        - name: nginx
+         state: present  # Install (default, can be omitted)
        - name: telnet
-         state: absent  # Remove package
-       - name: postgresql
-         state: present
+         state: absent   # Remove package
 
 APT Repository Management
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -259,6 +261,40 @@ Package Variables
      - ``{}``
      - Host-level packages, merged last
 
+Package Object Format
+~~~~~~~~~~~~~~~~~~~~~~
+
+Each package in the list is a dictionary with the following structure:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 10 10 60
+
+   * - Field
+     - Type
+     - Default
+     - Description
+   * - ``name``
+     - string
+     - Required
+     - Package name
+   * - ``state``
+     - string
+     - ``present``
+     - Package state: ``present`` (install) or ``absent`` (remove)
+
+**Example:**
+
+.. code-block:: yaml
+
+   manage_packages_all:
+     Ubuntu:
+       - name: git           # Installs git (state: present is default)
+       - name: curl
+         state: present      # Explicit install
+       - name: telnet
+         state: absent       # Remove package
+
 Repository Variables
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -316,8 +352,6 @@ For detailed variable schemas, see :doc:`../reference/variables-reference`.
 Tags
 ----
 
-Control which tasks run:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -338,16 +372,6 @@ Control which tasks run:
      - Homebrew-specific tasks
    * - ``no-container``
      - Tasks requiring host capabilities (skip in containers)
-
-Example usage:
-
-.. code-block:: bash
-
-   # Install packages only, skip repository setup
-   ansible-playbook playbook.yml --tags packages
-
-   # Skip AUR and container-incompatible tasks
-   ansible-playbook playbook.yml --skip-tags aur,no-container
 
 Dependencies
 ------------
@@ -407,7 +431,7 @@ AUR requires fakeroot and user privileges. Skip AUR in containers:
 Testing
 -------
 
-This role includes comprehensive Molecule tests covering:
+This role includes Molecule tests covering:
 
 * Basic package installation (Ubuntu, Arch)
 * Layered package combining

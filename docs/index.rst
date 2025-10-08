@@ -1,7 +1,7 @@
 wolskies.infrastructure Collection
 ===================================
 
-A comprehensive Ansible collection for system configuration and user environment management across Linux and macOS platforms.
+An Ansible collection for system configuration and user environment management across Linux and macOS platforms.
 
 .. image:: https://img.shields.io/badge/License-MIT-blue.svg
    :target: LICENSE
@@ -14,13 +14,13 @@ A comprehensive Ansible collection for system configuration and user environment
 Overview
 --------
 
-The ``wolskies.infrastructure`` collection provides a complete solution for:
+The ``wolskies.infrastructure`` collection provides roles for:
 
-* **System Configuration**: Hostname, timezone, locale, NTP, systemd services, and OS-specific settings
-* **Package Management**: Multi-platform package installation (APT, Pacman, Homebrew) with repository management
-* **Security Services**: Firewall (UFW/ALF) and intrusion prevention (fail2ban) configuration
-* **User Environments**: Development tool installation (Node.js, Rust, Go), terminal configuration, and dotfiles
-* **Application Packaging**: Flatpak and Snap package system management
+* **System Configuration**: Hostname, timezone, locale, NTP, systemd services, kernel modules, and sysctl parameters
+* **Package Management**: APT (Ubuntu/Debian), Pacman (Arch Linux), and Homebrew (macOS) with repository management
+* **Security Services**: UFW firewall (Linux), Application Layer Firewall (macOS), and fail2ban intrusion prevention
+* **User Environments**: Node.js, Rust, Go toolchains with user-level package management, Neovim, terminal terminfo
+* **Application Packaging**: Flatpak and Snap package installation and removal
 
 **Supported Platforms:**
 
@@ -62,9 +62,10 @@ Table of Contents
    :caption: Roles
 
    roles/index
+   roles/configure_system
    roles/configure_users
-   roles/manage_packages
    roles/os_configuration
+   roles/manage_packages
    roles/manage_security_services
    roles/manage_flatpak
    roles/manage_snap_packages

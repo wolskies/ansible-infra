@@ -34,8 +34,8 @@ Platform Support
 Usage
 -----
 
-Basic Package Installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Install Go toolchain and packages for a user:
 
@@ -52,9 +52,6 @@ Install Go toolchain and packages for a user:
          - github.com/junegunn/fzf@latest
          - github.com/jesseduffield/lazygit@latest
 
-Common Development Tools
-~~~~~~~~~~~~~~~~~~~~~~~~
-
 Install popular Go-based CLI tools:
 
 .. code-block:: yaml
@@ -66,10 +63,7 @@ Install popular Go-based CLI tools:
      - github.com/jesseduffield/lazygit@latest  # Git TUI
      - github.com/cli/cli/v2/cmd/gh@latest      # GitHub CLI
 
-Integration with configure_users
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``go`` role is typically invoked via :doc:`configure_users`:
+Via configure_users role:
 
 .. code-block:: yaml
 
@@ -206,8 +200,6 @@ Version differences depend on distribution/Homebrew, but generally provide recen
 Tags
 ----
 
-Control Go configuration:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -218,118 +210,6 @@ Control Go configuration:
      - Go toolchain installation
    * - ``go-packages``
      - Go package installation
-
-Examples
---------
-
-DevOps and Infrastructure Tools
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Tools for system administration and DevOps:
-
-.. code-block:: yaml
-
-   - hosts: devops
-     become: true
-     roles:
-       - wolskies.infrastructure.go
-     vars:
-       go_user: sysadmin
-       go_packages:
-         - github.com/cli/cli/v2/cmd/gh@latest          # GitHub CLI
-         - github.com/jesseduffield/lazygit@latest      # Git TUI
-         - github.com/jesseduffield/lazydocker@latest   # Docker TUI
-         - github.com/derailed/k9s@latest               # Kubernetes TUI
-         - github.com/stern/stern@latest                # Kubernetes log viewer
-
-Development Utilities
-~~~~~~~~~~~~~~~~~~~~~
-
-CLI tools for developers:
-
-.. code-block:: yaml
-
-   go_user: developer
-   go_packages:
-     - github.com/charmbracelet/glow@latest      # Markdown renderer
-     - github.com/junegunn/fzf@latest            # Fuzzy finder
-     - github.com/mikefarah/yq/v4@latest         # YAML processor
-     - github.com/jqlang/jq@latest               # JSON processor (Go port)
-     - mvdan.cc/sh/v3/cmd/shfmt@latest           # Shell script formatter
-
-Code Analysis Tools
-~~~~~~~~~~~~~~~~~~~
-
-Go development and analysis tools:
-
-.. code-block:: yaml
-
-   go_user: go_developer
-   go_packages:
-     - golang.org/x/tools/gopls@latest                    # Language server
-     - github.com/golangci/golangci-lint/cmd/golangci-lint@latest  # Linter
-     - github.com/go-delve/delve/cmd/dlv@latest          # Debugger
-     - golang.org/x/tools/cmd/goimports@latest           # Import formatter
-     - honnef.co/go/tools/cmd/staticcheck@latest         # Static analyzer
-
-Kubernetes Tools
-~~~~~~~~~~~~~~~~
-
-Kubernetes management utilities:
-
-.. code-block:: yaml
-
-   go_user: k8s_admin
-   go_packages:
-     - github.com/derailed/k9s@latest                    # Kubernetes TUI
-     - sigs.k8s.io/kind@latest                           # Kubernetes in Docker
-     - helm.sh/helm/v3/cmd/helm@latest                   # Helm package manager
-     - github.com/stern/stern@latest                     # Log viewer
-     - github.com/kubernetes-sigs/kustomize/kustomize/v5@latest  # Customization
-
-Skip System Installation
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Install only packages (Go already present):
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags go-system playbook.yml
-
-Popular Go Packages
--------------------
-
-Terminal and UI
-~~~~~~~~~~~~~~~
-
-- ``github.com/charmbracelet/glow@latest`` - Markdown renderer with style
-- ``github.com/junegunn/fzf@latest`` - Fuzzy finder for command line
-- ``github.com/jesseduffield/lazygit@latest`` - Terminal UI for Git
-- ``github.com/jesseduffield/lazydocker@latest`` - Terminal UI for Docker
-
-DevOps and Cloud
-~~~~~~~~~~~~~~~~
-
-- ``github.com/cli/cli/v2/cmd/gh@latest`` - GitHub CLI
-- ``github.com/derailed/k9s@latest`` - Kubernetes TUI
-- ``github.com/stern/stern@latest`` - Kubernetes log tailing
-- ``sigs.k8s.io/kind@latest`` - Kubernetes in Docker
-
-Data Processing
-~~~~~~~~~~~~~~~
-
-- ``github.com/mikefarah/yq/v4@latest`` - YAML processor
-- ``mvdan.cc/sh/v3/cmd/shfmt@latest`` - Shell script formatter
-- ``github.com/fullstorydev/grpcurl/cmd/grpcurl@latest`` - gRPC curl
-
-Go Development
-~~~~~~~~~~~~~~
-
-- ``golang.org/x/tools/gopls@latest`` - Go language server
-- ``github.com/golangci/golangci-lint/cmd/golangci-lint@latest`` - Meta-linter
-- ``github.com/go-delve/delve/cmd/dlv@latest`` - Go debugger
-- ``golang.org/x/tools/cmd/goimports@latest`` - Import formatter
-- ``honnef.co/go/tools/cmd/staticcheck@latest`` - Static analyzer
 
 Troubleshooting
 ---------------

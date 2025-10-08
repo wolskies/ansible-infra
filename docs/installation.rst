@@ -78,19 +78,19 @@ No additional setup required.
 Arch Linux
 ~~~~~~~~~~
 
-For AUR support, ensure your user has passwordless sudo for pacman:
+AUR package installation (via ``kewlfft.aur`` collection) requires passwordless sudo for pacman:
 
 .. code-block:: bash
 
    # Add to /etc/sudoers.d/ansible
    your_user ALL=(ALL) NOPASSWD: /usr/bin/pacman
 
+This is required by the paru AUR helper. See :doc:`roles/manage_packages` for details.
+
 macOS
 ~~~~~
 
-No additional setup required.
-
-**Homebrew** will be automatically installed by the ``manage_packages`` role if not already present. The collection uses `geerlingguy.mac.homebrew <https://github.com/geerlingguy/ansible-collection-mac>`_ for macOS package management.
+Package management uses the ``geerlingguy.mac.homebrew`` collection. Homebrew will be installed automatically if not present.
 
 Next Steps
 ----------

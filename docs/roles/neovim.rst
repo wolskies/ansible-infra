@@ -1,7 +1,7 @@
 neovim
 ======
 
-Comprehensive Neovim installation and development-ready configuration.
+Neovim installation with optional LSP configuration deployment.
 
 .. contents::
    :local:
@@ -10,7 +10,7 @@ Comprehensive Neovim installation and development-ready configuration.
 Overview
 --------
 
-The ``neovim`` role installs Neovim with a comprehensive, development-ready configuration. It includes plugin management, Language Server Protocol (LSP) support, and a vim compatibility alias for seamless transition from traditional vim.
+The ``neovim`` role installs Neovim with optional LSP configuration using lazy.nvim plugin manager. Includes Language Server Protocol support for Lua, Rust, and Python, plus a vim compatibility alias.
 
 Features
 ~~~~~~~~
@@ -33,8 +33,8 @@ Platform Support
 Usage
 -----
 
-Basic Installation
-~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Install Neovim with default configuration:
 
@@ -47,9 +47,6 @@ Install Neovim with default configuration:
      vars:
        neovim_user: developer
 
-Minimal Installation (No Configuration)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Install Neovim without the included configuration:
 
 .. code-block:: yaml
@@ -59,10 +56,7 @@ Install Neovim without the included configuration:
 
 This installs only Neovim itself, allowing users to bring their own configuration.
 
-Integration with configure_users
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``neovim`` role is typically invoked via :doc:`configure_users`:
+Via configure_users role:
 
 .. code-block:: yaml
 
@@ -89,7 +83,7 @@ Role Variables
      - Target username for Neovim installation (required)
    * - ``neovim_config_enabled``
      - boolean
-     - Enable comprehensive configuration deployment. Default: true
+     - Enable LSP configuration deployment. Default: true
 
 Installation Behavior
 ---------------------
@@ -105,7 +99,7 @@ Installation Process
 
 2. **Plugin Manager Setup** - Clone lazy.nvim to ``~/.local/share/nvim/lazy/lazy.nvim``
 
-3. **Configuration Deployment** - Create comprehensive Lua-based configuration in ``~/.config/nvim/``
+3. **Configuration Deployment** - Create Lua-based LSP configuration in ``~/.config/nvim/``
 
 4. **Vim Compatibility** - Create ``~/.local/bin/vim`` alias script
 
@@ -243,8 +237,6 @@ Integrates with existing Homebrew setup for consistent package management.
 Tags
 ----
 
-Control Neovim configuration:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -257,57 +249,6 @@ Control Neovim configuration:
      - Configuration and plugin setup
    * - ``neovim-alias``
      - Vim compatibility alias
-
-Examples
---------
-
-Full Installation with Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: developers
-     become: true
-     roles:
-       - wolskies.infrastructure.neovim
-     vars:
-       neovim_user: developer
-       neovim_config_enabled: true
-
-Minimal Installation
-~~~~~~~~~~~~~~~~~~~~
-
-Install only Neovim without included configuration:
-
-.. code-block:: yaml
-
-   neovim_user: developer
-   neovim_config_enabled: false
-
-Multiple Users
-~~~~~~~~~~~~~~
-
-Configure Neovim for multiple users via :doc:`configure_users`:
-
-.. code-block:: yaml
-
-   users:
-     - name: alice
-       neovim:
-         deploy_config: true
-
-     - name: bob
-       neovim:
-         deploy_config: true
-
-Skip Configuration Deployment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Install Neovim but skip configuration (bring your own config):
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags neovim-config playbook.yml
 
 Configuration Details
 ---------------------

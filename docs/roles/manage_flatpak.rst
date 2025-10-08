@@ -1,16 +1,6 @@
 manage_flatpak
 ==============
 
-.. warning::
-   **EXPERIMENTAL - Limited Testing**
-
-   This role is functional but has not been extensively tested. It is included in v1.2.0 as experimental. Use with caution and report any issues.
-
-   - ✅ Basic functionality tested in containers
-   - ❌ Not tested in real desktop environments
-   - ❌ User-level installation not tested
-   - ⚠️ Consider this a preview for v1.3.0
-
 Flatpak package management and desktop integration for Linux systems.
 
 .. contents::
@@ -20,7 +10,7 @@ Flatpak package management and desktop integration for Linux systems.
 Overview
 --------
 
-The ``manage_flatpak`` role provides basic Flatpak support: installs the flatpak runtime, enables Flathub repository, optionally installs desktop environment plugins, and manages flatpak package installation.
+The ``manage_flatpak`` role installs the flatpak runtime, enables Flathub repository, optionally installs desktop environment plugins (GNOME Software, Plasma Discover), and manages flatpak package installation.
 
 What It Does
 ~~~~~~~~~~~~
@@ -40,8 +30,8 @@ Platform Support
 Usage
 -----
 
-Basic Usage
-~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Install flatpak runtime and some applications from Flathub:
 
@@ -65,8 +55,7 @@ Install flatpak runtime and some applications from Flathub:
          - name: org.gimp.GIMP
            state: present
 
-Configure Desktop Integration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configure desktop integration:
 
 .. code-block:: yaml
 
@@ -84,8 +73,7 @@ Configure Desktop Integration
      plugins:
        plasma: true
 
-Simple Package Format
-~~~~~~~~~~~~~~~~~~~~~
+Simple package format with state management:
 
 .. code-block:: yaml
 
@@ -104,9 +92,6 @@ Simple Package Format
        state: present
      - name: old-application
        state: absent
-
-Install Runtime Without Packages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Install flatpak system without installing any packages:
 
@@ -220,8 +205,6 @@ Arch Linux
 Tags
 ----
 
-Control which features are configured:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -234,96 +217,6 @@ Control which features are configured:
      - Desktop environment integration plugins
    * - ``flatpak-packages``
      - Individual package management
-
-Examples
---------
-
-Install Flatpak Without Desktop Integration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags flatpak-plugins playbook.yml
-
-Configure System Without Installing Packages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags flatpak-packages playbook.yml
-
-Development Workstation
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Complete desktop setup with development tools:
-
-.. code-block:: yaml
-
-   - hosts: workstations
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_flatpak
-     vars:
-       flatpak:
-         enabled: true
-         flathub: true
-         plugins:
-           gnome: true
-
-       flatpak_packages:
-         - name: com.visualstudio.code
-         - name: org.mozilla.firefox
-         - name: com.google.Chrome
-         - name: org.gimp.GIMP
-         - name: org.inkscape.Inkscape
-         - name: com.slack.Slack
-         - name: us.zoom.Zoom
-         - name: org.videolan.VLC
-
-Minimal Server with GUI Apps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Server environment with select graphical tools:
-
-.. code-block:: yaml
-
-   - hosts: gui_servers
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_flatpak
-     vars:
-       flatpak:
-         enabled: true
-         flathub: true
-
-       flatpak_packages:
-         - name: org.mozilla.firefox
-         - name: org.remmina.Remmina
-
-Multi-User Workstation
-~~~~~~~~~~~~~~~~~~~~~~
-
-System-wide installation for shared workstations:
-
-.. code-block:: yaml
-
-   - hosts: shared_workstations
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_flatpak
-     vars:
-       flatpak:
-         enabled: true
-         flathub: true
-         plugins:
-           gnome: true
-
-       flatpak_packages:
-         - name: org.mozilla.firefox
-         - name: org.libreoffice.LibreOffice
-         - name: org.gimp.GIMP
-         - name: org.videolan.VLC
-         - name: com.slack.Slack
 
 Dependencies
 ------------
@@ -349,56 +242,18 @@ Install collection dependencies:
 Limitations
 -----------
 
-**Experimental Status:**
+**Desktop Integration:**
 
-- Limited testing on actual desktop environments
-- User-level installation (``method: user``) not tested
-- May have edge cases not covered by container testing
-
-**Known Issues:**
-
-- Desktop integration requires logout/login to take effect
-- Some applications may need additional permissions configuration
+- Desktop plugin integration requires logout/login to take effect
+- Some applications may need additional permissions configuration via ``flatpak override``
 
 Troubleshooting
 ---------------
 
-Flatpak Not Found After Installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Flatpak Command Not Found
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Logout and login again, or run:
-
-.. code-block:: bash
-
-   export PATH="/var/lib/flatpak/exports/bin:$HOME/.local/share/flatpak/exports/bin:$PATH"
-
-Applications Don't Appear in Launcher
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Update desktop database:
-
-.. code-block:: bash
-
-   update-desktop-database ~/.local/share/applications/
-
-Flathub Repository Already Exists
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If repository configuration fails, remove and re-add:
-
-.. code-block:: bash
-
-   flatpak remote-delete flathub
-   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-
-Permissions Issues
-~~~~~~~~~~~~~~~~~~
-
-Flatpak applications are sandboxed. Grant additional permissions:
-
-.. code-block:: bash
-
-   flatpak override --user --filesystem=home org.mozilla.firefox
+If flatpak command isn't found after installation, logout and login again to reload PATH.
 
 See Also
 --------

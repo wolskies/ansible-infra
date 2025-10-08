@@ -20,7 +20,7 @@ Features
 
 **Linux (UFW + fail2ban):**
 
-- Port-based firewall rules with comprehensive options
+- Port-based firewall rules with protocol, port, source, and direction options
 - Automatic SSH anti-lockout protection
 - Intrusion detection and prevention via fail2ban
 - Support for allow, deny, limit, and reject rules
@@ -45,8 +45,8 @@ Platform Support
 Usage
 -----
 
-Basic Firewall Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Simple firewall with common service ports:
 
@@ -72,10 +72,7 @@ Simple firewall with common service ports:
          maxretry: 3
          bantime: "1h"
 
-Advanced Configuration
-~~~~~~~~~~~~~~~~~~~~~~
-
-Comprehensive security configuration with custom rules and jails:
+Security configuration with custom firewall rules and fail2ban jails:
 
 .. code-block:: yaml
 
@@ -130,9 +127,6 @@ Comprehensive security configuration with custom rules and jails:
          enabled: true
          port: "http,https"
          logpath: /var/log/nginx/access.log
-
-macOS Firewall Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Application Layer Firewall for macOS:
 
@@ -319,8 +313,6 @@ Each jail in ``fail2ban.jails`` is a dictionary:
 Tags
 ----
 
-Control which components run using tags:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -339,171 +331,6 @@ Control which components run using tags:
      - All security services (firewall + fail2ban)
    * - ``no-container``
      - Tasks requiring host capabilities (skip in containers)
-
-Examples
---------
-
-Skip fail2ban Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags fail2ban playbook.yml
-
-Skip All Security Services
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags security playbook.yml
-
-Web Server Security
-~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: webservers
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_security_services
-     vars:
-       firewall:
-         enabled: true
-         prevent_ssh_lockout: true
-         default_policy:
-           incoming: deny
-           outgoing: allow
-         rules:
-           - rule: allow
-             port: 22
-             protocol: tcp
-             source: "10.0.0.0/8"
-             comment: "SSH from internal network"
-           - rule: allow
-             port: 80,443
-             protocol: tcp
-             comment: "HTTP/HTTPS public traffic"
-
-       fail2ban:
-         enabled: true
-         bantime: "1h"
-         findtime: "10m"
-         maxretry: 5
-         jails:
-           - name: sshd
-             enabled: true
-             maxretry: 3
-           - name: nginx-http-auth
-             enabled: true
-             port: "http,https"
-             logpath: /var/log/nginx/error.log
-           - name: nginx-limit-req
-             enabled: true
-             port: "http,https"
-             logpath: /var/log/nginx/error.log
-
-Database Server Security
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Restrict database access to specific networks:
-
-.. code-block:: yaml
-
-   - hosts: databases
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_security_services
-     vars:
-       firewall:
-         enabled: true
-         default_policy:
-           incoming: deny
-           outgoing: allow
-         rules:
-           - rule: allow
-             port: 22
-             protocol: tcp
-             source: "10.0.0.0/8"
-             comment: "SSH from management network"
-           - rule: allow
-             port: 5432
-             protocol: tcp
-             source: "10.1.0.0/16"
-             comment: "PostgreSQL from application network"
-           - rule: deny
-             port: 5432
-             protocol: tcp
-             comment: "Block PostgreSQL from elsewhere"
-
-       fail2ban:
-         enabled: true
-         jails:
-           - name: sshd
-             enabled: true
-             maxretry: 3
-             bantime: "1h"
-
-Development Workstation
-~~~~~~~~~~~~~~~~~~~~~~~
-
-More permissive rules for development:
-
-.. code-block:: yaml
-
-   - hosts: workstations
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_security_services
-     vars:
-       firewall:
-         enabled: true
-         default_policy:
-           incoming: deny
-           outgoing: allow
-         rules:
-           - rule: allow
-             port: 22
-             protocol: tcp
-           - rule: allow
-             port: 3000:9999
-             protocol: tcp
-             comment: "Development server range"
-           - rule: allow
-             port: 5432,3306,6379,27017
-             protocol: tcp
-             comment: "Database development ports"
-
-SSH Hardening with Port Knocking
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Use rate limiting to mitigate brute force attacks:
-
-.. code-block:: yaml
-
-   firewall:
-     enabled: true
-     rules:
-       - rule: limit
-         port: 22
-         protocol: tcp
-         comment: "Rate limit SSH (6 connections per 30 seconds)"
-
-   fail2ban:
-     enabled: true
-     bantime: "24h"
-     findtime: "10m"
-     maxretry: 3
-     jails:
-       - name: sshd
-         enabled: true
-         maxretry: 3
-         bantime: "24h"
-       - name: sshd-ddos
-         enabled: true
-         port: "ssh"
-         logpath: /var/log/auth.log
-         maxretry: 10
-         findtime: "2m"
 
 Platform Differences
 --------------------

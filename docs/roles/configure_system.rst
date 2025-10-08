@@ -1,7 +1,7 @@
 configure_system
 ================
 
-Meta-role that orchestrates a complete system configuration by executing other collection roles in the proper order.
+Orchestrator role that executes os_configuration, manage_packages, manage_security_services, manage_snap_packages, manage_flatpak, and configure_users in dependency order.
 
 .. contents::
    :local:
@@ -10,9 +10,7 @@ Meta-role that orchestrates a complete system configuration by executing other c
 Overview
 --------
 
-The ``configure_system`` role provides a high-level interface for configuring entire systems. It executes collection roles in a specific order to ensure dependencies are satisfied and configuration is applied correctly.
-
-**This role is provided as a convenience** - individual roles are designed to be run directly for more granular control.
+The ``configure_system`` role executes other collection roles in dependency order. Individual roles can be run directly for granular control, or use tags to run specific subsets.
 
 Execution Order
 ~~~~~~~~~~~~~~~
@@ -26,20 +24,13 @@ Roles are executed in this sequence:
 5. ``manage_flatpak`` - Flatpak application installation
 6. ``configure_users`` - User environment and development tool configuration
 
-This order ensures that:
-
-- System foundation is configured first
-- Required packages are installed before services that depend on them
-- Security services are configured after packages are available
-- User environments are configured last after all system components are ready
-
 Usage
 -----
 
-Basic Configuration
-~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
-Example playbook for complete Ubuntu system setup:
+Complete Ubuntu system setup:
 
 .. code-block:: yaml
 
@@ -64,9 +55,6 @@ Example playbook for complete Ubuntu system setup:
          rules:
            - port: 22
              protocol: tcp
-
-Advanced Configuration
-~~~~~~~~~~~~~~~~~~~~~~
 
 Layered configuration using inventory structure:
 
@@ -118,25 +106,6 @@ Layered configuration using inventory structure:
        host:
          Ubuntu: [redis-server, nodejs]
 
-Selective Role Execution
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. Does this add anything useful?  Won't an ansible user understand what tags do? COMMENT
-Use tags to run only specific roles:
-
-.. code-block:: bash
-
-   # Only configure OS settings
-   ansible-playbook -i inventory configure_system.yml --tags os-configuration
-
-   # Only manage packages
-   ansible-playbook -i inventory configure_system.yml --tags packages
-
-   # Configure OS and packages, skip security
-   ansible-playbook -i inventory configure_system.yml --tags os-configuration,packages
-
-   # Everything except user configuration
-   ansible-playbook -i inventory configure_system.yml --skip-tags user-configuration
-
 Variables
 ---------
 
@@ -153,8 +122,6 @@ This role uses collection-wide variables from all orchestrated roles. See :doc:`
 
 Tags
 ----
-
-Each orchestrated role can be targeted independently:
 
 - ``os-configuration`` - OS settings (hostname, timezone, locale, services)
 - ``packages`` - Package management and repositories
@@ -194,124 +161,6 @@ Supports the same platforms as the underlying roles:
 - **Debian** 12+, 13+
 - **Arch Linux** (Rolling)
 - **macOS** 13+ (Ventura) - limited testing
-
-.. What do these examples bring?  COMMENT
-Examples
---------
-
-Minimal Server
-~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: servers
-     become: true
-     roles:
-       - wolskies.infrastructure.configure_system
-     vars:
-       domain_timezone: "UTC"
-       host_hostname: "{{ inventory_hostname }}"
-       packages:
-         present:
-           all:
-             Ubuntu: [vim, git, htop]
-       firewall:
-         enabled: true
-         default_policy:
-           incoming: deny
-           outgoing: allow
-         rules:
-           - port: 22
-             protocol: tcp
-
-Developer Workstation
-~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: workstations
-     become: true
-     roles:
-       - wolskies.infrastructure.configure_system
-     vars:
-       domain_timezone: "America/New_York"
-       host_hostname: "{{ inventory_hostname }}"
-
-       packages:
-         present:
-           all:
-             Ubuntu: [git, curl, vim, neovim, tmux, htop, build-essential]
-
-       flatpak_packages:
-         flathub:
-           - com.visualstudio.code
-           - org.mozilla.firefox
-
-       users:
-         - name: developer
-           git:
-             user_name: "John Developer"
-             user_email: "john@example.com"
-           nodejs:
-             version: "20.x"
-             packages: [typescript, eslint, prettier, npm-check-updates]
-           rust:
-             packages: [ripgrep, fd-find, bat, exa]
-           go:
-             packages:
-               - github.com/jesseduffield/lazygit@latest
-           neovim:
-             deploy_config: true
-           terminal_config:
-             install_terminfo: [alacritty, kitty]
-
-Secure Web Server
-~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: webservers
-     become: true
-     roles:
-       - wolskies.infrastructure.configure_system
-     vars:
-       domain_timezone: "UTC"
-       host_hostname: "{{ inventory_hostname }}"
-
-       # Harden the OS
-       hardening:
-         os_hardening_enabled: true
-         ssh_hardening_enabled: true
-         os_auth_pw_max_age: 60
-         ssh_server_ports: ["2222"]
-         sftp_enabled: false
-
-       packages:
-         present:
-           all:
-             Ubuntu: [nginx, certbot, fail2ban, ufw]
-
-       firewall:
-         enabled: true
-         default_policy:
-           incoming: deny
-           outgoing: allow
-         rules:
-           - port: 80,443
-             protocol: tcp
-             comment: "HTTP/HTTPS"
-           - port: 2222
-             protocol: tcp
-             source: "10.0.0.0/8"
-             comment: "SSH from internal only"
-
-       fail2ban:
-         enabled: true
-         jails:
-           - name: sshd
-             enabled: true
-             maxretry: 3
-             bantime: 3600
 
 See Also
 --------

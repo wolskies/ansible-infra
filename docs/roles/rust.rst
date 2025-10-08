@@ -37,8 +37,8 @@ Platform Support
 Usage
 -----
 
-Basic Package Installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Install Rust toolchain and cargo packages for a user:
 
@@ -56,9 +56,6 @@ Install Rust toolchain and cargo packages for a user:
          - fd-find
          - exa
 
-Common Development Tools
-~~~~~~~~~~~~~~~~~~~~~~~~
-
 Install popular Rust-based CLI tools:
 
 .. code-block:: yaml
@@ -73,10 +70,7 @@ Install popular Rust-based CLI tools:
      - hyperfine    # Benchmarking tool
      - cargo-watch  # Cargo file watcher
 
-Integration with configure_users
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``rust`` role is typically invoked via :doc:`configure_users`:
+Via configure_users role:
 
 .. code-block:: yaml
 
@@ -229,8 +223,6 @@ macOS
 Tags
 ----
 
-Control Rust configuration:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -241,125 +233,6 @@ Control Rust configuration:
      - Rustup and toolchain installation
    * - ``rust-packages``
      - Cargo package installation
-
-Examples
---------
-
-CLI Tools for Developers
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Modern command-line replacements:
-
-.. code-block:: yaml
-
-   - hosts: developers
-     become: true
-     roles:
-       - wolskies.infrastructure.rust
-     vars:
-       rust_user: developer
-       rust_packages:
-         - ripgrep      # Better grep
-         - bat          # Better cat
-         - fd-find      # Better find
-         - exa          # Better ls
-         - zoxide       # Better cd
-         - du-dust      # Better du
-         - procs        # Better ps
-         - bottom       # Better top
-
-Development Tools
-~~~~~~~~~~~~~~~~~
-
-Rust development utilities:
-
-.. code-block:: yaml
-
-   rust_user: rust_dev
-   rust_packages:
-     - cargo-watch    # Auto-rebuild on changes
-     - cargo-edit     # Manage dependencies
-     - cargo-outdated # Check for updates
-     - cargo-audit    # Security vulnerabilities
-     - cargo-tree     # Dependency tree
-     - cargo-expand   # Macro expansion
-     - cargo-flamegraph # Performance profiling
-
-System Administration Tools
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-DevOps and sysadmin utilities:
-
-.. code-block:: yaml
-
-   rust_user: sysadmin
-   rust_packages:
-     - ripgrep
-     - bat
-     - fd-find
-     - tokei        # Code statistics
-     - hyperfine    # Benchmarking
-     - sd           # Better sed
-     - tealdeer     # TLDR pages
-
-Skip System Installation
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Install only packages (rustup already present):
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags rust-system playbook.yml
-
-Popular Cargo Packages
-----------------------
-
-File and Text Tools
-~~~~~~~~~~~~~~~~~~~
-
-- ``ripgrep`` (``rg``) - Fast recursive grep
-- ``bat`` - Cat with syntax highlighting and Git integration
-- ``fd-find`` (``fd``) - Fast and user-friendly find alternative
-- ``sd`` - Intuitive sed replacement
-
-Directory Navigation
-~~~~~~~~~~~~~~~~~~~~
-
-- ``exa`` - Modern ls replacement with Git integration
-- ``zoxide`` - Smarter cd command (learns your habits)
-- ``broot`` - Directory tree browser
-
-System Monitoring
-~~~~~~~~~~~~~~~~~
-
-- ``bottom`` (``btm``) - System monitor (like top/htop)
-- ``procs`` - Modern ps replacement
-- ``du-dust`` - Intuitive du alternative
-- ``bandwhich`` - Network utilization monitor
-
-Development Tools
-~~~~~~~~~~~~~~~~~
-
-- ``cargo-watch`` - Watch for changes and run commands
-- ``cargo-edit`` - Add/remove/upgrade dependencies
-- ``cargo-outdated`` - Check for outdated dependencies
-- ``cargo-audit`` - Security vulnerability scanner
-- ``cargo-tree`` - Visualize dependency tree
-- ``tokei`` - Code statistics (lines of code, etc.)
-- ``hyperfine`` - Command-line benchmarking
-
-Build and Deployment
-~~~~~~~~~~~~~~~~~~~~
-
-- ``cargo-make`` - Task runner and build tool
-- ``cargo-deny`` - Lint dependencies
-- ``cross`` - Cross-compilation tooling
-
-Documentation
-~~~~~~~~~~~~~
-
-- ``mdbook`` - GitBook-like documentation tool
-- ``tealdeer`` (``tldr``) - Simplified man pages
 
 Troubleshooting
 ---------------

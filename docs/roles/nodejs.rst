@@ -35,8 +35,8 @@ Platform Support
 Usage
 -----
 
-Basic Package Installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Install Node.js and npm packages for a user:
 
@@ -54,9 +54,6 @@ Install Node.js and npm packages for a user:
          - prettier
          - "@vue/cli"
 
-With Version Specifications
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Install packages with specific versions:
 
 .. code-block:: yaml
@@ -73,9 +70,6 @@ Install packages with specific versions:
      - name: webpack
        version: "^5.0.0"
 
-Specify Node.js Version
-~~~~~~~~~~~~~~~~~~~~~~~~
-
 Control Node.js major version (Ubuntu/Debian only):
 
 .. code-block:: yaml
@@ -85,10 +79,7 @@ Control Node.js major version (Ubuntu/Debian only):
    node_packages:
      - typescript
 
-Integration with configure_users
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``nodejs`` role is typically invoked via :doc:`configure_users`:
+Via configure_users role:
 
 .. code-block:: yaml
 
@@ -258,8 +249,6 @@ macOS
 Tags
 ----
 
-Control Node.js configuration:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -270,153 +259,6 @@ Control Node.js configuration:
      - Node.js runtime installation
    * - ``nodejs-packages``
      - npm package installation
-
-Examples
---------
-
-Frontend Development
-~~~~~~~~~~~~~~~~~~~~
-
-Complete frontend toolchain:
-
-.. code-block:: yaml
-
-   - hosts: frontend_devs
-     become: true
-     roles:
-       - wolskies.infrastructure.nodejs
-     vars:
-       node_user: developer
-       node_packages:
-         - typescript
-         - "@angular/cli"
-         - "@vue/cli"
-         - create-react-app
-         - eslint
-         - prettier
-         - webpack
-         - vite
-         - jest
-         - "@types/node"
-
-Backend Development
-~~~~~~~~~~~~~~~~~~~
-
-Node.js backend tools:
-
-.. code-block:: yaml
-
-   node_user: backend_dev
-   node_packages:
-     - typescript
-     - "@nestjs/cli"
-     - pm2
-     - nodemon
-     - ts-node
-     - typeorm
-     - prisma
-
-Build and Testing Tools
-~~~~~~~~~~~~~~~~~~~~~~~
-
-CI/CD and development utilities:
-
-.. code-block:: yaml
-
-   node_user: cicd
-   node_packages:
-     - npm-check-updates
-     - yarn
-     - pnpm
-     - eslint
-     - prettier
-     - jest
-     - mocha
-     - nyc
-
-Specific Versions for Project Compatibility
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Lock to specific versions for team consistency:
-
-.. code-block:: yaml
-
-   node_user: developer
-   nodejs_version: "18"  # LTS version
-   node_packages:
-     - name: typescript
-       version: "5.0.4"
-     - name: "@angular/cli"
-       version: "16.0.0"
-     - name: eslint
-       version: "8.42.0"
-
-Skip System Installation
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Install only packages (Node.js already present):
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags nodejs-system playbook.yml
-
-Common npm Packages
--------------------
-
-Development Tools
-~~~~~~~~~~~~~~~~~
-
-- ``typescript`` - TypeScript compiler
-- ``eslint`` - JavaScript linter
-- ``prettier`` - Code formatter
-- ``nodemon`` - Development server with auto-reload
-- ``ts-node`` - TypeScript execution engine
-
-Frontend Frameworks
-~~~~~~~~~~~~~~~~~~~
-
-- ``@angular/cli`` - Angular CLI
-- ``@vue/cli`` - Vue CLI
-- ``create-react-app`` - React app generator
-- ``next`` - Next.js framework
-- ``vite`` - Build tool and dev server
-
-Backend Frameworks
-~~~~~~~~~~~~~~~~~~
-
-- ``@nestjs/cli`` - NestJS CLI
-- ``express-generator`` - Express app generator
-- ``koa-generator`` - Koa app generator
-
-Build Tools
-~~~~~~~~~~~
-
-- ``webpack`` - Module bundler
-- ``rollup`` - Module bundler
-- ``parcel`` - Zero-config bundler
-- ``gulp`` - Task runner
-- ``grunt`` - Task automation
-
-Package Managers
-~~~~~~~~~~~~~~~~
-
-- ``yarn`` - Fast package manager
-- ``pnpm`` - Efficient package manager
-- ``npm-check-updates`` - Update dependencies
-
-Process Managers
-~~~~~~~~~~~~~~~~
-
-- ``pm2`` - Production process manager
-- ``forever`` - Simple process manager
-
-Testing Tools
-~~~~~~~~~~~~~
-
-- ``jest`` - Testing framework
-- ``mocha`` - Test framework
-- ``chai`` - Assertion library
-- ``nyc`` - Code coverage
 
 Troubleshooting
 ---------------

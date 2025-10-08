@@ -37,7 +37,7 @@ Usage
 -----
 
 Examples
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
 
 Git configuration for users:
 
@@ -433,7 +433,7 @@ Development tools are installed to user directories:
 - **Go packages**: ``~/go/``
 - **PATH updates**: Automatically added to ``~/.profile``
 
-Tools are installed per-user, not system-wide, allowing different users to have different versions and configurations.
+Tools are installed per-user, not system-wide.
 
 Dotfiles Deployment
 ~~~~~~~~~~~~~~~~~~~
@@ -442,14 +442,12 @@ When ``dotfiles.enable: true``:
 
 1. **Repository Clone** - Clone dotfiles repository to ``~/{{dest}}``
 2. **Stow Installation** - Ensure GNU Stow is installed
-3. **Dry Run Check** - Verify no conflicts with existing files
-4. **Package Deployment** - Use ``stow`` to symlink specified packages
+3. **Dry Run Check** - Check for conflicts, moves conflicting files to *.backup
+4. **Deployment** - Deploy dotfiles with ``stow``
 5. **Idempotent** - Safe to run multiple times
 
 Tags
 ----
-
-Control which features are configured:
 
 .. list-table::
    :header-rows: 1
@@ -474,105 +472,6 @@ Control which features are configured:
    * - ``user-macos``
      - macOS preferences (Darwin only)
 
-Advanced Examples
------------------
-
-Configure Only Git
-~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --tags user-git playbook.yml
-
-Skip Dotfiles Deployment
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags user-dotfiles playbook.yml
-
-Frontend Developer Setup
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   users:
-     - name: frontend_dev
-       git:
-         user_name: "Frontend Developer"
-         user_email: "frontend@example.com"
-         editor: "code --wait"
-
-       nodejs:
-         packages:
-           - typescript
-           - "@angular/cli"
-           - "@vue/cli"
-           - create-react-app
-           - eslint
-           - prettier
-           - webpack
-           - vite
-
-Systems Engineer Setup
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   users:
-     - name: sysadmin
-       git:
-         user_name: "Systems Admin"
-         user_email: "admin@example.com"
-         editor: "vim"
-
-       go:
-         packages:
-           - github.com/jesseduffield/lazygit@latest
-           - github.com/charmbracelet/glow@latest
-
-       rust:
-         packages:
-           - ripgrep
-           - fd-find
-           - bat
-           - exa
-
-       terminal_config:
-         install_terminfo: [alacritty, kitty]
-
-macOS Developer Workstation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   users:
-     - name: developer
-       git:
-         user_name: "Mac Developer"
-         user_email: "dev@example.com"
-
-       Darwin:
-         dock:
-           tile_size: 36
-           autohide: true
-           show_recents: false
-
-         finder:
-           show_extensions: true
-           show_hidden: true
-           show_pathbar: true
-           default_view: "column"
-
-         screenshots:
-           directory: "Screenshots"
-           format: "png"
-
-         homebrew:
-           shell_path: true
-
-       nodejs:
-         packages: [typescript, eslint]
 
 Dependencies
 ------------

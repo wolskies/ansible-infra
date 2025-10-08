@@ -35,8 +35,8 @@ Platform Support
 Usage
 -----
 
-Basic Terminal Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Configure terminfo for specific terminals:
 
@@ -51,9 +51,6 @@ Configure terminfo for specific terminals:
        terminal_entries:
          - alacritty
          - kitty
-
-Multiple Users
-~~~~~~~~~~~~~~
 
 Configure terminals for multiple users:
 
@@ -75,10 +72,7 @@ Configure terminals for multiple users:
            - bob
            - charlie
 
-Integration with configure_users
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``terminal_config`` role is typically invoked via :doc:`configure_users`:
+Via configure_users role:
 
 .. code-block:: yaml
 
@@ -251,8 +245,6 @@ File Locations
 Tags
 ----
 
-Control terminal configuration:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -261,50 +253,6 @@ Control terminal configuration:
      - Description
    * - ``terminal-config``
      - All terminal configuration tasks
-
-Examples
---------
-
-Single Terminal
-~~~~~~~~~~~~~~~
-
-Configure only Alacritty:
-
-.. code-block:: yaml
-
-   terminal_user: developer
-   terminal_entries:
-     - alacritty
-
-All Supported Terminals
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Configure all supported terminals:
-
-.. code-block:: yaml
-
-   terminal_user: developer
-   terminal_entries:
-     - alacritty
-     - kitty
-     - wezterm
-
-With Variable Files
-~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   # group_vars/developers.yml
-   terminal_user: developer
-   terminal_entries:
-     - alacritty
-     - wezterm
-
-   # playbook.yml
-   - hosts: developers
-     become: true
-     roles:
-       - wolskies.infrastructure.terminal_config
 
 Adding New Terminals
 --------------------

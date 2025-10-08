@@ -7,17 +7,20 @@ The ``wolskies.infrastructure`` collection includes the following roles.
    :local:
    :depth: 1
 
-Meta-Role
----------
+Orchestrator Roles
+------------------
 
 :doc:`configure_system`
-    High-level role that Orchestrates other roles for a full setup.  Provided as a convenience, but not required to use any role in this collection.
+    Orchestrates os_configuration, manage_packages, manage_security_services, manage_flatpak, manage_snap_packages, and configure_users for complete system setup.
+
+:doc:`configure_users`
+    Orchestrates nodejs, rust, go, neovim, and terminal_config for user environment configuration. Skips non-existent users and root automatically.
 
 System Configuration
 --------------------
 
 :doc:`os_configuration`
-    Core operating system configuration including hostname, timezone, locale, time syncronization, systemd services, and OS-specific settings.
+    Core operating system configuration including hostname, timezone, locale, time synchronization, systemd services, kernel modules, sysctl parameters, and udev rules.
 
 :doc:`manage_packages`
     Cross-platform package management (APT, Pacman, Homebrew) with repository management and layered configuration.
@@ -26,16 +29,10 @@ System Configuration
     Firewall (UFW/ALF) and intrusion prevention (fail2ban) configuration across Linux and macOS.
 
 :doc:`manage_flatpak`
-    Flatpak package system management for Linux distributions. (Experimental)
+    Flatpak package system management for Ubuntu, Debian, and Arch Linux. Supports Flathub repository and desktop integration plugins.
 
 :doc:`manage_snap_packages`
     Snap package system management and optional complete removal on Ubuntu/Debian.
-
-User Environment
-----------------
-
-:doc:`configure_users`
-    User preference configuration and development environment orchestration. Configures git, development tools, terminal, and dotfiles for existing users.
 
 Development Tools
 -----------------
@@ -50,92 +47,26 @@ Development Tools
     Go installation and go package management for development tools.
 
 :doc:`neovim`
-    Neovim installation and comprehensive configuration deployment.
+    Neovim installation with optional LSP configuration deployment.
 
 :doc:`terminal_config`
     Terminal emulator terminfo installation (Alacritty, Kitty, WezTerm) for proper terminal support.
 
-Role Comparison
----------------
+Role Relationships
+------------------
 
-Choosing the Right Role
-~~~~~~~~~~~~~~~~~~~~~~~
+**Orchestrator roles** invoke other roles:
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 40 40
+* ``configure_system`` → os_configuration, manage_packages, manage_security_services, manage_flatpak, manage_snap_packages, configure_users
+* ``configure_users`` → nodejs, rust, go, neovim, terminal_config
 
-   * - Use Case
-     - Role
-     - Notes
-   * - System hostname
-     - ``os_configuration``
-     - System-level config
-   * - Install system packages
-     - ``manage_packages``
-     - APT/Pacman/Homebrew
-   * - Configure firewall
-     - ``manage_security_services``
-     - UFW/ALF/fail2ban
-   * - Configure user dev environment
-     - ``configure_users``
-     - Orchestrates other roles
-   * - Install Node.js for user
-     - ``nodejs``
-     - Via ``configure_users``
-   * - Install Rust for user
-     - ``rust``
-     - Via ``configure_users``
-   * - GUI applications (Linux)
-     - ``manage_flatpak``
-     - Flatpak apps
-   * - Snap packages
-     - ``manage_snap_packages``
-     - Or remove snap entirely
+**Execution order** (when using individual roles):
 
-Role Dependencies
-~~~~~~~~~~~~~~~~~
-
-Some roles work together:
-
-* ``configure_users`` → orchestrates ``nodejs``, ``rust``, ``go``, ``neovim``, ``terminal_config``
-* ``manage_packages`` → should run before ``manage_security_services`` (firewall packages)
-* ``os_configuration`` → foundation, run first in most playbooks
-
-Common Patterns
----------------
-
-Basic Server Setup
-~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   roles:
-     - wolskies.infrastructure.os_configuration
-     - wolskies.infrastructure.manage_packages
-     - wolskies.infrastructure.manage_security_services
-
-Developer Workstation
-~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   roles:
-     - wolskies.infrastructure.os_configuration
-     - wolskies.infrastructure.manage_packages
-     - wolskies.infrastructure.configure_users
-
-Complete System Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   roles:
-     - wolskies.infrastructure.os_configuration
-     - wolskies.infrastructure.manage_packages
-     - wolskies.infrastructure.manage_security_services
-     - wolskies.infrastructure.manage_flatpak
-     - wolskies.infrastructure.configure_users
+1. ``os_configuration`` - system-level settings
+2. ``manage_packages`` - install packages (including firewall packages)
+3. ``manage_security_services`` - configure firewall and fail2ban
+4. ``manage_flatpak`` / ``manage_snap_packages`` - application packages
+5. ``configure_users`` - user environments (requires language runtimes from manage_packages if using system-wide installs)
 
 Role Documentation
 ------------------
@@ -143,9 +74,10 @@ Role Documentation
 .. toctree::
    :maxdepth: 1
 
+   configure_system
    configure_users
-   manage_packages
    os_configuration
+   manage_packages
    manage_security_services
    manage_flatpak
    manage_snap_packages

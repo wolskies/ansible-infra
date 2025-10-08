@@ -10,7 +10,7 @@ Snap package management and complete system removal for Ubuntu/Debian systems.
 Overview
 --------
 
-The ``manage_snap_packages`` role provides comprehensive Snap package management for Debian-based systems. It supports both package installation/removal and complete snapd system removal with prevention of reinstallation.
+The ``manage_snap_packages`` role provides Snap package management for Ubuntu and Debian. Supports package installation/removal and complete snapd system removal with APT hold prevention.
 
 Features
 ~~~~~~~~
@@ -32,8 +32,8 @@ Platform Support
 Usage
 -----
 
-Basic Snap Package Management
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Install and manage snap packages:
 
@@ -52,10 +52,7 @@ Install and manage snap packages:
          - name: old-package
            state: absent
 
-Advanced Package Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Comprehensive package management with channels:
+Package management with channels:
 
 .. code-block:: yaml
 
@@ -74,9 +71,6 @@ Comprehensive package management with channels:
 
      - name: chromium
        state: absent
-
-Complete Snap System Removal
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Remove snapd completely from the system:
 
@@ -241,8 +235,6 @@ After complete removal, snapd cannot be reinstalled without removing the APT pre
 Tags
 ----
 
-Control snap operations using tags:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -251,104 +243,6 @@ Control snap operations using tags:
      - Description
    * - ``snap-packages``
      - All snap package management operations
-
-Examples
---------
-
-Skip All Snap Operations
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags snap-packages playbook.yml
-
-Development Tools
-~~~~~~~~~~~~~~~~~
-
-Install development tools via snap:
-
-.. code-block:: yaml
-
-   - hosts: developers
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_snap_packages
-     vars:
-       snap_packages:
-         - name: code
-           classic: true
-           channel: stable
-
-         - name: kubectl
-           classic: true
-
-         - name: helm
-           classic: true
-
-         - name: terraform
-           classic: true
-
-         - name: go
-           classic: true
-           channel: latest/stable
-
-Desktop Applications
-~~~~~~~~~~~~~~~~~~~~
-
-Install desktop applications:
-
-.. code-block:: yaml
-
-   - hosts: workstations
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_snap_packages
-     vars:
-       snap_packages:
-         - name: discord
-         - name: spotify
-         - name: slack
-           classic: true
-         - name: chromium
-         - name: vlc
-
-Server Management Tools
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Install server management utilities:
-
-.. code-block:: yaml
-
-   - hosts: servers
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_snap_packages
-     vars:
-       snap_packages:
-         - name: lxd
-           channel: 4.0/stable
-
-         - name: microk8s
-           classic: true
-           channel: latest/stable
-
-         - name: certbot
-           classic: true
-
-Remove Snap System on Minimal Servers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Completely remove snapd from minimal servers:
-
-.. code-block:: yaml
-
-   - hosts: minimal_servers
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_snap_packages
-     vars:
-       snap:
-         remove_completely: true
 
 Dependencies
 ------------

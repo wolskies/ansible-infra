@@ -38,8 +38,8 @@ Platform Support
 Usage
 -----
 
-Basic Configuration
-~~~~~~~~~~~~~~~~~~~
+Examples
+~~~~~~~~
 
 Minimal configuration for hostname and timezone:
 
@@ -53,9 +53,6 @@ Minimal configuration for hostname and timezone:
        domain_timezone: "America/New_York"
        host_hostname: "{{ inventory_hostname }}"
        host_update_hosts: true
-
-Advanced Configuration
-~~~~~~~~~~~~~~~~~~~~~~
 
 Complete configuration with all features:
 
@@ -103,9 +100,6 @@ Complete configuration with all features:
      max_retention: "30d"
      compress: true
      forward_to_syslog: false
-
-Security Hardening
-~~~~~~~~~~~~~~~~~~
 
 Enable OS and SSH hardening using the devsec.hardening collection:
 
@@ -294,8 +288,6 @@ Package Manager Configuration (Linux)
 Tags
 ----
 
-Skip specific configuration areas using tags:
-
 .. list-table::
    :header-rows: 1
    :widths: 25 75
@@ -326,140 +318,6 @@ Skip specific configuration areas using tags:
      - Pacman configuration (Arch Linux)
    * - ``no-container``
      - Tasks requiring host capabilities (skip in containers)
-
-Examples
---------
-
-Skip Container-Incompatible Tasks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When running in Docker containers, skip tasks that require host capabilities:
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags no-container playbook.yml
-
-Skip Security Hardening
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --skip-tags security playbook.yml
-
-Configure Only Timezone
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   ansible-playbook --tags timezone playbook.yml
-
-Web Server Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: webservers
-     become: true
-     roles:
-       - wolskies.infrastructure.os_configuration
-     vars:
-       domain_timezone: "UTC"
-       host_hostname: "{{ inventory_hostname }}"
-
-       host_services:
-         enable: [nginx, fail2ban]
-         disable: [apache2]
-         mask: [snapd]
-
-       host_sysctl:
-         net.ipv4.ip_forward: 0
-         net.core.somaxconn: 1024
-         net.ipv4.tcp_max_syn_backlog: 2048
-
-       hardening:
-         os_hardening_enabled: true
-         ssh_hardening_enabled: true
-         ssh_server_ports: ["2222"]
-         ssh_permit_root_login: "no"
-
-Database Server with Custom Kernel Tuning
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: databases
-     become: true
-     roles:
-       - wolskies.infrastructure.os_configuration
-     vars:
-       domain_timezone: "UTC"
-       host_hostname: "{{ inventory_hostname }}"
-
-       host_services:
-         enable: [postgresql]
-
-       host_sysctl:
-         # Shared memory for PostgreSQL
-         kernel.shmmax: 17179869184
-         kernel.shmall: 4194304
-         # Network tuning
-         net.core.rmem_max: 134217728
-         net.core.wmem_max: 134217728
-         net.ipv4.tcp_rmem: "4096 87380 67108864"
-         net.ipv4.tcp_wmem: "4096 65536 67108864"
-         # Swap tuning
-         vm.swappiness: 1
-         vm.dirty_ratio: 15
-         vm.dirty_background_ratio: 5
-
-       journal:
-         configure: true
-         max_size: "1G"
-         max_retention: "60d"
-
-Router/Firewall Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: routers
-     become: true
-     roles:
-       - wolskies.infrastructure.os_configuration
-     vars:
-       domain_timezone: "UTC"
-       host_hostname: "{{ inventory_hostname }}"
-
-       host_modules:
-         load:
-           - br_netfilter
-           - ip_vs
-           - ip_vs_rr
-           - ip_vs_wrr
-           - nf_conntrack
-
-       host_sysctl:
-         # IP forwarding
-         net.ipv4.ip_forward: 1
-         net.ipv6.conf.all.forwarding: 1
-         # Disable ICMP redirects
-         net.ipv4.conf.all.send_redirects: 0
-         net.ipv4.conf.default.send_redirects: 0
-         # Increase connection tracking
-         net.netfilter.nf_conntrack_max: 262144
-
-Custom Udev Rules
-~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   host_udev_rules:
-     - name: "99-usb-serial"
-       content: |
-         SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="ttyUSB-FTDI"
-     - name: "99-network-interfaces"
-       content: |
-         SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="aa:bb:cc:dd:ee:ff", NAME="eth-external"
 
 Dependencies
 ------------

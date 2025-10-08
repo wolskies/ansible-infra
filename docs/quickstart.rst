@@ -20,7 +20,7 @@ Install the collection from Git and its dependencies:
 5-Minute Workstation Setup
 ---------------------------
 
-Configure a complete developer workstation using the ``configure_system`` meta-role.
+Configure a developer workstation using the ``configure_system`` role (orchestrates os_configuration, manage_packages, manage_security_services, manage_snap_packages, manage_flatpak, and configure_users).
 
 Create a playbook:
 
@@ -222,85 +222,13 @@ User Environment Only
            rust:
              packages: [ripgrep, bat]
 
-Common Operations
------------------
 
-Dry Run (Check Mode)
-~~~~~~~~~~~~~~~~~~~~
-
-Preview changes without applying them:
-
-.. code-block:: bash
-
-   ansible-playbook playbook.yml --check
-
-Limit to Specific Hosts
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Run on a subset of hosts:
-
-.. code-block:: bash
-
-   ansible-playbook playbook.yml --limit web01
-
-Use Tags
-~~~~~~~~
-
-Run specific parts of configuration:
-
-.. code-block:: bash
-
-   # Only configure OS settings
-   ansible-playbook playbook.yml --tags os-configuration
-
-   # Skip security services
-   ansible-playbook playbook.yml --skip-tags security-services
-
-   # Skip container-incompatible tasks
-   ansible-playbook playbook.yml --skip-tags no-container
-
-Layered Configuration
----------------------
-
-Use inventory structure for layered configuration:
-
-.. code-block:: yaml
-
-   # group_vars/all.yml - Base level (all hosts)
-   packages:
-     present:
-       all:
-         Ubuntu: [git, curl, vim]
-
-   # group_vars/webservers.yml - Group level
-   packages:
-     present:
-       group:
-         Ubuntu: [nginx, postgresql]
-
-   firewall:
-     enabled: true
-     rules:
-       - { port: 80, protocol: tcp }
-       - { port: 443, protocol: tcp }
-
-   # host_vars/web01.yml - Host level
-   packages:
-     present:
-       host:
-         Ubuntu: [redis-server]
-
-   host_hostname: "web01"
-
-The ``configure_system`` role automatically merges all three levels:
-
-- **web01** gets: git, curl, vim (all) + nginx, postgresql (group) + redis-server (host)
 
 Next Steps
 ----------
 
-* :doc:`roles/configure_system` - Learn about the meta-role orchestrator
+* :doc:`roles/configure_system` - Complete configure_system role documentation
 * :doc:`user-guide/configuration` - Configuration strategies and patterns
-* :doc:`user-guide/variables` - Complete variable reference
-* :doc:`roles/index` - Explore all available roles
-* :doc:`testing/running-tests` - Test your configurations
+* :doc:`reference/variables-reference` - Complete variable reference
+* :doc:`roles/index` - Browse all available roles
+* :doc:`testing/running-tests` - Testing guide
