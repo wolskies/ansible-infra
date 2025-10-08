@@ -1,13 +1,12 @@
 Os Configuration Role
 =====================
 
-Configure fundamental operating system settings
+OS configuration management role
 
-* Handles cross-platform system configuration including hostname, timezone, locale, and security
-* Manages Linux-specific features like systemd services, kernel modules, udev rules, and NTP
-* Applies security hardening via devsec.hardening roles when enabled
-* Configures macOS system preferences and automatic updates
-* Uses collection-wide variables for consistent configuration across roles
+Handles fundamental operating system configuration including hostname, timezone,
+locale, NTP, systemd services/modules, journal, security hardening, and OS-specific
+configurations.
+
 
 .. contents::
    :local:
@@ -20,7 +19,7 @@ Overview
 :License: MIT
 :Minimum Ansible Version: 2.15
 
-This role provides configure fundamental operating system settings.
+This role provides os configuration management role.
 
 Variables
 =========
@@ -28,26 +27,25 @@ Variables
 Role Variables
 --------------
 
-==================== =============== ========== ================== =============================================================================================================================================================================
+==================== =============== ========== ================== ===================================================================================
 Name                 Type            Required   Default            Description
-==================== =============== ========== ================== =============================================================================================================================================================================
-apt                  object          No         ``{}``             APT package manager configuration options Controls proxy, recommends, and unattended upgrades
-domain_language      string          No         ``en_US.UTF-8``    System language setting (same format as locale) Used for system language configuration
-domain_locale        string          No         ``en_US.UTF-8``    System locale in language_COUNTRY.encoding format Used for locale generation on Linux systems
-domain_name          string          No         *(empty string)*   Organization domain name used in /etc/hosts entries Required when host_update_hosts is true Must be RFC 1035 compliant format
-domain_ntp           object          No         ``{}``             Network time synchronization configuration Configures systemd-timesyncd for basic SNTP client functionality
-domain_timezone      string          No         *(empty string)*   System timezone in IANA format When defined and non-empty, system timezone will be configured
-host_hostname        string          No         *(empty string)*   System hostname to set Must be RFC 1123 compliant (alphanumeric + hyphens, max 253 chars) When defined and non-empty, hostname will be configured
-host_modules         object          No         ``{}``             Kernel module management configuration Controls loading and blacklisting of kernel modules
-host_security        object          No         ``{}``             Security hardening configuration options Used to control devsec.hardening role behavior
-host_services        object          No         ``{}``             Systemd service management configuration Controls enable/disable/mask operations for systemd units
-host_sysctl          object          No         ``{}``             Kernel parameter configuration via sysctl Used by security hardening and custom kernel parameter management
-host_udev            object          No         ``{}``             Custom udev rules configuration Manages deployment and removal of udev rules
-host_update_hosts    boolean         No         ``true``           Whether to update /etc/hosts with hostname entry Requires both host_hostname and domain_name to be defined Entry format: 127.0.0.1 localhost {hostname}.{domain} {hostname}
-journal              object          No         ``{}``             Systemd journal configuration options Controls journal settings via configuration file
-macosx               object          No         ``{}``             macOS-specific system configuration options Controls automatic updates, gatekeeper, and system preferences
-pacman               object          No         ``{}``             Pacman package manager configuration options Controls proxy, no-confirm, and multilib repository
-==================== =============== ========== ================== =============================================================================================================================================================================
+==================== =============== ========== ================== ===================================================================================
+apt                  object          No         ``{}``             APT package manager configuration
+domain_language      string          No         ``en_US.UTF-8``    System language (locale format, e.g., "en_US.UTF-8", "de_DE.UTF-8")
+domain_locale        string          No         ``en_US.UTF-8``    System locale (format: language_COUNTRY.encoding, e.g., en_US.UTF-8, fr_FR.UTF-8)
+domain_name          string          No         *(empty string)*   Organization domain name (RFC 1035 format, e.g., "example.com")
+domain_timesync      object          No         ``{}``             Time synchronization configuration via systemd-timesyncd
+domain_timezone      string          No         *(empty string)*   System timezone (IANA format, e.g., "America/New_York", "Europe/London")
+hardening            object          No         ``{}``             Security hardening configuration
+host_hostname        string          No         *(empty string)*   System hostname (RFC 1123 format, alphanumeric + hyphens, max 253 chars)
+host_modules         object          No         ``{}``             Kernel module management configuration
+host_services        object          No         ``{}``             Systemd service management configuration
+host_udev_rules      list[object]    No         ``[]``             Custom udev rules definitions
+host_update_hosts    boolean         No         ``true``           Update /etc/hosts with hostname entry
+journal              object          No         ``{}``             Systemd journal configuration management
+macosx               object          No         ``{}``             macOS system configuration
+pacman               object          No         ``{}``             Pacman package manager configuration
+==================== =============== ========== ================== ===================================================================================
 
 
 Formal Requirements
@@ -119,7 +117,7 @@ This role implements the following formal requirements from the Software Require
    The system SHALL be capable of setting the system language on macOS systems
 
 **REQ-OS-024**
-   The system SHALL be capable of configuring NTP time synchronization on macOS systems
+   The system SHALL be capable of configuring time synchronization time synchronization on macOS systems
 
 **REQ-OS-025**
    The system SHALL be capable of configuring macOS automatic updates

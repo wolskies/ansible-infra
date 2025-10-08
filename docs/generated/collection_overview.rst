@@ -137,7 +137,7 @@ Each role provides comprehensive documentation with formal requirements, platfor
 - **Issue**: Users with package-dependent groups (e.g., ``docker``) fail when groups don't exist yet
 - **Impact**: User creation fails in ``os_configuration`` when packages haven't been installed
 - **Workaround**: Remove package-dependent groups from user definitions
-- **Resolution**: Moving user management to ``configure_user`` role (v1.2.0)
+- **Resolution**: Moving user management to ``configure_users`` role (v1.2.0)
 
 4.1.2 External Repository Management
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,8 +193,8 @@ Each role provides comprehensive documentation with formal requirements, platfor
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Move services enable/disable to package management
-- Nerd Fonts functionality moved to configure_user role or dedicated role (removed from os_configuration due to role boundary violation - fonts are user preferences, not system configuration, and implementation was platform-specific stopgap)
-- Configuration of NTP server
+- Nerd Fonts functionality moved to configure_users role or dedicated role (removed from os_configuration due to role boundary violation - fonts are user preferences, not system configuration, and implementation was platform-specific stopgap)
+- Configuration of time synchronization server
 
 - Configuration of Remote logging (rsyslog)
 - Additional Linux distributions (RHEL, CentOS Stream, Fedora)

@@ -1,13 +1,12 @@
 Manage Security Services Role
 =============================
 
-Configure firewall and intrusion prevention services
+Security services management role
 
-* Handles firewall configuration on Linux (UFW) and macOS (Application Layer Firewall)
-* Manages intrusion prevention services (fail2ban on Linux)
-* Automatically detects and protects SSH access during firewall operations
-* Configures firewall rules, stealth mode, and logging options
-* Uses collection-wide variables for consistent security configuration
+Handles firewall configuration and intrusion prevention services across
+Linux and macOS systems. Uses UFW on Linux and Application Layer Firewall
+on macOS.
+
 
 .. contents::
    :local:
@@ -20,7 +19,7 @@ Overview
 :License: MIT
 :Minimum Ansible Version: 2.12
 
-This role provides configure firewall and intrusion prevention services.
+This role provides security services management role.
 
 Variables
 =========
@@ -28,12 +27,12 @@ Variables
 Role Variables
 --------------
 
-==================== =============== ========== =============== =============================================================================================================
+==================== =============== ========== =============== =============================================
 Name                 Type            Required   Default         Description
-==================== =============== ========== =============== =============================================================================================================
-fail2ban             object          No         ``{}``          Fail2ban intrusion prevention configuration Linux-only service for protecting against brute force attacks
-firewall             object          No         ``{}``          Firewall configuration and management options Controls UFW on Linux and Application Layer Firewall on macOS
-==================== =============== ========== =============== =============================================================================================================
+==================== =============== ========== =============== =============================================
+fail2ban             object          No         ``{}``          Fail2ban intrusion prevention configuration
+firewall             object          No         ``{}``          Firewall configuration settings
+==================== =============== ========== =============== =============================================
 
 
 Formal Requirements

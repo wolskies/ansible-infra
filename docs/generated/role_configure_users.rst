@@ -1,14 +1,12 @@
 Configure Users Role
 ====================
 
-Manage multiple user accounts and their preferences
+Configure user preferences and development environments
 
-* Creates and configures user accounts using ansible.builtin.user
-* Manages SSH authorized keys and sudo configuration
+* Configures user preferences for existing users
 * Orchestrates development environment setup via collection roles
 * Configures platform-specific preferences (macOS dock, finder, etc.)
 * Deploys dotfiles using GNU stow when configured
-* Processes the collection-wide users list variable
 
 .. contents::
    :local:
@@ -21,7 +19,7 @@ Overview
 :License: MIT
 :Minimum Ansible Version: 2.12
 
-This role manages multiple user accounts and their preferences.
+This role provides configure user preferences and development environments.
 
 Variables
 =========
@@ -29,11 +27,11 @@ Variables
 Role Variables
 --------------
 
-==================== =============== ========== =============== ====================================================================================================
+==================== =============== ========== =============== ==============================================================================================================================
 Name                 Type            Required   Default         Description
-==================== =============== ========== =============== ====================================================================================================
-users                list[object]    Yes        *(required)*    List of user configuration objects. Each object contains all user account, preference, and environment settings
-==================== =============== ========== =============== ====================================================================================================
+==================== =============== ========== =============== ==============================================================================================================================
+users                list[object]    No         ``[]``          List of user preference configuration objects Configures development tools, git settings, dotfiles, and platform preferences
+==================== =============== ========== =============== ==============================================================================================================================
 
 
 Formal Requirements
@@ -122,7 +120,7 @@ Include this role in your playbook:
 
    - hosts: all
      roles:
-       - wolskies.infrastructure.configure_user
+       - wolskies.infrastructure.configure_users
 
 Example Playbook
 ----------------
@@ -132,7 +130,7 @@ Example Playbook
    - hosts: all
      become: true
      roles:
-       - role: wolskies.infrastructure.configure_user
+       - role: wolskies.infrastructure.configure_users
          vars:
            # Add your variable overrides here
 
@@ -143,7 +141,7 @@ This role includes comprehensive molecule tests. To run the tests:
 
 .. code-block:: bash
 
-   cd roles/configure_user
+   cd roles/configure_users
    molecule test
 
 License
