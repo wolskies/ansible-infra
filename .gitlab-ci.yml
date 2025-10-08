@@ -332,7 +332,7 @@ pages:
 docs-preview:
   stage: docs
   dependencies:
-    - generate-docs
+    - build-docs
   script:
     - echo "Documentation preview generated for merge request"
     - echo "Preview artifacts contain built documentation"
