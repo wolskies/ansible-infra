@@ -18,16 +18,26 @@
     - upgrades
 
 # Branch based on AUR enablement
+- name: Update pacman cache (AUR disabled)
+  community.general.pacman:
+    update_cache: true
+  become: true
+  when:
+    - _final_packages[ansible_distribution] | default([]) | length > 0
+    - not (pacman.enable_aur | default(false))
+
 - name: Manage packages (AUR disabled - pacman only)
   community.general.pacman:
     name: "{{ item.name }}"
     state: "{{ item.state | default('present') }}"
-    update_cache: true
+    update_cache: false
   loop: "{{ _final_packages[ansible_distribution] | default([]) }}"
   become: true
   when:
     - _final_packages[ansible_distribution] | default([]) | length > 0
     - not (pacman.enable_aur | default(false))
+  tags:
+    - packages
 
 - name: Install packages (AUR enabled)
   block:
