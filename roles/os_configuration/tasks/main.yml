@@ -10,13 +10,40 @@
     - hostname
     - no-container
 
-- name: Set system timezone
+- name: Set system timezone (non-Arch)
   community.general.timezone:
     name: "{{ domain_timezone }}"
   become: true
   when:
     - domain_timezone is defined
     - domain_timezone | length > 0
+    - ansible_os_family != "Archlinux"
+  tags:
+    - timezone
+
+- name: Get current timezone (Arch Linux)
+  ansible.builtin.command:
+    cmd: timedatectl show --property=Timezone --value
+  register: current_timezone
+  become: true
+  when:
+    - domain_timezone is defined
+    - domain_timezone | length > 0
+    - ansible_os_family == "Archlinux"
+  changed_when: false
+  tags:
+    - timezone
+
+- name: Set system timezone (Arch Linux)
+  ansible.builtin.command:
+    cmd: timedatectl set-timezone "{{ domain_timezone }}"
+  become: true
+  when:
+    - domain_timezone is defined
+    - domain_timezone | length > 0
+    - ansible_os_family == "Archlinux"
+    - current_timezone.stdout != domain_timezone
+  changed_when: true
   tags:
     - timezone
 
