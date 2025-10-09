@@ -66,7 +66,6 @@ molecule/*/molecule.yml.backup
 # Documentation
 docs/_build/
 docs/generated/
-public/
 
 # Tests
 tests/output/

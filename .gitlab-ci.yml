@@ -323,6 +323,7 @@ build-docs:
 # GitLab Pages deployment (only on main branch)
 pages:
   stage: build
+  image: alpine:latest
   dependencies:
     - build-docs
   script:
@@ -330,10 +331,10 @@ pages:
     - ls -la public/
     - echo "Documentation ready for GitLab Pages"
     - echo "Documentation will be available at $CI_PAGES_URL"
+  pages: true
   artifacts:
     paths:
-      - public/
-    expire_in: 1 week
+      - public
   only:
     - main
 
