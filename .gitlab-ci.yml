@@ -426,7 +426,8 @@ create-release:
   dependencies:
     - collection-build
   script:
-    - apt-get update -qq && apt-get install -y -qq git python3-yaml curl
+    - apt-get update -qq && apt-get install -y -qq git curl
+    - pip install --break-system-packages pyyaml
     - git config --global user.email "ci@wolskinet.com"
     - git config --global user.name "GitLab CI"
     - git config --global --add safe.directory $CI_PROJECT_DIR
