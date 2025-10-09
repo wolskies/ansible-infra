@@ -37,6 +37,8 @@ validate-all:
       - /root/.ansible/collections/
       - /var/cache/apt/
       - /root/.cache/pre-commit/
+  except:
+    - tags
   script:
     # Tools already pre-installed in custom image, just install collections
     - |
@@ -172,6 +174,8 @@ test-role-discovery:
   script:
     - cd roles/discovery && molecule test
     - echo "✅ Discovery role tests passed"
+  except:
+    - tags
 
 # REMOVED: test-docker - role not ready for production
 # Docker compose functionality needs further development
@@ -189,6 +193,8 @@ test-role-nodejs:
   script:
     - cd roles/nodejs && molecule test
     - echo "✅ Node.js role tests passed"
+  except:
+    - tags
 
 test-role-rust:
   extends: .molecule_test_template
@@ -196,6 +202,8 @@ test-role-rust:
   script:
     - cd roles/rust && molecule test
     - echo "✅ Rust role tests passed"
+  except:
+    - tags
 
 test-role-go:
   extends: .molecule_test_template
@@ -203,6 +211,8 @@ test-role-go:
   script:
     - cd roles/go && molecule test
     - echo "✅ Go role tests passed"
+  except:
+    - tags
 
 test-role-neovim:
   extends: .molecule_test_template
@@ -210,6 +220,8 @@ test-role-neovim:
   script:
     - cd roles/neovim && molecule test
     - echo "✅ Neovim role tests passed"
+  except:
+    - tags
 
 # Disabled: terminal_config tests fail in containers due to terminfo compilation limitations
 # test-role-terminal-config:
@@ -225,6 +237,8 @@ test-role-os-configuration:
   script:
     - cd roles/os_configuration && molecule test -- --skip-tags no-container
     - echo "✅ OS configuration role tests passed"
+  except:
+    - tags
 
 test-role-manage-packages:
   extends: .molecule_test_template
@@ -232,6 +246,8 @@ test-role-manage-packages:
   script:
     - cd roles/manage_packages && molecule test -- --skip-tags no-container
     - echo "✅ Package management role tests passed"
+  except:
+    - tags
 
 test-role-manage-security-services:
   extends: .molecule_test_template
@@ -239,6 +255,8 @@ test-role-manage-security-services:
   script:
     - cd roles/manage_security_services && molecule test
     - echo "✅ Security services role tests passed"
+  except:
+    - tags
 
 test-role-configure-user:
   extends: .molecule_test_template
@@ -246,6 +264,8 @@ test-role-configure-user:
   script:
     - cd roles/configure_users && molecule test
     - echo "✅ User configuration role tests passed"
+  except:
+    - tags
 
 test-role-manage-flatpak:
   extends: .molecule_test_template
@@ -253,6 +273,8 @@ test-role-manage-flatpak:
   script:
     - cd roles/manage_flatpak && molecule test
     - echo "✅ Flatpak management role tests passed (Ubuntu + Arch Linux)"
+  except:
+    - tags
 
 test-role-manage-snap-packages:
   extends: .molecule_test_template
@@ -260,6 +282,8 @@ test-role-manage-snap-packages:
   script:
     - cd roles/manage_snap_packages && molecule test
     - echo "✅ Snap packages role tests passed"
+  except:
+    - tags
 
 # Variable validation - ensures role variable passing and defaults work correctly
 test-variable-validation:
@@ -271,6 +295,8 @@ test-variable-validation:
   only:
     - main
     - merge_requests
+  except:
+    - tags
 
 # =============================================================================
 # DOCUMENTATION STAGE
