@@ -2,6 +2,7 @@
 - name: Prepare container for testing
   hosts: all
   become: true
+  gather_facts: true
   tasks:
     - name: Install acl package for proper become support (Debian/Ubuntu)
       ansible.builtin.apt:

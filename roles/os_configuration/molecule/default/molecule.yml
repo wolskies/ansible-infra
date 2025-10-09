@@ -282,6 +282,8 @@ provisioner:
           unattended_upgrades:
             enabled: false # Should remove unattended upgrades config
       arch-ntp-test:
+        # Fix for CI temp directory issue - explicitly set remote_tmp
+        ansible_remote_tmp: /tmp/.ansible-${USER}/tmp
         # REQ-OS-008: NTP on Arch Linux - systemd-timesyncd included in base systemd
         host_hostname: "arch-ntp"
         domain_name: "arch.test.example.com"
