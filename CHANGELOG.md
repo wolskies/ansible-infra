@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-10-09
+
 ### Added
 - Initial release of wolskies.infrastructure collection
 - Core roles for infrastructure automation:
@@ -22,19 +24,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hierarchical package variable system (all/group/host levels)
 - Discovery-driven deployment workflow
 - Comprehensive documentation and examples
+- Gitleaks secret scanning in pre-commit and CI
+- Sphinx documentation build with generated docs directory
 
 ### Changed
 - Refactored from monolithic basic_setup role to specialized roles
 - Improved variable naming consistency across all roles
 
+### Fixed
+- Prevented repeated pacman cache updates for idempotence
+- Improved documentation accuracy and removed marketing language
+
 ### Security
 - All roles follow security best practices
 - Integration with devsec.hardening collection
+- Gitleaks secret scanning enabled
 
-## [1.0.0] - 2024-01-01
-
-### Added
-- Initial stable release
-
-[Unreleased]: https://github.com/wolskinet/ansible-infrastructure/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/wolskinet/ansible-infrastructure/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/wolskinet/ansible-infrastructure/compare/v1.0.0...v1.2.0
 [1.0.0]: https://github.com/wolskinet/ansible-infrastructure/releases/tag/v1.0.0
