@@ -497,7 +497,8 @@ update-changelog:
   dependencies:
     - create-release
   script:
-    - apt-get update -qq && apt-get install -y -qq git python3-yaml
+    - apt-get update -qq && apt-get install -y -qq git
+    - pip install --break-system-packages pyyaml
     - git config --global user.email "ci@wolskinet.com"
     - git config --global user.name "GitLab CI"
     - git config --global --add safe.directory $CI_PROJECT_DIR
