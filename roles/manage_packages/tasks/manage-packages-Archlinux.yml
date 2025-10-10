@@ -33,6 +33,7 @@
   delay: 10
   register: pacman_cache_result
   until: pacman_cache_result is succeeded
+  changed_when: false # Cache updates always report changed, suppress for idempotency
 
 - name: Manage packages (AUR disabled - pacman only)
   community.general.pacman:
@@ -53,6 +54,16 @@
 
 - name: Install packages (AUR enabled)
   block:
+    - name: Update pacman cache (AUR enabled)
+      community.general.pacman:
+        update_cache: true
+      become: true
+      retries: 3
+      delay: 10
+      register: pacman_cache_aur_result
+      until: pacman_cache_aur_result is succeeded
+      changed_when: false # Cache updates always report changed, suppress for idempotency
+
     - name: Ensure ansible_user can run pacman without password
       ansible.builtin.lineinfile:
         path: "/etc/sudoers.d/11-install-{{ ansible_user_id }}"
@@ -66,7 +77,7 @@
       community.general.pacman:
         name: base-devel
         state: present
-        update_cache: true
+        update_cache: false # Cache already updated above
       become: true
       retries: 3
       delay: 10
