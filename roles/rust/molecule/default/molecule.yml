@@ -12,8 +12,8 @@ platforms:
     cgroupns_mode: host
     command: /lib/systemd/systemd
     tmpfs:
-      /tmp: rw,exec,size=1g,mode=1777
-      /run: rw,exec,size=100m
+      - /tmp:rw,exec,size=1g,mode=1777
+      - /run:rw,exec,size=100m
   - name: arch-rust-test
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
@@ -29,8 +29,8 @@ platforms:
     ulimits:
       - nofile:65535:65535
     tmpfs:
-      /tmp: rw,exec,size=1g,mode=1777
-      /run: rw,exec,size=100m
+      - /tmp:rw,exec,size=1g,mode=1777
+      - /run:rw,exec,size=100m
   - name: ubuntu-rust-edge
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -40,8 +40,8 @@ platforms:
     cgroupns_mode: host
     command: /lib/systemd/systemd
     tmpfs:
-      /tmp: rw,exec,size=1g,mode=1777
-      /run: rw,exec,size=100m
+      - /tmp:rw,exec,size=1g,mode=1777
+      - /run:rw,exec,size=100m
 provisioner:
   name: ansible
   config_options:
