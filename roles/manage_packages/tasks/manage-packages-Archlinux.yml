@@ -14,6 +14,10 @@
     update_cache: false
     upgrade: true
   become: true
+  retries: 3
+  delay: 10
+  register: pacman_upgrade_result
+  until: pacman_upgrade_result is succeeded
   tags:
     - upgrades
 
@@ -25,6 +29,10 @@
   when:
     - _final_packages[ansible_distribution] | default([]) | length > 0
     - not (pacman.enable_aur | default(false))
+  retries: 3
+  delay: 10
+  register: pacman_cache_result
+  until: pacman_cache_result is succeeded
 
 - name: Manage packages (AUR disabled - pacman only)
   community.general.pacman:
@@ -36,6 +44,10 @@
   when:
     - _final_packages[ansible_distribution] | default([]) | length > 0
     - not (pacman.enable_aur | default(false))
+  retries: 3
+  delay: 10
+  register: pacman_install_result
+  until: pacman_install_result is succeeded
   tags:
     - packages
 
@@ -56,6 +68,10 @@
         state: present
         update_cache: true
       become: true
+      retries: 3
+      delay: 10
+      register: pacman_basedevel_result
+      until: pacman_basedevel_result is succeeded
 
     - name: Bootstrap AUR helper (paru) if needed
       kewlfft.aur.aur:

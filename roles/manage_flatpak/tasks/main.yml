@@ -19,6 +19,10 @@
   when:
     - ansible_os_family == "Archlinux"
     - flatpak.enabled | default(false)
+  retries: 3
+  delay: 10
+  register: pacman_result
+  until: pacman_result is succeeded
   tags:
     - flatpak-system
 
