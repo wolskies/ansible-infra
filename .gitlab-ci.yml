@@ -348,7 +348,7 @@ build-docs:
 
 # GitLab Pages deployment (only on main branch)
 pages:
-  stage: build
+  stage: release
   image: alpine:latest
   dependencies:
     - build-docs
@@ -357,7 +357,6 @@ pages:
     - ls -la public/
     - echo "Documentation ready for GitLab Pages"
     - echo "Documentation will be available at $CI_PAGES_URL"
-  pages: true
   artifacts:
     paths:
       - public
@@ -435,7 +434,17 @@ create-release:
     # Get version from galaxy.yml
     - export COLLECTION_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('galaxy.yml'))['version'])")
     - export TAG_NAME="v${COLLECTION_VERSION}"
+    - export TARBALL_NAME="wolskies-infrastructure-${COLLECTION_VERSION}.tar.gz"
     - echo "Creating release for version ${COLLECTION_VERSION} with tag ${TAG_NAME}"
+
+    # Verify tarball exists
+    - |
+      if [ ! -f "$TARBALL_NAME" ]; then
+        echo "❌ ERROR: Tarball $TARBALL_NAME not found"
+        ls -la *.tar.gz || echo "No tar.gz files found"
+        exit 1
+      fi
+      echo "✅ Found tarball: $TARBALL_NAME"
 
     # Generate release notes from commits since last tag
     - |
@@ -461,28 +470,45 @@ create-release:
 
     # Create GitLab release using the API
     - |
-      curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+      echo "Creating GitLab release..."
+      RELEASE_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
            --header "Content-Type: application/json" \
            --data "{
              \"tag_name\": \"$TAG_NAME\",
              \"name\": \"wolskies.infrastructure $COLLECTION_VERSION\",
-             \"description\": \"$(cat RELEASE_NOTES.md | sed 's/"/\\"/g' | tr '\n' ' ')\",
-             \"assets\": {
-               \"links\": [
-                 {
-                   \"name\": \"Collection Package\",
-                   \"url\": \"$CI_JOB_URL/artifacts/raw/wolskies-infrastructure-${COLLECTION_VERSION}.tar.gz\"
-                 }
-               ]
-             }
+             \"description\": \"$(cat RELEASE_NOTES.md | sed 's/"/\\"/g' | tr '\n' ' ')\"
            }" \
-           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
+      echo "$RELEASE_RESPONSE"
 
-    - echo "✅ Release ${TAG_NAME} created successfully"
+    # Upload tarball as release asset
+    - |
+      echo "Uploading tarball as release asset..."
+      UPLOAD_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+           --form "file=@${TARBALL_NAME}" \
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads")
+      echo "$UPLOAD_RESPONSE"
+
+      # Extract the full_path from the upload response
+      ASSET_URL=$(echo "$UPLOAD_RESPONSE" | python3 -c "import sys, json; print('${CI_PROJECT_URL}' + json.load(sys.stdin)['url'])")
+      echo "Asset URL: $ASSET_URL"
+
+      # Link the uploaded file to the release
+      curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+           --header "Content-Type: application/json" \
+           --data "{
+             \"name\": \"${TARBALL_NAME}\",
+             \"url\": \"${ASSET_URL}\",
+             \"link_type\": \"package\"
+           }" \
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases/${TAG_NAME}/assets/links"
+
+    - echo "✅ Release ${TAG_NAME} created successfully with tarball"
     - cat RELEASE_NOTES.md
   artifacts:
     paths:
       - RELEASE_NOTES.md
+      - "*.tar.gz"
     expire_in: 1 week
   only:
     - main
@@ -508,6 +534,16 @@ update-changelog:
     - export COLLECTION_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('galaxy.yml'))['version'])")
     - export RELEASE_DATE=$(date +"%Y-%m-%d")
 
+    # Verify RELEASE_NOTES.md exists from create-release job
+    - |
+      if [ ! -f RELEASE_NOTES.md ]; then
+        echo "❌ ERROR: RELEASE_NOTES.md not found from create-release job"
+        echo "Available files:"
+        ls -la
+        exit 1
+      fi
+      echo "✅ Found RELEASE_NOTES.md"
+
     # Create/update CHANGELOG.md
     - |
       if [ ! -f CHANGELOG.md ]; then
@@ -520,7 +556,7 @@ update-changelog:
       # Prepare new changelog entry
       echo "## [${COLLECTION_VERSION}] - ${RELEASE_DATE}" > CHANGELOG_NEW.md
       echo "" >> CHANGELOG_NEW.md
-      cat RELEASE_NOTES.md | grep "^- " >> CHANGELOG_NEW.md
+      cat RELEASE_NOTES.md | grep "^- " >> CHANGELOG_NEW.md || echo "No changes listed" >> CHANGELOG_NEW.md
       echo "" >> CHANGELOG_NEW.md
 
       # Insert new entry at the top of existing changelog
@@ -529,10 +565,23 @@ update-changelog:
       tail -n +5 CHANGELOG.md >> CHANGELOG_TEMP.md
       mv CHANGELOG_TEMP.md CHANGELOG.md
 
-    # Commit changelog update
+    # Commit changelog update - requires GITLAB_DEPLOY_TOKEN with write_repository scope
+    - |
+      if [ -z "$GITLAB_DEPLOY_TOKEN" ]; then
+        echo "⚠️  WARNING: GITLAB_DEPLOY_TOKEN not set - cannot push changelog"
+        echo "To enable automatic changelog updates:"
+        echo "1. Create a Deploy Token at Settings > Repository > Deploy Tokens"
+        echo "2. Give it 'write_repository' scope"
+        echo "3. Add it as CI/CD variable GITLAB_DEPLOY_TOKEN"
+        echo ""
+        echo "Changelog has been generated but not committed:"
+        cat CHANGELOG.md
+        exit 1
+      fi
+
     - git add CHANGELOG.md
     - git commit -m "update changelog for v${COLLECTION_VERSION}"
-    - git push https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
+    - git push https://gitlab-ci-token:${GITLAB_DEPLOY_TOKEN}@gitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
 
     - echo "✅ Changelog updated and committed"
   artifacts:
