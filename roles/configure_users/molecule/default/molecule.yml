@@ -12,8 +12,8 @@ platforms:
     cgroupns_mode: host
     command: /lib/systemd/systemd
     tmpfs:
-      - /tmp
-      - /run
+      /tmp: rw,exec,size=1g,mode=1777
+      /run: rw,exec,size=100m
   - name: ubuntu-user-basic
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -23,8 +23,8 @@ platforms:
     cgroupns_mode: host
     command: /lib/systemd/systemd
     tmpfs:
-      - /tmp
-      - /run
+      /tmp: rw,exec,size=1g,mode=1777
+      /run: rw,exec,size=100m
   - name: ubuntu-user-privileged
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -34,8 +34,8 @@ platforms:
     cgroupns_mode: host
     command: /lib/systemd/systemd
     tmpfs:
-      - /tmp
-      - /run
+      /tmp: rw,exec,size=1g,mode=1777
+      /run: rw,exec,size=100m
   - name: arch-user-basic
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
@@ -51,8 +51,8 @@ platforms:
     ulimits:
       - nofile:65535:65535
     tmpfs:
-      - /tmp
-      - /run
+      /tmp: rw,exec,size=1g,mode=1777
+      /run: rw,exec,size=100m
   - name: ubuntu-user-edge-cases
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -62,8 +62,8 @@ platforms:
     cgroupns_mode: host
     command: /lib/systemd/systemd
     tmpfs:
-      - /tmp
-      - /run
+      /tmp: rw,exec,size=1g,mode=1777
+      /run: rw,exec,size=100m
 provisioner:
   name: ansible
   config_options:
