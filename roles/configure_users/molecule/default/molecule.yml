@@ -1,10 +1,8 @@
----
 dependency:
   name: galaxy
 driver:
   name: docker
 platforms:
-  # REQ-CU-001,006-012,019: Complete user with all features
   - name: ubuntu-user-full
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -12,9 +10,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-
-  # REQ-CU-001,006: Minimal user creation and SSH key management
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-user-basic
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -22,9 +21,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-
-  # REQ-CU-004,005: Superuser flag and passwordless sudo testing
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-user-privileged
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -32,9 +32,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-
-  # REQ-CU-001,004: Cross-platform group assignment (wheel vs sudo)
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: arch-user-basic
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
@@ -42,15 +43,16 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/usr/lib/systemd/systemd"
+    command: /usr/lib/systemd/systemd
     env:
       container: docker
     capabilities:
       - SYS_ADMIN
     ulimits:
       - nofile:65535:65535
-
-  # REQ-CU-002: User removal and edge cases
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-user-edge-cases
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -58,8 +60,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
-
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
 provisioner:
   name: ansible
   config_options:
@@ -76,55 +80,48 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
-        test_password_hash: "!" # Locked account for testing
-
+        test_password_hash: "!"
     host_vars:
-      # REQ-CU-007-012,019: Complete user preferences testing
       ubuntu-user-full:
         users:
           - name: fulluser
             nodejs:
-              packages: ["@angular/cli", "typescript"]
+              packages:
+                - "@angular/cli"
+                - typescript
             rust:
-              packages: ["cargo-watch", "ripgrep"]
+              packages:
+                - cargo-watch
+                - ripgrep
             go:
               packages: []
             neovim:
               enabled: true
             git:
-              user_name: "Full User"
-              user_email: "fulluser@example.com"
-              editor: "nvim"
+              user_name: Full User
+              user_email: fulluser@example.com
+              editor: nvim
             dotfiles:
               enable: true
-              repository: "file:///tmp/mock-dotfiles"
-              dest: ".dotfiles"
-              branch: "main"
-
-      # Minimal user preferences and existing user testing
+              repository: file:///tmp/mock-dotfiles
+              dest: .dotfiles
+              branch: main
       ubuntu-user-basic:
         users:
           - name: root
             git:
-              user_name: "Root User"
-              user_email: "root@test.local"
+              user_name: Root User
+              user_email: root@test.local
           - name: existinguser
             git:
-              user_name: "Existing User"
-              user_email: "existing@test.local"
-
-      # Basic user (no special preferences)
+              user_name: Existing User
+              user_email: existing@test.local
       ubuntu-user-privileged:
         users:
           - name: privilegeduser
-
-      # Arch Linux user preferences
       arch-user-basic:
         users:
           - name: archuser
-
-      # No users configured (testing no-op behavior)
       ubuntu-user-edge-cases: {}
-
 verifier:
   name: ansible

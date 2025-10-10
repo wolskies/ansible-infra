@@ -1,4 +1,3 @@
----
 dependency:
   name: galaxy
 driver:
@@ -11,7 +10,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: arch-nodejs-test
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
@@ -19,13 +21,16 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/usr/lib/systemd/systemd"
+    command: /usr/lib/systemd/systemd
     env:
       container: docker
     capabilities:
       - SYS_ADMIN
     ulimits:
       - nofile:65535:65535
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-nodejs-edge
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -33,7 +38,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
 provisioner:
   name: ansible
   config_options:
@@ -48,64 +56,51 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
-        # Disable OS hardening in containers (auditd package not available)
         hardening:
           os_hardening_enabled: false
     host_vars:
       ubuntu-nodejs-test:
-        # Test user for nodejs installation
         users:
           - name: testdev
             uid: 1001
-            groups: [sudo]
+            groups:
+              - sudo
             shell: /bin/bash
-            comment: "Test Developer User"
+            comment: Test Developer User
             create_home: true
-
-        # Node.js configuration - Test mixed format and custom prefix
         node_user: testdev
-        npm_config_prefix: "~/.local/npm" # Test custom prefix
+        npm_config_prefix: ~/.local/npm
         npm_config_unsafe_perm: "true"
         node_packages:
-          # Test simple string format (backward compatibility)
           - typescript
-          # Test object format with specific version
           - name: eslint
-            version: "8.57.0"
-          # Test scoped package
+            version: 8.57.0
           - name: "@types/node"
-            version: "20.11.0"
+            version: 20.11.0
       arch-nodejs-test:
-        # Test user for nodejs installation
         users:
           - name: testdev
             uid: 1001
-            groups: [wheel]
+            groups:
+              - wheel
             shell: /bin/bash
-            comment: "Test Developer User"
+            comment: Test Developer User
             create_home: true
-
-        # Node.js configuration - Test defaults
         node_user: testdev
-        # Use default npm_config_prefix (~/.npm-global)
-        # Use default npm_config_unsafe_perm (true)
         node_packages:
-          # Test all simple string format
           - typescript
           - prettier
           - webpack
       ubuntu-nodejs-edge:
-        # Test user for edge cases
         users:
           - name: testdev
             uid: 1001
-            groups: [sudo]
+            groups:
+              - sudo
             shell: /bin/bash
-            comment: "Test Developer User"
+            comment: Test Developer User
             create_home: true
-
-        # Edge case: Empty packages list
         node_user: testdev
-        node_packages: [] # Test with no packages
+        node_packages: []
 verifier:
   name: ansible

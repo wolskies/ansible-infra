@@ -1,4 +1,3 @@
----
 dependency:
   name: galaxy
 driver:
@@ -11,7 +10,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: arch-flatpak-system-full
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
@@ -19,13 +21,16 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/usr/lib/systemd/systemd"
+    command: /usr/lib/systemd/systemd
     env:
       container: docker
     capabilities:
       - SYS_ADMIN
     ulimits:
       - nofile:65535:65535
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-flatpak-packages-basic
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -33,7 +38,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-flatpak-no-action
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -41,7 +49,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
 provisioner:
   name: ansible
   config_options:
@@ -56,7 +67,6 @@ provisioner:
       ubuntu-flatpak-system-full:
         ansible_user: root
         molecule_test: true
-        # REQ-MF-001, REQ-MF-002, REQ-MF-003, REQ-MF-004: Complete system with plugins and packages
         flatpak:
           enabled: true
           flathub: true
@@ -72,7 +82,6 @@ provisioner:
       arch-flatpak-system-full:
         ansible_user: root
         molecule_test: true
-        # Platform-specific plugin testing for Arch Linux
         flatpak:
           enabled: true
           flathub: true
@@ -86,7 +95,6 @@ provisioner:
       ubuntu-flatpak-packages-basic:
         ansible_user: root
         molecule_test: true
-        # REQ-MF-004: Basic package management without plugins
         flatpak:
           enabled: true
           flathub: true
@@ -102,7 +110,6 @@ provisioner:
       ubuntu-flatpak-no-action:
         ansible_user: root
         molecule_test: true
-        # No action scenario: flatpak.enabled false, no packages
         flatpak:
           enabled: false
         flatpak_packages: []

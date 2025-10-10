@@ -1,10 +1,8 @@
----
 dependency:
   name: galaxy
 driver:
   name: docker
 platforms:
-  # Consolidated test containers - comprehensive coverage with fewer resources
   - name: ubuntu-full-positive
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -12,7 +10,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-partial-enabled
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -20,7 +21,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-negative-empty
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -28,7 +32,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-negative-undefined
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -36,7 +43,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: ubuntu-edge-cases
     image: geerlingguy/docker-ubuntu2404-ansible:latest
     pre_build_image: true
@@ -44,7 +54,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/lib/systemd/systemd"
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp
+      - /run
   - name: arch-ntp-test
     image: carlodepieri/docker-archlinux-ansible:latest
     pre_build_image: true
@@ -52,9 +65,12 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
-    command: "/usr/lib/systemd/systemd"
+    command: /usr/lib/systemd/systemd
     env:
       container: docker
+    tmpfs:
+      - /tmp
+      - /run
 provisioner:
   name: ansible
   config_options:
@@ -72,228 +88,161 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
-        # OS configuration testing variables
-        domain_name: "test.example.com"
-        domain_timezone: "America/New_York"
-        domain_locale: "en_US.UTF-8"
-        domain_language: "en_US.UTF-8"
+        domain_name: test.example.com
+        domain_timezone: America/New_York
+        domain_locale: en_US.UTF-8
+        domain_language: en_US.UTF-8
         domain_timesync:
           enabled: true
           servers:
             - 0.pool.ntp.org
             - 1.pool.ntp.org
     host_vars:
-      # Consolidated test containers with comprehensive requirement coverage
       ubuntu-full-positive:
-        # REQ-OS-001: Hostname configuration - positive test
-        host_hostname: "test-hostname-full"
+        host_hostname: test-hostname-full
         host_update_hosts: true
-        # REQ-OS-002: /etc/hosts update - positive test
-        domain_name: "test.example.com"
-        # REQ-OS-003: Timezone configuration - positive test
-        domain_timezone: "America/New_York"
-        # REQ-OS-004: Security hardening - positive test
+        domain_name: test.example.com
+        domain_timezone: America/New_York
         host_security:
           hardening_enabled: true
-        # REQ-OS-005: SSH hardening - positive test (enabled in ubuntu-partial-enabled)
-        # REQ-OS-006: System locale - positive test
-        domain_locale: "en_US.UTF-8"
-        # REQ-OS-008: NTP synchronization - positive test
+        domain_locale: en_US.UTF-8
         domain_timesync:
           enabled: true
           servers:
-            - "0.pool.ntp.org"
-            - "1.pool.ntp.org"
-        # REQ-OS-009: Journal configuration - positive test
+            - 0.pool.ntp.org
+            - 1.pool.ntp.org
         journal:
           configure: true
-          max_size: "100M"
-          max_retention: "7d"
-        # REQ-OS-011: Systemd unit control - mixed operations test
+          max_size: 100M
+          max_retention: 7d
         host_services:
           enable:
-            - "rsyslog"
-            - "auditd"
+            - rsyslog
+            - auditd
           disable:
-            - "debug-shell"
+            - debug-shell
           mask:
-            - "snapd"
-        # REQ-OS-014: Kernel module management - mixed operations test
+            - snapd
         host_modules:
           load:
-            - "br_netfilter"
-            - "overlay"
+            - br_netfilter
+            - overlay
           blacklist:
-            - "pcspkr"
-            - "snd_pcsp"
-        # REQ-OS-016: Custom udev rules - positive test
+            - pcspkr
+            - snd_pcsp
         host_udev_rules:
-          - name: "test-usb-device"
+          - name: test-usb-device
             priority: 50
-            content: 'SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666"'
+            content: SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678",
+              MODE="0666"
             state: present
-          - name: "test-network-device"
+          - name: test-network-device
             priority: 60
-            content: 'SUBSYSTEM=="net", ACTION=="add", ATTRS{address}=="aa:bb:cc:dd:ee:ff", NAME="testnet0"'
+            content: SUBSYSTEM=="net", ACTION=="add", ATTRS{address}=="aa:bb:cc:dd:ee:ff",
+              NAME="testnet0"
             state: present
-        # REQ-OS-017a: APT no-recommends - positive test
         apt:
           no_recommends: true
-          # REQ-OS-018: APT unattended upgrades - positive test
           unattended_upgrades:
             enabled: true
       ubuntu-partial-enabled:
-        # REQ-OS-001: Hostname - positive test
-        host_hostname: "partial-test"
+        host_hostname: partial-test
         host_update_hosts: false
-        # REQ-OS-002: /etc/hosts - disabled test
-        domain_name: "example.com"
-        # REQ-OS-003: Timezone - positive test
-        domain_timezone: "UTC"
-        # REQ-OS-004: Security hardening - disabled test
+        domain_name: example.com
+        domain_timezone: UTC
         host_security:
           hardening_enabled: false
-          # REQ-OS-005: SSH hardening - positive test
           ssh_hardening_enabled: true
-        # REQ-OS-006: Locale - positive test
-        domain_locale: "en_US.UTF-8"
-        # REQ-OS-008: NTP - disabled test
+        domain_locale: en_US.UTF-8
         domain_timesync:
           enabled: false
           servers:
-            - "pool.ntp.org"
-        # REQ-OS-009: Journal - disabled test
+            - pool.ntp.org
         journal:
           configure: false
-          max_size: "50M"
-          max_retention: "3d"
-        # REQ-OS-011: Systemd unit control - enable only test
+          max_size: 50M
+          max_retention: 3d
         host_services:
           enable:
-            - "rsyslog"
-        # REQ-OS-014: Kernel module management - load only test
+            - rsyslog
         host_modules:
           load:
-            - "br_netfilter"
-        # REQ-OS-017: APT proxy - positive test
+            - br_netfilter
         apt:
-          proxy: "http://testuser:testpass@proxy.example.com:8080"
+          proxy: http://testuser:testpass@proxy.example.com:8080
       ubuntu-negative-empty:
-        # REQ-OS-001: Hostname - empty value test
         host_hostname: ""
         host_update_hosts: false
-        # REQ-OS-002: /etc/hosts - no domain test
-        # domain_name intentionally undefined
-        # REQ-OS-003: Timezone - empty value test
         domain_timezone: ""
-        # REQ-OS-004: Security hardening - disabled test
         host_security:
           hardening_enabled: false
-          # REQ-OS-005: SSH hardening - disabled test
           ssh_hardening_enabled: false
-        # REQ-OS-006: Locale - empty value test
         domain_locale: ""
-        # REQ-OS-008: NTP - enabled but functional test
         domain_timesync:
           enabled: true
           servers:
-            - "2.pool.ntp.org"
-        # REQ-OS-009: Journal - enabled test
+            - 2.pool.ntp.org
         journal:
           configure: true
-          max_size: "200M"
-          max_retention: "14d"
-        # REQ-OS-011: Systemd unit control - disable/mask test
+          max_size: 200M
+          max_retention: 14d
         host_services:
           disable:
-            - "debug-shell"
+            - debug-shell
           mask:
-            - "snapd"
-        # REQ-OS-014: Kernel module management - blacklist only test
+            - snapd
         host_modules:
           blacklist:
-            - "pcspkr"
+            - pcspkr
       ubuntu-negative-undefined:
-        # REQ-OS-001: Hostname - undefined test
         host_update_hosts: false
-        # host_hostname intentionally undefined
-        # REQ-OS-002: /etc/hosts - no hostname test
-        domain_name: "undefined.example.com"
-        # REQ-OS-003: Timezone - undefined test
-        # domain_timezone intentionally undefined
-        # REQ-OS-004 & REQ-OS-005: Security - default behavior test
-        # host_security intentionally undefined
-        # REQ-OS-006: Locale - undefined test
-        # domain_locale intentionally undefined
-        # REQ-OS-008: NTP - undefined test
-        # domain_timesync intentionally undefined
-        # REQ-OS-009: Journal - undefined test
-        # journal intentionally undefined
-        # REQ-OS-011: Systemd unit control - undefined test
-        # host_services intentionally undefined
-        # REQ-OS-014: Kernel module management - undefined test
-        # host_modules intentionally undefined
+        domain_name: undefined.example.com
       ubuntu-edge-cases:
-        # REQ-OS-001: Hostname - special characters test
-        host_hostname: "edge-test-123"
+        host_hostname: edge-test-123
         host_update_hosts: true
-        # REQ-OS-002: /etc/hosts - complex domain test
-        domain_name: "complex.multi.level.example.org"
-        # REQ-OS-003: Timezone - complex timezone test
-        domain_timezone: "Europe/Amsterdam"
-        # REQ-OS-004: Security - enabled with edge case
+        domain_name: complex.multi.level.example.org
+        domain_timezone: Europe/Amsterdam
         host_security:
           hardening_enabled: true
-          # REQ-OS-005: SSH hardening - disabled edge case
           ssh_hardening_enabled: false
-        # REQ-OS-006: Locale - alternative locale test
-        domain_locale: "de_DE.UTF-8"
-        # REQ-OS-008: NTP - multiple servers test
+        domain_locale: de_DE.UTF-8
         domain_timesync:
           enabled: true
           servers:
-            - "3.pool.ntp.org"
-            - "time.google.com"
-            - "time.cloudflare.com"
-        # REQ-OS-009: Journal - large values test
+            - 3.pool.ntp.org
+            - time.google.com
+            - time.cloudflare.com
         journal:
           configure: true
-          max_size: "1G"
-          max_retention: "30d"
-        # REQ-OS-011: Systemd unit control - empty arrays test
+          max_size: 1G
+          max_retention: 30d
         host_services:
           enable: []
           disable: []
           mask: []
-        # REQ-OS-014: Kernel module management - empty arrays test
         host_modules:
           load: []
           blacklist: []
-        # REQ-OS-016: Custom udev rules - rule removal test
         host_udev_rules:
-          - name: "test-remove-rule"
+          - name: test-remove-rule
             priority: 70
-            content: 'SUBSYSTEM=="block", ACTION=="add", MODE="0644"'
+            content: SUBSYSTEM=="block", ACTION=="add", MODE="0644"
             state: absent
-        # REQ-OS-017/017a/018: APT - state removal test (false/disabled)
         apt:
-          proxy: "" # Empty string should remove proxy
-          no_recommends: false # Should remove no-recommends config
+          proxy: ""
+          no_recommends: false
           unattended_upgrades:
-            enabled: false # Should remove unattended upgrades config
+            enabled: false
       arch-ntp-test:
-        # Fix for CI temp directory issue - explicitly set remote_tmp
         ansible_remote_tmp: /tmp/.ansible-${USER}/tmp
-        # REQ-OS-008: NTP on Arch Linux - systemd-timesyncd included in base systemd
-        host_hostname: "arch-ntp"
-        domain_name: "arch.test.example.com"
-        domain_timezone: "America/New_York"
+        host_hostname: arch-ntp
+        domain_name: arch.test.example.com
+        domain_timezone: America/New_York
         domain_timesync:
           enabled: true
           servers:
-            - "0.pool.ntp.org"
-            - "1.pool.ntp.org"
-        # REQ-OS-021: Pacman configuration test
+            - 0.pool.ntp.org
+            - 1.pool.ntp.org
         pacman:
           no_confirm: false
           multilib:
