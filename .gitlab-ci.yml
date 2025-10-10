@@ -468,10 +468,23 @@ create-release:
       echo "- **Build**: ${CI_PIPELINE_ID}" >> RELEASE_NOTES.md
       echo "- **Commit**: ${CI_COMMIT_SHA:0:8}" >> RELEASE_NOTES.md
 
+    # Verify GITLAB_RELEASE_TOKEN is set
+    - |
+      if [ -z "$GITLAB_RELEASE_TOKEN" ]; then
+        echo "❌ ERROR: GITLAB_RELEASE_TOKEN not set"
+        echo "To enable release automation:"
+        echo "1. Create a Project Access Token at Settings > Access Tokens"
+        echo "2. Give it 'api' and 'write_repository' scopes"
+        echo "3. Add it as CI/CD variable GITLAB_RELEASE_TOKEN"
+        echo "4. If token is marked 'Protected', ensure 'main' branch is protected"
+        exit 1
+      fi
+      echo "✅ GITLAB_RELEASE_TOKEN is set (first 8 chars: ${GITLAB_RELEASE_TOKEN:0:8}...)"
+
     # Create GitLab release using the API
     - |
       echo "Creating GitLab release..."
-      RELEASE_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+      RELEASE_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $GITLAB_RELEASE_TOKEN" \
            --header "Content-Type: application/json" \
            --data "{
              \"tag_name\": \"$TAG_NAME\",
@@ -484,7 +497,7 @@ create-release:
     # Upload tarball as release asset
     - |
       echo "Uploading tarball as release asset..."
-      UPLOAD_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+      UPLOAD_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $GITLAB_RELEASE_TOKEN" \
            --form "file=@${TARBALL_NAME}" \
            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads")
       echo "$UPLOAD_RESPONSE"
@@ -494,7 +507,7 @@ create-release:
       echo "Asset URL: $ASSET_URL"
 
       # Link the uploaded file to the release
-      curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+      curl --request POST --header "PRIVATE-TOKEN: $GITLAB_RELEASE_TOKEN" \
            --header "Content-Type: application/json" \
            --data "{
              \"name\": \"${TARBALL_NAME}\",
