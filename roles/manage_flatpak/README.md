@@ -53,10 +53,10 @@ Supports flatpak package configuration:
 ```yaml
 flatpak_packages:
   # Simple installation
-  - name: "org.mozilla.firefox"
+  - name: "com.github.tchx84.Flatseal"
 
   # With state specification
-  - name: "com.spotify.Client"
+  - name: "org.mozilla.firefox"
     state: present         # present or absent
 ```
 
