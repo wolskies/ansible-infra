@@ -70,7 +70,6 @@ provisioner:
         flatpak:
           enabled: true
           flathub: true
-          method: system
           plugins:
             gnome: true
             plasma: false
@@ -85,7 +84,6 @@ provisioner:
         flatpak:
           enabled: true
           flathub: true
-          method: system
           plugins:
             gnome: true
             plasma: true
@@ -98,7 +96,6 @@ provisioner:
         flatpak:
           enabled: true
           flathub: true
-          method: system
           plugins:
             gnome: false
             plasma: false

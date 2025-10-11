@@ -31,19 +31,6 @@ Manages flatpak system and packages:
         state: present
 ```
 
-### System Installation Only
-```yaml
-- hosts: servers
-  become: true
-  roles:
-    - wolskies.infrastructure.manage_flatpak
-  vars:
-    flatpak:
-      enabled: true
-      flathub: true
-      method: system
-```
-
 ## Variables
 
 Uses collection-wide variables - see collection README for complete reference.
@@ -53,8 +40,6 @@ Uses collection-wide variables - see collection README for complete reference.
 | -------- | ---- | -------- | ------- | ----------- |
 | `flatpak.enabled` | boolean | No | `false` | Install flatpak runtime on Debian and Arch Linux systems |
 | `flatpak.flathub` | boolean | No | `false` | Enable Flathub repository |
-| `flatpak.method` | enum | No | `"system"` | Installation method ("system" or "user") |
-| `flatpak.user` | string | No | none | Target username for user-level operations |
 | `flatpak.plugins.gnome` | boolean | No | `false` | Install GNOME Software plugin (Debian/Ubuntu only) |
 | `flatpak.plugins.plasma` | boolean | No | `false` | Install Plasma Discover plugin (Debian/Ubuntu only) |
 
@@ -96,27 +81,6 @@ flatpak_packages:
 ### Arch Linux
 - Desktop integration built into desktop packages
 - No separate plugins required for GNOME Software or Plasma Discover
-
-## Installation Methods
-
-### System-wide Installation (default)
-```yaml
-flatpak:
-  method: system
-```
-- Installs packages for all users
-- Requires root privileges
-- Packages available system-wide
-
-### User-level Installation
-```yaml
-flatpak:
-  method: user
-  user: developer
-```
-- Installs packages for specific user
-- No root privileges required for package operations
-- Packages available only to specified user
 
 ## Tags
 
