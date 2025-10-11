@@ -519,47 +519,12 @@ create-release:
 
     - echo "✅ Release ${TAG_NAME} created successfully with tarball"
     - cat RELEASE_NOTES.md
-  artifacts:
-    paths:
-      - RELEASE_NOTES.md
-      - "*.tar.gz"
-    expire_in: 1 week
-  only:
-    - main
-  when: manual
-  environment:
-    name: production
-    url: $CI_PROJECT_URL/-/releases
 
-# Update changelog (optional, manual)
-update-changelog:
-  stage: release
-  image: python:3.13-slim
-  dependencies:
-    - create-release
-  script:
-    - apt-get update -qq && apt-get install -y -qq git
-    - pip install --break-system-packages pyyaml
-    - git config --global user.email "ci@wolskinet.com"
-    - git config --global user.name "GitLab CI"
-    - git config --global --add safe.directory $CI_PROJECT_DIR
-
-    # Get version and prepare changelog entry
-    - export COLLECTION_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('galaxy.yml'))['version'])")
-    - export RELEASE_DATE=$(date +"%Y-%m-%d")
-
-    # Verify RELEASE_NOTES.md exists from create-release job
+    # Update CHANGELOG.md
     - |
-      if [ ! -f RELEASE_NOTES.md ]; then
-        echo "❌ ERROR: RELEASE_NOTES.md not found from create-release job"
-        echo "Available files:"
-        ls -la
-        exit 1
-      fi
-      echo "✅ Found RELEASE_NOTES.md"
+      echo "Updating CHANGELOG.md..."
+      export RELEASE_DATE=$(date +"%Y-%m-%d")
 
-    # Create/update CHANGELOG.md
-    - |
       if [ ! -f CHANGELOG.md ]; then
         echo "# Changelog" > CHANGELOG.md
         echo "" >> CHANGELOG.md
@@ -579,29 +544,36 @@ update-changelog:
       tail -n +5 CHANGELOG.md >> CHANGELOG_TEMP.md
       mv CHANGELOG_TEMP.md CHANGELOG.md
 
-    # Commit changelog update - requires GITLAB_DEPLOY_TOKEN with write_repository scope
+      echo "✅ CHANGELOG.md updated"
+
+    # Commit changelog update if GITLAB_DEPLOY_TOKEN is available
     - |
-      if [ -z "$GITLAB_DEPLOY_TOKEN" ]; then
-        echo "⚠️  WARNING: GITLAB_DEPLOY_TOKEN not set - cannot push changelog"
-        echo "To enable automatic changelog updates:"
+      if [ -n "$GITLAB_DEPLOY_TOKEN" ]; then
+        echo "Committing CHANGELOG.md..."
+        git add CHANGELOG.md
+        git commit -m "update changelog for v${COLLECTION_VERSION}"
+        git push https://gitlab-ci-token:${GITLAB_DEPLOY_TOKEN}@gitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
+        echo "✅ Changelog committed and pushed"
+      else
+        echo "⚠️  WARNING: GITLAB_DEPLOY_TOKEN not set - CHANGELOG.md generated but not committed"
+        echo "To enable automatic changelog commits:"
         echo "1. Create a Deploy Token at Settings > Repository > Deploy Tokens"
         echo "2. Give it 'write_repository' scope"
         echo "3. Add it as CI/CD variable GITLAB_DEPLOY_TOKEN"
         echo ""
-        echo "Changelog has been generated but not committed:"
+        echo "Generated CHANGELOG.md:"
         cat CHANGELOG.md
-        exit 1
       fi
 
-    - git add CHANGELOG.md
-    - git commit -m "update changelog for v${COLLECTION_VERSION}"
-    - git push https://gitlab-ci-token:${GITLAB_DEPLOY_TOKEN}@gitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
-
-    - echo "✅ Changelog updated and committed"
   artifacts:
     paths:
+      - RELEASE_NOTES.md
       - CHANGELOG.md
+      - "*.tar.gz"
     expire_in: 1 week
   only:
     - main
   when: manual
+  environment:
+    name: production
+    url: $CI_PROJECT_URL/-/releases
