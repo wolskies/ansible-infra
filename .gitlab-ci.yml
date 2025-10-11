@@ -546,24 +546,15 @@ create-release:
 
       echo "✅ CHANGELOG.md updated"
 
-    # Commit changelog update if GITLAB_DEPLOY_TOKEN is available
+    # Commit changelog update
     - |
-      if [ -n "$GITLAB_DEPLOY_TOKEN" ]; then
-        echo "Committing CHANGELOG.md..."
-        git add CHANGELOG.md
-        git commit -m "update changelog for v${COLLECTION_VERSION}"
-        git push https://gitlab-ci-token:${GITLAB_DEPLOY_TOKEN}@gitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
-        echo "✅ Changelog committed and pushed"
-      else
-        echo "⚠️  WARNING: GITLAB_DEPLOY_TOKEN not set - CHANGELOG.md generated but not committed"
-        echo "To enable automatic changelog commits:"
-        echo "1. Create a Deploy Token at Settings > Repository > Deploy Tokens"
-        echo "2. Give it 'write_repository' scope"
-        echo "3. Add it as CI/CD variable GITLAB_DEPLOY_TOKEN"
-        echo ""
-        echo "Generated CHANGELOG.md:"
-        cat CHANGELOG.md
-      fi
+      echo "Committing CHANGELOG.md..."
+      git add CHANGELOG.md
+      git commit -m "update changelog for v${COLLECTION_VERSION}"
+
+      # Push using GITLAB_RELEASE_TOKEN (already verified above)
+      git push https://oauth2:${GITLAB_RELEASE_TOKEN}@gitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
+      echo "✅ Changelog committed and pushed"
 
   artifacts:
     paths:
