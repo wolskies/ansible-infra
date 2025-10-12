@@ -188,6 +188,45 @@
         - inventory_hostname == 'ubuntu-packages-basic'
         - ansible_os_family == 'Debian'
 
+    - name: REQ-MP-006 - Verify package management (Debian full - installation)
+      ansible.builtin.assert:
+        that:
+          - "'curl' in ansible_facts.packages" # From all level
+          - "'git' in ansible_facts.packages" # From all level
+          - "'dnsutils' in ansible_facts.packages" # From all level (Debian-specific)
+          - "'apache2' in ansible_facts.packages" # From group level
+          - "'mariadb-server' in ansible_facts.packages" # From host level
+        fail_msg: "❌ REQ-MP-006: Packages not properly installed from layered inventory levels"
+        success_msg: "✅ REQ-MP-006: Packages correctly installed via APT with layered combining (Debian)"
+      when:
+        - inventory_hostname == 'debian-packages-full'
+        - ansible_os_family == 'Debian'
+
+    - name: REQ-MP-006 - Verify package management (Debian full - removal)
+      ansible.builtin.assert:
+        that:
+          - "'telnet' not in ansible_facts.packages"
+          - "'rsh-server' not in ansible_facts.packages"
+        fail_msg: "❌ REQ-MP-006: Packages marked for removal should not be present"
+        success_msg: "✅ REQ-MP-006: Packages correctly removed via APT (Debian)"
+      when:
+        - inventory_hostname == 'debian-packages-full'
+        - ansible_os_family == 'Debian'
+
+    - name: REQ-MP-006 - Verify package management (Debian basic)
+      ansible.builtin.assert:
+        that:
+          - "'curl' in ansible_facts.packages" # From all level
+          - "'git' in ansible_facts.packages" # From all level
+          - "'dnsutils' in ansible_facts.packages" # From all level (Debian-specific)
+          - "'emacs-nox' in ansible_facts.packages" # From host level
+          - "'nano' not in ansible_facts.packages" # Marked for removal
+        fail_msg: "❌ REQ-MP-006: Package management not working correctly"
+        success_msg: "✅ REQ-MP-006: Packages correctly managed via APT (Debian)"
+      when:
+        - inventory_hostname == 'debian-packages-basic'
+        - ansible_os_family == 'Debian'
+
     # ===== REQ-MP-008: APT System Upgrades =====
     - name: REQ-MP-008 - Verify system upgrade logic
       ansible.builtin.debug:

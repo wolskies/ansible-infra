@@ -75,6 +75,28 @@ platforms:
     tmpfs:
       - /tmp:rw,exec,size=1g,mode=1777
       - /run:rw,exec,size=100m
+  - name: debian-packages-basic
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp:rw,exec,size=1g,mode=1777
+      - /run:rw,exec,size=100m
+  - name: debian-packages-full
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /tmp:rw,exec,size=1g,mode=1777
+      - /run:rw,exec,size=100m
 provisioner:
   name: ansible
   config_options:
@@ -89,15 +111,23 @@ provisioner:
       all:
         ansible_user: root
         molecule_test: true
+        # IMPORTANT: Packages deliberately differ per distribution to catch bugs
+        # where code incorrectly uses ansible_os_family instead of ansible_distribution
         manage_packages_all:
           Ubuntu:
             - name: curl
             - name: git
+            - name: tree # Ubuntu-specific for testing
+          Debian:
+            - name: curl
+            - name: git
+            - name: dnsutils # Debian-specific for testing
           Archlinux:
             - name: curl
             - name: git
         apt_repositories_all:
           Ubuntu: []
+          Debian: []
     host_vars:
       ubuntu-packages-full:
         manage_packages_group:
@@ -182,5 +212,32 @@ provisioner:
           Ubuntu: []
         apt_repositories_host:
           Ubuntu: []
+      debian-packages-basic:
+        manage_packages_group:
+          Debian: []
+        manage_packages_host:
+          Debian:
+            - name: emacs-nox
+            - name: nano
+              state: absent
+        apt_repositories_group:
+          Debian: []
+        apt_repositories_host:
+          Debian: []
+      debian-packages-full:
+        manage_packages_group:
+          Debian:
+            - name: apache2
+        manage_packages_host:
+          Debian:
+            - name: mariadb-server
+            - name: telnet
+              state: absent
+            - name: rsh-server
+              state: absent
+        apt_repositories_group:
+          Debian: []
+        apt_repositories_host:
+          Debian: []
 verifier:
   name: ansible
