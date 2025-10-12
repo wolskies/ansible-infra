@@ -2,6 +2,30 @@
 
 All notable changes to this collection will be documented in this file.
 
+## [1.2.5] - 2025-10-12
+
+- fix: remove method and user from manage_flatpak defaults (issue #21) (5e83ecf)
+- Release v1.2.5 (1762765)
+- update changelog for v1.2.0 (226195a)
+- fix: use GITLAB_RELEASE_TOKEN with oauth2 prefix for changelog push (26ebb33)
+- refactor: merge update-changelog into create-release job (2b24164)
+- fix: upload release tarball to Generic Package Registry (f79b996)
+- fix: convert tmpfs to list format with inline options for Molecule compatibility (60e71dd)
+- fix: set explicit tmpfs permissions (mode=1777) to prevent mkdir failures (cfe08a5)
+- fix: make pacman cache updates idempotent with changed_when: false (551a848)
+- fix: add retry logic to all pacman tasks for transient mirror timeouts (7f5a1e7)
+- fix: add tmpfs mounts to all Molecule platforms to prevent /tmp race conditions (612706b)
+- fix: use GITLAB_RELEASE_TOKEN for release automation (7f32ec4)
+- fix: resolve three critical CI issues (6073752)
+- fix: install pyyaml via pip in create-release job (e73abfb)
+- fix: install pyyaml via pip in update-changelog job (6a05691)
+- fix: resolve Ansible temp directory creation failure in CI for Arch container (885ab47)
+- fix: ensure Arch Linux timezone configuration is idempotent (e485199)
+- chore: exclude test/validation jobs from tag pipelines (8ac989f)
+- **Version**: 1.2.5
+- **Build**: 864
+- **Commit**: 5e83ecf1
+
 ## [1.2.0] - 2025-10-11
 
 - fix: use GITLAB_RELEASE_TOKEN with oauth2 prefix for changelog push (26ebb33)
