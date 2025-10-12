@@ -408,7 +408,7 @@ version-check:
   stage: build
   image: python:3.13-slim
   script:
-    - apt-get update -qq && apt-get install -y -qq python3-yaml
+    - pip install --break-system-packages pyyaml
     - python3 -c "import yaml; print('Version:', yaml.safe_load(open('galaxy.yml'))['version'])"
     - echo "✅ Version validated"
   only:

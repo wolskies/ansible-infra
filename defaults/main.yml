@@ -34,26 +34,10 @@ hardening:
   # All devsec.hardening.os_hardening variables can be set directly
   # See: https://github.com/dev-sec/ansible-collection-hardening/tree/master/roles/os_hardening
   os_hardening_enabled: false
-  # Example devsec.hardening.os_hardening variables:
-  # os_auth_pw_max_age: 90                    # Password expiration (days)
-  # os_auth_pw_min_age: 7                     # Minimum password age (days)
-  # os_users_without_password_ageing: []      # Users exempt from password aging
-  # os_ctrlaltdel_disabled: false             # Disable Ctrl+Alt+Del reboot
-  # os_security_users_allow: []               # Users with special privileges
-  # os_remove_additional_root_users: false    # Remove duplicate UID=0 accounts
-  # sysctl_overwrite:                         # Override/add sysctl parameters
-  #   vm.swappiness: 10                       # Swappiness (default: not set)
-  #   net.ipv4.ip_forward: 1                  # Enable IP forwarding (for Docker/K8s)
-  #   fs.file-max: 65536                      # Max open files
   # SSH hardening via devsec.hardening.ssh_hardening (Linux only)
   # All devsec.hardening.ssh_hardening variables can be set directly
   # See: https://github.com/dev-sec/ansible-collection-hardening/tree/master/roles/ssh_hardening
   ssh_hardening_enabled: false
-  # Example devsec.hardening.ssh_hardening variables:
-  # ssh_server_ports: ["22"]
-  # ssh_client_port: "22"
-  # ssh_listen_to: ["0.0.0.0"]
-  # sftp_enabled: true
 journal:
   configure: false
   max_size: "500M"
