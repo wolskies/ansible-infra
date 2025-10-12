@@ -1,18 +1,24 @@
 ---
 - name: Apply OS security hardening (Linux)
-  ansible.builtin.include_role:
-    name: devsec.hardening.os_hardening
-  vars:
-    os_hardening_enabled: "{{ hardening.os_hardening_enabled | default(false) }}"
+  block:
+    - name: Apply OS security hardening (Linux)
+      ansible.builtin.include_role:
+        name: devsec.hardening.os_hardening
+      vars:
+        os_hardening_enabled: "{{ hardening.os_hardening_enabled | default(false) }}"
+  become: true
   when: hardening.os_hardening_enabled | default(false)
   tags:
     - security
 
 - name: Apply SSH security hardening (Linux)
-  ansible.builtin.include_role:
-    name: devsec.hardening.ssh_hardening
-  vars:
-    ssh_server_enabled: true
+  block:
+    - name: Apply SSH security hardening (Linux)
+      ansible.builtin.include_role:
+        name: devsec.hardening.ssh_hardening
+      vars:
+        ssh_server_enabled: true
+  become: true
   when: hardening.ssh_hardening_enabled | default(false)
   tags:
     - security
