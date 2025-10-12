@@ -4,6 +4,15 @@ All notable changes to this collection will be documented in this file.
 
 ## [1.2.5] - 2025-10-12
 
+- "fix become issue" (21eea0c)
+- fix vars associated with hardeing role (33ea74f)
+- update changelog for v1.2.5 (39272a6)
+- **Version**: 1.2.5
+- **Build**: 868
+- **Commit**: 21eea0c0
+
+## [1.2.5] - 2025-10-12
+
 - fix: remove method and user from manage_flatpak defaults (issue #21) (5e83ecf)
 - Release v1.2.5 (1762765)
 - update changelog for v1.2.0 (226195a)
