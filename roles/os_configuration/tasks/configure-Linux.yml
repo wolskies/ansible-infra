@@ -1,15 +1,19 @@
 ---
 - name: Apply OS security hardening (Linux)
-  ansible.builtin.include_role:
-    name: devsec.hardening.os_hardening
+  block:
+    - name: Apply OS security hardening (Linux)
+      ansible.builtin.include_role:
+        name: devsec.hardening.os_hardening
   become: true
   when: hardening.os_hardening_enabled | default(false)
   tags:
     - security
 
 - name: Apply SSH security hardening (Linux)
-  ansible.builtin.include_role:
-    name: devsec.hardening.ssh_hardening
+  block:
+    - name: Apply SSH security hardening (Linux)
+      ansible.builtin.include_role:
+        name: devsec.hardening.ssh_hardening
   become: true
   when: hardening.ssh_hardening_enabled | default(false)
   tags:
