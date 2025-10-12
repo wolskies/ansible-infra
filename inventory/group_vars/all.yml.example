@@ -35,12 +35,6 @@ hardening:
   os_hardening_enabled: true
   ssh_hardening_enabled: true
 
-rsyslog:
-  enabled: false
-  remote_host: ""
-  remote_port: 514
-  protocol: "udp"
-
 apt:
   proxy: ""
   no_recommends: false

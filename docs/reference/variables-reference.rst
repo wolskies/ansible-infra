@@ -236,44 +236,6 @@ systemd Journal
      forward_to_syslog: false
      compress: true
 
-rsyslog
-~~~~~~~
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 10 15 55
-
-   * - Variable
-     - Type
-     - Default
-     - Purpose
-   * - ``rsyslog.enabled``
-     - boolean
-     - ``false``
-     - Enable rsyslog remote logging
-   * - ``rsyslog.remote_host``
-     - string
-     - ``""``
-     - Remote syslog server
-   * - ``rsyslog.remote_port``
-     - int
-     - ``514``
-     - Remote syslog port
-   * - ``rsyslog.protocol``
-     - string
-     - ``"udp"``
-     - Protocol (udp/tcp)
-
-**Schema:**
-
-.. code-block:: yaml
-
-   rsyslog:
-     enabled: false
-     remote_host: ""
-     remote_port: 514
-     protocol: "udp"
-
 Security Hardening
 ------------------
 
@@ -934,8 +896,8 @@ Variable Summary
      - Domain identity (name, timezone, locale, language), Time synchronization
    * - **Host-Level (4 variable groups)**
      - Host identity (hostname, hosts file), System services (enable/disable/mask), Kernel modules (load/blacklist), udev rules
-   * - **System Logging (2 variable groups)**
-     - systemd journal configuration, rsyslog remote logging
+   * - **System Logging (1 variable group)**
+     - systemd journal configuration
    * - **Security Hardening (2 variables)**
      - OS/SSH hardening enable flags (devsec.hardening pass-through)
    * - **Package Management (9 variable groups)**

@@ -20,6 +20,8 @@ domain_timezone: "America/New_York"
 
 # Package Management (manage_packages role)
 # Uses current manage_packages_all/group/host format with ansible_distribution keys
+# IMPORTANT: Packages deliberately differ per distribution to catch bugs where code
+# incorrectly uses ansible_os_family instead of ansible_distribution
 manage_packages_all:
   Ubuntu:
     - { name: curl }
@@ -31,9 +33,8 @@ manage_packages_all:
     - { name: ufw }
     - { name: build-essential }
     - { name: python3-pip }
-    - { name: tree }
-    - { name: rsync }
-    - { name: unzip }
+    - { name: tree } # Ubuntu-specific for testing
+    - { name: jq } # Ubuntu-specific for testing
   Debian:
     - { name: curl }
     - { name: wget }
@@ -44,23 +45,22 @@ manage_packages_all:
     - { name: ufw }
     - { name: build-essential }
     - { name: python3-pip }
-    - { name: tree }
-    - { name: rsync }
-    - { name: unzip }
+    - { name: rsync } # Debian-specific for testing
+    - { name: dnsutils } # Debian-specific for testing
 
 manage_packages_group:
   Ubuntu:
     - { name: nginx }
-    - { name: postgresql }
+    - { name: postgresql } # Ubuntu uses PostgreSQL for testing
     - { name: docker.io }
     - { name: docker-compose-v2 }
-    - { name: certbot }
+    - { name: redis-server } # Ubuntu-specific database for testing
   Debian:
     - { name: nginx }
-    - { name: postgresql }
+    - { name: mariadb-server } # Debian uses MariaDB for testing (catches distro bugs)
     - { name: docker.io }
     - { name: docker-compose }
-    - { name: certbot }
+    - { name: memcached } # Debian-specific cache for testing
 
 # =============================================================================
 # SECURITY CONFIGURATION

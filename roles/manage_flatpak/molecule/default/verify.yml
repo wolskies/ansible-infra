@@ -141,12 +141,12 @@
         - inventory_hostname in ['ubuntu-flatpak-system-full', 'arch-flatpak-system-full', 'ubuntu-flatpak-packages-basic']
         - flatpak_packages_check.rc == 0
 
-    - name: REQ-MF-004 - Verify firefox package installation (system-full only)
+    - name: REQ-MF-004 - Verify Flatseal package installation (system-full only)
       ansible.builtin.assert:
         that:
-          - "'org.mozilla.firefox' in flatpak_packages_check.stdout"
-        fail_msg: "❌ REQ-MF-004: org.mozilla.firefox package not installed"
-        success_msg: "✅ REQ-MF-004: org.mozilla.firefox package correctly installed"
+          - "'com.github.tchx84.Flatseal' in flatpak_packages_check.stdout"
+        fail_msg: "❌ REQ-MF-004: com.github.tchx84.Flatseal package not installed"
+        success_msg: "✅ REQ-MF-004: com.github.tchx84.Flatseal package correctly installed"
       when:
         - inventory_hostname == 'ubuntu-flatpak-system-full'
         - flatpak_packages_check.rc == 0
