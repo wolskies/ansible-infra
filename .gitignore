@@ -97,3 +97,6 @@ terraform.tfstate
 terraform.tfstate.backup
 vm_output.json
 tfplan
+
+.claude
+Claude.md
