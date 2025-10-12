@@ -10,8 +10,6 @@
 flatpak:
   enabled: false
   flathub: false
-  method: "system"
-  user: ""
   plugins:
     gnome: false
     plasma: false
