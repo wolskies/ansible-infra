@@ -4,6 +4,16 @@ All notable changes to this collection will be documented in this file.
 
 ## [1.2.5] - 2025-10-12
 
+- update changelog for v1.2.5 (8faaf9a)
+- "fix become issue" (21eea0c)
+- fix vars associated with hardeing role (33ea74f)
+- update changelog for v1.2.5 (39272a6)
+- **Version**: 1.2.5
+- **Build**: 869
+- **Commit**: 8faaf9a2
+
+## [1.2.5] - 2025-10-12
+
 - "fix become issue" (21eea0c)
 - fix vars associated with hardeing role (33ea74f)
 - update changelog for v1.2.5 (39272a6)
