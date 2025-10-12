@@ -144,6 +144,12 @@ flatpak:
       {{ discovery_flatpak_packages | to_nice_yaml(indent=6) | indent(6, first=false) }}
 {% endif %}
 
+{% if ansible_distribution == "Archlinux" and discovery_pacman_multilib_enabled is defined %}
+pacman:
+  multilib:
+    enabled: {{ discovery_pacman_multilib_enabled | lower }}
+{% endif %}
+
 {% if ansible_system == "Darwin" and discovery_macos_preferences | length > 0 -%}
 
 # =============================================================================

@@ -60,11 +60,6 @@ journal:
   max_retention: "30d"
   forward_to_syslog: false
   compress: true
-rsyslog:
-  enabled: false
-  remote_host: ""
-  remote_port: 514
-  protocol: "udp"
 apt:
   proxy: ""
   no_recommends: false

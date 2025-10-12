@@ -32,17 +32,6 @@ argument_specs:
             type: bool
             required: false
             default: true
-          method:
-            description: Installation method for flatpak packages
-            type: str
-            required: false
-            default: "system"
-            choices: ["system", "user"]
-          user:
-            description: Target username for user-scope flatpak operations (ignored for system scope)
-            type: str
-            required: false
-            default: ""
           plugins:
             description: Desktop environment flatpak plugin configuration
             type: dict

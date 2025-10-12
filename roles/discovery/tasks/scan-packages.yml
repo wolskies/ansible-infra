@@ -8,6 +8,24 @@
   when: ansible_distribution == "Archlinux"
   changed_when: false
 
+- name: Detect Pacman multilib repository status (Arch Linux)
+  ansible.builtin.shell: grep -A1 '^\[multilib\]' /etc/pacman.conf | grep -v '^#'
+  register: pacman_multilib_check
+  failed_when: false
+  changed_when: false
+  become: true
+  when: ansible_distribution == "Archlinux"
+
+- name: Set Pacman multilib detection fact (Arch Linux)
+  ansible.builtin.set_fact:
+    discovery_pacman_multilib_enabled: >-
+      {{
+        pacman_multilib_check.rc == 0 and
+        '[multilib]' in pacman_multilib_check.stdout and
+        'Include' in pacman_multilib_check.stdout
+      }}
+  when: ansible_distribution == "Archlinux"
+
 - name: Get manually installed packages (Ubuntu/Debian)
   ansible.builtin.command: apt-mark showmanual
   register: ubuntu_manual_packages
