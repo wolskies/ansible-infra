@@ -117,14 +117,34 @@
       changed_when: false
       when: inventory_hostname == 'ubuntu-user-full'
 
+    - name: REQ-CU-019 - Check for backup file
+      ansible.builtin.find:
+        paths: "/home/{{ expected_username }}/bash"
+        patterns: ".bashrc.backup.*"
+        hidden: true
+      register: backup_check
+      when: inventory_hostname == 'ubuntu-user-full'
+      vars:
+        expected_username: fulluser
+
+    - name: REQ-CU-019 - Verify bashrc symlink
+      ansible.builtin.stat:
+        path: "/home/{{ expected_username }}/bash/.bashrc"
+      register: bashrc_link_check
+      when: inventory_hostname == 'ubuntu-user-full'
+      vars:
+        expected_username: fulluser
+
     - name: REQ-CU-019 - Assert dotfiles deployment
       ansible.builtin.assert:
         that:
           - dotfiles_repo_check.stat.exists
           - dotfiles_repo_check.stat.isdir
           - stow_check.rc == 0
-        fail_msg: "❌ REQ-CU-019: Dotfiles not deployed correctly"
-        success_msg: "✅ REQ-CU-019: Dotfiles correctly deployed"
+          - backup_check.matched > 0
+          - bashrc_link_check.stat.islnk
+        fail_msg: "❌ REQ-CU-019: Dotfiles not deployed correctly (backup: {{ backup_check.matched }}, symlink: {{ bashrc_link_check.stat.islnk | default(false) }})"
+        success_msg: "✅ REQ-CU-019: Dotfiles correctly deployed with conflict backup"
       when: inventory_hostname == 'ubuntu-user-full'
 
     # ===== User existence verification =====
