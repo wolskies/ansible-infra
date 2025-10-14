@@ -20,8 +20,8 @@
   tags:
     - snap-packages
 
-- name: Manage specific snap packages (when snap system is enabled)
-  ansible.builtin.include_tasks: manage-flatpaks.yml
+- name: Manage flatpak packages (when flatpak is enabled)
+  ansible.builtin.include_tasks: manage_flatpaks.yml
   when:
     - ansible_system == "Linux"
     - (flatpak.enabled | default(false))

@@ -60,21 +60,21 @@
     #     - ssh-hardening
 
     # 2. Core system setup with standard OS packages
-    - role: os_configuration
+    - role: configure_operating_system
       tags:
         - basic
         - system
         - configuration
 
-    - role: manage_packages
+    - role: configure_software
       tags:
         - basic
         - system
         - packages
 
-    # User management now handled by os_configuration role
-    # Use os_configuration with 'users' tag for user management only:
-    # - role: wolskies.infrastructure.os_configuration
+    # User management now handled by configure_operating_system role
+    # Use configure_operating_system with 'users' tag for user management only:
+    # - role: wolskies.infrastructure.configure_operating_system
     #   tags: [users]
 
     # 3. Language packages (uncomment if you have language-specific roles)

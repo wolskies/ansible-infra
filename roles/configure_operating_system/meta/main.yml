@@ -27,7 +27,7 @@ galaxy_info:
   galaxy_tags:
     - system
     - configuration
-    - operating_system
+    - operatingsystem
     - timezone
     - locale
     - firewall
