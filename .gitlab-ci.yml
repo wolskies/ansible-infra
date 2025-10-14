@@ -68,7 +68,7 @@ validate-all:
 
     # Configure git to use HTTPS instead of HTTP
     - git config --global --add safe.directory $CI_PROJECT_DIR
-    - git config --global url."https://gitlab.wolskinet.com/".insteadOf "http://gitlab.wolskinet.com/"
+    - git config --global url."https://oldgitlab.wolskinet.com/".insteadOf "http://oldgitlab.wolskinet.com/"
     # Run pre-commit checks (includes yamllint, prettier, custom checks)
     - pre-commit run --all-files || true # Non-blocking but shows issues
 
@@ -553,7 +553,7 @@ create-release:
       git commit -m "update changelog for v${COLLECTION_VERSION}"
 
       # Push using GITLAB_RELEASE_TOKEN (already verified above)
-      git push https://oauth2:${GITLAB_RELEASE_TOKEN}@gitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
+      git push https://oauth2:${GITLAB_RELEASE_TOKEN}@oldgitlab.wolskinet.com/ansible/collections/infrastructure.git HEAD:main
       echo "✅ Changelog committed and pushed"
 
   artifacts:
