@@ -1,7 +1,7 @@
-go
-==
+install_go
+==========
 
-Go language installation and user-level package management.
+Utility role for Go language installation and user-level package management.
 
 .. contents::
    :local:
@@ -10,18 +10,15 @@ Go language installation and user-level package management.
 Overview
 --------
 
-The ``go`` role installs the Go programming language toolchain and manages user-level Go packages. It provides the Go compiler, built-in tools, and manages third-party tools installed via ``go install``.
+The ``install_go`` role installs the Go programming language and manages Go packages at the user level. This is a utility role typically orchestrated by :doc:`configure_users` but can also be used standalone.
 
-**All Go packages install to user directories** (``~/go/``) rather than system-wide, allowing per-user package management.
+**Key Features:**
 
-Features
-~~~~~~~~
-
-- **Go Toolchain** - Compiler and built-in tools (go fmt, go test, go build)
-- **Package Management** - Install tools via ``go install``
-- **User-Level Packages** - Go packages in ``~/go/``
-- **PATH Configuration** - Automatic PATH setup in ``~/.profile``
-- **Cross-platform** - Ubuntu, Debian, Arch Linux, macOS support
+- **Go Toolchain** - Official Go compiler and built-in tools
+- **User-Level Packages** - Go packages in user's ``~/go/`` directory
+- **PATH Configuration** - Automatic PATH setup in user's ``.profile``
+- **Version Support** - Install specific versions or latest
+- **Cross-Platform** - Ubuntu, Debian, Arch Linux, macOS
 
 Platform Support
 ~~~~~~~~~~~~~~~~
@@ -34,36 +31,28 @@ Platform Support
 Usage
 -----
 
-Examples
-~~~~~~~~
+Standalone Usage
+~~~~~~~~~~~~~~~~
 
-Install Go toolchain and packages for a user:
+Install Go and packages for a specific user:
 
 .. code-block:: yaml
 
    - hosts: developers
      become: true
      roles:
-       - wolskies.infrastructure.go
+       - wolskies.infrastructure.install_go
      vars:
        go_user: developer
        go_packages:
          - github.com/charmbracelet/glow@latest
          - github.com/junegunn/fzf@latest
-         - github.com/jesseduffield/lazygit@latest
+         - github.com/cli/cli/v2/cmd/gh@latest
 
-Install popular Go-based CLI tools:
+Integration with configure_users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: yaml
-
-   go_user: developer
-   go_packages:
-     - github.com/charmbracelet/glow@latest     # Markdown renderer
-     - github.com/junegunn/fzf@latest           # Fuzzy finder
-     - github.com/jesseduffield/lazygit@latest  # Git TUI
-     - github.com/cli/cli/v2/cmd/gh@latest      # GitHub CLI
-
-Via configure_users role:
+Typically used via configure_users role:
 
 .. code-block:: yaml
 
@@ -73,12 +62,30 @@ Via configure_users role:
          packages:
            - github.com/charmbracelet/glow@latest
            - github.com/jesseduffield/lazygit@latest
+           - github.com/cli/cli/v2/cmd/gh@latest
+
+Multiple Users
+~~~~~~~~~~~~~~
+
+Configure different packages for different users:
+
+.. code-block:: yaml
+
+   users:
+     - name: alice
+       go:
+         packages:
+           - github.com/charmbracelet/glow@latest
+           - golang.org/x/tools/gopls@latest
+
+     - name: bob
+       go:
+         packages:
+           - github.com/jesseduffield/lazygit@latest
+           - github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 Variables
 ---------
-
-Role Variables
-~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -92,256 +99,307 @@ Role Variables
      - Target username for Go installation (required)
    * - ``go_packages``
      - list
-     - Go package URLs to install. Default: []
+     - Go package URLs to install (see Package Format below)
 
 Package Format
 ~~~~~~~~~~~~~~
 
 Go packages use full import URLs with optional version specifiers:
 
+**With Explicit Version:**
+
 .. code-block:: yaml
 
    go_packages:
-     # With explicit version
-     - "github.com/user/package@v1.2.3"
-     - "github.com/user/package@latest"
+     - "github.com/user/package@v1.2.3"      # Specific version
+     - "github.com/user/package@latest"      # Latest version
+     - "github.com/user/package@v1"          # Latest v1.x.x
 
-     # Without version (automatically appends @latest)
-     - "github.com/user/package"
+**Auto-append @latest:**
 
-     # With specific commit
-     - "github.com/user/package@abcdef123"
+If no version is specified, ``@latest`` is automatically appended:
 
-     # Sub-package paths
-     - "github.com/cli/cli/v2/cmd/gh@latest"
+.. code-block:: yaml
 
-Version Specifications
-~~~~~~~~~~~~~~~~~~~~~~
+   go_packages:
+     - "github.com/user/package"  # Same as @latest
 
-Go supports several version formats:
+**Common Packages:**
 
-- **Latest**: ``@latest`` - Latest tagged release
-- **Specific Version**: ``@v1.2.3`` - Exact semantic version
-- **Branch**: ``@main`` or ``@master`` - Latest commit on branch
-- **Commit**: ``@abcdef123`` - Specific commit hash
-- **No Version**: Defaults to ``@latest``
+.. code-block:: yaml
+
+   go_packages:
+     # CLI tools
+     - github.com/charmbracelet/glow@latest        # Markdown viewer
+     - github.com/junegunn/fzf@latest              # Fuzzy finder
+     - github.com/jesseduffield/lazygit@latest     # Git TUI
+     - github.com/cli/cli/v2/cmd/gh@latest         # GitHub CLI
+
+     # Development tools
+     - golang.org/x/tools/gopls@latest             # Go language server
+     - github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+     - golang.org/x/tools/cmd/goimports@latest
 
 Installation Behavior
 ---------------------
 
-Installation Process
-~~~~~~~~~~~~~~~~~~~~
+The role performs these steps:
 
-1. **Go Installation** - Install Go development toolchain:
+1. **Go Installation**
 
-   - **Ubuntu/Debian** - APT ``golang`` package
-   - **Arch Linux** - Pacman ``go`` package
-   - **macOS** - Homebrew ``go`` formula
+   - **Ubuntu/Debian**: Installs ``golang`` via APT
+   - **Arch Linux**: Installs ``go`` via pacman
+   - **macOS**: Installs ``go`` via Homebrew
 
-2. **PATH Configuration** - Add ``~/go/bin`` to user's ``.profile``:
+2. **PATH Configuration**
 
-   .. code-block:: bash
+   - Adds ``~/go/bin`` to user's ``.profile``
+   - User can execute installed packages after login
 
-      export PATH="$PATH:$HOME/go/bin"
+3. **Package Installation**
 
-3. **Package Installation** - Install packages via ``go install``:
+   - Installs packages via: ``go install <package>@<version>``
+   - Binaries installed to ``~/go/bin/``
+   - Source cached in ``~/go/pkg/``
 
-   .. code-block:: bash
+Platform-Specific Features
+---------------------------
 
-      go install github.com/user/package@latest
+Ubuntu/Debian
+~~~~~~~~~~~~~
+
+- Uses APT ``golang`` package
+- Go version depends on distribution release
+- Ubuntu 22.04: Go 1.18+
+- Ubuntu 24.04: Go 1.21+
+
+Arch Linux
+~~~~~~~~~~
+
+- Uses official ``go`` package
+- Always current Go version
+- Automatic updates via pacman
+
+macOS
+~~~~~
+
+- Uses Homebrew ``go`` formula
+- Latest stable Go version
+- Homebrew must be installed first (via configure_software)
 
 User-Level Package Management
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 All Go packages install to user directories:
 
-- **Packages**: ``~/go/pkg/`` - Compiled package objects
-- **Binaries**: ``~/go/bin/`` - Executable binaries
-- **Source Cache**: ``~/go/src/`` - Downloaded source code
-- **Module Cache**: ``~/go/pkg/mod/`` - Go modules
+**Directory Structure:**
 
-Users can manage packages without root:
+- **Packages**: ``~/go/pkg/mod/`` (module cache)
+- **Binaries**: ``~/go/bin/``
+- **Source Cache**: ``~/go/pkg/``
 
-.. code-block:: bash
+**PATH Setup:**
 
-   go install github.com/user/package@latest  # Install/update package
-   go clean -modcache                         # Clear module cache
-   ls ~/go/bin/                               # List installed binaries
-
-PATH Configuration
-~~~~~~~~~~~~~~~~~~
-
-The role automatically adds Go binaries to PATH by appending to ``~/.profile``:
+The role automatically adds to ``~/.profile``:
 
 .. code-block:: bash
 
-   export PATH="$PATH:$HOME/go/bin"
+   export PATH="$HOME/go/bin:$PATH"
 
-**Activation:**
+**Benefits:**
 
-- Automatic on next login
-- Manual: ``source ~/.profile``
-- Shell-specific: Add to ``~/.bashrc``, ``~/.zshrc``, etc.
+- No system-wide changes
+- No root privileges for package management
+- Multiple users can have different package versions
+- User controls their own Go packages
 
-Platform-Specific Features
---------------------------
+Using Installed Packages
+-------------------------
 
-All Platforms
-~~~~~~~~~~~~~
-
-Go installation is straightforward across all platforms:
-
-- **Ubuntu/Debian**: Uses distribution Go package
-- **Arch Linux**: Uses official Arch Go package
-- **macOS**: Uses Homebrew Go formula
-
-Version differences depend on distribution/Homebrew, but generally provide recent Go versions (1.20+).
-
-Tags
-----
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 75
-
-   * - Tag
-     - Description
-   * - ``go-system``
-     - Go toolchain installation
-   * - ``go-packages``
-     - Go package installation
-
-Troubleshooting
----------------
-
-go Command Not Found
-~~~~~~~~~~~~~~~~~~~~~
-
-If go commands aren't found after installation:
-
-1. **Reload shell configuration:**
-
-   .. code-block:: bash
-
-      source ~/.profile
-
-2. **Verify PATH:**
-
-   .. code-block:: bash
-
-      echo $PATH | grep go
-
-3. **Check Go installation:**
-
-   .. code-block:: bash
-
-      which go
-      go version
-
-4. **Logout and login again** for automatic PATH loading
-
-Package Installation Fails
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If ``go install`` fails:
-
-1. **Check Go version:**
-
-   .. code-block:: bash
-
-      go version
-
-   Go 1.16+ required for ``go install``
-
-2. **Verify package path:**
-
-   .. code-block:: bash
-
-      go install -n github.com/user/package@latest
-
-3. **Clear module cache:**
-
-   .. code-block:: bash
-
-      go clean -modcache
-
-Binary Not Found After Installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If package installs but binary isn't found:
-
-1. **Verify binary exists:**
-
-   .. code-block:: bash
-
-      ls ~/go/bin/
-
-2. **Check PATH includes ~/go/bin:**
-
-   .. code-block:: bash
-
-      echo $PATH | grep "go/bin"
-
-3. **Source profile:**
-
-   .. code-block:: bash
-
-      source ~/.profile
-
-Network/Proxy Issues
-~~~~~~~~~~~~~~~~~~~~
-
-If package downloads fail:
+After installation and login, packages are available:
 
 .. code-block:: bash
 
-   # Set Go proxy
-   export GOPROXY=https://proxy.golang.org,direct
+   # Markdown viewer
+   glow README.md
 
-   # Or use different proxy
-   export GOPROXY=https://goproxy.io,direct
+   # Fuzzy finder
+   fzf
 
-   # Disable proxy
-   export GOPROXY=direct
+   # Git TUI
+   lazygit
 
-Version Conflicts
+   # GitHub CLI
+   gh repo list
+
+   # Go compiler
+   go version
+   go build
+   go test
+
+**Note:** User must logout and login (or source ``. ~/.profile``) for PATH changes to take effect.
+
+Examples
+--------
+
+CLI Tools Setup
+~~~~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+   go_user: developer
+   go_packages:
+     - github.com/charmbracelet/glow@latest
+     - github.com/junegunn/fzf@latest
+     - github.com/jesseduffield/lazygit@latest
+     - github.com/jesseduffield/lazydocker@latest
+     - github.com/cli/cli/v2/cmd/gh@latest
+
+Development Tools
 ~~~~~~~~~~~~~~~~~
 
-If package version conflicts occur:
+.. code-block:: yaml
 
-.. code-block:: bash
+   go_user: go-dev
+   go_packages:
+     - golang.org/x/tools/gopls@latest                              # Language server
+     - golang.org/x/tools/cmd/goimports@latest                      # Import formatter
+     - github.com/golangci/golangci-lint/cmd/golangci-lint@latest   # Linter
+     - github.com/go-delve/delve/cmd/dlv@latest                     # Debugger
+     - golang.org/x/vuln/cmd/govulncheck@latest                     # Vulnerability checker
 
-   # Force reinstall
-   go install -a github.com/user/package@latest
+DevOps Tools
+~~~~~~~~~~~~
 
-   # Install specific version
-   go install github.com/user/package@v1.2.3
+.. code-block:: yaml
+
+   go_user: devops
+   go_packages:
+     - github.com/cli/cli/v2/cmd/gh@latest
+     - github.com/jesseduffield/lazydocker@latest
+     - github.com/stern/stern@latest                # Kubernetes log viewer
+
+Popular Go CLI Tools
+--------------------
+
+Common useful packages:
+
+**Productivity:**
+
+- ``github.com/charmbracelet/glow@latest`` - Terminal markdown viewer
+- ``github.com/junegunn/fzf@latest`` - Fuzzy finder
+- ``github.com/jesseduffield/lazygit@latest`` - Git terminal UI
+- ``github.com/cli/cli/v2/cmd/gh@latest`` - GitHub CLI
+
+**Development:**
+
+- ``golang.org/x/tools/gopls@latest`` - Go language server for LSP
+- ``golang.org/x/tools/cmd/goimports@latest`` - Import management
+- ``github.com/golangci/golangci-lint/cmd/golangci-lint@latest`` - Linter aggregator
+- ``github.com/go-delve/delve/cmd/dlv@latest`` - Go debugger
+
+**DevOps/Infrastructure:**
+
+- ``github.com/jesseduffield/lazydocker@latest`` - Docker terminal UI
+- ``github.com/stern/stern@latest`` - Kubernetes log tailing
+- ``github.com/rakyll/hey@latest`` - HTTP load generator
+
+**System Tools:**
+
+- ``github.com/wagoodman/dive@latest`` - Docker image analyzer
+- ``github.com/derailed/k9s@latest`` - Kubernetes CLI
+- ``github.com/GoogleContainerTools/skaffold/v2@latest`` - Kubernetes dev tool
+
+Go Module Path Format
+----------------------
+
+Understanding Go module paths:
+
+**GitHub Packages:**
+
+.. code-block:: yaml
+
+   # Repository root
+   - github.com/user/repo@latest
+
+   # Subdirectory with cmd
+   - github.com/user/repo/cmd/tool@latest
+
+   # Versioned module (v2+)
+   - github.com/user/repo/v2@latest
+
+**Standard Library Extensions:**
+
+.. code-block:: yaml
+
+   - golang.org/x/tools/gopls@latest
+   - golang.org/x/tools/cmd/goimports@latest
+
+**Version Specifications:**
+
+.. code-block:: yaml
+
+   - package@latest          # Latest version
+   - package@v1.2.3         # Specific version
+   - package@v1             # Latest v1.x.x
+   - package@commit-hash    # Specific commit
 
 Dependencies
 ------------
 
 **Ansible Collections:**
 
-This role uses modules from the following collections:
+- ``community.general`` - Pacman and Homebrew modules
+- ``ansible.builtin`` - APT and command modules
 
-- ``community.general`` - Included with Ansible package
+**System Requirements:**
 
-Install collection dependencies:
+- User account must exist
+- Internet access for downloading packages
+- Homebrew (macOS only)
+
+Install dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
 
-**System Packages (installed automatically by role):**
+Limitations
+-----------
 
-- ``golang`` / ``go`` - Go programming language toolchain
+**Go Version:**
+
+- Ubuntu/Debian: Go version depends on distribution
+- Cannot specify Go version via this role
+- Use official Go installer for specific versions
+
+**PATH Configuration:**
+
+PATH updates require:
+
+- User logout/login for changes to take effect
+- Or manually source: ``source ~/.profile``
+- Some shells may not source ``.profile`` automatically
+
+**Package Installation:**
+
+- Packages are compiled from source
+- First installation downloads all dependencies
+- Build time varies by package complexity
+- Internet connection required
+
+**User Requirements:**
+
+- User must exist before role execution
+- Role does not create users
+- Skips if user doesn't exist
 
 See Also
 --------
 
-- :doc:`configure_users` - User environment orchestration
-- :doc:`nodejs` - Node.js development environment
-- :doc:`rust` - Rust development environment
+- :doc:`configure_users` - Phase 3 role that orchestrates this utility role
+- :doc:`install_nodejs` - Node.js utility role
+- :doc:`install_rust` - Rust utility role
+- :doc:`install_neovim` - Neovim utility role
+- :doc:`configure_software` - Phase 2 role for system packages
 - :doc:`/reference/variables-reference` - Complete variable reference
-- `Go <https://go.dev/>`_ - Official Go website
-- `pkg.go.dev <https://pkg.go.dev/>`_ - Go package documentation

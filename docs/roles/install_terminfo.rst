@@ -1,28 +1,24 @@
-terminal_config
-===============
+install_terminfo
+================
 
-Terminal emulator configuration and terminfo setup for modern terminals.
+Utility role for terminal emulator terminfo configuration.
 
 .. contents::
-   :local:
+   :local::
    :depth: 2
 
 Overview
 --------
 
-The ``terminal_config`` role configures terminfo entries for modern terminal emulators to ensure proper terminal capabilities and display. It downloads and compiles terminfo definitions for supported terminals, installing them to the user's ``~/.terminfo`` directory.
+The ``install_terminfo`` role configures terminfo entries for modern terminal emulators to ensure proper terminal capabilities and display. This is a utility role typically orchestrated by :doc:`configure_users` but can also be used standalone.
 
-.. note::
-   This role is still in development and may have test issues. Use with caution in production environments.
+**Key Features:**
 
-Features
-~~~~~~~~
-
-- **Multi-terminal Support** - Alacritty, Kitty, WezTerm, and extensible
-- **Automatic Compilation** - Downloads and compiles terminfo sources as needed
-- **User-Level Installation** - Installs to ``~/.terminfo`` without system-wide changes
+- **Multi-Terminal Support** - Alacritty, Kitty, WezTerm
+- **Automatic Compilation** - Downloads and compiles terminfo sources
+- **User-Level Installation** - Installs to ``~/.terminfo/`` directory
 - **Idempotent** - Only processes missing terminfo entries
-- **Cross-platform** - Linux and macOS support
+- **Cross-Platform** - Linux and macOS support
 
 Platform Support
 ~~~~~~~~~~~~~~~~
@@ -35,8 +31,8 @@ Platform Support
 Usage
 -----
 
-Examples
-~~~~~~~~
+Standalone Usage
+~~~~~~~~~~~~~~~~
 
 Configure terminfo for specific terminals:
 
@@ -45,34 +41,31 @@ Configure terminfo for specific terminals:
    - hosts: workstations
      become: true
      roles:
-       - wolskies.infrastructure.terminal_config
+       - wolskies.infrastructure.install_terminfo
      vars:
        terminal_user: developer
        terminal_entries:
          - alacritty
          - kitty
+         - wezterm
 
-Configure terminals for multiple users:
+Configure for a single terminal:
 
 .. code-block:: yaml
 
    - hosts: workstations
      become: true
-     tasks:
-       - name: Configure terminals for developers
-         include_role:
-           name: wolskies.infrastructure.terminal_config
-         vars:
-           terminal_user: "{{ item }}"
-           terminal_entries:
-             - alacritty
-             - wezterm
-         loop:
-           - alice
-           - bob
-           - charlie
+     roles:
+       - wolskies.infrastructure.install_terminfo
+     vars:
+       terminal_user: developer
+       terminal_entries:
+         - alacritty
 
-Via configure_users role:
+Integration with configure_users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Typically used via configure_users role:
 
 .. code-block:: yaml
 
@@ -84,11 +77,36 @@ Via configure_users role:
            - kitty
            - wezterm
 
+     - name: alice
+       terminal_config:
+         install_terminfo:
+           - wezterm
+
+Multiple Users
+~~~~~~~~~~~~~~
+
+Configure terminals for multiple users:
+
+.. code-block:: yaml
+
+   - hosts: workstations
+     become: true
+     tasks:
+       - name: Configure terminals for developers
+         include_role:
+           name: wolskies.infrastructure.install_terminfo
+         vars:
+           terminal_user: "{{ item }}"
+           terminal_entries:
+             - alacritty
+             - wezterm
+         loop:
+           - alice
+           - bob
+           - charlie
+
 Variables
 ---------
-
-Role Variables
-~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -127,42 +145,120 @@ Supported Terminals
 Installation Behavior
 ---------------------
 
-Installation Process
-~~~~~~~~~~~~~~~~~~~~
+The role performs these steps:
 
-1. **Validation** - Check required variables (user and terminal list)
+1. **Validation**
 
-2. **Terminfo Check** - Use ``infocmp`` to check existing terminfo entries
+   - Checks required variables (user and terminal list)
+   - Verifies user exists on the system
 
-3. **Compilation Decision** - Determine which terminals need terminfo compilation
+2. **Terminfo Check**
 
-4. **Directory Creation** - Ensure ``~/.terminfo`` directory exists if needed
+   - Uses ``infocmp`` to check existing terminfo entries
+   - Determines which terminals need terminfo compilation
 
-5. **Per-terminal Processing** - For each terminal requiring setup:
+3. **Directory Creation**
 
-   a. Download terminfo source from official repository
-   b. Compile using ``tic`` with appropriate options
-   c. Install to user's ``~/.terminfo`` directory
-   d. Clean up temporary files
+   - Ensures ``~/.terminfo`` directory exists if needed
+   - Sets proper ownership for user
 
-6. **Verification** - Confirm terminfo entries are available
+4. **Per-Terminal Processing**
+
+   For each terminal requiring setup:
+
+   a. Downloads terminfo source from official repository
+   b. Compiles using ``tic`` with appropriate options
+   c. Installs to user's ``~/.terminfo`` directory
+   d. Cleans up temporary files
+
+5. **Verification**
+
+   - Confirms terminfo entries are available
+   - Reports installation status
 
 User-Level Installation
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 All terminfo entries install to user directories:
+
+**Directory Structure:**
 
 - **Terminfo Database**: ``~/.terminfo/``
 - **Entry Structure**: ``~/.terminfo/a/alacritty``, ``~/.terminfo/x/xterm-kitty``, etc.
 - **No Root Required**: User-specific installation
 
+**Benefits:**
+
+- No system-wide changes
+- User controls their own terminal configuration
+- Multiple users can have different terminal setups
+- Safe to experiment without affecting system
+
+**Verification:**
+
 Users can verify terminfo entries:
 
 .. code-block:: bash
 
-   infocmp alacritty      # Check Alacritty terminfo
-   infocmp xterm-kitty    # Check Kitty terminfo
-   ls ~/.terminfo/        # List installed terminfo entries
+   # Check specific terminal
+   infocmp alacritty
+   infocmp xterm-kitty
+   infocmp wezterm
+
+   # List all installed terminfo entries
+   ls ~/.terminfo/
+
+   # View terminfo database structure
+   tree ~/.terminfo/
+
+Platform-Specific Features
+---------------------------
+
+Ubuntu/Debian
+~~~~~~~~~~~~~
+
+**Requirements:**
+
+- ``ncurses-bin`` package (provides ``tic`` compiler)
+- Usually pre-installed on desktop systems
+
+**Installation:**
+
+.. code-block:: bash
+
+   sudo apt install ncurses-bin
+
+**Compatibility:**
+
+Works on all Ubuntu and Debian versions with ncurses support.
+
+Arch Linux
+~~~~~~~~~~
+
+**Requirements:**
+
+- ``ncurses`` package (provides ``tic`` compiler)
+- Part of base system installation
+
+**Installation:**
+
+.. code-block:: bash
+
+   sudo pacman -S ncurses
+
+**Note:** Usually already installed on Arch Linux systems.
+
+macOS
+~~~~~
+
+**Requirements:**
+
+- ncurses (pre-installed with macOS)
+- ``tic`` command available by default
+
+**Compatibility:**
+
+Works on macOS 13+ (Ventura) without additional packages.
 
 Terminal Configuration Details
 ------------------------------
@@ -186,6 +282,15 @@ Alacritty
 - Modern terminal capabilities
 - GPU-accelerated rendering
 
+**Configuration:**
+
+Set TERM in Alacritty config (``~/.config/alacritty/alacritty.yml``):
+
+.. code-block:: yaml
+
+   env:
+     TERM: alacritty
+
 Kitty
 ~~~~~
 
@@ -203,6 +308,11 @@ Kitty
 - Enhanced graphics protocol
 - True color support
 - Advanced terminal features
+- Image display support
+
+**Configuration:**
+
+Kitty automatically sets TERM to ``xterm-kitty``.
 
 WezTerm
 ~~~~~~~
@@ -221,6 +331,11 @@ WezTerm
 - True color support
 - Modern terminal capabilities
 - Cross-platform consistency
+- GPU-accelerated rendering
+
+**Configuration:**
+
+WezTerm automatically sets TERM to ``wezterm``.
 
 File Locations
 --------------
@@ -235,51 +350,19 @@ File Locations
      - User terminfo database directory
    * - ``~/.terminfo/a/alacritty``
      - Alacritty terminfo entry
+   * - ``~/.terminfo/a/alacritty-direct``
+     - Alacritty direct color variant
    * - ``~/.terminfo/x/xterm-kitty``
      - Kitty terminfo entry
    * - ``~/.terminfo/w/wezterm``
      - WezTerm terminfo entry
-   * - ``/tmp/``
+   * - ``/tmp/<terminal>.terminfo``
      - Temporary terminfo source files (cleaned up)
 
-Tags
-----
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 75
-
-   * - Tag
-     - Description
-   * - ``terminal-config``
-     - All terminal configuration tasks
-
-Adding New Terminals
---------------------
-
-To add support for additional terminals, extend the ``terminal_configs`` mapping in role defaults:
-
-.. code-block:: yaml
-
-   # roles/terminal_config/defaults/main.yml
-   terminal_configs:
-     new_terminal:
-       terminfo_url: "https://example.com/terminal.terminfo"
-       entries:
-         - terminal-name
-         - terminal-variant
-       tic_options: "-x"
-
-**Configuration Fields:**
-
-- ``terminfo_url`` - URL to download terminfo source file
-- ``entries`` - List of terminal type names to compile
-- ``tic_options`` - Options passed to ``tic`` compiler (e.g., ``-x`` for extended capabilities)
-
 Why Terminfo Configuration?
----------------------------
+----------------------------
 
-Modern terminal emulators often have advanced features that aren't in the system terminfo database:
+Modern terminal emulators have advanced features that may not be in the system terminfo database:
 
 **Without Proper Terminfo:**
 
@@ -287,6 +370,7 @@ Modern terminal emulators often have advanced features that aren't in the system
 - Special characters may render incorrectly
 - Terminal features may not work (italics, true color, etc.)
 - Applications may fall back to basic terminal modes
+- Poor user experience with CLI tools
 
 **With Proper Terminfo:**
 
@@ -294,6 +378,71 @@ Modern terminal emulators often have advanced features that aren't in the system
 - Correct character rendering
 - All terminal features available to applications
 - Optimal performance and display
+- Better experience with modern CLI tools
+
+**Common Symptoms Without Terminfo:**
+
+.. code-block:: bash
+
+   # Terminal type unknown error
+   'alacritty': unknown terminal type
+
+   # Applications fall back to basic mode
+   WARNING: terminal is not fully functional
+
+   # Colors don't display properly
+   # True color gradients show as basic colors
+
+Examples
+--------
+
+Developer Workstation
+~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+   terminal_user: developer
+   terminal_entries:
+     - alacritty
+     - kitty
+     - wezterm
+
+Installs terminfo for all three major modern terminal emulators.
+
+Single Terminal
+~~~~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+   terminal_user: alice
+   terminal_entries:
+     - alacritty
+
+Installs terminfo only for Alacritty.
+
+Via configure_users
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+   users:
+     - name: developer
+       git:
+         user_name: "Developer Name"
+         user_email: "developer@company.com"
+
+       terminal_config:
+         install_terminfo:
+           - alacritty
+           - kitty
+
+       neovim:
+         deploy_config: true
+
+     - name: sysadmin
+       terminal_config:
+         install_terminfo:
+           - wezterm
 
 Troubleshooting
 ---------------
@@ -325,8 +474,10 @@ If terminal type isn't recognized:
       env:
         TERM: alacritty
 
+4. **Restart terminal** after configuration changes
+
 tic Command Not Found
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 If ``tic`` command is missing:
 
@@ -344,7 +495,11 @@ If ``tic`` command is missing:
 
 **macOS:**
 
-``tic`` is included with macOS (part of ncurses).
+``tic`` is included with macOS (part of ncurses). If missing, reinstall Command Line Tools:
+
+.. code-block:: bash
+
+   xcode-select --install
 
 Download Fails
 ~~~~~~~~~~~~~~
@@ -359,7 +514,9 @@ If terminfo source download fails:
 
       curl -I https://raw.githubusercontent.com/alacritty/alacritty/master/extra/alacritty.info
 
-3. **Check for GitHub rate limiting**
+3. **Check for GitHub rate limiting** (rare)
+
+4. **Retry the playbook** - temporary network issues
 
 Colors Don't Display Correctly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -391,12 +548,16 @@ If colors appear wrong after installation:
           printf "\n";
       }'
 
+   This should display a smooth color gradient.
+
 3. **Reinstall terminfo:**
 
    .. code-block:: bash
 
       rm -rf ~/.terminfo
       # Re-run ansible playbook
+
+4. **Check terminal configuration** for TERM setting
 
 Permission Errors
 ~~~~~~~~~~~~~~~~~
@@ -417,12 +578,95 @@ If permission errors occur during installation:
 
 3. **Ensure write access to home directory**
 
-Requirements
+4. **Check Ansible become settings** - role requires become: true
+
+Unknown Terminal Error
+~~~~~~~~~~~~~~~~~~~~~~
+
+If you see "unknown terminal type" errors:
+
+1. **Verify terminfo was installed:**
+
+   .. code-block:: bash
+
+      ls ~/.terminfo/a/alacritty
+
+2. **Check TERMINFO variable:**
+
+   .. code-block:: bash
+
+      echo $TERMINFO
+      # Should be empty (uses ~/.terminfo automatically)
+
+3. **Use infocmp to verify:**
+
+   .. code-block:: bash
+
+      infocmp alacritty
+
+4. **Reinstall if corrupted:**
+
+   .. code-block:: bash
+
+      rm -rf ~/.terminfo
+      # Re-run ansible playbook
+
+Adding New Terminals
+--------------------
+
+To add support for additional terminals, extend the ``terminal_configs`` mapping in role defaults:
+
+.. code-block:: yaml
+
+   # roles/install_terminfo/defaults/main.yml
+   terminal_configs:
+     new_terminal:
+       terminfo_url: "https://example.com/terminal.terminfo"
+       entries:
+         - terminal-name
+         - terminal-variant
+       tic_options: "-x"
+
+**Configuration Fields:**
+
+- ``terminfo_url`` - URL to download terminfo source file
+- ``entries`` - List of terminal type names to compile
+- ``tic_options`` - Options passed to ``tic`` compiler (e.g., ``-x`` for extended capabilities)
+
+**Example: Adding tmux:**
+
+.. code-block:: yaml
+
+   terminal_configs:
+     tmux:
+       terminfo_url: "https://example.com/tmux.terminfo"
+       entries:
+         - tmux
+         - tmux-256color
+       tic_options: "-x"
+
+Tags
+----
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Tag
+     - Description
+   * - ``user-terminal``
+     - All terminal configuration tasks
+
+Dependencies
 ------------
+
+**Ansible Collections:**
+
+- ``ansible.builtin`` - Core modules only (no external dependencies)
 
 **System Requirements:**
 
-- Target user must exist on the system
+- User account must exist
 - ``tic`` command available (ncurses-bin/ncurses)
 - Internet access for downloading terminfo sources
 - Write access to user's home directory
@@ -443,34 +687,43 @@ Install system packages if needed:
    # Arch Linux
    sudo pacman -S ncurses
 
-**Note:** This role only uses ``ansible.builtin`` modules (no external collection dependencies)
-
 Limitations
 -----------
 
-**Development Status:**
+**Terminal Applications:**
 
-- Role is still in development
-- May have test issues in containerized environments
-- Use with caution in production
+This role only configures terminfo entries. It does not:
+
+- Install terminal emulator applications
+- Configure terminal emulator settings
+- Manage terminal emulator themes
+
+Users must install terminal emulators separately (via configure_software or manually).
 
 **Container Environments:**
 
 - Terminfo compilation works in containers
 - Terminal emulator functionality requires display forwarding
-- Testing limited in CI/CD environments
+- Testing limited in CI/CD environments without displays
 
-**Terminal Availability:**
+**Network Requirements:**
 
-- Only configures terminfo entries
-- Does not install terminal emulator applications
-- Users must install terminal emulators separately
+- Requires internet access to download terminfo sources
+- Downloads from GitHub repositories
+- May be affected by GitHub rate limiting (rare)
+
+**User Requirements:**
+
+- User must exist before role execution
+- Role does not create users
+- Skips if user doesn't exist
 
 See Also
 --------
 
-- :doc:`configure_users` - User environment orchestration
-- :doc:`neovim` - Neovim configuration (benefits from proper terminfo)
+- :doc:`configure_users` - Phase 3 role that orchestrates this utility role
+- :doc:`install_neovim` - Neovim utility role (benefits from proper terminfo)
+- :doc:`configure_software` - Phase 2 role (can install terminal emulators)
 - :doc:`/reference/variables-reference` - Complete variable reference
 - `Alacritty <https://alacritty.org/>`_ - GPU-accelerated terminal
 - `Kitty <https://sw.kovidgoyal.net/kitty/>`_ - Fast, feature-rich terminal

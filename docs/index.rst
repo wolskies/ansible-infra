@@ -14,13 +14,19 @@ An Ansible collection for system configuration and user environment management a
 Overview
 --------
 
-The ``wolskies.infrastructure`` collection provides roles for:
+The ``wolskies.infrastructure`` collection follows the **System → Software → Users** pattern for infrastructure setup:
 
-* **System Configuration**: Hostname, timezone, locale, NTP, systemd services, kernel modules, and sysctl parameters
-* **Package Management**: APT (Ubuntu/Debian), Pacman (Arch Linux), and Homebrew (macOS) with repository management
-* **Security Services**: UFW firewall (Linux), Application Layer Firewall (macOS), and fail2ban intrusion prevention
-* **User Environments**: Node.js, Rust, Go toolchains with user-level package management, Neovim, terminal terminfo
-* **Application Packaging**: Flatpak and Snap package installation and removal
+* **Phase 1 - Operating System**: Configure OS-level settings (hostname, timezone, locale, NTP, systemd services, kernel modules, firewall, fail2ban, package manager configuration)
+* **Phase 2 - Software**: Manage software packages across APT, Pacman, Homebrew, Snap, and Flatpak with hierarchical configuration
+* **Phase 3 - Users**: Configure user preferences and development environments (Git, Node.js, Rust, Go, Neovim, dotfiles, terminal configuration)
+
+**Key Roles:**
+
+* ``system_setup`` - Meta-role demonstrating the complete System → Software → Users pattern
+* ``configure_operating_system`` - OS-level configuration (Phase 1)
+* ``configure_software`` - Package management across all package managers (Phase 2)
+* ``configure_users`` - User preferences and development environments (Phase 3)
+* ``install_*`` utility roles - Targeted installation of specific tools (nodejs, rust, go, neovim, terminfo)
 
 **Supported Platforms:**
 
@@ -62,18 +68,15 @@ Table of Contents
    :caption: Roles
 
    roles/index
-   roles/configure_system
+   roles/system_setup
+   roles/configure_operating_system
+   roles/configure_software
    roles/configure_users
-   roles/os_configuration
-   roles/manage_packages
-   roles/manage_security_services
-   roles/manage_flatpak
-   roles/manage_snap_packages
-   roles/nodejs
-   roles/rust
-   roles/go
-   roles/neovim
-   roles/terminal_config
+   roles/install_nodejs
+   roles/install_rust
+   roles/install_go
+   roles/install_neovim
+   roles/install_terminfo
 
 .. toctree::
    :maxdepth: 2

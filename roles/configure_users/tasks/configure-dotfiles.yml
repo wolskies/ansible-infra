@@ -41,12 +41,19 @@
   changed_when: false
 
 - name: Backup conflicting files
-  ansible.builtin.command:
-    cmd: "mv '~/{{ item }}' '~/{{ item }}.backup.{{ ansible_date_time.epoch }}'"
-  loop: "{{ stow_conflicts.stderr_lines | select('match', '.*existing target.*') | map('regex_replace', '.*existing target is.*: (.+)', '\\1') | list }}"
+  ansible.builtin.shell:
+    cmd: |
+      if [ -e "{{ item }}" ] || [ -L "{{ item }}" ]; then
+        mv "{{ item }}" "{{ item }}.backup.{{ ansible_date_time.epoch }}"
+        echo "Backed up {{ item }}"
+      fi
+    chdir: "~"
+  loop: "{{ stow_conflicts.stderr_lines | select('search', 'existing target is') | map('regex_replace', '^.*existing target is[^:]*: (.+)$', '\\1') | list }}"
   become: true
   become_user: "{{ target_user.name }}"
   when: stow_conflicts.stderr_lines | length > 0
+  register: backup_result
+  changed_when: "'Backed up' in backup_result.stdout"
 
 - name: Deploy dotfiles with stow
   ansible.builtin.command:

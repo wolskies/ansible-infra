@@ -1,6 +1,6 @@
-# rust
+# install_rust
 
-Rust toolchain installation and user-level cargo package management.
+Utility role for Rust toolchain installation and user-level cargo package management.
 
 ## What It Does
 
@@ -17,7 +17,7 @@ Installs Rust toolchain and user-level cargo packages:
 - hosts: developers
   become: true
   roles:
-    - wolskies.infrastructure.rust
+    - wolskies.infrastructure.install_rust
   vars:
     rust_user: developer
     rust_packages:

@@ -1,0 +1,75 @@
+---
+- name: Configure system hostname
+  ansible.builtin.hostname:
+    name: "{{ host_hostname }}"
+  become: true
+  when:
+    - host_hostname is defined
+    - host_hostname | length > 0
+  tags:
+    - hostname
+    - no-container
+
+- name: Set system timezone (non-Arch)
+  community.general.timezone:
+    name: "{{ domain_timezone }}"
+  become: true
+  when:
+    - domain_timezone is defined
+    - domain_timezone | length > 0
+    - ansible_os_family != "Archlinux"
+  tags:
+    - timezone
+
+- name: Get current timezone (Arch Linux)
+  ansible.builtin.command:
+    cmd: timedatectl show --property=Timezone --value
+  register: current_timezone
+  become: true
+  when:
+    - domain_timezone is defined
+    - domain_timezone | length > 0
+    - ansible_os_family == "Archlinux"
+  changed_when: false
+  tags:
+    - timezone
+
+- name: Set system timezone (Arch Linux)
+  ansible.builtin.command:
+    cmd: timedatectl set-timezone "{{ domain_timezone }}"
+  become: true
+  when:
+    - domain_timezone is defined
+    - domain_timezone | length > 0
+    - ansible_os_family == "Archlinux"
+    - current_timezone.stdout != domain_timezone
+  changed_when: true
+  tags:
+    - timezone
+
+- name: Update /etc/hosts file
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.0\.1\s+.*{{ host_hostname | regex_escape }}.*'
+    line: "127.0.0.1\tlocalhost {{ host_hostname }}.{{ domain_name }} {{ host_hostname }}"
+    create: false
+    backup: true
+  become: true
+  when:
+    - host_update_hosts | default(false)
+    - host_hostname is defined
+    - host_hostname | length > 0
+    - domain_name is defined
+    - domain_name | length > 0
+  tags:
+    - hostname
+    - no-container
+
+- name: Include OS-specific configuration
+  ansible.builtin.include_tasks: configure-{{ ansible_system }}.yml
+  tags: []
+
+- name: Include OS-specific security configuration
+  ansible.builtin.include_tasks: security-{{ ansible_system }}.yml
+  tags:
+    - security

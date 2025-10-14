@@ -1,7 +1,7 @@
-nodejs
-======
+install_nodejs
+==============
 
-Node.js installation and user-level npm package management.
+Utility role for Node.js installation and user-level npm package management.
 
 .. contents::
    :local:
@@ -10,19 +10,15 @@ Node.js installation and user-level npm package management.
 Overview
 --------
 
-The ``nodejs`` role installs the Node.js runtime and manages user-level npm packages. It supports multiple platforms with platform-specific package sources and configures user directories for npm global installations.
+The ``install_nodejs`` role installs Node.js and manages npm packages at the user level. This is a utility role typically orchestrated by :doc:`configure_users` but can also be used standalone.
 
-**All npm packages install to user directories** (``~/.npm-global/``) rather than system-wide, allowing per-user package management without requiring root privileges.
+**Key Features:**
 
-Features
-~~~~~~~~
-
-- **Node.js Installation** - Platform-specific Node.js runtime installation
-- **NodeSource Repository** - Current Node.js versions for Ubuntu/Debian
-- **User-Level Packages** - npm packages in ``~/.npm-global/``
-- **PATH Configuration** - Automatic PATH setup in ``~/.profile``
-- **Version Control** - Specify Node.js major version (Ubuntu/Debian)
-- **Cross-platform** - Ubuntu, Debian, Arch Linux, macOS support
+- **Node.js Installation** - System-level Node.js via package manager
+- **NodeSource Repository** - Current Node.js versions on Ubuntu/Debian
+- **User-Level Packages** - npm packages in user's home directory (``~/.npm-global/``)
+- **PATH Configuration** - Automatic PATH setup in user's ``.profile``
+- **Version Control** - Specify package versions or install latest
 
 Platform Support
 ~~~~~~~~~~~~~~~~
@@ -35,17 +31,17 @@ Platform Support
 Usage
 -----
 
-Examples
-~~~~~~~~
+Standalone Usage
+~~~~~~~~~~~~~~~~
 
-Install Node.js and npm packages for a user:
+Install Node.js and packages for a specific user:
 
 .. code-block:: yaml
 
    - hosts: developers
      become: true
      roles:
-       - wolskies.infrastructure.nodejs
+       - wolskies.infrastructure.install_nodejs
      vars:
        node_user: developer
        node_packages:
@@ -53,33 +49,34 @@ Install Node.js and npm packages for a user:
          - eslint
          - prettier
          - "@vue/cli"
+         - "@angular/cli"
 
-Install packages with specific versions:
+With Version Specifications
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Control package versions:
 
 .. code-block:: yaml
 
    node_user: developer
    node_packages:
-     # Simple string format (latest version)
+     # String format (installs latest)
      - typescript
      - "@angular/cli"
+     - prettier
 
-     # Object format with version specification
+     # Object format with version
      - name: eslint
        version: "8.0.0"
      - name: webpack
        version: "^5.0.0"
+     - name: "@nestjs/cli"
+       version: "~10.0.0"
 
-Control Node.js major version (Ubuntu/Debian only):
+Integration with configure_users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: yaml
-
-   nodejs_version: "20"  # Install Node.js 20.x from NodeSource
-   node_user: developer
-   node_packages:
-     - typescript
-
-Via configure_users role:
+Typically used via configure_users role:
 
 .. code-block:: yaml
 
@@ -91,12 +88,32 @@ Via configure_users role:
            - eslint
            - prettier
            - "@nestjs/cli"
+           - "@vue/cli"
+
+Multiple Users
+~~~~~~~~~~~~~~
+
+Configure different packages for different users:
+
+.. code-block:: yaml
+
+   # group_vars/developers.yml
+   users:
+     - name: alice
+       nodejs:
+         packages:
+           - typescript
+           - "@angular/cli"
+           - eslint
+
+     - name: bob
+       nodejs:
+         packages:
+           - "@vue/cli"
+           - "@vitejs/plugin-vue"
 
 Variables
 ---------
-
-Role Variables
-~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -110,272 +127,242 @@ Role Variables
      - Target username for npm package installation (required)
    * - ``node_packages``
      - list
-     - npm packages to install (see format below). Default: []
+     - npm packages to install (string or object format)
    * - ``nodejs_version``
      - string
-     - Major version of Node.js (Ubuntu/Debian NodeSource). Default: "20"
+     - Node.js major version (Ubuntu/Debian only). Default: "20"
    * - ``npm_config_prefix``
      - string
-     - Directory for npm global installations. Default: "~/.npm-global"
-   * - ``npm_config_unsafe_perm``
-     - string
-     - Suppress UID/GID switching in package scripts. Default: "true"
+     - npm global installation directory. Default: "~/.npm-global"
 
 Package Format
 ~~~~~~~~~~~~~~
 
-Supports both simple and detailed package specifications:
+Two formats are supported:
+
+**String Format** (installs latest version):
 
 .. code-block:: yaml
 
    node_packages:
-     # Simple string format (installs latest)
      - "package-name"
      - "@scoped/package"
 
-     # Object format with version
+**Object Format** (with version specification):
+
+.. code-block:: yaml
+
+   node_packages:
      - name: "package-name"
-       version: "1.0.0"
+       version: "1.0.0"      # Exact version
      - name: "@scoped/package"
-       version: "^2.0.0"
-     - name: "typescript"
-       version: "~5.0.0"
-
-Version Specifications
-~~~~~~~~~~~~~~~~~~~~~~
-
-npm supports standard semver ranges:
-
-- **Exact**: ``"1.2.3"`` - Exact version
-- **Caret**: ``"^1.2.3"`` - Compatible with 1.x.x
-- **Tilde**: ``"~1.2.3"`` - Compatible with 1.2.x
-- **Range**: ``">=1.2.3 <2.0.0"`` - Version range
-- **Latest**: Omit version for latest stable
+       version: "^2.0.0"     # Compatible with 2.x
+     - name: "another-package"
+       version: "~3.1.0"     # Approximately 3.1.x
 
 Installation Behavior
 ---------------------
 
-Installation Process
-~~~~~~~~~~~~~~~~~~~~
+The role performs these steps:
 
-1. **Node.js Installation Check** - Verify if Node.js/npm exists
-2. **System Installation** - Install Node.js via package manager:
+1. **Node.js Installation Check**
 
-   - **Ubuntu/Debian** - NodeSource repository for specified version
-   - **Arch Linux** - Official ``nodejs`` and ``npm`` packages
-   - **macOS** - Homebrew ``node`` package
+   - Verifies if Node.js and npm are already installed
+   - Skips installation if present
 
-3. **User Directory Setup** - Create ``~/.npm-global`` directory
-4. **Package Installation** - Install packages with user-local configuration
-5. **PATH Configuration** - Add ``~/.npm-global/bin`` to user's ``.profile``
+2. **System Installation**
+
+   - **Ubuntu/Debian**: Adds NodeSource repository for specified version
+   - **Arch Linux**: Installs from official repositories
+   - **macOS**: Installs via Homebrew
+
+3. **User Directory Setup**
+
+   - Creates ``~/.npm-global`` directory
+   - Sets ownership to target user
+
+4. **Package Installation**
+
+   - Installs packages with user-local configuration
+   - Uses ``NPM_CONFIG_PREFIX=~/.npm-global``
+
+5. **PATH Configuration**
+
+   - Adds ``~/.npm-global/bin`` to user's ``.profile``
+   - User can execute installed packages after login
+
+Platform-Specific Features
+---------------------------
+
+Ubuntu/Debian
+~~~~~~~~~~~~~
+
+- Uses NodeSource repository for current Node.js versions
+- Configurable Node.js version (default: v20)
+- Automatic GPG key and repository setup
+- Supports: Node.js 16, 18, 20, 21
+
+Set Node.js version:
+
+.. code-block:: yaml
+
+   nodejs_version: "18"  # Install Node.js 18.x
+
+Arch Linux
+~~~~~~~~~~
+
+- Uses official repository packages
+- Always current versions from Arch repos
+- Includes npm automatically
+
+macOS
+~~~~~
+
+- Uses Homebrew for Node.js installation
+- Integrates with existing Homebrew setup
+- Homebrew must be installed first (via configure_software)
 
 User-Level Package Management
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 All npm packages install to user directories:
+
+**Directory Structure:**
 
 - **Packages**: ``~/.npm-global/lib/node_modules/``
 - **Binaries**: ``~/.npm-global/bin/``
 - **Configuration**: ``NPM_CONFIG_PREFIX=~/.npm-global``
 
-Users can manage packages without root:
+**PATH Setup:**
+
+The role automatically adds to ``~/.profile``:
 
 .. code-block:: bash
 
-   npm install -g typescript  # Installs to ~/.npm-global/
-   npm update -g              # Update all global packages
-   npm list -g --depth=0      # List installed packages
+   export PATH="$HOME/.npm-global/bin:$PATH"
 
-PATH Configuration
-~~~~~~~~~~~~~~~~~~
+**Benefits:**
 
-The role automatically adds npm binaries to PATH by appending to ``~/.profile``:
+- No system-wide changes
+- No root privileges for package management
+- Multiple users can have different packages/versions
+- User controls their own packages
+
+Using Installed Packages
+-------------------------
+
+After installation and login, packages are available:
 
 .. code-block:: bash
 
-   export PATH="$PATH:$HOME/.npm-global/bin"
+   # TypeScript compiler
+   tsc --version
 
-**Activation:**
+   # ESLint
+   eslint myfile.js
 
-- Automatic on next login
-- Manual: ``source ~/.profile``
-- Shell-specific: Add to ``~/.bashrc``, ``~/.zshrc``, etc.
+   # Angular CLI
+   ng new my-app
 
-Platform-Specific Features
---------------------------
+   # Vue CLI
+   vue create my-app
 
-Ubuntu/Debian
-~~~~~~~~~~~~~
+**Note:** User must logout and login (or source ``. ~/.profile``) for PATH changes to take effect.
 
-**NodeSource Repository:**
+Examples
+--------
 
-Ubuntu/Debian use the NodeSource repository for current Node.js versions:
-
-- Configurable Node.js version (default: v20)
-- Automatic GPG key and repository setup
-- More recent versions than distribution packages
-
-**Repository Configuration:**
+Frontend Developer Setup
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: yaml
 
-   nodejs_version: "20"  # v20.x LTS
-   nodejs_version: "21"  # v21.x Current
-   nodejs_version: "18"  # v18.x LTS
+   node_user: frontend-dev
+   node_packages:
+     - typescript
+     - "@angular/cli"
+     - "@vue/cli"
+     - eslint
+     - prettier
+     - webpack
+     - vite
 
-**Required System Packages:**
+Backend Developer Setup
+~~~~~~~~~~~~~~~~~~~~~~~
 
-- ``python3-debian`` - Required for deb822_repository module
-- Automatically installed by the role
+.. code-block:: yaml
 
-Arch Linux
-~~~~~~~~~~
+   node_user: backend-dev
+   node_packages:
+     - typescript
+     - "@nestjs/cli"
+     - ts-node
+     - nodemon
+     - pm2
 
-**Official Repositories:**
+DevOps/Tooling Setup
+~~~~~~~~~~~~~~~~~~~~
 
-- Uses official Arch packages: ``nodejs`` and ``npm``
-- Always current versions from Arch repos
-- No version selection (always latest stable)
+.. code-block:: yaml
 
-macOS
-~~~~~
-
-**Homebrew Installation:**
-
-- Uses Homebrew for Node.js: ``brew install node``
-- Integrates with existing Homebrew setup
-- System-wide installation via Homebrew
-
-Tags
-----
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 75
-
-   * - Tag
-     - Description
-   * - ``nodejs-system``
-     - Node.js runtime installation
-   * - ``nodejs-packages``
-     - npm package installation
-
-Troubleshooting
----------------
-
-npm Command Not Found
-~~~~~~~~~~~~~~~~~~~~~
-
-If npm commands aren't found after installation:
-
-1. **Reload shell configuration:**
-
-   .. code-block:: bash
-
-      source ~/.profile
-
-2. **Verify PATH:**
-
-   .. code-block:: bash
-
-      echo $PATH | grep npm-global
-
-3. **Logout and login again** for automatic PATH loading
-
-Permission Errors
-~~~~~~~~~~~~~~~~~
-
-If you encounter permission errors during package installation:
-
-1. **Verify npm prefix:**
-
-   .. code-block:: bash
-
-      npm config get prefix
-
-   Should output: ``/home/username/.npm-global``
-
-2. **Fix manually if needed:**
-
-   .. code-block:: bash
-
-      npm config set prefix ~/.npm-global
-
-Package Installation Fails
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If package installation fails:
-
-1. **Check Node.js version:**
-
-   .. code-block:: bash
-
-      node --version
-      npm --version
-
-2. **Clear npm cache:**
-
-   .. code-block:: bash
-
-      npm cache clean --force
-
-3. **Update npm itself:**
-
-   .. code-block:: bash
-
-      npm install -g npm@latest
-
-NodeSource Repository Issues (Ubuntu/Debian)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If NodeSource repository configuration fails:
-
-1. **Verify python3-debian is installed:**
-
-   .. code-block:: bash
-
-      apt list --installed | grep python3-debian
-
-2. **Check repository configuration:**
-
-   .. code-block:: bash
-
-      cat /etc/apt/sources.list.d/nodesource.sources
-
-3. **Manually add if needed:**
-
-   .. code-block:: bash
-
-      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-      sudo apt-get install -y nodejs
+   node_user: devops
+   node_packages:
+     - npm-check-updates
+     - serverless
+     - "@aws-amplify/cli"
+     - netlify-cli
 
 Dependencies
 ------------
 
 **Ansible Collections:**
 
-This role uses modules from the following collections:
+- ``community.general`` - npm module
+- ``ansible.builtin`` - deb822_repository module (Ubuntu/Debian)
 
-- ``community.general`` - Included with Ansible package
+**System Requirements:**
 
-Install collection dependencies:
+- User account must exist
+- Internet access for package downloads
+- Homebrew (macOS only)
+
+Install dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
 
-**System Packages (installed automatically by role):**
+Limitations
+-----------
 
-- ``nodejs`` - Node.js runtime
-- ``npm`` - Node package manager
-- ``python3-debian`` - deb822 repository support (Ubuntu/Debian)
+**PATH Configuration:**
+
+PATH updates are added to ``~/.profile``, which requires:
+
+- User logout/login for changes to take effect
+- Or manually source: ``source ~/.profile``
+- Some shells may not source ``.profile`` automatically
+
+**NodeSource Repository:**
+
+On Ubuntu/Debian:
+
+- Only major versions available (16, 18, 20, 21)
+- Cannot specify minor versions
+- Repository must be accessible
+
+**User Requirements:**
+
+- User must exist before role execution
+- Role does not create users
+- Skips if user doesn't exist
 
 See Also
 --------
 
-- :doc:`configure_users` - User environment orchestration
-- :doc:`rust` - Rust development environment
-- :doc:`go` - Go development environment
+- :doc:`configure_users` - Phase 3 role that orchestrates this utility role
+- :doc:`install_rust` - Rust utility role
+- :doc:`install_go` - Go utility role
+- :doc:`install_neovim` - Neovim utility role
+- :doc:`configure_software` - Phase 2 role (installs Node.js system-wide if needed)
 - :doc:`/reference/variables-reference` - Complete variable reference
-- `Node.js <https://nodejs.org/>`_ - Official Node.js website
-- `npm <https://www.npmjs.com/>`_ - npm package registry

@@ -1,6 +1,6 @@
-# go
+# install_go
 
-Go language installation and user-level package management.
+Utility role for Go language installation and user-level package management.
 
 ## What It Does
 
@@ -17,7 +17,7 @@ Installs Go toolchain and user-level packages:
 - hosts: developers
   become: true
   roles:
-    - wolskies.infrastructure.go
+    - wolskies.infrastructure.install_go
   vars:
     go_user: developer
     go_packages:

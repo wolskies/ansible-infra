@@ -340,6 +340,24 @@
           ansible.builtin.debug:
             msg: "Dotfiles repository created at: file:///tmp/mock-dotfiles"
 
+        - name: Create conflicting bash directory for backup testing (REQ-CU-019)
+          ansible.builtin.file:
+            path: /home/fulluser/bash
+            state: directory
+            mode: "0755"
+            owner: fulluser
+            group: fulluser
+
+        - name: Create conflicting .bashrc file in bash directory (REQ-CU-019)
+          ansible.builtin.copy:
+            dest: /home/fulluser/bash/.bashrc
+            content: |
+              # Existing .bashrc that should cause a stow conflict
+              echo "Original bashrc"
+            mode: "0644"
+            owner: fulluser
+            group: fulluser
+
     - name: Display preparation summary
       ansible.builtin.debug:
         msg:

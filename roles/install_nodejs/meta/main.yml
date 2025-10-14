@@ -1,8 +1,8 @@
 ---
 galaxy_info:
-  role_name: nodejs
+  role_name: install_nodejs
   author: wolskies.infrastructure
-  description: Install Node.js and manage npm packages for specific users
+  description: Install Node.js and manage npm packages for specific users (Utility role)
   license: MIT
   min_ansible_version: "2.12"
   platforms:

@@ -1,8 +1,8 @@
 ---
 galaxy_info:
-  role_name: neovim
+  role_name: install_neovim
   author: wolskies
-  description: Neovim installation and user-level configuration with lazy.nvim
+  description: Neovim installation and user-level configuration with lazy.nvim (Utility role)
   company: wolskies
 
   license: MIT

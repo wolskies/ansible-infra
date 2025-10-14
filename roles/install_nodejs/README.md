@@ -1,6 +1,6 @@
-# nodejs
+# install_nodejs
 
-Node.js installation and user-level npm package management.
+Utility role for Node.js installation and user-level npm package management.
 
 ## What It Does
 
@@ -16,7 +16,7 @@ Installs Node.js system packages and user-level npm packages:
 - hosts: developers
   become: true
   roles:
-    - wolskies.infrastructure.nodejs
+    - wolskies.infrastructure.install_nodejs
   vars:
     node_user: developer
     node_packages:

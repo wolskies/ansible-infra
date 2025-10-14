@@ -1,7 +1,7 @@
-rust
-====
+install_rust
+============
 
-Rust toolchain installation and user-level cargo package management.
+Utility role for Rust toolchain installation and user-level cargo package management.
 
 .. contents::
    :local:
@@ -10,67 +10,50 @@ Rust toolchain installation and user-level cargo package management.
 Overview
 --------
 
-The ``rust`` role installs the Rust toolchain via rustup and manages user-level cargo packages. It supports multiple platforms with the stable Rust toolchain and configures user directories for cargo installations.
+The ``install_rust`` role installs the Rust toolchain via rustup and manages cargo packages at the user level. This is a utility role typically orchestrated by :doc:`configure_users` but can also be used standalone.
 
-**All cargo packages install to user directories** (``~/.cargo/``) rather than system-wide, allowing per-user package management.
+**Key Features:**
 
-Features
-~~~~~~~~
-
-- **Rustup Installation** - Rust toolchain manager via system packages
-- **Stable Toolchain** - Default stable Rust compiler
-- **User-Level Packages** - Cargo packages in ``~/.cargo/``
-- **PATH Configuration** - Automatic PATH setup in ``~/.profile``
-- **Cross-platform** - Ubuntu 24+, Debian 13+, Arch Linux, macOS support
+- **Rustup Toolchain Manager** - Official Rust installation method
+- **Stable Toolchain** - Default Rust compiler via rustup
+- **User-Level Packages** - Cargo packages in user's ``~/.cargo/`` directory
+- **PATH Configuration** - Automatic PATH setup in user's ``.profile``
+- **Cross-Platform** - Ubuntu 24+, Debian 13+, Arch Linux, macOS
 
 Platform Support
 ~~~~~~~~~~~~~~~~
 
-- **Ubuntu** 24.04+ (rustup available in repos)
-- **Debian** 13+ (rustup available in repos)
+- **Ubuntu** 24.04+ (rustup not available in Ubuntu 22.04/23.x repositories)
+- **Debian** 13+ (rustup not available in Debian 12 repositories)
 - **Arch Linux** (Rolling)
 - **macOS** 13+ (Ventura)
-
-.. note::
-   **Ubuntu 22.04/23.x and Debian 12** are not supported because rustup is not available in their package repositories. The role will fail with a clear error message on these platforms.
 
 Usage
 -----
 
-Examples
-~~~~~~~~
+Standalone Usage
+~~~~~~~~~~~~~~~~
 
-Install Rust toolchain and cargo packages for a user:
+Install Rust and packages for a specific user:
 
 .. code-block:: yaml
 
    - hosts: developers
      become: true
      roles:
-       - wolskies.infrastructure.rust
+       - wolskies.infrastructure.install_rust
      vars:
        rust_user: developer
        rust_packages:
-         - ripgrep
-         - bat
-         - fd-find
-         - exa
+         - ripgrep     # Fast grep alternative
+         - bat         # Cat with syntax highlighting
+         - fd-find     # Fast find alternative
+         - cargo-watch # Auto-rebuild on file changes
 
-Install popular Rust-based CLI tools:
+Integration with configure_users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: yaml
-
-   rust_user: developer
-   rust_packages:
-     - ripgrep      # Fast grep alternative
-     - bat          # Cat with syntax highlighting
-     - fd-find      # Fast find alternative
-     - exa          # Modern ls replacement
-     - tokei        # Code statistics
-     - hyperfine    # Benchmarking tool
-     - cargo-watch  # Cargo file watcher
-
-Via configure_users role:
+Typically used via configure_users role:
 
 .. code-block:: yaml
 
@@ -82,12 +65,32 @@ Via configure_users role:
            - bat
            - fd-find
            - cargo-watch
+           - exa
+
+Multiple Users
+~~~~~~~~~~~~~~
+
+Configure different packages for different users:
+
+.. code-block:: yaml
+
+   users:
+     - name: alice
+       rust:
+         packages:
+           - ripgrep
+           - bat
+           - fd-find
+
+     - name: bob
+       rust:
+         packages:
+           - cargo-watch
+           - cargo-edit
+           - cargo-audit
 
 Variables
 ---------
-
-Role Variables
-~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -101,262 +104,276 @@ Role Variables
      - Target username for Rust installation (required)
    * - ``rust_packages``
      - list
-     - Cargo package names to install. Default: []
+     - Cargo package names to install
 
 Package Format
 ~~~~~~~~~~~~~~
 
-Simple list of cargo package names:
+Packages are specified as simple strings (crate names):
 
 .. code-block:: yaml
 
    rust_packages:
-     - ripgrep
-     - bat
-     - fd-find
-     - exa
-     - cargo-edit
-     - cargo-watch
-
-Unlike npm packages, cargo packages are typically installed from crates.io and don't require version specification in the role. Use ``cargo install package@version`` manually if specific versions are needed.
+     - ripgrep       # Search tool
+     - bat           # File viewer
+     - fd-find       # File finder
+     - exa           # Modern ls
+     - tokei         # Code statistics
+     - cargo-watch   # File watcher
+     - cargo-edit    # Cargo extensions
 
 Installation Behavior
 ---------------------
 
-Installation Process
-~~~~~~~~~~~~~~~~~~~~
+The role performs these steps:
 
-1. **Rustup Installation** - Install rustup toolchain manager:
+1. **Rustup Installation**
 
-   - **Ubuntu 24+/Debian 13+** - APT ``rustup`` package
-   - **Arch Linux** - Pacman ``rustup`` and ``base-devel`` packages
-   - **macOS** - Homebrew ``rustup`` formula
+   - **Ubuntu 24+/Debian 13+**: Installs ``rustup`` via APT
+   - **Arch Linux**: Installs ``rustup`` and ``base-devel`` via pacman
+   - **macOS**: Installs ``rustup`` via Homebrew
 
-2. **Toolchain Setup** - Initialize stable Rust toolchain:
+2. **Toolchain Setup**
 
-   .. code-block:: bash
+   - Initializes stable Rust toolchain: ``rustup default stable``
+   - Downloads and installs latest stable Rust compiler
+   - Sets up cargo package manager
 
-      rustup default stable
+3. **PATH Configuration**
 
-3. **PATH Configuration** - Add ``~/.cargo/bin`` to user's ``.profile``:
+   - Adds ``~/.cargo/bin`` to user's ``.profile``
+   - User can execute installed packages after login
 
-   .. code-block:: bash
+4. **Package Installation**
 
-      export PATH="$PATH:$HOME/.cargo/bin"
-
-4. **Package Installation** - Install cargo packages:
-
-   .. code-block:: bash
-
-      cargo install ripgrep bat fd-find
-
-User-Level Package Management
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-All cargo packages install to user directories:
-
-- **Packages**: ``~/.cargo/registry/``
-- **Binaries**: ``~/.cargo/bin/``
-- **Build Cache**: ``~/.cargo/target/``
-
-Users can manage packages without root:
-
-.. code-block:: bash
-
-   cargo install ripgrep          # Install package
-   cargo install --force ripgrep  # Update package
-   cargo uninstall ripgrep        # Remove package
-   cargo install --list           # List installed packages
-
-PATH Configuration
-~~~~~~~~~~~~~~~~~~
-
-The role automatically adds cargo binaries to PATH by appending to ``~/.profile``:
-
-.. code-block:: bash
-
-   export PATH="$PATH:$HOME/.cargo/bin"
-
-**Activation:**
-
-- Automatic on next login
-- Manual: ``source ~/.profile``
-- Shell-specific: Add to ``~/.bashrc``, ``~/.zshrc``, etc.
+   - Installs cargo packages with: ``cargo install <package>``
+   - Packages build from source
+   - Binaries installed to ``~/.cargo/bin/``
 
 Platform-Specific Features
---------------------------
+---------------------------
 
-Ubuntu 24+ / Debian 13+
-~~~~~~~~~~~~~~~~~~~~~~~
+Ubuntu 24.04+ / Debian 13+
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**APT Package:**
+- Uses APT ``rustup`` package
+- Includes standard development tools
+- Requires Ubuntu 24.04 or Debian 13 (rustup not in earlier versions)
 
-- Uses distribution-provided ``rustup`` package
-- Available starting with Ubuntu 24.04 LTS and Debian 13 (Trixie)
-- Stable, well-integrated with system
+**Platform Limitations:**
 
-**Not Supported:**
+- Ubuntu 22.04/23.x: Not supported (no rustup package)
+- Debian 12: Not supported (no rustup package)
 
-- Ubuntu 22.04 LTS (Jammy)
-- Ubuntu 23.04/23.10
-- Debian 12 (Bookworm)
-
-These versions don't include rustup in repositories. Use alternative installation methods (curl script) if needed.
+The role will fail with a clear error message on unsupported platforms.
 
 Arch Linux
 ~~~~~~~~~~
 
-**Pacman Packages:**
-
-- ``rustup`` - Rust toolchain installer
-- ``base-devel`` - Build essentials for cargo packages
-- Always current versions from Arch repos
+- Uses official ``rustup`` package
+- Installs ``base-devel`` for build dependencies
+- Always current versions
 
 macOS
 ~~~~~
 
-**Homebrew Installation:**
-
-- Uses Homebrew: ``brew install rustup``
+- Uses Homebrew ``rustup`` formula
 - Integrates with existing Homebrew setup
+- Homebrew must be installed first (via configure_software)
 
-Tags
-----
+User-Level Package Management
+------------------------------
 
-.. list-table::
-   :header-rows: 1
-   :widths: 25 75
+All cargo packages install to user directories:
 
-   * - Tag
-     - Description
-   * - ``rust-system``
-     - Rustup and toolchain installation
-   * - ``rust-packages``
-     - Cargo package installation
+**Directory Structure:**
 
-Troubleshooting
----------------
+- **Packages**: ``~/.cargo/registry/``
+- **Binaries**: ``~/.cargo/bin/``
+- **Build Cache**: ``~/.cargo/target/``
+- **Toolchains**: ``~/.rustup/``
 
-cargo Command Not Found
-~~~~~~~~~~~~~~~~~~~~~~~~
+**PATH Setup:**
 
-If cargo commands aren't found after installation:
-
-1. **Reload shell configuration:**
-
-   .. code-block:: bash
-
-      source ~/.profile
-
-2. **Verify PATH:**
-
-   .. code-block:: bash
-
-      echo $PATH | grep cargo
-
-3. **Logout and login again** for automatic PATH loading
-
-rustup Not Available (Ubuntu 22/Debian 12)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If rustup is not available in your distribution:
-
-**Option 1: Upgrade OS** (recommended)
-
-- Ubuntu 22.04 → 24.04
-- Debian 12 → 13
-
-**Option 2: Official rustup installer** (not handled by this role)
+The role automatically adds to ``~/.profile``:
 
 .. code-block:: bash
 
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   export PATH="$HOME/.cargo/bin:$PATH"
 
-Package Installation Fails
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Benefits:**
 
-If cargo package installation fails:
+- No system-wide changes
+- No root privileges for package management
+- Multiple users can have different package versions
+- User controls their own Rust installation
 
-1. **Check Rust version:**
+Using Installed Packages
+-------------------------
 
-   .. code-block:: bash
-
-      rustc --version
-      cargo --version
-
-2. **Update toolchain:**
-
-   .. code-block:: bash
-
-      rustup update stable
-
-3. **Clear cargo cache:**
-
-   .. code-block:: bash
-
-      rm -rf ~/.cargo/registry/cache
-
-Build Dependencies Missing (Arch Linux)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If package builds fail on Arch Linux:
+After installation and login, packages are available:
 
 .. code-block:: bash
 
-   sudo pacman -S base-devel
+   # Fast grep
+   rg "pattern" .
 
-The role installs ``base-devel`` automatically, but verify if build failures occur.
+   # Cat with highlighting
+   bat myfile.rs
 
-Long Compilation Times
+   # Fast find
+   fd "filename"
+
+   # Modern ls
+   exa -la
+
+   # Rust compiler
+   rustc --version
+   cargo --version
+
+**Note:** User must logout and login (or source ``. ~/.profile``) for PATH changes to take effect.
+
+Examples
+--------
+
+System Utilities Setup
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Cargo packages compile from source, which can be slow:
+.. code-block:: yaml
 
-- **First install**: Slow (compiles all dependencies)
-- **Updates**: Faster (incremental compilation)
-- **Tip**: Use ``--jobs`` flag for parallel builds (handled automatically)
+   rust_user: developer
+   rust_packages:
+     - ripgrep       # Search
+     - bat           # File viewer
+     - fd-find       # File finder
+     - exa           # ls replacement
+     - tokei         # Code stats
+     - du-dust       # du replacement
+     - procs         # ps replacement
+
+Development Tools
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+   rust_user: rust-dev
+   rust_packages:
+     - cargo-watch   # Auto-rebuild
+     - cargo-edit    # Cargo helpers
+     - cargo-audit   # Security audits
+     - cargo-expand  # Macro expansion
+     - cargo-tree    # Dependency tree
+
+DevOps Tools
+~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+   rust_user: devops
+   rust_packages:
+     - ripgrep
+     - bat
+     - fd-find
+     - bottom        # System monitor
+     - bandwhich     # Network monitor
+
+Popular Rust CLI Tools
+----------------------
+
+Common useful packages:
+
+**File & Text Processing:**
+
+- ``ripgrep`` - Fast grep alternative
+- ``bat`` - Cat with syntax highlighting
+- ``fd-find`` - Fast find alternative
+- ``sd`` - Sed alternative
+
+**File Browsing:**
+
+- ``exa`` - Modern ls replacement
+- ``broot`` - Tree-based file navigation
+- ``lsd`` - Next-gen ls
+
+**System Tools:**
+
+- ``bottom`` - System resource monitor
+- ``procs`` - Modern ps replacement
+- ``du-dust`` - Disk usage analyzer
+- ``tokei`` - Code statistics
+
+**Development:**
+
+- ``cargo-watch`` - Auto-rebuild on changes
+- ``cargo-edit`` - Add/remove dependencies
+- ``cargo-audit`` - Security vulnerability scanner
+- ``cargo-tree`` - Dependency tree viewer
 
 Dependencies
 ------------
 
 **Ansible Collections:**
 
-This role uses modules from the following collections:
+- ``community.general`` - Pacman and Homebrew modules
+- ``ansible.builtin`` - APT and command modules
 
-- ``community.general`` - Included with Ansible package
+**System Requirements:**
 
-Install collection dependencies:
+- User account must exist
+- Internet access for downloading toolchain and packages
+- Build tools (installed automatically on Arch: base-devel)
+- Homebrew (macOS only)
+
+Install dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
 
-**System Packages (installed automatically by role):**
+Limitations
+-----------
 
-- ``rustup`` - Rust toolchain installer
-- ``base-devel`` - Build essentials (Arch Linux only)
+**Platform Restrictions:**
 
-Platform Limitations
---------------------
+The role only supports platforms with rustup in repositories:
 
-The following platforms are **not supported** and will cause the role to fail:
+- ✅ Ubuntu 24.04+
+- ✅ Debian 13+
+- ✅ Arch Linux
+- ✅ macOS 13+
+- ❌ Ubuntu 22.04/23.x (no rustup package)
+- ❌ Debian 12 (no rustup package)
 
-- Ubuntu 22.04 LTS (Jammy)
-- Ubuntu 23.04 (Lunar)
-- Ubuntu 23.10 (Mantic)
-- Debian 12 (Bookworm)
+**Workarounds for Unsupported Platforms:**
 
-**Reason**: These distributions don't include rustup in their package repositories.
+On Ubuntu 22.04 or Debian 12, you can:
 
-**Alternative**: Use the official rustup installer outside of this role, or upgrade to supported OS versions.
+1. Use the official rustup installer (not Ansible-managed)
+2. Upgrade to Ubuntu 24.04 or Debian 13
+3. Use a container with a supported platform
+
+**Build Time:**
+
+Cargo packages build from source, which can take time:
+
+- Packages with many dependencies are slower
+- First installation of a package compiles all dependencies
+- Subsequent runs are faster (cached)
+
+**PATH Configuration:**
+
+PATH updates require:
+
+- User logout/login for changes to take effect
+- Or manually source: ``source ~/.profile``
+- Some shells may not source ``.profile`` automatically
 
 See Also
 --------
 
-- :doc:`configure_users` - User environment orchestration
-- :doc:`nodejs` - Node.js development environment
-- :doc:`go` - Go development environment
+- :doc:`configure_users` - Phase 3 role that orchestrates this utility role
+- :doc:`install_nodejs` - Node.js utility role
+- :doc:`install_go` - Go utility role
+- :doc:`install_neovim` - Neovim utility role
+- :doc:`configure_software` - Phase 2 role for system packages
 - :doc:`/reference/variables-reference` - Complete variable reference
-- `Rust <https://www.rust-lang.org/>`_ - Official Rust website
-- `crates.io <https://crates.io/>`_ - Rust package registry
-- `rustup <https://rustup.rs/>`_ - Rust toolchain installer

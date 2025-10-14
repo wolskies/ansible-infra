@@ -1,0 +1,219 @@
+---
+# Manage Packages Role Argument Specification
+# This role handles package management across different operating systems and package managers
+
+argument_specs:
+  main:
+    short_description: Manage packages across different operating systems and package managers
+    description:
+      - Handles cross-platform package management (APT, Pacman, Homebrew)
+      - Supports layered package configuration (all → group → host)
+      - Manages APT repositories using deb822 format
+      - Provides AUR package support via paru helper on Arch Linux
+      - Manages Homebrew packages and casks on macOS
+      - Uses collection-wide variables for consistent package management
+
+    options:
+      # Cross-Platform Package Management
+      packages:
+        description:
+          - Base package management definitions
+          - Combined with layered variables for final package list
+        type: dict
+        required: false
+        default: {}
+
+      manage_packages_all:
+        description:
+          - Base-level package definitions merged first
+          - Combined with group and host level packages
+        type: dict
+        required: false
+        default: {}
+
+      manage_packages_group:
+        description:
+          - Group-level package definitions merged second
+          - Combined with base and host level packages
+        type: dict
+        required: false
+        default: {}
+
+      manage_packages_host:
+        description:
+          - Host-level package definitions merged last
+          - Final layer in package combination hierarchy
+        type: dict
+        required: false
+        default: {}
+
+      # APT Repository Management
+      apt_repositories_all:
+        description:
+          - Base-level APT repository definitions merged first
+          - Combined with group and host level repositories
+        type: dict
+        required: false
+        default: {}
+
+      apt_repositories_group:
+        description:
+          - Group-level APT repository definitions merged second
+          - Combined with base and host level repositories
+        type: dict
+        required: false
+        default: {}
+
+      apt_repositories_host:
+        description:
+          - Host-level APT repository definitions merged last
+          - Final layer in repository combination hierarchy
+        type: dict
+        required: false
+        default: {}
+
+      # Homebrew Configuration (macOS)
+      homebrew:
+        description:
+          - Homebrew package manager configuration options
+          - Controls taps and cache management
+        type: dict
+        required: false
+        default: {}
+        options:
+          taps:
+            description: List of Homebrew tap repositories
+            type: list
+            elements: str
+            required: false
+            default: []
+          cleanup_cache:
+            description: Clean Homebrew download cache after operations
+            type: bool
+            required: false
+            default: true
+
+      # macOS Cask Management
+      manage_casks:
+        description:
+          - macOS Homebrew cask management configuration
+          - Platform-specific cask specifications
+        type: dict
+        required: false
+        default: {}
+        options:
+          Darwin:
+            description: macOS Homebrew cask specifications
+            type: list
+            elements: dict
+            required: false
+            default: []
+            options:
+              name:
+                description: Cask name
+                type: str
+                required: true
+              state:
+                description: Cask state
+                type: str
+                required: false
+                default: "present"
+                choices: ["present", "absent"]
+
+      # Snap Configuration
+      snap:
+        description:
+          - Snap package manager configuration
+          - Controls snap system removal
+        type: dict
+        required: false
+        default: {}
+        options:
+          remove_completely:
+            description: Completely remove snap system from the host
+            type: bool
+            required: false
+            default: false
+
+      # Snap Package Management
+      snap_packages:
+        description:
+          - List of snap packages to manage
+          - Each package can specify name, state, and classic mode
+        type: list
+        elements: dict
+        required: false
+        default: []
+        options:
+          name:
+            description: Snap package name
+            type: str
+            required: true
+          state:
+            description: Package state
+            type: str
+            required: false
+            default: "present"
+            choices: ["present", "absent"]
+          classic:
+            description: Install snap in classic confinement mode
+            type: bool
+            required: false
+            default: false
+
+      # Flatpak Configuration
+      flatpak:
+        description:
+          - Flatpak package manager configuration
+          - Controls Flathub and desktop environment plugins
+        type: dict
+        required: false
+        default: {}
+        options:
+          enabled:
+            description: Enable flatpak package manager
+            type: bool
+            required: false
+            default: false
+          flathub:
+            description: Enable Flathub repository
+            type: bool
+            required: false
+            default: false
+          plugins:
+            description: Desktop environment flatpak plugins
+            type: dict
+            required: false
+            default: {}
+            options:
+              gnome:
+                description: Install GNOME flatpak plugin
+                type: bool
+                required: false
+                default: false
+              plasma:
+                description: Install KDE Plasma flatpak plugin
+                type: bool
+                required: false
+                default: false
+
+      # Flatpak Package Management
+      flatpak_packages:
+        description:
+          - List of flatpak packages to manage
+          - Each package can specify name and state
+        type: list
+        elements: dict
+        required: false
+        default: []
+        options:
+          name:
+            description: Flatpak application ID (e.g., org.mozilla.firefox)
+            type: str
+            required: true
+          state:
+            description: Package state
+            type: str
+            required: false
+            default: "present"
+            choices: ["present", "absent"]

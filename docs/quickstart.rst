@@ -20,7 +20,7 @@ Install the collection from Git and its dependencies:
 5-Minute Workstation Setup
 ---------------------------
 
-Configure a developer workstation using the ``configure_system`` role (orchestrates os_configuration, manage_packages, manage_security_services, manage_snap_packages, manage_flatpak, and configure_users).
+Configure a developer workstation using the ``system_setup`` role (orchestrates the System → Software → Users pattern: configure_operating_system, configure_software, and configure_users).
 
 Create a playbook:
 
@@ -31,19 +31,17 @@ Create a playbook:
      hosts: workstations
      become: true
      roles:
-       - wolskies.infrastructure.configure_system
+       - wolskies.infrastructure.system_setup
      vars:
        # System configuration
        domain_timezone: "America/New_York"
        host_hostname: "{{ inventory_hostname }}"
 
        # Install development tools
-       packages:
-         present:
-           all:
-             Ubuntu: [git, curl, vim, build-essential, python3-pip]
-             Archlinux: [git, curl, vim, base-devel, python-pip]
-             MacOSX: [git, curl, vim]
+       manage_packages_all:
+         Ubuntu: [git, curl, vim, build-essential, python3-pip]
+         Archlinux: [git, curl, vim, base-devel, python-pip]
+         Darwin: [git, curl, vim]
 
        # Configure developer user
        users:
@@ -99,18 +97,16 @@ Create a playbook:
      hosts: webservers
      become: true
      roles:
-       - wolskies.infrastructure.configure_system
+       - wolskies.infrastructure.system_setup
      vars:
        # System configuration
        domain_timezone: "UTC"
        host_hostname: "{{ inventory_hostname }}"
 
        # Install server packages
-       packages:
-         present:
-           all:
-             Ubuntu: [nginx, postgresql, certbot, python3-psycopg2]
-             Debian: [nginx, postgresql, certbot, python3-psycopg2]
+       manage_packages_all:
+         Ubuntu: [nginx, postgresql, certbot, python3-psycopg2]
+         Debian: [nginx, postgresql, certbot, python3-psycopg2]
 
        # Configure firewall
        firewall:
@@ -169,41 +165,49 @@ Run the playbook:
 Individual Role Usage
 ---------------------
 
-You can also use individual roles for specific tasks:
+You can also use individual roles for specific tasks following the System → Software → Users pattern:
 
-Package Management Only
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   - hosts: all
-     become: true
-     roles:
-       - wolskies.infrastructure.manage_packages
-     vars:
-       packages:
-         present:
-           all:
-             Ubuntu: [git, curl, vim]
-             Archlinux: [git, curl, vim]
-
-System Configuration Only
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Operating System Configuration Only (Phase 1)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: yaml
 
    - hosts: all
      become: true
      roles:
-       - wolskies.infrastructure.os_configuration
+       - wolskies.infrastructure.configure_operating_system
      vars:
        host_hostname: "myserver"
        domain_timezone: "America/New_York"
        domain_locale: "en_US.UTF-8"
        host_update_hosts: true
+       firewall:
+         enabled: true
+         rules:
+           - port: 22
+             protocol: tcp
 
-User Environment Only
-~~~~~~~~~~~~~~~~~~~~~~
+Software Package Management Only (Phase 2)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+   - hosts: all
+     become: true
+     roles:
+       - wolskies.infrastructure.configure_software
+     vars:
+       manage_packages_all:
+         Ubuntu: [git, curl, vim]
+         Archlinux: [git, curl, vim]
+       snap:
+         remove_completely: true
+       flatpak:
+         enabled: true
+         flathub: true
+
+User Environment Configuration Only (Phase 3)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: yaml
 
@@ -221,13 +225,19 @@ User Environment Only
              packages: [typescript, eslint]
            rust:
              packages: [ripgrep, bat]
+           dotfiles:
+             enable: true
+             repository: "https://github.com/user/dotfiles"
 
 
 
 Next Steps
 ----------
 
-* :doc:`roles/configure_system` - Complete configure_system role documentation
+* :doc:`roles/system_setup` - Complete system_setup role documentation
+* :doc:`roles/configure_operating_system` - Operating system configuration (Phase 1)
+* :doc:`roles/configure_software` - Software package management (Phase 2)
+* :doc:`roles/configure_users` - User preferences and environments (Phase 3)
 * :doc:`user-guide/configuration` - Configuration strategies and patterns
 * :doc:`reference/variables-reference` - Complete variable reference
 * :doc:`roles/index` - Browse all available roles

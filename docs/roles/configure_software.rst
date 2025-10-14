@@ -1,7 +1,7 @@
-manage_packages Role
-====================
+configure_software
+==================
 
-Cross-platform package management for APT (Ubuntu/Debian), Pacman (Arch Linux), and Homebrew (macOS).
+**Phase 2** of the System → Software → Users pattern. Handles software package management across APT, Pacman, Homebrew, Snap, and Flatpak with hierarchical configuration support.
 
 .. contents::
    :local:
@@ -10,130 +10,201 @@ Cross-platform package management for APT (Ubuntu/Debian), Pacman (Arch Linux), 
 Overview
 --------
 
-The ``manage_packages`` role provides unified package management across Linux and macOS platforms:
+The ``configure_software`` role manages software packages across all major package managers on Linux and macOS. This is Phase 2 in the three-phase infrastructure pattern, executed after operating system configuration and before user environment setup.
 
-* **Multi-platform support**: APT, Pacman, Homebrew with single variable structure
-* **Layered configuration**: Apply packages at all/group/host inventory levels
-* **Repository management**: Add external APT repositories, Homebrew taps
-* **AUR support**: Install packages from Arch User Repository
-* **System upgrades**: Configure automatic security updates
+**Key Features:**
 
-:Minimum Ansible Version: 2.12
-:Platforms: Ubuntu 22.04+, Debian 12+, Arch Linux, macOS 13+
+- **Hierarchical Package Management** - Merge packages from all/group/host scopes
+- **Cross-Platform** - APT, Pacman, Homebrew with unified variable structure
+- **Repository Management** - Add custom repositories with automatic GPG key handling
+- **Application Packaging** - Snap and Flatpak support
+- **Cask Management** - macOS GUI applications via Homebrew Cask
 
-Quick Start
------------
+Platform Support
+~~~~~~~~~~~~~~~~
 
-Basic package installation:
+- **Ubuntu** 22.04+, 24.04+
+- **Debian** 12+, 13+
+- **Arch Linux** (Rolling)
+- **macOS** 13+ (Ventura)
+
+Usage
+-----
+
+Basic Package Installation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Install common packages across platforms:
 
 .. code-block:: yaml
 
    - hosts: all
      become: true
      roles:
-       - wolskies.infrastructure.manage_packages
+       - wolskies.infrastructure.configure_software
      vars:
        manage_packages_all:
-         Ubuntu:
-           - name: git
-           - name: curl
-           - name: vim
-         Archlinux:
-           - name: git
-           - name: curl
-           - name: vim
-         MacOSX:
-           - name: git
-           - name: curl
-           - name: vim
-
-Key Concepts
-------------
+         Ubuntu: [git, curl, vim, htop]
+         Debian: [git, curl, vim, htop]
+         Archlinux: [git, curl, vim, htop]
+         Darwin: [git, curl, vim, htop]
 
 Layered Package Management
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Packages are merged from three inventory levels, allowing flexible configuration from global to host-specific:
+Use inventory hierarchy for flexible package management:
 
-**Level 1: Base (all hosts)**
+.. code-block:: yaml
+
+   # group_vars/all.yml - Base packages for all hosts
+   manage_packages_all:
+     Ubuntu: [git, curl, vim, htop, tmux]
+     Archlinux: [git, curl, vim, htop, tmux]
+     Darwin: [git, curl, vim, htop, tmux]
+
+   # group_vars/webservers.yml - Web server packages
+   manage_packages_group:
+     Ubuntu: [nginx, postgresql-14, certbot]
+     Debian: [nginx, postgresql, certbot]
+     Archlinux: [nginx, postgresql, certbot]
+
+   # host_vars/web01.yml - Host-specific packages
+   manage_packages_host:
+     Ubuntu: [redis-server, memcached]
+
+APT Repository Management
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add custom APT repositories (Ubuntu/Debian):
+
+.. code-block:: yaml
+
+   apt_repositories_all:
+     Ubuntu:
+       - name: nodejs
+         uris: "https://deb.nodesource.com/node_20.x"
+         suites: "nodistro"
+         components: "main"
+         signed_by: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+
+       - name: docker
+         uris: "https://download.docker.com/linux/ubuntu"
+         suites: "{{ ansible_distribution_release }}"
+         components: "stable"
+         signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+
+   # Group-specific repositories
+   apt_repositories_group:
+     Ubuntu:
+       - name: postgresql
+         uris: "http://apt.postgresql.org/pub/repos/apt"
+         suites: "{{ ansible_distribution_release }}-pgdg"
+         components: "main"
+         signed_by: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+
+macOS Homebrew Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Manage Homebrew taps and casks:
+
+.. code-block:: yaml
+
+   homebrew:
+     taps:
+       - homebrew/cask-fonts
+       - homebrew/cask-versions
+     cleanup_cache: true
+
+   manage_casks:
+     Darwin:
+       - name: visual-studio-code
+         state: present
+       - name: docker
+         state: present
+       - name: firefox
+         state: present
+       - name: google-chrome
+         state: present
+
+Arch Linux AUR Support
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Enable AUR packages via paru helper:
+
+.. code-block:: yaml
+
+   pacman:
+     enable_aur: true
+     multilib:
+       enabled: true
+
+   manage_packages_all:
+     Archlinux:
+       - base-devel
+       - yay  # AUR helper will be installed
+
+Snap Package Management
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Manage Snap packages or remove Snap completely:
+
+.. code-block:: yaml
+
+   # Install Snap packages
+   snap_packages:
+     - name: code
+       state: present
+       classic: true
+     - name: discord
+       state: present
+     - name: spotify
+       state: present
+
+   # Or remove Snap completely (Ubuntu/Debian)
+   snap:
+     remove_completely: true
+
+Flatpak Application Management
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Enable Flatpak with Flathub:
+
+.. code-block:: yaml
+
+   flatpak:
+     enabled: true
+     flathub: true
+     plugins:
+       gnome: true
+       plasma: false
+
+   flatpak_packages:
+     - name: org.mozilla.firefox
+       state: present
+     - name: org.gimp.GIMP
+       state: present
+     - name: com.spotify.Client
+       state: present
+     - name: org.libreoffice.LibreOffice
+       state: present
+
+Complete Multi-Platform Example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: yaml
 
    # group_vars/all.yml
+   # Phase 2: Software Package Management
+
+   # Base packages for all platforms
    manage_packages_all:
-     Ubuntu:
-       - name: git
-       - name: curl
-       - name: vim
+     Ubuntu: [git, curl, vim, htop, tmux, build-essential]
+     Debian: [git, curl, vim, htop, tmux, build-essential]
+     Archlinux: [git, curl, vim, htop, tmux, base-devel]
+     Darwin: [git, curl, vim, htop, tmux]
 
-**Level 2: Group (inventory group)**
-
-.. code-block:: yaml
-
-   # group_vars/webservers.yml
-   manage_packages_group:
-     Ubuntu:
-       - name: nginx
-       - name: postgresql
-
-**Level 3: Host (specific host)**
-
-.. code-block:: yaml
-
-   # host_vars/web01.yml
-   manage_packages_host:
-     Ubuntu:
-       - name: redis-server
-
-**Result**: Host ``web01`` in group ``webservers`` gets all 6 packages merged together.
-
-Distribution-Specific Keys
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Package lists use ``ansible_distribution`` as keys:
-
-* ``Ubuntu`` - Ubuntu-specific packages
-* ``Debian`` - Debian-specific packages
-* ``Archlinux`` - Arch Linux packages
-* ``MacOSX`` - macOS packages
-
-This allows different package names across platforms in a single configuration.
-
-Usage
------
-
-Examples
-~~~~~~~~
-
-Package list with default state (present):
-
-.. code-block:: yaml
-
-   manage_packages_all:
-     Ubuntu:
-       - name: git
-       - name: curl
-       - name: vim
-
-Remove packages with state: absent:
-
-.. code-block:: yaml
-
-   manage_packages_all:
-     Ubuntu:
-       - name: nginx
-         state: present  # Install (default, can be omitted)
-       - name: telnet
-         state: absent   # Remove package
-
-APT Repository Management
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Add external repositories (uses modern deb822 format):
-
-.. code-block:: yaml
-
-   apt_repositories_host:
+   # APT repositories
+   apt_repositories_all:
      Ubuntu:
        - name: docker
          uris: "https://download.docker.com/linux/ubuntu"
@@ -141,216 +212,251 @@ Add external repositories (uses modern deb822 format):
          components: "stable"
          signed_by: "https://download.docker.com/linux/ubuntu/gpg"
 
-   manage_packages_host:
-     Ubuntu:
-       - name: docker-ce
-
-Configure APT behavior:
-
-.. code-block:: yaml
-
-   apt:
-     system_upgrade:
-       enable: true
-       type: "safe"  # or "full"
-     proxy: "http://proxy.example.com:8080"
-
-Arch Linux AUR Support
-~~~~~~~~~~~~~~~~~~~~~~
-
-Enable AUR package installation via paru:
-
-.. code-block:: yaml
-
-   pacman:
-     enable_aur: true
-     multilib:
-       enabled: true  # Enable 32-bit packages
-
-   manage_packages_all:
-     Archlinux:
-       - name: yay  # From AUR
-       - name: paru  # From AUR
-
-Without AUR (official repos only):
-
-.. code-block:: yaml
-
-   pacman:
-     enable_aur: false
-
-   manage_packages_all:
-     Archlinux:
-       - name: base-devel
-       - name: git
-
-macOS Homebrew Support
-~~~~~~~~~~~~~~~~~~~~~~
-
-Install formulae and casks:
-
-.. code-block:: yaml
-
+   # Homebrew configuration
    homebrew:
-     taps:
-       - homebrew/cask-fonts
+     taps: [homebrew/cask-fonts]
      cleanup_cache: true
 
-   manage_packages_all:
-     MacOSX:
-       - name: git
-       - name: curl
-
    manage_casks:
-     MacOSX:
+     Darwin:
        - name: visual-studio-code
        - name: docker
-       - name: firefox
 
-Platform-Specific Notes
------------------------
+   # Flatpak for Linux desktops
+   flatpak:
+     enabled: true
+     flathub: true
 
-Ubuntu/Debian
-~~~~~~~~~~~~~
+   flatpak_packages:
+     - name: org.mozilla.firefox
+     - name: com.spotify.Client
 
-* Uses ``apt`` module for package management
-* Repository format: deb822 (modern format)
-* GPG keys downloaded automatically from ``signed_by`` URLs
-* Supports unattended security upgrades
+Variables
+---------
 
-Arch Linux
-~~~~~~~~~~
-
-* Official packages via ``pacman`` module
-* AUR packages via ``kewlfft.aur`` collection (uses paru helper)
-* Requires ``enable_aur: true`` for AUR support
-* System upgrade runs ``pacman -Syu`` when enabled
-
-macOS
-~~~~~
-
-* Uses ``geerlingguy.mac.homebrew`` collection
-* Casks for GUI applications (installed to /Applications)
-* Taps for additional repositories
-* Cache cleanup optional via ``cleanup_cache``
-
-Variables Reference
--------------------
-
-Package Variables
-~~~~~~~~~~~~~~~~~
+Package Management Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
-   :widths: 20 10 10 60
+   :widths: 30 15 55
 
    * - Variable
      - Type
-     - Default
      - Description
    * - ``manage_packages_all``
      - dict
-     - ``{}``
-     - Base-level packages, merged first
+     - Base-level packages by OS family (merged first)
    * - ``manage_packages_group``
      - dict
-     - ``{}``
-     - Group-level packages, merged second
+     - Group-level packages by OS family (merged second)
    * - ``manage_packages_host``
      - dict
-     - ``{}``
-     - Host-level packages, merged last
+     - Host-level packages by OS family (merged last)
 
-Package Object Format
-~~~~~~~~~~~~~~~~~~~~~~
+**OS Family Keys:** ``Ubuntu``, ``Debian``, ``Archlinux``, ``Darwin``
 
-Each package in the list is a dictionary with the following structure:
+Package Hierarchy
+~~~~~~~~~~~~~~~~~
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 10 10 60
+Packages are merged in order:
 
-   * - Field
-     - Type
-     - Default
-     - Description
-   * - ``name``
-     - string
-     - Required
-     - Package name
-   * - ``state``
-     - string
-     - ``present``
-     - Package state: ``present`` (install) or ``absent`` (remove)
+1. **all** - Applied to all hosts
+2. **group** - Applied to inventory groups
+3. **host** - Applied to specific hosts
 
-**Example:**
+This allows flexible management from global to host-specific needs.
 
-.. code-block:: yaml
-
-   manage_packages_all:
-     Ubuntu:
-       - name: git           # Installs git (state: present is default)
-       - name: curl
-         state: present      # Explicit install
-       - name: telnet
-         state: absent       # Remove package
-
-Repository Variables
-~~~~~~~~~~~~~~~~~~~~
+APT Repository Variables (Ubuntu/Debian)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
-   :widths: 20 10 10 60
+   :widths: 30 15 55
 
    * - Variable
      - Type
-     - Default
      - Description
    * - ``apt_repositories_all``
      - dict
-     - ``{}``
-     - Base-level APT repositories
+     - Base-level APT repositories by OS
    * - ``apt_repositories_group``
      - dict
-     - ``{}``
-     - Group-level APT repositories
+     - Group-level APT repositories by OS
    * - ``apt_repositories_host``
      - dict
-     - ``{}``
-     - Host-level APT repositories
+     - Host-level APT repositories by OS
 
-Package Manager Configuration
+**Repository Structure:**
+
+.. code-block:: yaml
+
+   apt_repositories_all:
+     Ubuntu:
+       - name: repository-name
+         uris: "https://repo.example.com/ubuntu"
+         suites: "{{ ansible_distribution_release }}"
+         components: "main"
+         signed_by: "https://repo.example.com/gpg"
+
+Homebrew Variables (macOS)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Variable
+     - Type
+     - Description
+   * - ``homebrew.taps``
+     - list
+     - Additional Homebrew tap repositories
+   * - ``homebrew.cleanup_cache``
+     - boolean
+     - Clean download cache after operations. Default: true
+   * - ``manage_casks.Darwin``
+     - list
+     - macOS GUI applications (casks)
+
+**Cask Structure:**
+
+.. code-block:: yaml
+
+   manage_casks:
+     Darwin:
+       - name: application-name
+         state: present  # or absent
+
+Pacman Variables (Arch Linux)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
-   :widths: 20 10 10 60
+   :widths: 30 15 55
 
    * - Variable
      - Type
-     - Default
      - Description
-   * - ``apt``
-     - dict
-     - ``{}``
-     - APT configuration options
-   * - ``pacman``
-     - dict
-     - ``{}``
-     - Pacman configuration options
-   * - ``homebrew``
-     - dict
-     - ``{}``
-     - Homebrew configuration options
-   * - ``manage_casks``
-     - dict
-     - ``{}``
-     - macOS cask definitions
+   * - ``pacman.enable_aur``
+     - boolean
+     - Enable AUR support via paru helper. Default: false
+   * - ``pacman.multilib.enabled``
+     - boolean
+     - Enable 32-bit package support. Default: false
 
-For detailed variable schemas, see :doc:`../reference/variables-reference`.
+Snap Variables
+~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Variable
+     - Type
+     - Description
+   * - ``snap.remove_completely``
+     - boolean
+     - Completely remove Snap system. Default: false
+   * - ``snap_packages``
+     - list
+     - Snap packages to manage
+
+**Snap Package Structure:**
+
+.. code-block:: yaml
+
+   snap_packages:
+     - name: package-name
+       state: present  # or absent
+       classic: false  # true for classic confinement
+
+Flatpak Variables
+~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Variable
+     - Type
+     - Description
+   * - ``flatpak.enabled``
+     - boolean
+     - Enable Flatpak package manager. Default: false
+   * - ``flatpak.flathub``
+     - boolean
+     - Enable Flathub repository. Default: false
+   * - ``flatpak.plugins.gnome``
+     - boolean
+     - Install GNOME Flatpak plugin. Default: false
+   * - ``flatpak.plugins.plasma``
+     - boolean
+     - Install KDE Plasma plugin. Default: false
+   * - ``flatpak_packages``
+     - list
+     - Flatpak applications to manage
+
+**Flatpak Package Structure:**
+
+.. code-block:: yaml
+
+   flatpak_packages:
+     - name: org.mozilla.firefox
+       state: present  # or absent
+
+Platform-Specific Features
+---------------------------
+
+Ubuntu/Debian (APT)
+~~~~~~~~~~~~~~~~~~~
+
+- Modern deb822 format for repository definitions
+- Automatic GPG key installation and management
+- Repository component specification (main, contrib, non-free)
+- Distribution release variable support
+
+**Note:** APT proxy and unattended-upgrades are configured in Phase 1 (configure_operating_system).
+
+Arch Linux (Pacman/AUR)
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- Official repository packages via pacman
+- Optional AUR support using paru helper
+- Multilib repository for 32-bit packages
+- Automatic dependency resolution
+
+**AUR Requirements:** Requires passwordless sudo for pacman. See installation documentation.
+
+macOS (Homebrew)
+~~~~~~~~~~~~~~~~
+
+- Formula packages (command-line tools)
+- Cask packages (GUI applications)
+- Tap repository management
+- Automatic cache cleanup
+- Applications installed to /Applications
+
+Snap (Ubuntu/Debian)
+~~~~~~~~~~~~~~~~~~~~
+
+- Containerized applications with automatic updates
+- Classic confinement mode for unrestricted access
+- Optional complete removal of Snap system
+- Per-package confinement control
+
+Flatpak (Linux)
+~~~~~~~~~~~~~~~
+
+- Sandboxed applications across distributions
+- Flathub repository for thousands of applications
+- Desktop environment plugin integration
+- User-level and system-level installation support
 
 Tags
 ----
+
+Control which package managers run:
 
 .. list-table::
    :header-rows: 1
@@ -358,99 +464,81 @@ Tags
 
    * - Tag
      - Description
-   * - ``packages``
-     - Package installation/removal only
+   * - ``apt``
+     - APT package management (Ubuntu/Debian)
+   * - ``pacman``
+     - Pacman package management (Arch Linux)
+   * - ``aur``
+     - AUR package management (Arch Linux)
+   * - ``homebrew``
+     - Homebrew package management (macOS)
+   * - ``snap``
+     - Snap package management
+   * - ``flatpak``
+     - Flatpak package management
    * - ``repositories``
      - Repository management only
-   * - ``apt``
-     - APT-specific tasks
-   * - ``pacman``
-     - Pacman-specific tasks
-   * - ``aur``
-     - AUR-specific tasks
-   * - ``homebrew``
-     - Homebrew-specific tasks
+   * - ``packages``
+     - Package installation only
    * - ``no-container``
-     - Tasks requiring host capabilities (skip in containers)
+     - Tasks requiring host capabilities
+
+Examples:
+
+.. code-block:: bash
+
+   # Skip AUR packages in containers
+   ansible-playbook --skip-tags aur,no-container playbook.yml
+
+   # Only manage repositories
+   ansible-playbook -t repositories playbook.yml
+
+   # Only install packages (skip repository setup)
+   ansible-playbook -t packages playbook.yml
 
 Dependencies
 ------------
 
 **Ansible Collections:**
 
-This role uses modules from the following collections:
+- ``community.general`` - Pacman and npm modules
+- ``geerlingguy.mac`` - Homebrew management on macOS
+- ``kewlfft.aur`` - AUR package management on Arch Linux
 
-- ``community.general`` - Included with Ansible package
-- ``geerlingguy.mac.homebrew`` - macOS Homebrew support
-- ``kewlfft.aur`` - Arch Linux AUR support
-
-Install collection dependencies:
+Install dependencies:
 
 .. code-block:: bash
 
    ansible-galaxy collection install -r requirements.yml
 
-**System Requirements:**
+Limitations
+-----------
 
-* **Ubuntu/Debian**: ``python3-debian`` (installed automatically)
-* **Arch Linux**: ``base-devel`` (for AUR building)
-* **macOS**: Homebrew pre-installed
+**Container Environments:**
 
-Troubleshooting
----------------
+Package installation in containers may have limitations:
 
-Common Issues
-~~~~~~~~~~~~~
+- Snap requires systemd and may not work in all containers
+- Flatpak requires D-Bus and systemd
+- Some packages may require privileged mode
 
-**Packages not installing**
+Use ``--skip-tags no-container,snap,flatpak`` when running in basic containers.
 
-Check that you're using the correct distribution key:
+**AUR on Arch Linux:**
 
-.. code-block:: bash
+AUR support requires:
 
-   # Verify your distribution name
-   ansible all -m setup -a 'filter=ansible_distribution'
+- Passwordless sudo for pacman
+- Internet access for package downloads
+- Build dependencies (base-devel)
 
-**APT repository failures**
-
-Ensure GPG key URLs are accessible and repository suite matches your release:
-
-.. code-block:: yaml
-
-   # Use ansible_distribution_release variable
-   suites: "{{ ansible_distribution_release }}"  # e.g., "noble", "jammy"
-
-**AUR failures in containers**
-
-AUR requires fakeroot and user privileges. Skip AUR in containers:
-
-.. code-block:: bash
-
-   ansible-playbook playbook.yml --skip-tags aur
-
-Testing
--------
-
-This role includes Molecule tests covering:
-
-* Basic package installation (Ubuntu, Arch)
-* Layered package combining
-* Repository management
-* AUR support
-* Edge cases
-
-Run tests:
-
-.. code-block:: bash
-
-   cd roles/manage_packages
-   molecule test
-
-See :doc:`../testing/running-tests` for more details.
+See :doc:`/installation` for Arch Linux setup details.
 
 See Also
 --------
 
-* :doc:`os_configuration` - System-level configuration
-* :doc:`manage_security_services` - Security service management
-* :doc:`../testing/running-tests` - Testing guide
+- :doc:`configure_operating_system` - Phase 1: OS configuration (includes APT/Pacman proxy and auto-updates)
+- :doc:`configure_users` - Phase 3: User environments
+- :doc:`system_setup` - Meta-role demonstrating all three phases
+- :doc:`/reference/variables-reference` - Complete variable reference
+- :doc:`/user-guide/configuration` - Configuration strategies

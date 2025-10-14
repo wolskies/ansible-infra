@@ -1,4 +1,0 @@
----
-- name: Manage packages by distribution
-  ansible.builtin.include_tasks: "manage-packages-{{ ansible_os_family }}.yml"
-  tags: packages

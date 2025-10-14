@@ -1,7 +1,7 @@
-os_configuration
-================
+configure_operating_system
+==========================
 
-Core operating system configuration for Ubuntu, Debian, Arch Linux, and macOS.
+**Phase 1** of the System → Software → Users pattern. Handles operating system-level configuration for Ubuntu 22.04+, Debian 12+, Arch Linux, and macOS 13+.
 
 .. contents::
    :local:
@@ -10,7 +10,7 @@ Core operating system configuration for Ubuntu, Debian, Arch Linux, and macOS.
 Overview
 --------
 
-The ``os_configuration`` role manages fundamental operating system settings that form the foundation of system configuration. It handles hostname, timezone, locale, time synchronization, systemd services, kernel modules, security hardening, and platform-specific settings.
+The ``configure_operating_system`` role manages fundamental operating system settings that form the foundation of system configuration. This is Phase 1 in the three-phase infrastructure pattern.
 
 **This is typically the first role** to run in system configuration workflows, as it establishes the base system state that other roles depend on.
 
@@ -21,10 +21,12 @@ Features
 - **Time Configuration** - Timezone and NTP synchronization
 - **Locale Settings** - System locale and language configuration (Linux)
 - **Service Management** - Enable, disable, or mask systemd services (Linux)
-- **Security Hardening** - OS and SSH hardening via devsec.hardening collection (Linux)
 - **Kernel Configuration** - Load modules, set parameters, configure udev rules (Linux)
 - **Journal Settings** - Configure systemd journal retention and size (Linux)
-- **Package Manager Config** - APT/Pacman proxy and settings (Linux)
+- **Package Manager Config** - APT/Pacman proxy, mirrors, and auto-updates (Linux)
+- **Firewall** - UFW firewall configuration (Linux)
+- **Fail2ban** - Intrusion prevention configuration (Linux)
+- **Security Hardening** - OS and SSH hardening via devsec.hardening collection (Linux, optional)
 - **System Preferences** - Basic system settings (macOS)
 
 Platform Support
@@ -48,7 +50,7 @@ Minimal configuration for hostname and timezone:
    - hosts: all
      become: true
      roles:
-       - wolskies.infrastructure.os_configuration
+       - wolskies.infrastructure.configure_operating_system
      vars:
        domain_timezone: "America/New_York"
        host_hostname: "{{ inventory_hostname }}"
@@ -100,6 +102,33 @@ Complete configuration with all features:
      max_retention: "30d"
      compress: true
      forward_to_syslog: false
+
+   # Firewall configuration
+   firewall:
+     enabled: true
+     prevent_ssh_lockout: true
+     rules:
+       - port: 80
+         protocol: tcp
+         action: allow
+       - port: 443
+         protocol: tcp
+         action: allow
+
+   # Fail2ban intrusion prevention
+   fail2ban:
+     enabled: true
+     bantime: "10m"
+     maxretry: 5
+     jails:
+       - name: sshd
+         enabled: true
+
+   # APT configuration (Ubuntu/Debian)
+   apt:
+     proxy: "http://apt-proxy.example.com:3142"
+     unattended_upgrades:
+       enabled: true
 
 Enable OS and SSH hardening using the devsec.hardening collection:
 
@@ -172,9 +201,6 @@ Time Synchronization
    * - ``domain_timesync.fallback_servers``
      - list
      - Fallback NTP servers
-   * - ``domain_timesync.timezone``
-     - string
-     - Alternative way to set timezone (use ``domain_timezone`` instead)
 
 Service Management (Linux)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -215,9 +241,6 @@ Kernel Configuration (Linux)
    * - ``host_sysctl``
      - dict
      - Sysctl parameters as key-value pairs
-   * - ``host_udev_rules``
-     - list
-     - Custom udev rules (see examples below)
 
 Security Hardening (Linux)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -261,9 +284,49 @@ Journal Configuration (Linux)
    * - ``journal.compress``
      - boolean
      - Enable journal compression. Default: true
-   * - ``journal.forward_to_syslog``
+
+Firewall Configuration (Linux)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Variable
+     - Type
+     - Description
+   * - ``firewall.enabled``
      - boolean
-     - Forward to syslog. Default: false
+     - Enable UFW firewall. Default: false
+   * - ``firewall.prevent_ssh_lockout``
+     - boolean
+     - Automatically allow SSH before enabling firewall. Default: true
+   * - ``firewall.rules``
+     - list
+     - List of firewall rules (port, protocol, action)
+
+Fail2ban Configuration (Linux)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Variable
+     - Type
+     - Description
+   * - ``fail2ban.enabled``
+     - boolean
+     - Enable fail2ban intrusion prevention. Default: false
+   * - ``fail2ban.bantime``
+     - string
+     - Ban duration (e.g., "10m", "1h")
+   * - ``fail2ban.maxretry``
+     - integer
+     - Maximum retry attempts before ban
+   * - ``fail2ban.jails``
+     - list
+     - List of jail configurations
 
 Package Manager Configuration (Linux)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -278,12 +341,15 @@ Package Manager Configuration (Linux)
    * - ``apt.proxy``
      - string
      - APT proxy URL (Ubuntu/Debian)
-   * - ``apt.config``
-     - dict
-     - Additional APT configuration directives
+   * - ``apt.unattended_upgrades.enabled``
+     - boolean
+     - Enable automatic security updates (Ubuntu/Debian)
    * - ``pacman.proxy``
      - string
      - Pacman proxy URL (Arch Linux)
+   * - ``pacman.enable_aur``
+     - boolean
+     - Enable AUR support (Arch Linux)
 
 Tags
 ----
@@ -306,10 +372,12 @@ Tags
      - Systemd service management
    * - ``modules``
      - Kernel module configuration
-   * - ``sysctl``
-     - Kernel parameter tuning
    * - ``security``
      - Security hardening (OS and SSH)
+   * - ``firewall``
+     - UFW firewall configuration
+   * - ``fail2ban``
+     - Fail2ban intrusion prevention
    * - ``journal``
      - Journal configuration
    * - ``apt``
@@ -347,6 +415,7 @@ Some tasks require host capabilities not available in containers:
 - Sysctl parameters
 - Journal configuration
 - Service management (depending on container)
+- Firewall configuration
 
 Use ``--skip-tags no-container`` when running in containers.
 
@@ -358,12 +427,13 @@ macOS support is limited to basic features:
 - Timezone configuration
 - System preferences
 
-Locale, services, kernel modules, and security hardening are Linux-only.
+Locale, services, kernel modules, firewall, fail2ban, and security hardening are Linux-only.
 
 See Also
 --------
 
-- :doc:`manage_packages` - Package installation and repository management
-- :doc:`manage_security_services` - Firewall and fail2ban configuration
+- :doc:`configure_software` - Phase 2: Package management
+- :doc:`configure_users` - Phase 3: User environments
+- :doc:`system_setup` - Meta-role demonstrating all three phases
 - :doc:`/reference/variables-reference` - Complete variable reference
-- :doc:`/testing/writing-tests` - Testing os_configuration
+- :doc:`/testing/writing-tests` - Testing configure_operating_system

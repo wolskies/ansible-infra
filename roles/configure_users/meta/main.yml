@@ -2,7 +2,9 @@
 galaxy_info:
   role_name: configure_users
   author: wolskies.infrastructure
-  description: Configure a single user and their preferences
+  description: |
+    Phase 3 - User preferences and development environments. Manages git config, dotfiles,
+    development tools (Node.js, Rust, Go, Neovim), terminal config, macOS preferences.
   license: MIT
   min_ansible_version: "2.12"
   platforms:

@@ -1,6 +1,6 @@
-# neovim
+# install_neovim
 
-Comprehensive Neovim installation and development-ready configuration.
+Utility role for comprehensive Neovim installation and development-ready configuration.
 
 ## What It Does
 
@@ -18,7 +18,7 @@ Installs and configures Neovim for development:
 - hosts: developers
   become: true
   roles:
-    - wolskies.infrastructure.neovim
+    - wolskies.infrastructure.install_neovim
   vars:
     neovim_user: developer
 ```

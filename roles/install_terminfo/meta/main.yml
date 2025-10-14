@@ -1,8 +1,8 @@
 ---
 galaxy_info:
-  role_name: terminal_config
+  role_name: install_terminfo
   author: wolskies
-  description: Terminal emulator configuration and terminfo setup for modern terminals
+  description: Terminal emulator configuration and terminfo setup for modern terminals (Utility role)
   company: wolskies
 
   license: MIT

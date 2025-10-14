@@ -1,8 +1,8 @@
 ---
 galaxy_info:
-  role_name: rust
+  role_name: install_rust
   author: wolskies.infrastructure
-  description: Install Rust toolchain and manage cargo packages for specific users
+  description: Install Rust toolchain and manage cargo packages for specific users (Utility role)
   license: MIT
   min_ansible_version: "2.12"
   platforms:

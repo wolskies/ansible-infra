@@ -1,0 +1,39 @@
+---
+galaxy_info:
+  role_name: configure_software
+  author: wolskies.infrastructure
+  description: |
+    Phase 2 - Software package management. Handles packages across apt, pacman, homebrew,
+    snap, and flatpak with hierarchical configuration (all/group/host).
+  company: wolskinet
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+    - name: MacOSX
+      versions:
+        - all
+
+  galaxy_tags:
+    - packages
+    - system
+    - packagemanagement
+    - apt
+    - pacman
+    - homebrew
+
+dependencies: []
+
+collections:
+  - community.general # For pacman module
+  - geerlingguy.mac # For Homebrew management on macOS
+  - kewlfft.aur # For AUR package management on Arch Linux

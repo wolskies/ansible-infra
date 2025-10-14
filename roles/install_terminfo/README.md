@@ -1,7 +1,8 @@
-# terminal_config
+# install_terminfo
 
 **_NOT YET READY FOR PRIME TIME_** still having test issues with this role
-Terminal emulator configuration and terminfo setup for modern terminals.
+
+Utility role for terminal emulator configuration and terminfo setup for modern terminals.
 
 ## Description
 
@@ -46,7 +47,7 @@ Each terminal has predefined configuration including:
 - hosts: workstations
   become: true
   roles:
-    - role: wolskies.infrastructure.terminal_config
+    - role: wolskies.infrastructure.install_terminfo
       vars:
         terminal_user: developer
         terminal_entries:
@@ -67,7 +68,7 @@ terminal_entries:
 - hosts: developers
   become: true
   roles:
-    - wolskies.infrastructure.terminal_config
+    - wolskies.infrastructure.install_terminfo
 ```
 
 ### Integration with configure_users

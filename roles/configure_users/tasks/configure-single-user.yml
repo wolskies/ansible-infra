@@ -32,7 +32,7 @@
   block:
     - name: Install Node.js and packages
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.nodejs
+        name: wolskies.infrastructure.install_nodejs
       vars:
         node_user: "{{ target_user.name }}"
         node_packages: "{{ target_user.nodejs.packages }}"
@@ -41,7 +41,7 @@
 
     - name: Install Rust and packages
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.rust
+        name: wolskies.infrastructure.install_rust
       vars:
         rust_user: "{{ target_user.name }}"
         rust_packages: "{{ target_user.rust.packages }}"
@@ -50,7 +50,7 @@
 
     - name: Install Go and packages
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.go
+        name: wolskies.infrastructure.install_go
       vars:
         go_user: "{{ target_user.name }}"
         go_packages: "{{ target_user.go.packages }}"
@@ -59,7 +59,7 @@
 
     - name: Install and configure Neovim
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.neovim
+        name: wolskies.infrastructure.install_neovim
       vars:
         neovim_user: "{{ target_user.name }}"
       when: target_user.neovim.enabled | default(false)
@@ -67,7 +67,7 @@
 
     - name: Configure terminal emulators
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.terminal_config
+        name: wolskies.infrastructure.install_terminfo
       vars:
         terminal_user: "{{ target_user.name }}"
         terminal_entries: "{{ target_user.terminal_entries }}"

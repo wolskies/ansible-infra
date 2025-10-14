@@ -85,7 +85,7 @@ AUR package installation (via ``kewlfft.aur`` collection) requires passwordless 
    # Add to /etc/sudoers.d/ansible
    your_user ALL=(ALL) NOPASSWD: /usr/bin/pacman
 
-This is required by the paru AUR helper. See :doc:`roles/manage_packages` for details.
+This is required by the paru AUR helper. See :doc:`roles/configure_software` for details.
 
 macOS
 ~~~~~

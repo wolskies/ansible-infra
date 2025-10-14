@@ -1,7 +1,7 @@
 configure_users
 ===============
 
-Configures preferences for existing users.
+**Phase 3** of the System → Software → Users pattern. Configures user preferences and development environments for existing users.
 
 .. contents::
    :local:
@@ -10,7 +10,7 @@ Configures preferences for existing users.
 Overview
 --------
 
-The ``configure_users`` role configures user preferences for existing users. It orchestrates multiple development tool roles and handles platform-specific preferences, dotfiles deployment, and Git configuration.
+The ``configure_users`` role manages per-user configuration including Git settings, development tool installation, dotfiles deployment, and platform-specific preferences. This is Phase 3 in the three-phase infrastructure pattern, executed after operating system and software configuration.
 
 **This role only configures existing users** - it does not create user accounts. Non-existent users and root are automatically skipped without errors.
 
@@ -226,19 +226,19 @@ Each user in the ``users`` list is a dictionary:
      - Git configuration (see Git Configuration below)
    * - ``nodejs``
      - dict
-     - Node.js configuration (see :doc:`nodejs`)
+     - Node.js configuration (see :doc:`install_nodejs`)
    * - ``rust``
      - dict
-     - Rust configuration (see :doc:`rust`)
+     - Rust configuration (see :doc:`install_rust`)
    * - ``go``
      - dict
-     - Go configuration (see :doc:`go`)
+     - Go configuration (see :doc:`install_go`)
    * - ``neovim``
      - dict
-     - Neovim configuration (see :doc:`neovim`)
-   * - ``terminal_config``
-     - dict
-     - Terminal configuration (see :doc:`terminal_config`)
+     - Neovim configuration (see :doc:`install_neovim`)
+   * - ``terminal_entries``
+     - list
+     - Terminal emulators to configure (see :doc:`install_terminfo`)
    * - ``dotfiles``
      - dict
      - Dotfiles deployment configuration (see Dotfiles Configuration below)
@@ -478,13 +478,13 @@ Dependencies
 
 **Role Dependencies:**
 
-This role orchestrates the following roles from this collection:
+This role orchestrates the following utility roles from this collection:
 
-- :doc:`nodejs` - Node.js and npm packages
-- :doc:`rust` - Rust and cargo packages
-- :doc:`go` - Go and go packages
-- :doc:`neovim` - Neovim configuration
-- :doc:`terminal_config` - Terminal emulator terminfo
+- :doc:`install_nodejs` - Node.js and npm packages
+- :doc:`install_rust` - Rust and cargo packages
+- :doc:`install_go` - Go and go packages
+- :doc:`install_neovim` - Neovim configuration
+- :doc:`install_terminfo` - Terminal emulator terminfo
 
 **Ansible Collections:**
 
@@ -512,9 +512,13 @@ Some macOS preferences require logout/login or system restart to take effect.
 See Also
 --------
 
-- :doc:`nodejs` - Node.js role documentation
-- :doc:`rust` - Rust role documentation
-- :doc:`go` - Go role documentation
-- :doc:`neovim` - Neovim role documentation
-- :doc:`terminal_config` - Terminal configuration
+- :doc:`configure_operating_system` - Phase 1: OS configuration
+- :doc:`configure_software` - Phase 2: Package management
+- :doc:`system_setup` - Meta-role demonstrating all three phases
+- :doc:`install_nodejs` - Node.js utility role
+- :doc:`install_rust` - Rust utility role
+- :doc:`install_go` - Go utility role
+- :doc:`install_neovim` - Neovim utility role
+- :doc:`install_terminfo` - Terminal configuration utility role
 - :doc:`/reference/variables-reference` - Complete variable reference
+- :doc:`/user-guide/configuration` - Configuration strategies

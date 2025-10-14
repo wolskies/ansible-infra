@@ -1,7 +1,7 @@
-configure_system
-================
+system_setup
+============
 
-Orchestrator role that executes os_configuration, manage_packages, manage_security_services, manage_snap_packages, manage_flatpak, and configure_users in dependency order.
+Meta-role demonstrating the **System → Software → Users** pattern for complete infrastructure setup.
 
 .. contents::
    :local:
@@ -10,19 +10,16 @@ Orchestrator role that executes os_configuration, manage_packages, manage_securi
 Overview
 --------
 
-The ``configure_system`` role executes other collection roles in dependency order. Individual roles can be run directly for granular control, or use tags to run specific subsets.
+The ``system_setup`` role orchestrates the three major "muscle-mover" roles in the collection, demonstrating the recommended pattern for complete system configuration.
 
-Execution Order
-~~~~~~~~~~~~~~~
+Execution Order (Three-Phase Pattern)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Roles are executed in this sequence:
 
-1. ``os_configuration`` - Core system settings (hostname, timezone, locale, services)
-2. ``manage_packages`` - System package installation and repository management
-3. ``manage_security_services`` - Firewall and intrusion prevention configuration
-4. ``manage_snap_packages`` - Snap package management (or removal)
-5. ``manage_flatpak`` - Flatpak application installation
-6. ``configure_users`` - User environment and development tool configuration
+1. ``configure_operating_system`` - Phase 1: OS-level configuration
+2. ``configure_software`` - Phase 2: Package management across all package managers
+3. ``configure_users`` - Phase 3: User preferences and development environments
 
 Usage
 -----
@@ -37,24 +34,32 @@ Complete Ubuntu system setup:
    - hosts: all
      become: true
      roles:
-       - wolskies.infrastructure.configure_system
+       - wolskies.infrastructure.system_setup
      vars:
        domain_timezone: "America/New_York"
        host_hostname: "{{ inventory_hostname }}"
-       users:
-         - name: admin
-           git:
-             user_name: "Admin User"
-             user_email: "admin@example.com"
-       packages:
-         present:
-           all:
-             Ubuntu: [git, curl, vim]
+
+       # Phase 1: Operating System Configuration
        firewall:
          enabled: true
          rules:
            - port: 22
              protocol: tcp
+
+       # Phase 2: Software Packages
+       manage_packages_all:
+         Ubuntu: [git, curl, vim, build-essential]
+
+       # Phase 3: User Configuration
+       users:
+         - name: developer
+           git:
+             user_name: "Developer Name"
+             user_email: "dev@example.com"
+           nodejs:
+             packages: [typescript, eslint]
+           rust:
+             packages: [ripgrep, bat]
 
 Layered configuration using inventory structure:
 
@@ -64,6 +69,20 @@ Layered configuration using inventory structure:
    domain_timezone: "America/New_York"
    domain_locale: "en_US.UTF-8"
 
+   # Phase 1: OS Configuration
+   firewall:
+     enabled: true
+     rules:
+       - port: 22
+         protocol: tcp
+
+   # Phase 2: Base packages
+   manage_packages_all:
+     Ubuntu: [git, curl, vim, htop, tmux]
+     Debian: [git, curl, vim, htop, tmux]
+     Archlinux: [git, curl, vim, htop, tmux]
+
+   # Phase 3: User configuration
    users:
      - name: developer
        git:
@@ -71,40 +90,21 @@ Layered configuration using inventory structure:
          user_email: "developer@example.com"
        nodejs:
          packages: [typescript, eslint, prettier]
-       rust:
-         packages: [ripgrep, fd-find, bat]
-
-   packages:
-     present:
-       all:
-         Ubuntu: [git, curl, vim, htop, tmux]
-         Debian: [git, curl, vim, htop, tmux]
-         Archlinux: [git, curl, vim, htop, tmux]
 
    # group_vars/webservers.yml - Web server specific packages
-   packages:
-     present:
-       group:
-         Ubuntu: [nginx, certbot, postgresql]
-         Debian: [nginx, certbot, postgresql]
+   manage_packages_group:
+     Ubuntu: [nginx, certbot, postgresql]
+     Debian: [nginx, certbot, postgresql]
 
    firewall:
-     enabled: true
      rules:
        - port: 80,443
          protocol: tcp
-         comment: "HTTP/HTTPS traffic"
-       - port: 22
-         protocol: tcp
-         source: "10.0.0.0/8"
-         comment: "SSH from internal network"
 
    # host_vars/web01.yml - Host-specific configuration
    host_hostname: "web01"
-   packages:
-     present:
-       host:
-         Ubuntu: [redis-server, nodejs]
+   manage_packages_host:
+     Ubuntu: [redis-server]
 
 Variables
 ---------
@@ -113,22 +113,16 @@ This role uses collection-wide variables from all orchestrated roles. See :doc:`
 
 **Key variable groups:**
 
-- **System Configuration**: ``domain_timezone``, ``domain_locale``, ``host_hostname``
-- **Package Management**: ``packages.present.all``, ``packages.present.group``, ``packages.present.host``
-- **Security Services**: ``firewall.enabled``, ``firewall.rules``, ``fail2ban.*``
-- **Snap Packages**: ``snap_packages.*``, ``snap.purge``
-- **Flatpak Applications**: ``flatpak_packages.*``
-- **User Configuration**: ``users[]`` with nested tool configuration
+- **Phase 1 (Operating System)**: ``domain_timezone``, ``domain_locale``, ``host_hostname``, ``firewall.*``, ``fail2ban.*``, ``apt.*``, ``pacman.*``
+- **Phase 2 (Software)**: ``manage_packages_all``, ``manage_packages_group``, ``manage_packages_host``, ``snap.*``, ``flatpak.*``
+- **Phase 3 (Users)**: ``users[]`` with nested tool configuration (git, nodejs, rust, go, neovim, dotfiles, terminal_entries)
 
 Tags
 ----
 
-- ``os-configuration`` - OS settings (hostname, timezone, locale, services)
-- ``packages`` - Package management and repositories
-- ``security-services`` - Firewall and fail2ban configuration
-- ``snap-packages`` - Snap package management
-- ``flatpak-packages`` - Flatpak application management
-- ``user-configuration`` - User preferences and development tools
+- ``operating-system`` - OS-level configuration (Phase 1)
+- ``software`` - Package management (Phase 2)
+- ``users`` - User preferences and environments (Phase 3)
 
 Dependencies
 ------------
@@ -137,12 +131,9 @@ Dependencies
 
 This role orchestrates the following roles from this collection:
 
-- :doc:`os_configuration` - Core system configuration
-- :doc:`manage_packages` - Package management
-- :doc:`manage_security_services` - Security services
-- :doc:`manage_snap_packages` - Snap packages
-- :doc:`manage_flatpak` - Flatpak applications
-- :doc:`configure_users` - User environments
+- :doc:`configure_operating_system` - Phase 1: OS configuration
+- :doc:`configure_software` - Phase 2: Package management
+- :doc:`configure_users` - Phase 3: User environments
 
 **Ansible Collections:**
 
@@ -165,6 +156,9 @@ Supports the same platforms as the underlying roles:
 See Also
 --------
 
+- :doc:`configure_operating_system` - Phase 1 documentation
+- :doc:`configure_software` - Phase 2 documentation
+- :doc:`configure_users` - Phase 3 documentation
 - :doc:`/user-guide/configuration` - Configuration strategies
 - :doc:`/reference/variables-reference` - Complete variable reference
 - :doc:`/quickstart` - Quick start guide
