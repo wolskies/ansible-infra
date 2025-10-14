@@ -2,6 +2,16 @@
 
 All notable changes to this collection will be documented in this file.
 
+## [1.3.0] - 2025-10-14
+
+- Fix CI failures from 1.3.0 role name refactor (2a6f570)
+- Add Architecture Decision Records (ADR) infrastructure (a656c15)
+- Fix ansible-lint errors from refactor (516ac3a)
+- Fix old role name references in molecule tests (a1652cd)
+- **Version**: 1.3.0
+- **Build**: 885
+- **Commit**: 2a6f5701
+
 ## [1.3.0] - 2025-01-14
 
 ### Major Refactor - System → Software → Users Pattern
