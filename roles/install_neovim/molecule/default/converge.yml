@@ -27,4 +27,4 @@
 
     - name: Test neovim role
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.neovim
+        name: wolskies.infrastructure.install_neovim

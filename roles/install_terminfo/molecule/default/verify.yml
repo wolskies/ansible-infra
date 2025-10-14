@@ -114,7 +114,7 @@
     # =============================================================================
     - name: Run terminal_config role again for idempotency test
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.terminal_config
+        name: wolskies.infrastructure.install_terminfo
       vars:
         terminal_user: testdev
         terminal_entries:

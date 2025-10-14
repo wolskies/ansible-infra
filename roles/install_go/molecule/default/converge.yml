@@ -27,4 +27,4 @@
 
     - name: Test go role
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.go
+        name: wolskies.infrastructure.install_go

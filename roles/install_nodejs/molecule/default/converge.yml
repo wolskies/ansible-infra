@@ -27,4 +27,4 @@
 
     - name: Test nodejs role
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.nodejs
+        name: wolskies.infrastructure.install_nodejs

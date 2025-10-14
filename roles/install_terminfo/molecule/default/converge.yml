@@ -27,7 +27,7 @@
 
     - name: Test terminal_config role with multiple terminals
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.terminal_config
+        name: wolskies.infrastructure.install_terminfo
       vars:
         terminal_user: testdev
         terminal_entries:

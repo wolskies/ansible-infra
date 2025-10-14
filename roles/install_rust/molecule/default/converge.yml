@@ -27,4 +27,4 @@
 
     - name: Test rust role
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.rust
+        name: wolskies.infrastructure.install_rust
