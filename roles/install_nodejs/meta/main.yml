@@ -1,10 +1,8 @@
 ---
 galaxy_info:
-  role_name: configure_users
+  role_name: install_nodejs
   author: wolskies.infrastructure
-  description: |
-    Phase 3 - User preferences and development environments. Manages git config, dotfiles,
-    development tools (Node.js, Rust, Go, Neovim), terminal config, macOS preferences.
+  description: Install Node.js and manage npm packages for specific users (Utility role)
   license: MIT
   min_ansible_version: "2.12"
   platforms:
@@ -23,14 +21,13 @@ galaxy_info:
       versions:
         - all
   galaxy_tags:
-    - user
-    - configuration
+    - nodejs
+    - npm
     - development
-    - dotfiles
-    - macos
+    - javascript
+    - typescript
 
 dependencies: []
 
 collections:
-  - ansible.posix # For authorized_key module
-  - community.general # For git_config, osx_defaults modules
+  - community.general # For npm, homebrew modules

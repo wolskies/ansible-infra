@@ -1,0 +1,42 @@
+---
+galaxy_info:
+  role_name: configure_operating_system
+  namespace: wolskies
+  author: wolskies.infrastructure
+  description: |
+    Phase 1 - Operating System configuration. Handles OS-level settings: timezone, locale,
+    systemd services, kernel modules, journal, firewall, fail2ban, package manager config.
+  company: wolskinet
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+    - name: MacOSX
+      versions:
+        - all
+
+  galaxy_tags:
+    - system
+    - configuration
+    - operating_system
+    - timezone
+    - locale
+    - firewall
+    - security
+    - fail2ban
+    - systemd
+    - journal
+
+dependencies: []
+
+collections:
+  - community.general # For timezone, locale_gen, modprobe, osx_defaults modules

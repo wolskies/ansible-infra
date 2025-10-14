@@ -1,0 +1,35 @@
+---
+galaxy_info:
+  role_name: system_setup
+  author: wolskies.infrastructure
+  description: |
+    Meta-role demonstrating System → Software → Users pattern. Orchestrates
+    configure_operating_system, configure_software, and configure_users.
+  company: wolskinet
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - all
+    - name: MacOSX
+      versions:
+        - all
+
+  galaxy_tags:
+    - system
+    - configuration
+    - orchestration
+    - users
+    - packages
+    - security
+    - automation
+
+dependencies: []

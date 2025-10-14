@@ -1,72 +1,64 @@
 Roles
 =====
 
-The ``wolskies.infrastructure`` collection includes the following roles.
+The ``wolskies.infrastructure`` collection follows the **System → Software → Users** pattern with three major "muscle-mover" roles and supporting utility roles.
 
 .. contents::
    :local:
    :depth: 1
 
-Orchestrator Roles
-------------------
+Meta-Role
+---------
 
-:doc:`configure_system`
-    Orchestrates os_configuration, manage_packages, manage_security_services, manage_flatpak, manage_snap_packages, and configure_users for complete system setup.
+:doc:`system_setup`
+    Demonstrates the System → Software → Users pattern. Orchestrates configure_operating_system, configure_software, and configure_users for complete system setup.
+
+Major Roles (Three-Phase Pattern)
+----------------------------------
+
+:doc:`configure_operating_system`
+    **Phase 1 - Operating System**: OS-level configuration including hostname, timezone, locale, NTP, systemd services, kernel modules, firewall, fail2ban, and package manager configuration (APT/Pacman mirrors and auto-updates).
+
+:doc:`configure_software`
+    **Phase 2 - Software**: Package management across APT, Pacman, Homebrew, Snap, and Flatpak with hierarchical configuration and repository management.
 
 :doc:`configure_users`
-    Orchestrates nodejs, rust, go, neovim, and terminal_config for user environment configuration. Skips non-existent users and root automatically.
+    **Phase 3 - Users**: User preferences and development environments. Orchestrates install_nodejs, install_rust, install_go, install_neovim, and install_terminfo. Configures Git, dotfiles, and platform-specific preferences (macOS Dock/Finder).
 
-System Configuration
---------------------
+Utility Roles (install_*)
+--------------------------
 
-:doc:`os_configuration`
-    Core operating system configuration including hostname, timezone, locale, time synchronization, systemd services, kernel modules, sysctl parameters, and udev rules.
-
-:doc:`manage_packages`
-    Cross-platform package management (APT, Pacman, Homebrew) with repository management and layered configuration.
-
-:doc:`manage_security_services`
-    Firewall (UFW/ALF) and intrusion prevention (fail2ban) configuration across Linux and macOS.
-
-:doc:`manage_flatpak`
-    Flatpak package system management for Ubuntu, Debian, and Arch Linux. Supports Flathub repository and desktop integration plugins.
-
-:doc:`manage_snap_packages`
-    Snap package system management and optional complete removal on Ubuntu/Debian.
-
-Development Tools
------------------
-
-:doc:`nodejs`
+:doc:`install_nodejs`
     Node.js installation and npm package management for user environments.
 
-:doc:`rust`
+:doc:`install_rust`
     Rust toolchain installation via rustup and cargo package management.
 
-:doc:`go`
+:doc:`install_go`
     Go installation and go package management for development tools.
 
-:doc:`neovim`
+:doc:`install_neovim`
     Neovim installation with optional LSP configuration deployment.
 
-:doc:`terminal_config`
+:doc:`install_terminfo`
     Terminal emulator terminfo installation (Alacritty, Kitty, WezTerm) for proper terminal support.
 
 Role Relationships
 ------------------
 
-**Orchestrator roles** invoke other roles:
+**System → Software → Users Pattern:**
 
-* ``configure_system`` → os_configuration, manage_packages, manage_security_services, manage_flatpak, manage_snap_packages, configure_users
-* ``configure_users`` → nodejs, rust, go, neovim, terminal_config
+* ``system_setup`` → configure_operating_system, configure_software, configure_users
 
-**Execution order** (when using individual roles):
+**User configuration orchestration:**
 
-1. ``os_configuration`` - system-level settings
-2. ``manage_packages`` - install packages (including firewall packages)
-3. ``manage_security_services`` - configure firewall and fail2ban
-4. ``manage_flatpak`` / ``manage_snap_packages`` - application packages
-5. ``configure_users`` - user environments (requires language runtimes from manage_packages if using system-wide installs)
+* ``configure_users`` → install_nodejs, install_rust, install_go, install_neovim, install_terminfo
+
+**Recommended execution order** (when using individual roles):
+
+1. ``configure_operating_system`` - OS settings, firewall, fail2ban, package manager configuration
+2. ``configure_software`` - Install packages across all package managers
+3. ``configure_users`` - User environments (requires packages from Phase 2 for language toolchains)
 
 Role Documentation
 ------------------
@@ -74,15 +66,12 @@ Role Documentation
 .. toctree::
    :maxdepth: 1
 
-   configure_system
+   system_setup
+   configure_operating_system
+   configure_software
    configure_users
-   os_configuration
-   manage_packages
-   manage_security_services
-   manage_flatpak
-   manage_snap_packages
-   nodejs
-   rust
-   go
-   neovim
-   terminal_config
+   install_nodejs
+   install_rust
+   install_go
+   install_neovim
+   install_terminfo

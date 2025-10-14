@@ -2,6 +2,62 @@
 
 All notable changes to this collection will be documented in this file.
 
+## [1.3.0] - 2025-01-14
+
+### Major Refactor - System → Software → Users Pattern
+
+This release represents a significant architectural restructuring of the collection to improve clarity, maintainability, and usability.
+
+#### Breaking Changes
+
+**Role Renames:**
+- `configure_system` → `system_setup` (meta-role)
+- `os_configuration` → `configure_operating_system` (Phase 1)
+- `manage_packages` → `configure_software` (Phase 2)
+- `configure_users` → `configure_users` (Phase 3, unchanged)
+- `nodejs` → `install_nodejs` (utility role)
+- `rust` → `install_rust` (utility role)
+- `go` → `install_go` (utility role)
+- `neovim` → `install_neovim` (utility role)
+- `terminal_config` → `install_terminfo` (utility role)
+
+**Variable Structure Updates:**
+- Updated user configuration schema for terminal and neovim settings
+- Improved variable naming consistency across roles
+
+#### Added
+
+- **Three-Phase Architecture**: Clear System → Software → Users pattern
+- **Comprehensive Documentation**: Complete overhaul of all role documentation
+  - New user guide with configuration strategies and examples
+  - Detailed platform support documentation
+  - Complete variable reference guide
+  - Migration information in role docs
+- **Meta-Role**: `system_setup` demonstrates the complete three-phase pattern
+- **Utility Roles**: Clear `install_*` prefix for targeted installations
+- **Enhanced Role Documentation**: Each role now has comprehensive docs including:
+  - Usage examples (standalone and integrated)
+  - Platform-specific features and limitations
+  - Troubleshooting guides
+  - Cross-references to related roles
+
+#### Changed
+
+- Restructured role organization for better clarity
+- Improved variable naming conventions
+- Enhanced documentation structure and content
+- Updated CI configuration for new GitLab server URL
+- Better separation of concerns between meta-role, major roles, and utility roles
+
+#### Fixed
+
+- GitLab CI runner URL configuration (oldgitlab.wolskinet.com)
+- Clone URL now uses HTTPS instead of HTTP in CI
+
+### Migration Notes
+
+All role renames maintain the same functionality - only the role names have changed. Update your playbooks to use the new role names. See the comprehensive documentation in `docs/` for details on the new structure.
+
 ## [1.2.5] - 2025-10-12
 
 - update changelog for v1.2.5 (8faaf9a)

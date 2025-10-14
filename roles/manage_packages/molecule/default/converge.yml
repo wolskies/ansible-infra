@@ -1,8 +1,0 @@
----
-- name: Test manage_packages role
-  hosts: all
-  become: true
-  tasks:
-    - name: Test manage_packages role
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_packages

@@ -1,0 +1,30 @@
+---
+- name: Manage packages by distribution
+  ansible.builtin.include_tasks: "manage-packages-{{ ansible_os_family }}.yml"
+  tags: packages
+
+- name: Disable and remove snap system (primary use case)
+  ansible.builtin.include_tasks: disable-snap.yml
+  when:
+    - ansible_os_family == "Debian"
+    - snap.remove_completely | default(false)
+  tags:
+    - snap-packages
+
+- name: Manage specific snap packages (when snap system is enabled)
+  ansible.builtin.include_tasks: manage-snap-packages.yml
+  when:
+    - ansible_os_family == "Debian"
+    - not (snap.remove_completely | default(false))
+    - snap_packages | default([]) | length > 0
+  tags:
+    - snap-packages
+
+- name: Manage specific snap packages (when snap system is enabled)
+  ansible.builtin.include_tasks: manage-flatpaks.yml
+  when:
+    - ansible_system == "Linux"
+    - (flatpak.enabled | default(false))
+    - flatpak_packages | default([]) | length > 0
+  tags:
+    - snap-packages

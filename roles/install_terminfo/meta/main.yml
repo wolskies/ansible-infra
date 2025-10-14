@@ -1,0 +1,39 @@
+---
+galaxy_info:
+  role_name: install_terminfo
+  author: wolskies
+  description: Terminal emulator configuration and terminfo setup for modern terminals (Utility role)
+  company: wolskies
+
+  license: MIT
+
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - "22.04"
+        - "24.04"
+    - name: Debian
+      versions:
+        - "12"
+        - "13"
+    - name: ArchLinux
+      versions:
+        - any
+    - name: MacOSX
+      versions:
+        - "10.15"
+        - "11"
+        - "12"
+        - "13"
+        - "14"
+
+  galaxy_tags:
+    - terminal
+    - terminfo
+    - alacritty
+    - kitty
+    - configuration
+
+dependencies: []

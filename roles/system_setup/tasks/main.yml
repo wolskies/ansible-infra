@@ -1,0 +1,26 @@
+---
+- name: Configure Operating System
+  ansible.builtin.include_role:
+    name: "wolskies.infrastructure.configure_operating_system"
+  tags:
+    - host-configuration
+    - core
+
+- name: Configure System Software and Packages
+  ansible.builtin.include_role:
+    name: "wolskies.infrastructure.configure_software"
+  tags:
+    - packages
+    - package-management
+    - core
+
+- name: Configure Users and User Preferences
+  ansible.builtin.include_role:
+    name: "wolskies.infrastructure.configure_users"
+  tags:
+    - user-preferences
+    - optional
+
+- name: Add Group Services and Software
+
+- name: Add Host-specific Services and Software

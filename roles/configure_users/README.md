@@ -1,6 +1,6 @@
 # configure_users
 
-Configures user preferences and development environments for existing users.
+**Phase 3** of the System → Software → Users pattern. Configures user preferences and development environments for existing users.
 
 **Features:**
 - Development environments: Git, Node.js, Rust, Go, Neovim
@@ -130,7 +130,7 @@ See `defaults/main.yml` for the complete variable structure. Key variables:
 
 ## Dependencies
 
-Orchestrates: `nodejs`, `rust`, `go`, `neovim`, `terminal_config` roles
+Orchestrates: `install_nodejs`, `install_rust`, `install_go`, `install_neovim`, `install_terminfo` roles
 
 ## Example Playbook
 

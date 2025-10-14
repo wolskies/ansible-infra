@@ -1,0 +1,75 @@
+---
+domain_name: ""
+domain_timezone: ""
+domain_locale: "en_US.UTF-8"
+domain_language: "en_US.UTF-8"
+domain_timesync:
+  enabled: false
+  servers: []
+
+host_hostname: ""
+host_update_hosts: true
+host_services:
+  enable: []
+  disable: []
+  mask: []
+host_modules:
+  load: []
+  blacklist: []
+host_udev_rules: []
+
+journal:
+  configure: false
+  max_size: "500M"
+  max_retention: "30d"
+  forward_to_syslog: false
+  compress: true
+
+hardening:
+  os_hardening_enabled: false
+  ssh_hardening_enabled: false
+
+apt:
+  proxy: ""
+  no_recommends: false
+  unattended_upgrades:
+    enabled: false
+  system_upgrade:
+    enable: false
+    type: "safe"
+
+pacman:
+  proxy: ""
+  no_confirm: false
+  multilib:
+    enabled: false
+  enable_aur: false
+
+macosx:
+  updates:
+    auto_check: true
+    auto_download: true
+  gatekeeper:
+    enabled: true
+  system_preferences:
+    natural_scroll: true
+    measurement_units: "Inches"
+    use_metric: false
+    show_all_extensions: false
+  airdrop:
+    ethernet_enabled: false
+
+firewall:
+  enabled: false
+  prevent_ssh_lockout: true
+  stealth_mode: false
+  block_all: false
+  logging: false
+  rules: []
+
+fail2ban:
+  enabled: false
+  bantime: "10m"
+  findtime: "10m"
+  maxretry: 5
+  jails: []

@@ -1,5 +1,0 @@
----
-- name: Include OS-specific security configuration
-  ansible.builtin.include_tasks: security-{{ ansible_system }}.yml
-  tags:
-    - security

@@ -1,0 +1,61 @@
+---
+# =============================================================================
+# MANAGE PACKAGES ROLE DEFAULTS
+# =============================================================================
+# This role uses collection-wide variables from SRD section 2.2.1
+# All variables defined exactly as specified in the SRD
+# =============================================================================
+
+# Layered Package Definitions (merged in order: all → group → host)
+manage_packages_all: {}
+manage_packages_group: {}
+manage_packages_host: {}
+
+# APT Repository Management (Debian/Ubuntu)
+apt_repositories_all: {}
+apt_repositories_group: {}
+apt_repositories_host: {}
+
+# Homebrew Configuration (macOS)
+homebrew:
+  taps: []
+  cleanup_cache: true
+
+# macOS Cask Management
+manage_casks:
+  Darwin: []
+  # Example:
+  # Darwin:
+  #   - name: google-chrome
+  #     state: present
+  #   - name: visual-studio-code
+  #     state: present
+
+snap:
+  remove_completely: false
+
+# Snap Package Management
+snap_packages: []
+# Example:
+# snap_packages:
+#   - name: code
+#     state: present
+#     classic: true
+#   - name: discord
+#     state: present
+
+flatpak:
+  enabled: false
+  flathub: false
+  plugins:
+    gnome: false
+    plasma: false
+
+# Flatpak Package Management
+flatpak_packages: []
+# Example:
+# flatpak_packages:
+#   - name: org.mozilla.firefox
+#     state: present
+#   - name: org.gimp.GIMP
+#     state: present

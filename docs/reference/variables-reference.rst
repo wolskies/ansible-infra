@@ -457,7 +457,7 @@ Hierarchical Package Management
        - name: string
      Archlinux:
        - name: string
-     MacOSX:
+     Darwin:
        - name: string
 
 **Example:**
@@ -584,33 +584,34 @@ User Configuration
        go:                             # Optional: Go packages
          packages: [string, ...]
        neovim:                         # Optional: Neovim installation
-         enabled: boolean
-       terminal_entries: [string, ...] # Optional: Terminal emulator configs (alacritty, kitty, wezterm)
+         deploy_config: boolean
+       terminal_config:                # Optional: Terminal emulator configuration
+         install_terminfo: [string, ...]  # Terminal types: alacritty, kitty, wezterm
        dotfiles:                       # Optional: Dotfiles repository
          enable: boolean
          repository: string
          dest: string
          branch: string
-         disable_clone: boolean
+         stow_packages: [string, ...]  # Stow packages to deploy
        Darwin:                         # Optional: macOS-specific preferences
          dock:
            tile_size: int
            autohide: boolean
            minimize_to_application: boolean
            show_recents: boolean
+           orientation: string
          finder:
            show_extensions: boolean
            show_hidden: boolean
            show_pathbar: boolean
            show_statusbar: boolean
-           show_external_drives: boolean
-           show_removable_media: boolean
-           show_posix_path: boolean
+           default_view: string
          screenshots:
            directory: string
            format: string
-         iterm2:
-           prompt_on_quit: boolean
+           show_thumbnail: boolean
+         homebrew:
+           shell_path: boolean
 
 **Example:**
 
@@ -628,27 +629,34 @@ User Configuration
        rust:
          packages: [cargo-watch, ripgrep]
        go:
-         packages: [github.com/golangci/golangci-lint/cmd/golangci-lint]
+         packages: [github.com/golangci/golangci-lint/cmd/golangci-lint@latest]
        neovim:
-         enabled: true
-       terminal_entries: [alacritty, kitty]
+         deploy_config: true
+       terminal_config:
+         install_terminfo: [alacritty, kitty]
        dotfiles:
          enable: true
          repository: "https://github.com/user/dotfiles.git"
          dest: ".dotfiles"
          branch: "main"
+         stow_packages: [bash, vim, tmux]
        Darwin:
          dock:
            tile_size: 48
            autohide: true
            show_recents: false
+           orientation: "bottom"
          finder:
            show_extensions: true
            show_hidden: true
            show_pathbar: true
+           default_view: "list"
          screenshots:
            directory: "Screenshots"
            format: "png"
+           show_thumbnail: false
+         homebrew:
+           shell_path: true
 
 Security Services
 -----------------
