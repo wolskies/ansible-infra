@@ -187,74 +187,65 @@ test-role-discovery:
 # Dotfiles deployment is now handled as part of per-user configuration
 
 # Individual role-level tests (run in parallel for faster feedback)
-test-role-nodejs:
+test-role-install-nodejs:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/nodejs && molecule test
-    - echo "✅ Node.js role tests passed"
+    - cd roles/install_nodejs && molecule test
+    - echo "✅ Node.js installation role tests passed"
   except:
     - tags
 
-test-role-rust:
+test-role-install-rust:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/rust && molecule test
-    - echo "✅ Rust role tests passed"
+    - cd roles/install_rust && molecule test
+    - echo "✅ Rust installation role tests passed"
   except:
     - tags
 
-test-role-go:
+test-role-install-go:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/go && molecule test
-    - echo "✅ Go role tests passed"
+    - cd roles/install_go && molecule test
+    - echo "✅ Go installation role tests passed"
   except:
     - tags
 
-test-role-neovim:
+test-role-install-neovim:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/neovim && molecule test
-    - echo "✅ Neovim role tests passed"
+    - cd roles/install_neovim && molecule test
+    - echo "✅ Neovim installation role tests passed"
   except:
     - tags
 
-# Disabled: terminal_config tests fail in containers due to terminfo compilation limitations
-# test-role-terminal-config:
+# Disabled: install_terminfo tests fail in containers due to terminfo compilation limitations
+# test-role-install-terminfo:
 #   extends: .molecule_test_template
 #   stage: test
 #   script:
-#     - cd roles/terminal_config && molecule test
-#     - echo "✅ Terminal config role tests passed"
+#     - cd roles/install_terminfo && molecule test
+#     - echo "✅ Terminal info installation role tests passed"
 
-test-role-os-configuration:
+test-role-configure-operating-system:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/os_configuration && molecule test -- --skip-tags no-container
-    - echo "✅ OS configuration role tests passed"
+    - cd roles/configure_operating_system && molecule test -- --skip-tags no-container
+    - echo "✅ Operating system configuration role tests passed"
   except:
     - tags
 
-test-role-manage-packages:
+test-role-configure-software:
   extends: .molecule_test_template
   stage: test
   script:
-    - cd roles/manage_packages && molecule test -- --skip-tags no-container
-    - echo "✅ Package management role tests passed"
-  except:
-    - tags
-
-test-role-manage-security-services:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - cd roles/manage_security_services && molecule test
-    - echo "✅ Security services role tests passed"
+    - cd roles/configure_software && molecule test -- --skip-tags no-container
+    - echo "✅ Software configuration role tests passed"
   except:
     - tags
 
@@ -267,23 +258,24 @@ test-role-configure-user:
   except:
     - tags
 
-test-role-manage-flatpak:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - cd roles/manage_flatpak && molecule test
-    - echo "✅ Flatpak management role tests passed (Ubuntu + Arch Linux)"
-  except:
-    - tags
-
-test-role-manage-snap-packages:
-  extends: .molecule_test_template
-  stage: test
-  script:
-    - cd roles/manage_snap_packages && molecule test
-    - echo "✅ Snap packages role tests passed"
-  except:
-    - tags
+# REMOVED: Flatpak and Snap management consolidated into configure_software role
+# test-role-manage-flatpak:
+#   extends: .molecule_test_template
+#   stage: test
+#   script:
+#     - cd roles/manage_flatpak && molecule test
+#     - echo "✅ Flatpak management role tests passed (Ubuntu + Arch Linux)"
+#   except:
+#     - tags
+#
+# test-role-manage-snap-packages:
+#   extends: .molecule_test_template
+#   stage: test
+#   script:
+#     - cd roles/manage_snap_packages && molecule test
+#     - echo "✅ Snap packages role tests passed"
+#   except:
+#     - tags
 
 # Variable validation - ensures role variable passing and defaults work correctly
 test-variable-validation:

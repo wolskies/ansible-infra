@@ -3,17 +3,17 @@
   hosts: all
   become: true
   tasks:
-    - name: Include os_configuration role
+    - name: Include configure_operating_system role
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.os_configuration
+        name: wolskies.infrastructure.configure_operating_system
 
 - name: Configure servers
   hosts: servers
   become: true
   tasks:
-    - name: Include manage_security_services role for servers
+    - name: Configure operating system security for servers
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_security_services
+        name: wolskies.infrastructure.configure_operating_system
       when:
         - firewall is defined
         - firewall.enabled | default(false)

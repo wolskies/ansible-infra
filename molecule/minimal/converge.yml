@@ -3,28 +3,22 @@
   hosts: all
   gather_facts: true
   tasks:
-    # Test os_configuration with minimal config - should not fail
-    - name: Test os_configuration role with minimal config
+    # Test configure_operating_system with minimal config - should not fail
+    - name: Test configure_operating_system role with minimal config
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.os_configuration
+        name: wolskies.infrastructure.configure_operating_system
       tags: minimal-test
 
-    # Test user management (now part of os_configuration) with minimal config - should not fail
+    # Test user management (now part of configure_operating_system) with minimal config - should not fail
     - name: Test user management with minimal config
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.os_configuration
+        name: wolskies.infrastructure.configure_operating_system
       tags:
         - minimal-test
         - users
 
-    # Test manage_security_services with minimal config - should not fail
-    - name: Test manage_security_services role with minimal config
+    # Test configure_software with minimal config - should not fail
+    - name: Test configure_software role with minimal config
       ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_security_services
-      tags: minimal-test
-
-    # Test manage_packages with minimal config - should not fail
-    - name: Test manage_packages role with minimal config
-      ansible.builtin.include_role:
-        name: wolskies.infrastructure.manage_packages
+        name: wolskies.infrastructure.configure_software
       tags: minimal-test
