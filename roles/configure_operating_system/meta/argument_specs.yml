@@ -319,24 +319,76 @@ argument_specs:
             default: []
             description: Firewall rules configuration
             options:
-              port:
-                type: int
+              rule:
+                type: str
                 required: true
+                choices: ["allow", "deny", "reject", "limit"]
+                description: Firewall rule action (allow, deny, reject, or limit)
+              port:
+                type: raw
+                required: false
                 description: Port number or range (e.g., 80, 443, "8000:8100")
+              proto:
+                type: str
+                required: false
+                description: Protocol (tcp, udp, etc.) - alias for protocol
               protocol:
                 type: str
-                default: "tcp"
-                choices: ["tcp", "udp"]
-                description: Protocol for the rule
-              action:
+                required: false
+                description: Protocol (tcp, udp, etc.) - alias for proto
+              name:
                 type: str
-                default: "allow"
-                choices: ["allow", "deny"]
-                description: Firewall rule action
+                required: false
+                description: UFW application name (e.g., "OpenSSH", "Nginx Full")
+              comment:
+                type: str
+                required: false
+                description: Comment for the firewall rule
+              src:
+                type: str
+                required: false
+                description: Source IP address or network - alias for source
               source:
                 type: str
                 required: false
                 description: Source IP address or network (e.g., "192.168.1.0/24")
+              dest:
+                type: str
+                required: false
+                description: Destination IP address or network - alias for destination
+              destination:
+                type: str
+                required: false
+                description: Destination IP address or network
+              to_ip:
+                type: str
+                required: false
+                description: Destination IP address for forwarding rules
+              from_ip:
+                type: str
+                required: false
+                description: Source IP address for rules
+              interface:
+                type: str
+                required: false
+                description: Network interface (e.g., "eth0", "wlan0")
+              direction:
+                type: str
+                required: false
+                choices: ["in", "out", "routed"]
+                description: Traffic direction
+              delete:
+                type: bool
+                required: false
+                description: Delete the specified rule
+              route:
+                type: bool
+                required: false
+                description: Apply rule to routed/forwarded packets
+              log:
+                type: bool
+                required: false
+                description: Enable logging for this rule
 
       # Fail2ban Configuration
       fail2ban:
